@@ -106,7 +106,7 @@ export default function CreateRouting({ items, orders }: Props) {
                                 <Switch
                                     id="is_active"
                                     checked={data.is_active}
-                                    onCheckedChange={(checked) => setData('is_active', !!checked as any)}
+                                    onCheckedChange={(checked) => setData('is_active', !!checked)}
                                 />
                                 <Label htmlFor="is_active">Roteiro Ativo</Label>
                             </div>

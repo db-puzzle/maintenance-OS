@@ -30,7 +30,7 @@ import { MOStatusBadge } from '@/pages/production/reporting/components/MOStatusB
 import { MOPriorityBadge } from '@/pages/production/reporting/components/MOPriorityBadge';
 import { MOProgressBar } from '@/pages/production/reporting/components/MOProgressBar';
 import { MOCardView } from '@/pages/production/reporting/components/MOCardView';
-import { MODetailPanel } from '@/pages/production/reporting/components/MODetailPanel';
+import { MODetailsDialog } from '@/pages/production/reporting/components/MODetailsDialog';
 import { ReportProductionDialog } from '@/pages/production/reporting/components/ReportProductionDialog';
 import { ReportScrapDialog } from '@/pages/production/reporting/components/ReportScrapDialog';
 import { HoldProductionDialog } from '@/pages/production/reporting/components/HoldProductionDialog';
@@ -81,6 +81,7 @@ export default function ProductionReporting({
     const [viewMode, setViewMode] = useState<'table' | 'card'>(
         localStorage.getItem('production-reporting-view') as 'table' | 'card' || 'table'
     );
+
     const [autoRefresh, setAutoRefresh] = useState(true);
     // Removed unused state: showFilters, setShowFilters
     const [selectedOrder, setSelectedOrder] = useState<ManufacturingOrder | null>(null);
@@ -111,6 +112,8 @@ export default function ProductionReporting({
     useEffect(() => {
         localStorage.setItem('production-reporting-view', viewMode);
     }, [viewMode]);
+
+
 
     // Auto-refresh every 30 seconds
     useEffect(() => {
@@ -429,25 +432,28 @@ export default function ProductionReporting({
                                 <RefreshCw className="h-4 w-4 mr-1" />
                                 Refresh
                             </Button>
-                            <div className="flex rounded-md shadow-sm">
-                                <Button
-                                    size="sm"
-                                    variant={viewMode === 'table' ? 'default' : 'outline'}
-                                    className="rounded-r-none"
-                                    onClick={() => setViewMode('table')}
-                                >
-                                    <Table className="h-4 w-4" />
-                                    Table
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant={viewMode === 'card' ? 'default' : 'outline'}
-                                    className="rounded-l-none"
-                                    onClick={() => setViewMode('card')}
-                                >
-                                    <LayoutGrid className="h-4 w-4" />
-                                    Card
-                                </Button>
+                            <div className="flex gap-2">
+                                <div className="flex rounded-md shadow-sm">
+                                    <Button
+                                        size="sm"
+                                        variant={viewMode === 'table' ? 'default' : 'outline'}
+                                        className="rounded-r-none"
+                                        onClick={() => setViewMode('table')}
+                                    >
+                                        <Table className="h-4 w-4" />
+                                        Table
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant={viewMode === 'card' ? 'default' : 'outline'}
+                                        className="rounded-l-none"
+                                        onClick={() => setViewMode('card')}
+                                    >
+                                        <LayoutGrid className="h-4 w-4" />
+                                        Card
+                                    </Button>
+                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -607,15 +613,17 @@ export default function ProductionReporting({
                 </div>
             </div>
 
-            {/* Order Detail Panel */}
-            {selectedOrder && (
-                <MODetailPanel
-                    order={selectedOrder}
-                    onClose={() => setSelectedOrder(null)}
-                    onAction={handleAction}
-                    canUpdate={canUpdate}
-                />
-            )}
+            {/* Order Detail Dialog */}
+            <MODetailsDialog
+                order={selectedOrder}
+                isOpen={!!selectedOrder}
+                onOpenChange={(open) => {
+                    if (!open) setSelectedOrder(null);
+                }}
+                onAction={handleAction}
+                onOrderClick={(order) => router.visit(route('production.orders.show', { order: order.id }))}
+                canUpdate={canUpdate}
+            />
 
             {/* Dialogs */}
             {reportProductionOrder && (

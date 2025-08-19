@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { ChartGantt, ClipboardList, LayoutGrid, Shield, Award, Factory } from 'lucide-react';
+import { ChartGantt, ClipboardList, LayoutGrid, Award, Factory, FileBox, Truck, Wrench, UsersRound } from 'lucide-react';
 import AppLogo from './app-logo';
 interface NavGroup {
     title: string;
@@ -19,9 +19,77 @@ const gerenciamentoNavItems: NavGroup = {
             icon: LayoutGrid,
         },
         {
-            title: 'Manutenção',
+            title: 'Engenharia',
+            href: '#',
+            icon: FileBox,
+            items: [
+                {
+                    title: 'Itens',
+                    href: '/production/items',
+                },
+                {
+                    title: 'BOMs',
+                    href: '/production/bom',
+                },
+                {
+                    title: 'Categorias de Itens',
+                    href: '/production/categories',
+                },
+            ],
+        },
+        {
+            title: 'Planejamento',
             href: '#',
             icon: ChartGantt,
+            items: [
+                {
+                    title: 'Ordens de Manufatura',
+                    href: '/production/orders',
+                },
+                {
+                    title: 'Roteiros',
+                    href: '/production/routing',
+                },
+                {
+                    title: 'Programação',
+                    href: '/production/planning',
+                },
+            ],
+        },
+        {
+            title: 'Produção',
+            href: '#',
+            icon: Factory,
+            items: [
+                {
+                    title: 'Relatório de Produção',
+                    href: '/production/reporting',
+                },
+                {
+                    title: 'Células de Trabalho',
+                    href: '/production/work-cells',
+                },
+            ],
+        },
+        {
+            title: 'Expedição',
+            href: '#',
+            icon: Truck,
+            items: [
+                {
+                    title: 'Remessas',
+                    href: '/production/shipments',
+                },
+                {
+                    title: 'Rastreamento',
+                    href: '/production/tracking',
+                },
+            ],
+        },
+        {
+            title: 'Manutenção',
+            href: '#',
+            icon: Wrench,
             items: [
                 {
                     title: 'Ativos',
@@ -41,70 +109,27 @@ const gerenciamentoNavItems: NavGroup = {
                 },
             ],
         },
-        {
-            title: 'Produção',
-            href: '#',
-            icon: Factory,
-            items: [
-                {
-                    title: 'Itens',
-                    href: '/production/items',
-                },
-                {
-                    title: 'BOMs',
-                    href: '/production/bom',
-                },
-                {
-                    title: 'Ordens de Manufatura',
-                    href: '/production/orders',
-                },
-                {
-                    title: 'Roteiros',
-                    href: '/production/routing',
-                },
-                {
-                    title: 'Células de Trabalho',
-                    href: '/production/work-cells',
-                },
-                {
-                    title: 'Categorias de Itens',
-                    href: '/production/categories',
-                },
-                {
-                    title: 'Planejamento',
-                    href: '/production/planning',
-                },
-                {
-                    title: 'Remessas',
-                    href: '/production/shipments',
-                },
-                {
-                    title: 'Rastreamento',
-                    href: '/production/tracking',
-                },
-                {
-                    title: 'Relatório de Produção',
-                    href: '/production/reporting',
-                },
-            ],
-        },
     ],
 };
 const sistemaNavItems: NavGroup = {
     title: 'Configurações',
     items: [
         {
-            title: 'Utilidades',
+            title: 'Usuários',
             href: '#',
-            icon: ClipboardList,
+            icon: UsersRound,
             items: [
                 {
-                    title: 'Exportar Ativos',
-                    href: '/asset-hierarchy/assets/exportar',
+                    title: 'Usuários',
+                    href: '/users',
                 },
                 {
-                    title: 'Importar Ativos',
-                    href: '/asset-hierarchy/assets/importar',
+                    title: 'Permissões',
+                    href: '/permissions',
+                },
+                {
+                    title: 'Convites',
+                    href: '/invitations',
                 },
             ],
         },
@@ -124,21 +149,17 @@ const sistemaNavItems: NavGroup = {
             ],
         },
         {
-            title: 'Segurança',
+            title: 'Utilidades',
             href: '#',
-            icon: Shield,
+            icon: ClipboardList,
             items: [
                 {
-                    title: 'Usuários',
-                    href: '/users',
+                    title: 'Exportar Ativos',
+                    href: '/asset-hierarchy/assets/exportar',
                 },
                 {
-                    title: 'Permissões',
-                    href: '/permissions',
-                },
-                {
-                    title: 'Convites',
-                    href: '/invitations',
+                    title: 'Importar Ativos',
+                    href: '/asset-hierarchy/assets/importar',
                 },
                 {
                     title: 'Logs de Auditoria',

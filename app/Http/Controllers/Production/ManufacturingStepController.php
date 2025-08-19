@@ -162,7 +162,7 @@ class ManufacturingStepController extends Controller
         $this->authorize('update', $step);
 
         $validated = $request->validate([
-            'status' => 'required|in:pending,queued,in_progress,on_hold,completed,skipped',
+            'status' => 'required|in:pending,queued,in_progress,on_hold,awaiting_quality,completed,skipped,cancelled',
         ]);
 
         $step->update($validated);
@@ -214,13 +214,16 @@ class ManufacturingStepController extends Controller
             'quality_result' => 'required|in:passed,failed',
             'quality_notes' => 'nullable|string|max:1000',
             'failure_action' => 'required_if:quality_result,failed|in:scrap,rework',
+            'scrapped_quantity' => 'nullable|integer|min:1',
         ]);
 
         try {
-            $this->orderService->completeExecution($execution, $validated);
-
-            if ($validated['quality_result'] === 'failed') {
-                $this->orderService->handleQualityFailure($execution, $validated['failure_action']);
+            // For steps in awaiting_quality status, use the recordQualityResult method
+            if ($step->status === 'awaiting_quality') {
+                $this->orderService->recordQualityResult($step, $validated);
+            } else {
+                // For in-progress quality checks, complete the execution with quality result
+                $this->orderService->completeExecution($execution, $validated);
             }
 
             return back()->with('success', 'Quality check result recorded successfully.');

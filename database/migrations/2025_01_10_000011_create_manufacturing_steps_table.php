@@ -21,7 +21,9 @@ return new class extends Migration
             $table->foreignId('work_cell_id')->nullable()->constrained('work_cells');
             
             // State management
-            $table->enum('status', ['pending', 'queued', 'in_progress', 'on_hold', 'completed', 'skipped'])->default('pending');
+            // States: pending -> queued -> in_progress -> (awaiting_quality) -> completed
+            // Alternative paths: skipped (bypassed), cancelled (parent order cancelled), on_hold (temporarily paused)
+            $table->enum('status', ['pending', 'queued', 'in_progress', 'on_hold', 'awaiting_quality', 'completed', 'skipped', 'cancelled'])->default('pending');
             
             // Form association
             $table->foreignId('form_id')->nullable()->constrained('forms');

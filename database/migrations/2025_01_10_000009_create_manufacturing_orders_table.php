@@ -24,6 +24,8 @@ return new class extends Migration
             
             // Status tracking
             $table->enum('status', ['draft', 'planned', 'released', 'in_progress', 'on_hold', 'completed', 'cancelled'])->default('draft');
+            $table->string('hold_reason')->nullable();
+            $table->timestamp('hold_at')->nullable();
             $table->integer('priority')->default(50); // 0-100
             
             // Child order tracking

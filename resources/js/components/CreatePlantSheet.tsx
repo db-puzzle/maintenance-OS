@@ -9,11 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { estados } from '@/data/estados';
 import { Plant as ImportedPlant } from '@/types/entities/plant';
-import { createFormAdapter } from '@/utils/form-adapters';
+
 
 
 interface PlantForm {
-    [key: string]: string | number | boolean | null | undefined;
     name: string;
     street: string;
     number: string;
@@ -117,23 +116,23 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
         >
             {({ data, setData, errors, clearErrors, formAdapter }) => {
                 // Custom handler for zip_code field with CEP formatting
-                const handleZipCodeChange = (value: string) => {
+                const _handleZipCodeChange = (value: string) => {
                     setData('zip_code', formatCEP(value));
                 };
 
                 // Create custom form adapter for zip code field with special formatting
-                const customZipCodeFormAdapter = createFormAdapter({
+                const customZipCodeFormAdapter = {
                     data,
-                    setData: ((key: string, value: string | number | boolean | File | null | undefined) => {
+                    setData: (key: string, value: string | number | boolean | File | null | undefined) => {
                         if (key === 'zip_code' && typeof value === 'string') {
                             setData('zip_code', formatCEP(value));
                         } else {
-                            setData(key as any, value);
+                            setData(key as keyof PlantForm, value as PlantForm[keyof PlantForm]);
                         }
-                    }) as any,
+                    },
                     errors,
-                    clearErrors: clearErrors as any
-                });
+                    clearErrors
+                };
 
                 return (
                     <>

@@ -7,6 +7,25 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* 3D Transform Utilities */
+@layer utilities {
+    .preserve-3d {
+        transform-style: preserve-3d;
+        -webkit-transform-style: preserve-3d;
+    }
+
+    .backface-hidden {
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .transition-all {
+            transition-duration: 0.01ms !important;
+        }
+    }
+}
+
 @theme {
     --font-sans:
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';

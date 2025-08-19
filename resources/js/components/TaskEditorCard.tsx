@@ -252,9 +252,9 @@ export default function TaskEditorCard({
                                                                         newOptions[index] = value as string;
                                                                         handleOptionsChange(newOptions);
                                                                     }
-                                                                }) as any,
+                                                                }),
                                                                 errors,
-                                                                clearErrors: clearErrors as any,
+                                                                clearErrors,
                                                             })}
                                                             name={`option-${index}`}
                                                             label={`Opção ${index + 1}`}

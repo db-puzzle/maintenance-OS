@@ -3,7 +3,7 @@ import { useForm } from '@inertiajs/react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -123,7 +123,7 @@ export function ReportProductionDialog({ order, onClose }: ReportProductionDialo
                                     checked={data.mark_complete}
                                     onCheckedChange={(checked) => {
                                         if (typeof checked === 'boolean') {
-                                            setData('mark_complete' as any, checked);
+                                            setData('mark_complete', checked);
                                         }
                                     }}
                                 />

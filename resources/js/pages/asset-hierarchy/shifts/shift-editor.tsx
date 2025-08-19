@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
 import { type BreadcrumbItem } from '@/types';
-import { type ShiftForm as ShiftFormData } from '@/types/asset-hierarchy';
+import { type ShiftForm as _ShiftFormData } from '@/types/asset-hierarchy';
 import { Head, useForm } from '@inertiajs/react';
 import { AlertCircle, Clock, Copy, Plus, Table, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
@@ -288,7 +288,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                     ],
         }));
 
-    const { data, setData, post, put, processing, errors, clearErrors } = useForm<any>({
+    const { data, setData, post, put, processing, errors, clearErrors } = useForm<{ name: string; schedules: WeeklySchedule }>({
         name: shift?.name || '',
         schedules: initialSchedules,
     });

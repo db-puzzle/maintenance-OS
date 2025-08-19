@@ -14,13 +14,28 @@ class ManufacturingStep extends Model
 {
     use HasFactory;
 
+    /**
+     * Step Status Constants
+     * 
+     * State Transitions:
+     * - pending: Initial state when step is created
+     * - queued: Step is ready to execute (dependencies met, MO is released)
+     * - in_progress: Step is currently being executed
+     * - awaiting_quality: Step execution complete, waiting for quality check results
+     * - completed: Step successfully finished (including passed quality checks)
+     * - skipped: Step was bypassed (not executed)
+     * - cancelled: Parent manufacturing order was cancelled
+     * - on_hold: Temporarily paused (follows parent MO status)
+     */
     public const STATUSES = [
         'pending' => 'Pending',
         'queued' => 'Queued',
         'in_progress' => 'In Progress',
         'on_hold' => 'On Hold',
+        'awaiting_quality' => 'Awaiting Quality',
         'completed' => 'Completed',
         'skipped' => 'Skipped',
+        'cancelled' => 'Cancelled',
     ];
 
     public const STEP_TYPES = [
@@ -278,7 +293,7 @@ class ManufacturingStep extends Model
      */
     public function scopeActive($query)
     {
-        return $query->whereIn('status', ['queued', 'in_progress', 'on_hold']);
+        return $query->whereIn('status', ['queued', 'in_progress', 'on_hold', 'awaiting_quality']);
     }
 
     /**
@@ -320,6 +335,114 @@ class ManufacturingStep extends Model
         return $this->hasOne(ManufacturingStepExecution::class)
             ->where('status', 'in_progress')
             ->latest();
+    }
+
+    /**
+     * Move step to queued status when MO is released.
+     * Only moves pending steps that have their dependencies met.
+     */
+    public function moveToQueued(): bool
+    {
+        // Only pending steps can be queued
+        if ($this->status !== 'pending') {
+            return false;
+        }
+
+        // Check if dependencies are met
+        if (!$this->canStart()) {
+            return false;
+        }
+
+        $this->update(['status' => 'queued']);
+        return true;
+    }
+
+    /**
+     * Put step on hold.
+     * Only active steps (in_progress, awaiting_quality) can be put on hold.
+     */
+    public function putOnHold(): bool
+    {
+        if (!in_array($this->status, ['in_progress', 'awaiting_quality'])) {
+            return false;
+        }
+
+        $this->update(['status' => 'on_hold']);
+        return true;
+    }
+
+    /**
+     * Resume step from hold.
+     * Returns to the previous state (in_progress or awaiting_quality).
+     */
+    public function resumeFromHold(): bool
+    {
+        if ($this->status !== 'on_hold') {
+            return false;
+        }
+
+        // Determine the state to return to based on execution status
+        $newStatus = 'in_progress';
+        
+        // If this is a quality check step with executions that have been completed
+        // but no quality result, it should go to awaiting_quality
+        if ($this->step_type === 'quality_check') {
+            $hasCompletedExecution = $this->executions()
+                ->where('status', 'completed')
+                ->whereNull('quality_result')
+                ->exists();
+                
+            if ($hasCompletedExecution) {
+                $newStatus = 'awaiting_quality';
+            }
+        }
+
+        $this->update(['status' => $newStatus]);
+        return true;
+    }
+
+    /**
+     * Cancel step when parent MO is cancelled.
+     * Only non-completed steps can be cancelled.
+     */
+    public function cancel(): bool
+    {
+        if (in_array($this->status, ['completed', 'cancelled'])) {
+            return false;
+        }
+
+        $this->update(['status' => 'cancelled']);
+        return true;
+    }
+
+    /**
+     * Move step to awaiting quality status.
+     * Used when a quality check step completes execution but needs quality verification.
+     */
+    public function moveToAwaitingQuality(): bool
+    {
+        if ($this->step_type !== 'quality_check' || $this->status !== 'in_progress') {
+            return false;
+        }
+
+        $this->update(['status' => 'awaiting_quality']);
+        return true;
+    }
+
+    /**
+     * Check if this step is the first step in the route.
+     */
+    public function isFirstStep(): bool
+    {
+        return $this->step_number === 1 || !$this->depends_on_step_id;
+    }
+
+    /**
+     * Scope for steps that can be cancelled.
+     */
+    public function scopeCancellable($query)
+    {
+        return $query->whereNotIn('status', ['completed', 'cancelled']);
     }
 
 }

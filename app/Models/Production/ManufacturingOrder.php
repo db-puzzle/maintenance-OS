@@ -40,6 +40,8 @@ class ManufacturingOrder extends Model
         'quantity_scrapped',
         'unit_of_measure',
         'status',
+        'hold_reason',
+        'hold_at',
         'priority',
         'child_orders_count',
         'completed_child_orders_count',
@@ -64,6 +66,7 @@ class ManufacturingOrder extends Model
         'planned_end_date' => 'datetime',
         'actual_start_date' => 'datetime',
         'actual_end_date' => 'datetime',
+        'hold_at' => 'datetime',
     ];
 
     protected $appends = ['has_route'];

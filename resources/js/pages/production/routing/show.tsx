@@ -204,7 +204,7 @@ function RoutingOverviewTab({
     // Create form adapter for TextInput compatibility
     const formAdapter = createFormAdapter({
         data: form.data,
-        setData: createSetDataAdapter(form.setData as any),
+        setData: createSetDataAdapter(form.setData),
         errors: form.errors,
         clearErrors: form.clearErrors as (...fields: string[]) => void
     });

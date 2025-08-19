@@ -120,6 +120,8 @@ class ManufacturingOrderService
 
     /**
      * Release order for production.
+     * 
+     * State Transition Rule: MO released → All first steps move to queued
      */
     public function releaseOrder(ManufacturingOrder $order): void
     {
@@ -137,17 +139,27 @@ class ManufacturingOrderService
             throw new \Exception('Manufacturing route must have at least one step before order can be released');
         }
 
-        $order->update([
-            'status' => 'released',
-            'actual_start_date' => now(),
-        ]);
+        DB::transaction(function () use ($order) {
+            $order->update([
+                'status' => 'released',
+                'actual_start_date' => now(),
+            ]);
 
-        // Queue first steps that have no dependencies
-        if ($order->manufacturingRoute) {
-            $order->manufacturingRoute->steps()
-                ->whereNull('depends_on_step_id')
-                ->update(['status' => 'queued']);
-        }
+            // Move all first steps (steps with no dependencies) from pending to queued
+            if ($order->manufacturingRoute) {
+                $firstSteps = $order->manufacturingRoute->steps()
+                    ->where('status', 'pending')
+                    ->where(function ($query) {
+                        $query->whereNull('depends_on_step_id')
+                            ->orWhere('step_number', 1);
+                    })
+                    ->get();
+
+                foreach ($firstSteps as $step) {
+                    $step->moveToQueued();
+                }
+            }
+        });
     }
 
     /**
@@ -289,10 +301,16 @@ class ManufacturingOrderService
      */
     public function completeExecution(ManufacturingStepExecution $execution, array $data = []): void
     {
-        $execution->complete($data);
-
-        // Check if any dependent steps can now be queued
         $step = $execution->manufacturingStep;
+
+        // For quality check steps, move to awaiting_quality instead of completed
+        if ($step->step_type === 'quality_check' && !isset($data['quality_result'])) {
+            $execution->update(['status' => 'completed']);
+            $step->moveToAwaitingQuality();
+            return;
+        }
+
+        $execution->complete($data);
 
         // Update MO quantities for standard steps
         $order = $step->manufacturingRoute->manufacturingOrder;
@@ -307,13 +325,17 @@ class ManufacturingOrderService
             }
         }
 
+        // Mark step as completed
+        $step->complete();
+
+        // Check if any dependent steps can now be queued
         $dependentSteps = $step->dependentSteps()
             ->where('status', 'pending')
             ->get();
 
         foreach ($dependentSteps as $dependentStep) {
             if ($dependentStep->canStart()) {
-                $dependentStep->update(['status' => 'queued']);
+                $dependentStep->moveToQueued();
             }
         }
 
@@ -336,7 +358,65 @@ class ManufacturingOrderService
     }
 
     /**
+     * Record quality check result.
+     * 
+     * Transitions step from awaiting_quality to completed (passed) or handles failure
+     */
+    public function recordQualityResult(ManufacturingStep $step, array $data): void
+    {
+        if ($step->status !== 'awaiting_quality') {
+            throw new \Exception('Step must be awaiting quality check results.');
+        }
+
+        if (!in_array($data['quality_result'], ['passed', 'failed'])) {
+            throw new \Exception('Invalid quality result.');
+        }
+
+        DB::transaction(function () use ($step, $data) {
+            // Update step with quality result
+            $step->update([
+                'quality_result' => $data['quality_result'],
+            ]);
+
+            if ($data['quality_result'] === 'passed') {
+                // Quality passed, complete the step
+                $step->complete();
+            } else {
+                // Quality failed, handle failure action
+                if (!isset($data['failure_action'])) {
+                    throw new \Exception('Failure action required for failed quality check.');
+                }
+
+                $step->update(['failure_action' => $data['failure_action']]);
+
+                if ($data['failure_action'] === 'rework') {
+                    // Create or queue rework step
+                    $reworkStep = $step->dependentSteps()
+                        ->where('step_type', 'rework')
+                        ->first();
+
+                    if (!$reworkStep) {
+                        $reworkStep = $step->createReworkStep();
+                    }
+
+                    $reworkStep->moveToQueued();
+                } else {
+                    // Scrap - update order quantities
+                    $order = $step->manufacturingRoute->manufacturingOrder;
+                    $scrappedQuantity = $data['scrapped_quantity'] ?? 1;
+                    $order->increment('quantity_scrapped', $scrappedQuantity);
+                    
+                    // Mark step as completed even though it failed
+                    $step->complete();
+                }
+            }
+        });
+    }
+
+    /**
      * Cancel a production order.
+     * 
+     * State Transition Rule: MO cancelled → All non-completed steps move to cancelled
      */
     public function cancelOrder(ManufacturingOrder $order): void
     {
@@ -350,17 +430,102 @@ class ManufacturingOrderService
         DB::transaction(function () use ($order) {
             $order->update(['status' => 'cancelled']);
 
-            // Cancel all active step executions
+            // Cancel all non-completed steps
             if ($order->manufacturingRoute) {
-                $order->manufacturingRoute->steps()
-                    ->whereIn('status', ['queued', 'in_progress', 'on_hold'])
-                    ->update(['status' => 'skipped']);
+                $cancellableSteps = $order->manufacturingRoute->steps()
+                    ->cancellable()
+                    ->get();
+
+                foreach ($cancellableSteps as $step) {
+                    $step->cancel();
+                }
             }
 
             // Cancel child orders
-            $order->children()
+            $childOrders = $order->children()
                 ->whereNotIn('status', ['completed', 'cancelled'])
-                ->update(['status' => 'cancelled']);
+                ->get();
+
+            foreach ($childOrders as $childOrder) {
+                $this->cancelOrder($childOrder);
+            }
+        });
+    }
+
+    /**
+     * Put order on hold.
+     * 
+     * State Transition Rule: MO on_hold → All active steps move to on_hold
+     */
+    public function putOrderOnHold(ManufacturingOrder $order, ?string $reason = null): void
+    {
+        if (!in_array($order->status, ['released', 'in_progress'])) {
+            throw new \Exception('Order cannot be put on hold in its current status.');
+        }
+
+        DB::transaction(function () use ($order, $reason) {
+            $order->update([
+                'status' => 'on_hold',
+                'hold_reason' => $reason,
+                'hold_at' => now(),
+            ]);
+
+            // Put all active steps on hold
+            if ($order->manufacturingRoute) {
+                $activeSteps = $order->manufacturingRoute->steps()
+                    ->active()
+                    ->whereIn('status', ['in_progress', 'awaiting_quality'])
+                    ->get();
+
+                foreach ($activeSteps as $step) {
+                    $step->putOnHold();
+                }
+            }
+        });
+    }
+
+    /**
+     * Resume order from hold.
+     * 
+     * State Transition Rule: Resume on_hold steps back to their previous state
+     */
+    public function resumeOrderFromHold(ManufacturingOrder $order): void
+    {
+        if ($order->status !== 'on_hold') {
+            throw new \Exception('Order is not on hold.');
+        }
+
+        DB::transaction(function () use ($order) {
+            // Determine what status to return to
+            $newStatus = 'released';
+            
+            // If any step was in progress, return to in_progress
+            if ($order->manufacturingRoute) {
+                $hasInProgressSteps = $order->manufacturingRoute->steps()
+                    ->where('status', 'on_hold')
+                    ->exists();
+                    
+                if ($hasInProgressSteps) {
+                    $newStatus = 'in_progress';
+                }
+            }
+
+            $order->update([
+                'status' => $newStatus,
+                'hold_reason' => null,
+                'hold_at' => null,
+            ]);
+
+            // Resume all on_hold steps
+            if ($order->manufacturingRoute) {
+                $onHoldSteps = $order->manufacturingRoute->steps()
+                    ->where('status', 'on_hold')
+                    ->get();
+
+                foreach ($onHoldSteps as $step) {
+                    $step->resumeFromHold();
+                }
+            }
         });
     }
 }

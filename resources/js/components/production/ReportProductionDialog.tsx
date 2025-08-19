@@ -38,7 +38,7 @@ export function ReportProductionDialog({ order, open, onOpenChange }: Props) {
     const handleQuantityChange = (value: number) => {
         form.setData('quantity_completed', value);
         if (value >= remaining) {
-            form.setData('mark_complete', true as any);
+            form.setData('mark_complete', true);
         }
     };
 
@@ -106,7 +106,7 @@ export function ReportProductionDialog({ order, open, onOpenChange }: Props) {
                                 <Checkbox
                                     id="mark_complete"
                                     checked={form.data.mark_complete}
-                                    onCheckedChange={(checked) => form.setData('mark_complete', !!checked as any)}
+                                    onCheckedChange={(checked) => form.setData('mark_complete', !!checked)}
                                 />
                                 <Label htmlFor="mark_complete">Mark order as completed</Label>
                             </div>

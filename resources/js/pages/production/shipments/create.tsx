@@ -379,9 +379,9 @@ function DestinationStep({ form }: StepProps) {
     // Create form adapter for TextInput components
     const formAdapter = createFormAdapter({
         data: form.data,
-        setData: form.setData as any,
+        setData: form.setData,
         errors: form.errors,
-        clearErrors: form.clearErrors as any
+        clearErrors: form.clearErrors
     });
 
     return (
@@ -453,9 +453,9 @@ function CarrierStep({ form }: StepProps) {
     // Create form adapter for TextInput components
     const formAdapter = createFormAdapter({
         data: form.data,
-        setData: form.setData as any,
+        setData: form.setData,
         errors: form.errors,
-        clearErrors: form.clearErrors as any
+        clearErrors: form.clearErrors
     });
 
     return (

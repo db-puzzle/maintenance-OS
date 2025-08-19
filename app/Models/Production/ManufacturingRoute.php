@@ -123,11 +123,12 @@ class ManufacturingRoute extends Model
 
     /**
      * Check if all steps are completed.
+     * Steps are considered "done" if they are completed, skipped, or cancelled.
      */
     public function allStepsCompleted(): bool
     {
         return $this->steps()
-            ->whereNotIn('status', ['completed', 'skipped'])
+            ->whereNotIn('status', ['completed', 'skipped', 'cancelled'])
             ->count() === 0;
     }
 
