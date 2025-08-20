@@ -22,13 +22,21 @@ import { StepStatusBadge } from './StepStatusBadge';
 import { ManufacturingStep } from '@/types/production';
 import { Play, Pause, Eye, Lock, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 
 interface Props {
     steps: ManufacturingStep[];
     canExecute: boolean;
+    showImages?: boolean;
+    orderItem?: {
+        id: number;
+        primary_image_url?: string;
+        primary_image_thumbnail_url?: string;
+        images_count?: number;
+    };
 }
 
-export function ManufacturingStepsTable({ steps, canExecute }: Props) {
+export function ManufacturingStepsTable({ steps, canExecute, showImages = false, orderItem }: Props) {
     // Calculate status summary
     const statusSummary = steps.reduce((acc, step) => {
         const status = step.status === 'queued' && step.dependencies?.some(d => d.status !== 'completed')
@@ -211,6 +219,7 @@ export function ManufacturingStepsTable({ steps, canExecute }: Props) {
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-[60px]">Step #</TableHead>
+                            {showImages && <TableHead className="w-[70px]">Image</TableHead>}
                             <TableHead>Step Name</TableHead>
                             <TableHead>Type</TableHead>
                             <TableHead>Work Cell</TableHead>
@@ -235,6 +244,21 @@ export function ManufacturingStepsTable({ steps, canExecute }: Props) {
                                             {step.step_number}
                                         </Badge>
                                     </TableCell>
+                                    {showImages && (
+                                        <TableCell>
+                                            <ItemImagePreview
+                                                primaryImageUrl={orderItem?.primary_image_thumbnail_url || orderItem?.primary_image_url}
+                                                imageCount={orderItem?.images_count || 0}
+                                                className="w-12 h-12 cursor-pointer"
+                                                onClick={(e) => {
+                                                    e?.stopPropagation();
+                                                    if (orderItem?.id) {
+                                                        router.visit(route('production.items.show', orderItem.id));
+                                                    }
+                                                }}
+                                            />
+                                        </TableCell>
+                                    )}
                                     <TableCell>
                                         <div className="flex items-center gap-2">
                                             <span className="font-medium">{step.name}</span>

@@ -68,19 +68,27 @@ class ProductionReportingController extends BaseSearchController
         
         if ($request->statuses) {
             // Handle multi-select status filter
-            $statuses = is_array($request->statuses) 
-                ? $request->statuses 
-                : explode(',', $request->statuses);
-            
-            // Filter to only allowed statuses
-            $statuses = array_intersect($statuses, $allowedStatuses);
-            
-            if (!empty($statuses)) {
-                $baseQuery->whereIn('status', $statuses);
+            if ($request->statuses === 'none') {
+                // Special case: no statuses selected - show no orders
+                $baseQuery->whereRaw('1 = 0');
+            } else {
+                $statuses = is_array($request->statuses) 
+                    ? $request->statuses 
+                    : explode(',', $request->statuses);
+                
+                // Filter to only allowed statuses
+                $statuses = array_intersect($statuses, $allowedStatuses);
+                
+                if (!empty($statuses)) {
+                    $baseQuery->whereIn('status', $statuses);
+                }
             }
         } elseif ($request->status && $request->status !== 'all' && in_array($request->status, $allowedStatuses)) {
             // Fallback to single status filter for backward compatibility
             $baseQuery->where('status', $request->status);
+        } else if (!$request->has('statuses') && !$request->has('status')) {
+            // Default behavior: if no status filter is provided, show all allowed statuses
+            $baseQuery->whereIn('status', $allowedStatuses);
         }
 
         // Apply priority filter
@@ -263,7 +271,7 @@ class ProductionReportingController extends BaseSearchController
             'filters' => [
                 'search' => $request->search,
                 'status' => $request->status ?? 'all',
-                'statuses' => $request->statuses,
+                'statuses' => $request->statuses ?? 'released,in_progress,on_hold',
                 'work_cell_id' => $request->work_cell_id,
                 'priority' => $request->priority,
                 'date_from' => $request->date_from,

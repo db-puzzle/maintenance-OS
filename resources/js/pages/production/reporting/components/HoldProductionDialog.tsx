@@ -30,10 +30,18 @@ export function HoldProductionDialog({ order, onClose }: HoldProductionDialogPro
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Format the expected resolution date before submitting
-        if (data.expected_resolution) {
-            setData('expected_resolution', format(data.expected_resolution, 'yyyy-MM-dd HH:mm:ss'));
-        }
+        // Create form data with formatted date
+        const formData = {
+            ...data,
+            expected_resolution: data.expected_resolution
+                ? format(data.expected_resolution, 'yyyy-MM-dd HH:mm:ss')
+                : null
+        };
+
+        // Submit with formatted data by updating the form data first
+        Object.keys(formData).forEach(key => {
+            setData(key as any, (formData as any)[key]);
+        });
 
         post(route('production.reporting.hold', order.id), {
             onSuccess: () => {

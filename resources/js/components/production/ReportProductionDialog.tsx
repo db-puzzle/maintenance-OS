@@ -20,7 +20,7 @@ export function ReportProductionDialog({ order, open, onOpenChange }: Props) {
         quantity_completed: 0,
         quantity_scrapped: 0,
         notes: '',
-        mark_complete: false
+        mark_complete: false as boolean
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -106,7 +106,11 @@ export function ReportProductionDialog({ order, open, onOpenChange }: Props) {
                                 <Checkbox
                                     id="mark_complete"
                                     checked={form.data.mark_complete}
-                                    onCheckedChange={(checked) => form.setData('mark_complete', !!checked)}
+                                    onCheckedChange={(checked) => {
+                                        if (typeof checked === 'boolean') {
+                                            form.setData('mark_complete', checked);
+                                        }
+                                    }}
                                 />
                                 <Label htmlFor="mark_complete">Mark order as completed</Label>
                             </div>

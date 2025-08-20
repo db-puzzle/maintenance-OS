@@ -22,7 +22,7 @@ export default function CreateRouting({ items, orders }: Props) {
         description: '',
         item_id: '',
         manufacturing_order_id: '',
-        is_active: true,
+        is_active: true as boolean,
     });
 
     const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
@@ -106,7 +106,11 @@ export default function CreateRouting({ items, orders }: Props) {
                                 <Switch
                                     id="is_active"
                                     checked={data.is_active}
-                                    onCheckedChange={(checked) => setData('is_active', !!checked)}
+                                    onCheckedChange={(checked) => {
+                                        if (typeof checked === 'boolean') {
+                                            setData('is_active', checked);
+                                        }
+                                    }}
                                 />
                                 <Label htmlFor="is_active">Roteiro Ativo</Label>
                             </div>

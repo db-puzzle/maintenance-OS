@@ -62,7 +62,7 @@ const gerenciamentoNavItems: NavGroup = {
             icon: Factory,
             items: [
                 {
-                    title: 'Relatório de Produção',
+                    title: 'Apontamento',
                     href: '/production/reporting',
                 },
                 {

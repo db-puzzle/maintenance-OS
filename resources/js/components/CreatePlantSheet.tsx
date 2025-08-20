@@ -12,7 +12,7 @@ import { Plant as ImportedPlant } from '@/types/entities/plant';
 
 
 
-interface PlantForm {
+interface PlantForm extends Record<string, string | number | boolean | File | null | undefined> {
     name: string;
     street: string;
     number: string;
@@ -126,13 +126,13 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                     setData: (key: string, value: string | number | boolean | File | null | undefined) => {
                         if (key === 'zip_code' && typeof value === 'string') {
                             setData('zip_code', formatCEP(value));
-                        } else {
-                            setData(key as keyof PlantForm, value as PlantForm[keyof PlantForm]);
+                        } else if (typeof key === 'string' && key in data) {
+                            (setData as any)(key, value);
                         }
                     },
                     errors,
-                    clearErrors
-                };
+                    clearErrors: (...fields: string[]) => clearErrors(...fields)
+                } as any;
 
                 return (
                     <>

@@ -121,10 +121,12 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
 
     // Create the form adapter with additional properties
     const baseForm = createFormAdapter({
-        data: formData,
-        setData: formSetData as (key: keyof typeof formData, value: typeof formData[keyof typeof formData]) => void,
+        data: formData as any,
+        setData: ((key: string, value: any) => {
+            formSetData(key, value);
+        }) as any,
         errors: formErrors,
-        clearErrors: formClearErrors as (...fields: (keyof typeof formData)[]) => void,
+        clearErrors: ((...fields: string[]) => formClearErrors(...fields)) as any,
     });
 
     // Add additional properties that TextInput expects

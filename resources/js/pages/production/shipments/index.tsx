@@ -78,7 +78,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
         });
     };
     const handleFilter = (key: string, value: string | null) => {
-        const newFilters: Record<string, unknown> = { ...filters };
+        const newFilters: any = { ...filters };
         if (value) {
             newFilters[key] = value;
         } else {

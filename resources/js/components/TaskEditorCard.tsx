@@ -240,22 +240,31 @@ export default function TaskEditorCard({
                                                 <CardContent className="flex items-center space-x-2">
                                                     <div className="flex-1">
                                                         <TextInput
-                                                            form={createFormAdapter({
+                                                            form={{
                                                                 data: {
                                                                     ...data,
                                                                     [`option-${index}`]: value,
-                                                                    options: undefined,
-                                                                } as Record<string, string | number | boolean | null | undefined>,
-                                                                setData: ((field: string, value: string | number | boolean | File | null | undefined) => {
+                                                                    options: undefined
+                                                                } as unknown as Record<string, string | number | boolean | File | null | undefined>,
+                                                                setData: (field: string, value: string | number | boolean | File | null | undefined) => {
                                                                     if (field === `option-${index}`) {
                                                                         const newOptions = [...options];
                                                                         newOptions[index] = value as string;
                                                                         handleOptionsChange(newOptions);
                                                                     }
-                                                                }),
+                                                                },
                                                                 errors,
-                                                                clearErrors,
-                                                            })}
+                                                                clearErrors: (...fields: string[]) => {
+                                                                    if (fields.includes(`option-${index}`)) {
+                                                                        // Clear specific option error if exists
+                                                                        const newErrors = { ...errors };
+                                                                        delete (newErrors as any)[`option-${index}`];
+                                                                        clearErrors(...Object.keys(newErrors) as any);
+                                                                    } else {
+                                                                        clearErrors(...fields as any);
+                                                                    }
+                                                                }
+                                                            } as any}
                                                             name={`option-${index}`}
                                                             label={`Opção ${index + 1}`}
                                                             placeholder={`Descreva a opção ${index + 1}`}

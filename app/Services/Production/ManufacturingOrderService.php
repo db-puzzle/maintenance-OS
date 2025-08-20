@@ -72,27 +72,39 @@ class ManufacturingOrderService
 
     /**
      * Generate a unique order number.
+     * Format: MO-YYDDD-### where:
+     * - YY = 2-digit year
+     * - DDD = Julian day (001-365/366)
+     * - ### = Daily sequential counter (001-999)
      */
     public function generateOrderNumber(): string
     {
-        $year = now()->format('y'); // 2-digit year
-        $month = now()->format('m'); // 2-digit month
+        $now = now();
+        $year = $now->format('y'); // 2-digit year
+        $julianDay = $now->format('z') + 1; // Julian day (0-indexed, so add 1)
         
-        // Find the last order created in the current year and month
-        $lastOrder = ManufacturingOrder::whereYear('created_at', now()->year)
-            ->whereMonth('created_at', now()->month)
+        // Find the last order created today
+        $lastOrder = ManufacturingOrder::whereDate('created_at', $now->toDateString())
+            ->where('order_number', 'like', sprintf('MO-%s%03d-%%', $year, $julianDay))
+            ->whereNull('parent_id') // Only root orders for sequence counting
+            ->orderBy('created_at', 'desc')
             ->orderBy('id', 'desc')
             ->first();
 
         if ($lastOrder) {
-            // Extract the sequence number (5 digits after 'MO-YYMM-')
-            $sequence = intval(substr($lastOrder->order_number, 8, 5)) + 1;
+            // Extract the sequence number (3 digits after 'MO-YYDDD-')
+            $matches = [];
+            if (preg_match('/MO-\d{5}-(\d{3})$/', $lastOrder->order_number, $matches)) {
+                $sequence = intval($matches[1]) + 1;
+            } else {
+                $sequence = 1;
+            }
         } else {
-            // No orders for current year and month, start at 1
+            // No orders for today, start at 1
             $sequence = 1;
         }
         
-        return sprintf('MO-%s%s-%05d', $year, $month, $sequence);
+        return sprintf('MO-%s%03d-%03d', $year, $julianDay, $sequence);
     }
 
     /**

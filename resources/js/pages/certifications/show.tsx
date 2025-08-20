@@ -13,10 +13,14 @@ interface CertificationUser {
     id: number;
     name: string;
     email: string;
+    email_verified_at: string | null;
+    created_at: string;
+    updated_at: string;
     issued_at: string | null;
     expires_at: string | null;
     certificate_number: string | null;
     is_expired: boolean;
+    [key: string]: any; // Allow index signature for compatibility
 }
 interface CertificationWithUsers {
     id: number;

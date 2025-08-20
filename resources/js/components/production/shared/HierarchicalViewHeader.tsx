@@ -1,6 +1,6 @@
 import React from 'react';
-import { Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ImageDisplayToggleButton } from '@/components/ImageDisplayToggleButton';
 import { cn } from '@/lib/utils';
 
 export interface HierarchicalViewHeaderProps {
@@ -75,8 +75,8 @@ export function HierarchicalViewHeader({
                                     className={cn(
                                         "h-7 w-7 p-0 text-xs border transition-colors",
                                         isActive
-                                            ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:border-blue-400'
-                                            : 'border hover:bg-blue-50/50 hover:text-blue-500 hover:border-blue-200'
+                                            ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400 dark:bg-primary dark:text-primary-foreground dark:border-primary dark:hover:bg-primary/90'
+                                            : 'border hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-accent dark:hover:text-accent-foreground'
                                     )}
                                     title={`Expandir até nível ${level}`}
                                 >
@@ -89,15 +89,10 @@ export function HierarchicalViewHeader({
 
                 {/* Image toggle */}
                 {showImageToggle && (
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onToggleImages(!showImages)}
-                        className={showImages ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground' : ''}
-                    >
-                        <Image className="h-4 w-4 mr-2" />
-                        {showImages ? 'Ocultar Imagens' : 'Mostrar Imagens'}
-                    </Button>
+                    <ImageDisplayToggleButton
+                        showImages={showImages}
+                        onToggle={onToggleImages}
+                    />
                 )}
 
                 {/* Additional actions */}

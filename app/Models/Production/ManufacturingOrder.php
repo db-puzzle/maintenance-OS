@@ -234,16 +234,22 @@ class ManufacturingOrder extends Model
 
     /**
      * Generate a unique order number for child orders with specific parent.
+     * Format: parent_number.N where N is the child sequence
+     * Examples:
+     * - Root order: MO-25234-001
+     * - First child: MO-25234-001.1
+     * - Second child: MO-25234-001.2
+     * - Sub-child: MO-25234-001.2.1
      */
     protected function generateChildOrderNumberForParent(BomItem $bomItem, ManufacturingOrder $parentOrder): string
     {
         $parentNumber = $parentOrder->order_number;
         
-        // Count existing children for this parent to generate sequence
-        $existingCount = ManufacturingOrder::where('order_number', 'like', $parentNumber . '-%')->count();
+        // Count existing direct children for this parent to generate sequence
+        $existingCount = ManufacturingOrder::where('parent_id', $parentOrder->id)->count();
         $sequence = $existingCount + 1;
         
-        return sprintf('%s-%03d', $parentNumber, $sequence);
+        return sprintf('%s.%d', $parentNumber, $sequence);
     }
 
     /**

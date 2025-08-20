@@ -8,7 +8,6 @@ import {
     Calendar,
     DraftingCompass,
     Workflow,
-    Image,
     ClipboardList
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,6 +22,7 @@ import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
 import CreateManufacturingOrderDialog from '@/components/production/CreateManufacturingOrderDialog';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
+import { ImageDisplayToggleButton } from '@/components/ImageDisplayToggleButton';
 import { ColumnConfig } from '@/types/shared';
 import { ManufacturingOrder, Item, BillOfMaterial, RouteTemplate } from '@/types/production';
 interface Props {
@@ -357,17 +357,10 @@ export default function ManufacturingOrders({
                 createButtonText="Create Order"
                 actions={
                     <div className="flex gap-2">
-                        <Toggle
-                            variant="outline"
-                            size="sm"
-                            pressed={showImages}
-                            onPressedChange={setShowImages}
-                            className="w-[135px] flex items-center justify-between data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90"
-                            aria-label="Toggle images"
-                        >
-                            <Image className="ml-1 h-4 w-4" />
-                            <span className="flex-1 ml-1 text-left">{showImages ? 'Hide Images' : 'Show Images'}</span>
-                        </Toggle>
+                        <ImageDisplayToggleButton
+                            showImages={showImages}
+                            onToggle={setShowImages}
+                        />
                         <Toggle
                             variant="outline"
                             size="sm"

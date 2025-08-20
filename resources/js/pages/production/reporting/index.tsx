@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Toggle } from '@/components/ui/toggle';
-// Removed unused imports: Calendar, Popover, PopoverContent, PopoverTrigger
+// Removed unused imports: Calendar, Popover, PopoverContent, PopoverTrigger, Toggle
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { ManufacturingOrder, WorkCell } from '@/types/production';
 import { cn } from '@/lib/utils';
@@ -20,7 +19,7 @@ import {
     AlertCircle,
     Clock,
     Package,
-    Table,
+    Rows3,
     LayoutGrid,
     MoreHorizontal,
     FileText,
@@ -35,6 +34,8 @@ import { ReportProductionDialog } from '@/pages/production/reporting/components/
 import { ReportScrapDialog } from '@/pages/production/reporting/components/ReportScrapDialog';
 import { HoldProductionDialog } from '@/pages/production/reporting/components/HoldProductionDialog';
 import { WorkCellSearchDialog } from '@/pages/production/reporting/components/WorkCellSearchDialog';
+import { ItemImagePreview } from '@/components/production/ItemImagePreview';
+import { ImageDisplayToggleButton } from '@/components/ImageDisplayToggleButton';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
@@ -83,6 +84,7 @@ export default function ProductionReporting({
     );
 
     const [autoRefresh, setAutoRefresh] = useState(true);
+    const [showImages, setShowImages] = useState(true);
     // Removed unused state: showFilters, setShowFilters
     const [selectedOrder, setSelectedOrder] = useState<ManufacturingOrder | null>(null);
     const [reportProductionOrder, setReportProductionOrder] = useState<ManufacturingOrder | null>(null);
@@ -93,7 +95,7 @@ export default function ProductionReporting({
     // Search state - no debounce in state, handle it in the search handler
     const [searchValue, setSearchValue] = useState(filters.search || '');
 
-    // Multi-select status filter state
+    // Multi-select status filter state - default to all 3 statuses selected
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>(() => {
         if (filters.status && filters.status !== 'all') {
             // If we have a single status filter, convert it to array
@@ -102,7 +104,8 @@ export default function ProductionReporting({
             // If we already have multiple statuses (from backend), use them
             return Array.isArray(filters.statuses) ? filters.statuses : filters.statuses.split(',');
         }
-        return [];
+        // Default: all 3 statuses selected
+        return ['released', 'in_progress', 'on_hold'];
     });
 
     // Debounce timer ref to handle search
@@ -179,6 +182,11 @@ export default function ProductionReporting({
             filtersToSend.statuses = filtersToSend.statuses.join(',');
         }
 
+        // If no statuses are selected, pass a special value to show no orders
+        if ('statuses' in newFilters && newFilters.statuses && newFilters.statuses.length === 0) {
+            filtersToSend.statuses = 'none';
+        }
+
         router.get(route('production.reporting.index'), {
             ...filtersToSend,
             page: newFilters.search !== filters.search ? 1 : undefined
@@ -240,21 +248,21 @@ export default function ProductionReporting({
     const statusCards = [
         {
             key: 'released',
-            label: 'Released',
+            label: 'Liberadas',
             count: statusCounts.released || 0,
             icon: Package,
             color: 'text-muted-foreground'
         },
         {
             key: 'in_progress',
-            label: 'In Progress',
+            label: 'Em Andamento',
             count: statusCounts.in_progress || 0,
             icon: Clock,
             color: 'text-muted-foreground'
         },
         {
             key: 'on_hold',
-            label: 'On Hold',
+            label: 'Suspensas',
             count: statusCounts.on_hold || 0,
             icon: AlertCircle,
             color: 'text-muted-foreground'
@@ -262,6 +270,26 @@ export default function ProductionReporting({
     ];
 
     const tableColumns = [
+        ...(showImages ? [{
+            key: 'image',
+            label: 'Image',
+            render: (value: unknown, order: ManufacturingOrder) => {
+                if (!order) return null;
+                return (
+                    <ItemImagePreview
+                        primaryImageUrl={order.item?.primary_image_thumbnail_url || order.item?.primary_image_url}
+                        imageCount={order.item?.images_count || 0}
+                        className="w-12 h-12 cursor-pointer"
+                        onClick={(e) => {
+                            e?.stopPropagation();
+                            if (order.item?.id) {
+                                router.visit(route('production.items.show', { item: order.item.id }));
+                            }
+                        }}
+                    />
+                );
+            }
+        }] : []),
         {
             key: 'order_number',
             label: 'MO Number',
@@ -406,24 +434,28 @@ export default function ProductionReporting({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Production Reporting" />
+            <Head title="Apontamento de Produção" />
 
             <div className="flex-1 overflow-y-auto">
                 <div className="space-y-6 p-6">
                     {/* Header */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h1 className="text-2xl font-bold">Production Reporting</h1>
+                        <h1 className="text-2xl font-bold">Apontamento de Produção</h1>
                         <div className="flex items-center gap-4">
-                            <Toggle
-                                pressed={autoRefresh}
-                                onPressedChange={setAutoRefresh}
-                                size="sm"
+                            <Button
                                 variant="outline"
-                                className="w-44 justify-start"
+                                size="sm"
+                                onClick={() => setAutoRefresh(!autoRefresh)}
+                                className={cn(
+                                    'w-[160px] flex items-center justify-start',
+                                    autoRefresh
+                                        ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400 dark:bg-primary dark:text-primary-foreground dark:border-primary dark:hover:bg-primary/90'
+                                        : 'border hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-accent dark:hover:text-accent-foreground'
+                                )}
                             >
-                                <Clock className="h-4 w-4 ml-1" />
-                                Auto-refresh is {autoRefresh ? 'ON' : 'OFF'}
-                            </Toggle>
+                                <Clock className="h-4 w-4 shrink-0" />
+                                <span className="ml-2">Auto-refresh {autoRefresh ? 'ON' : 'OFF'}</span>
+                            </Button>
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -433,24 +465,36 @@ export default function ProductionReporting({
                                 Refresh
                             </Button>
                             <div className="flex gap-2">
+                                <ImageDisplayToggleButton
+                                    showImages={showImages}
+                                    onToggle={setShowImages}
+                                />
                                 <div className="flex rounded-md shadow-sm">
                                     <Button
-                                        size="sm"
-                                        variant={viewMode === 'table' ? 'default' : 'outline'}
-                                        className="rounded-r-none"
+                                        size="icon"
+                                        variant="outline"
                                         onClick={() => setViewMode('table')}
+                                        className={cn(
+                                            'rounded-r-none border-r-0 h-9 w-9',
+                                            viewMode === 'table'
+                                                ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400 dark:bg-primary dark:text-primary-foreground dark:border-primary dark:hover:bg-primary/90'
+                                                : 'border hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-accent dark:hover:text-accent-foreground'
+                                        )}
                                     >
-                                        <Table className="h-4 w-4" />
-                                        Table
+                                        <Rows3 className="h-4 w-4" />
                                     </Button>
                                     <Button
-                                        size="sm"
-                                        variant={viewMode === 'card' ? 'default' : 'outline'}
-                                        className="rounded-l-none"
+                                        size="icon"
+                                        variant="outline"
                                         onClick={() => setViewMode('card')}
+                                        className={cn(
+                                            'rounded-l-none h-9 w-9',
+                                            viewMode === 'card'
+                                                ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400 dark:bg-primary dark:text-primary-foreground dark:border-primary dark:hover:bg-primary/90'
+                                                : 'border hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-accent dark:hover:text-accent-foreground'
+                                        )}
                                     >
                                         <LayoutGrid className="h-4 w-4" />
-                                        Card
                                     </Button>
                                 </div>
 
@@ -475,8 +519,7 @@ export default function ProductionReporting({
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-sm font-medium text-muted-foreground">
-                                            Work Cell
-                                        </p>
+                                            Célula de Trabalho                                        </p>
                                         <p className="text-lg font-bold truncate max-w-[120px]">
                                             {filters.work_cell_id
                                                 ? workCells.find(wc => wc.id.toString() === filters.work_cell_id)?.name || 'Selected'
@@ -542,9 +585,9 @@ export default function ProductionReporting({
                                     <SelectValue placeholder="All Orders" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Orders</SelectItem>
-                                    <SelectItem value="yes">With Routing</SelectItem>
-                                    <SelectItem value="no">Without Routing</SelectItem>
+                                    <SelectItem value="all">Todas as Ordens</SelectItem>
+                                    <SelectItem value="yes">Com Roteiro</SelectItem>
+                                    <SelectItem value="no">Sem Roteiro</SelectItem>
                                 </SelectContent>
                             </Select>
                             <Select
@@ -581,6 +624,7 @@ export default function ProductionReporting({
                             orders={orders.data || []}
                             onOrderClick={setSelectedOrder}
                             onAction={handleAction}
+                            showImages={showImages}
                         />
                     )}
 
@@ -621,7 +665,6 @@ export default function ProductionReporting({
                     if (!open) setSelectedOrder(null);
                 }}
                 onAction={handleAction}
-                onOrderClick={(order) => router.visit(route('production.orders.show', { order: order.id }))}
                 canUpdate={canUpdate}
             />
 

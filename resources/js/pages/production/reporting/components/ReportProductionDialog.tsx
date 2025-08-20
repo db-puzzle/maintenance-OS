@@ -27,7 +27,7 @@ export function ReportProductionDialog({ order, onClose }: ReportProductionDialo
         scrap_reason: '',
         time_spent: '',
         notes: '',
-        mark_complete: false
+        mark_complete: false as boolean
     });
 
     const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });

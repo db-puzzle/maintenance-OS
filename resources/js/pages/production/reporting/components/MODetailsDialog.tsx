@@ -1,17 +1,10 @@
 import React from 'react';
 import { ManufacturingOrder } from '@/types/production';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInDays } from 'date-fns';
 import {
     Play,
     FileText,
-    Pause,
     CheckCircle,
-    X,
-    Printer,
-    MessageSquare,
-    AlertTriangle,
-    RotateCcw,
-    UserPlus,
     AlertCircle,
     ChevronRight,
     Package,
@@ -23,16 +16,8 @@ import {
     Dialog,
     DialogContent,
 } from '@/components/ui/dialog';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-    DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu';
 import { MOStatusBadge } from './MOStatusBadge';
 import { MOPriorityBadge } from './MOPriorityBadge';
-import { MOProgressBar } from './MOProgressBar';
 
 interface MODetailsDialogProps {
     order: ManufacturingOrder | null;
@@ -80,9 +65,9 @@ export function MODetailsDialog({
         return (
             <div className="h-full flex gap-6">
                 {/* Left Side - Image Section */}
-                <div className="w-1/3 flex-shrink-0 flex flex-col">
+                <div className="w-1/2 flex-shrink-0 flex flex-col">
                     {getItemImageUrl(order.item, false) ? (
-                        <div className="bg-gray-50 rounded-lg p-4 h-full flex items-center justify-center">
+                        <div className="bg-gray-50 rounded-lg h-full flex items-center justify-center">
                             <img
                                 src={getItemImageUrl(order.item, false)!}
                                 alt={order.item?.name || 'Product'}
@@ -105,37 +90,42 @@ export function MODetailsDialog({
                     {/* Fixed Header */}
                     <div className="pb-4 flex-shrink-0">
                         <h2 className="text-xl font-semibold">{order.order_number}</h2>
-                        <p className="text-sm text-muted-foreground">{order.item?.name}</p>
+                        <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm text-muted-foreground min-w-0 flex-1 truncate">
+                                {order.item?.item_number && (
+                                    <>
+                                        <span className="font-medium">{order.item.item_number}</span>
+                                        <span className="mx-2">•</span>
+                                    </>
+                                )}
+                                {order.item?.name}
+                            </p>
+                            {order.has_route && (
+                                <div className="flex items-center gap-1 text-primary flex-shrink-0">
+                                    <Package className="w-3 h-3" />
+                                    <span className="text-xs font-medium">Routed</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Scrollable Content */}
                     <ScrollArea className="flex-1">
-                        <div className="pr-4">
+                        <div>
                             {/* Status Overview */}
                             <div className="mb-4 space-y-3">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <MOStatusBadge status={order.status} />
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <MOStatusBadge status={order.status} />
+                                        {isOverdue && (
+                                            <div className="flex items-center gap-1 text-orange-600">
+                                                <AlertCircle className="w-3 h-3" />
+                                                <span className="text-xs font-medium">Overdue</span>
+                                            </div>
+                                        )}
+                                    </div>
                                     <MOPriorityBadge priority={order.priority} />
-                                    {order.has_route && (
-                                        <div className="flex items-center gap-1 text-primary">
-                                            <Package className="w-3 h-3" />
-                                            <span className="text-xs font-medium">Routed</span>
-                                        </div>
-                                    )}
-                                    {isOverdue && (
-                                        <div className="flex items-center gap-1 text-orange-600">
-                                            <AlertCircle className="w-3 h-3" />
-                                            <span className="text-xs font-medium">Overdue</span>
-                                        </div>
-                                    )}
                                 </div>
-                                <MOProgressBar
-                                    completed={order.quantity_completed}
-                                    scrapped={order.quantity_scrapped}
-                                    total={order.quantity}
-                                    showPercentage
-                                    className="w-full"
-                                />
                             </div>
 
                             <Separator className="my-4" />
@@ -143,12 +133,7 @@ export function MODetailsDialog({
                             {/* Details Grid */}
                             <div className="space-y-4">
                                 <div>
-                                    <h3 className="font-semibold mb-3 text-sm">Order Details</h3>
-                                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                                        <div className="min-w-0">
-                                            <p className="text-xs text-muted-foreground">Item Number</p>
-                                            <p className="font-medium truncate">{order.item?.item_number}</p>
-                                        </div>
+                                    <div className="grid grid-cols-3 gap-x-6 text-sm mb-3">
                                         <div className="min-w-0">
                                             <p className="text-xs text-muted-foreground">Order Quantity</p>
                                             <p className="font-medium truncate">
@@ -157,36 +142,35 @@ export function MODetailsDialog({
                                         </div>
                                         <div className="min-w-0">
                                             <p className="text-xs text-muted-foreground">Completed</p>
-                                            <p className="font-medium text-green-600">
+                                            <p className="font-medium truncate">
                                                 {order.quantity_completed} {order.unit_of_measure}
                                             </p>
                                         </div>
                                         <div className="min-w-0">
                                             <p className="text-xs text-muted-foreground">Remaining</p>
-                                            <p className="font-medium text-blue-600">
+                                            <p className="font-medium truncate">
                                                 {order.quantity_remaining || 0} {order.unit_of_measure}
                                             </p>
                                         </div>
-                                        {order.quantity_scrapped > 0 && (
-                                            <div className="min-w-0">
-                                                <p className="text-xs text-muted-foreground">Scrapped</p>
-                                                <p className="font-medium text-red-600">
-                                                    {order.quantity_scrapped} {order.unit_of_measure}
-                                                </p>
-                                            </div>
-                                        )}
                                     </div>
+                                    {order.quantity_scrapped > 0 && (
+                                        <div className="min-w-0">
+                                            <p className="text-xs text-muted-foreground">Scrapped</p>
+                                            <p className="font-medium text-red-600">
+                                                {order.quantity_scrapped} {order.unit_of_measure}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <Separator />
 
                                 <div>
-                                    <h3 className="font-semibold mb-3 text-sm">Schedule Information</h3>
-                                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                                    <div className="grid grid-cols-3 gap-x-6 text-sm">
                                         {order.requested_date && (
                                             <div className="min-w-0">
                                                 <p className="text-xs text-muted-foreground">Due Date</p>
-                                                <p className="font-medium">
+                                                <p className="font-medium truncate">
                                                     {format(parseISO(order.requested_date), 'MMM d, yyyy')}
                                                 </p>
                                             </div>
@@ -194,15 +178,34 @@ export function MODetailsDialog({
                                         {order.actual_start_date && (
                                             <div className="min-w-0">
                                                 <p className="text-xs text-muted-foreground">Start Date</p>
-                                                <p className="font-medium">
+                                                <p className="font-medium truncate">
                                                     {format(parseISO(order.actual_start_date), 'MMM d, yyyy')}
                                                 </p>
+                                            </div>
+                                        )}
+                                        {order.requested_date && !order.actual_end_date && (
+                                            <div className="min-w-0">
+                                                <p className="text-xs text-muted-foreground">Remaining Days</p>
+                                                {(() => {
+                                                    const remainingDays = differenceInDays(parseISO(order.requested_date), new Date());
+                                                    const isOverdue = remainingDays < 0;
+                                                    return (
+                                                        <p className={`font-medium truncate ${isOverdue
+                                                            ? 'text-red-600 dark:text-red-400'
+                                                            : remainingDays <= 3
+                                                                ? 'text-orange-600 dark:text-orange-400'
+                                                                : 'text-green-600 dark:text-green-400'
+                                                            }`}>
+                                                            {remainingDays} days
+                                                        </p>
+                                                    );
+                                                })()}
                                             </div>
                                         )}
                                         {order.actual_end_date && (
                                             <div className="min-w-0">
                                                 <p className="text-xs text-muted-foreground">End Date</p>
-                                                <p className="font-medium">
+                                                <p className="font-medium truncate">
                                                     {format(parseISO(order.actual_end_date), 'MMM d, yyyy')}
                                                 </p>
                                             </div>
@@ -211,18 +214,11 @@ export function MODetailsDialog({
                                 </div>
 
                                 {/* Production Information */}
-                                {(order.current_step?.work_cell || order.source_type) && (
+                                {order.source_type && (
                                     <>
                                         <Separator />
                                         <div>
-                                            <h3 className="font-semibold mb-3 text-sm">Production Information</h3>
                                             <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                                                {order.current_step?.work_cell && (
-                                                    <div className="min-w-0">
-                                                        <p className="text-xs text-muted-foreground">Work Cell</p>
-                                                        <p className="font-medium truncate">{order.current_step.work_cell.name}</p>
-                                                    </div>
-                                                )}
                                                 {order.source_type && (
                                                     <div className="min-w-0">
                                                         <p className="text-xs text-muted-foreground">Source Type</p>
@@ -241,27 +237,95 @@ export function MODetailsDialog({
                                 )}
 
                                 {/* Route Information */}
-                                {order.has_route && order.current_step && (
+                                {order.has_route && order.manufacturing_route?.steps && order.manufacturing_route.steps.length > 0 && (
                                     <>
                                         <Separator />
                                         <div>
-                                            <h3 className="font-semibold mb-3 text-sm">Route Progress</h3>
+                                            <p className="text-sm font-medium mb-3">Route Steps</p>
                                             <div className="space-y-2">
-                                                <div className="p-3 bg-primary/10 rounded-md">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className="font-medium text-sm truncate">Current: {order.current_step.name}</p>
-                                                            <p className="text-xs text-muted-foreground truncate">
-                                                                {order.current_step.work_cell?.name || 'No work cell'}
-                                                                {order.current_step.step_type && (
-                                                                    <> • {order.current_step.step_type.replace('_', ' ')}</>
-                                                                )}
-                                                            </p>
+                                                {order.manufacturing_route.steps.map((step) => {
+                                                    // Determine if this is the current step
+                                                    const isCurrentStep = order.current_step?.id === step.id;
+
+                                                    // Determine step status colors
+                                                    const getStepColors = () => {
+                                                        switch (step.status) {
+                                                            case 'completed':
+                                                                return 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800';
+                                                            case 'in_progress':
+                                                                return 'bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800';
+                                                            case 'on_hold':
+                                                                return 'bg-orange-50 border-orange-200 dark:bg-orange-950 dark:border-orange-800';
+                                                            case 'failed':
+                                                                return 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800';
+                                                            case 'skipped':
+                                                                return 'bg-gray-50 border-gray-200 dark:bg-gray-950 dark:border-gray-800';
+                                                            default: // pending, queued
+                                                                return 'bg-gray-50 border-gray-200 dark:bg-gray-950 dark:border-gray-800';
+                                                        }
+                                                    };
+
+                                                    // Determine step icon
+                                                    const getStepIcon = () => {
+                                                        switch (step.status) {
+                                                            case 'completed':
+                                                                return <CheckCircle className="w-4 h-4 text-green-600" />;
+                                                            case 'in_progress':
+                                                                return <Play className="w-4 h-4 text-blue-600" />;
+                                                            case 'on_hold':
+                                                                return <AlertCircle className="w-4 h-4 text-orange-600" />;
+                                                            case 'failed':
+                                                                return <AlertCircle className="w-4 h-4 text-red-600" />;
+                                                            default:
+                                                                return <ChevronRight className="w-4 h-4 text-gray-400" />;
+                                                        }
+                                                    };
+
+                                                    return (
+                                                        <div
+                                                            key={step.id}
+                                                            className={`p-3 rounded-md border ${getStepColors()} ${isCurrentStep ? 'ring-2 ring-primary' : ''}`}
+                                                        >
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xs font-medium text-muted-foreground">
+                                                                            Step {step.step_number}
+                                                                        </span>
+                                                                        {isCurrentStep && (
+                                                                            <span className="text-xs font-medium text-primary">
+                                                                                Current
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="font-medium text-sm truncate">{step.name}</p>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        {step.step_type && step.step_type !== 'standard' && (
+                                                                            <>{step.step_type.replace('_', ' ')}</>
+                                                                        )}
+                                                                        {step.step_type && step.step_type !== 'standard' && step.status !== 'pending' && ' • '}
+                                                                        {step.status !== 'pending' && (
+                                                                            <>{step.status.replace('_', ' ')}</>
+                                                                        )}
+                                                                    </p>
+                                                                    {/* Show timing information if available */}
+                                                                    {(step.setup_time_minutes > 0 || step.cycle_time_minutes > 0) && (
+                                                                        <p className="text-xs text-muted-foreground mt-1">
+                                                                            {step.setup_time_minutes > 0 && (
+                                                                                <>Setup: {step.setup_time_minutes}min</>
+                                                                            )}
+                                                                            {step.setup_time_minutes > 0 && step.cycle_time_minutes > 0 && ' • '}
+                                                                            {step.cycle_time_minutes > 0 && (
+                                                                                <>Cycle: {step.cycle_time_minutes}min</>
+                                                                            )}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                                {getStepIcon()}
+                                                            </div>
                                                         </div>
-                                                        <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
-                                                    </div>
-                                                </div>
-                                                {/* TODO: Add previous/next steps when available */}
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     </>
@@ -274,17 +338,17 @@ export function MODetailsDialog({
 
                     {/* Action Buttons Section */}
                     {canUpdate && (
-                        <div className="pt-4 flex-shrink-0 border-t">
+                        <div className="pt-4 flex-shrink-0">
                             {/* Primary Actions */}
-                            <div className="flex gap-2">
+                            <div className="flex gap-3 flex-col sm:flex-row">
                                 {order.status === 'released' && (
                                     <Button
                                         variant="default"
-                                        size="sm"
-                                        className="flex-1 bg-green-600 hover:bg-green-700"
+                                        size="default"
+                                        className="flex-1 bg-green-600 hover:bg-green-700 h-12 text-base"
                                         onClick={() => onAction('start', order)}
                                     >
-                                        <Play className="w-3 h-3 mr-1" />
+                                        <Play className="w-4 h-4 mr-2" />
                                         Start Production
                                     </Button>
                                 )}
@@ -292,92 +356,28 @@ export function MODetailsDialog({
                                     <>
                                         <Button
                                             variant="default"
-                                            size="sm"
-                                            className="flex-1"
+                                            size="default"
+                                            className="flex-1 h-12 text-base"
                                             onClick={() => onAction('report', order)}
                                         >
-                                            <FileText className="w-3 h-3 mr-1" />
+                                            <FileText className="w-4 h-4 mr-2" />
                                             Report Progress
                                         </Button>
                                         {(!order.has_route || (order.quantity_remaining && order.quantity_remaining > 0)) && (
                                             <Button
                                                 variant="outline"
-                                                size="sm"
-                                                className="flex-1"
+                                                size="default"
+                                                className="flex-1 h-12 text-base"
                                                 onClick={() => onAction('complete', order)}
                                             >
-                                                <CheckCircle className="w-3 h-3 mr-1" />
+                                                <CheckCircle className="w-4 h-4 mr-2" />
                                                 Complete
                                             </Button>
                                         )}
                                     </>
                                 )}
 
-                                {/* More Actions Dropdown */}
-                                {['released', 'in_progress', 'on_hold'].includes(order.status) && (
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" size="sm">
-                                                More Actions
-                                                <ChevronRight className="w-3 h-3 ml-1" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent className="w-56" align="end">
-                                            {order.status === 'in_progress' && (
-                                                <DropdownMenuItem onClick={() => onAction('hold', order)}>
-                                                    <Pause className="w-4 h-4 mr-2" />
-                                                    Put on Hold
-                                                </DropdownMenuItem>
-                                            )}
-                                            {order.status === 'on_hold' && (
-                                                <DropdownMenuItem onClick={() => onAction('resume', order)}>
-                                                    <Play className="w-4 h-4 mr-2" />
-                                                    Resume Production
-                                                </DropdownMenuItem>
-                                            )}
-                                            <DropdownMenuItem onClick={() => onAction('cancel', order)}>
-                                                <X className="w-4 h-4 mr-2" />
-                                                Cancel Order
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            {['released', 'in_progress'].includes(order.status) && (
-                                                <>
-                                                    <DropdownMenuItem onClick={() => onAction('scrap', order)}>
-                                                        <AlertTriangle className="w-4 h-4 mr-2" />
-                                                        Report Scrap
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                </>
-                                            )}
-                                            <DropdownMenuItem onClick={() => onAction('rework', order)}>
-                                                <RotateCcw className="w-4 h-4 mr-2" />
-                                                Initiate Rework
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => onAction('quality-issue', order)}>
-                                                <AlertTriangle className="w-4 h-4 mr-2" />
-                                                Report Quality Issue
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => onAction('add-note', order)}>
-                                                <MessageSquare className="w-4 h-4 mr-2" />
-                                                Add Note/Comment
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => onAction('print', order)}>
-                                                <Printer className="w-4 h-4 mr-2" />
-                                                Print Work Instructions
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => onAction('assign-resources', order)}>
-                                                <UserPlus className="w-4 h-4 mr-2" />
-                                                Assign Resources
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => onAction('change-priority', order)}>
-                                                <AlertCircle className="w-4 h-4 mr-2" />
-                                                Change Priority
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                )}
+
                             </div>
                         </div>
                     )}
@@ -388,7 +388,7 @@ export function MODetailsDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="!max-w-[1200px] !w-[90vw] !h-[80vh] p-6 gap-0 sm:max-w-[1200px] overflow-hidden">
+            <DialogContent className="!max-w-[800px] !w-[90vw] !h-[80vh] p-6 gap-0 sm:max-w-[1200px] overflow-hidden">
                 {renderDialogContent()}
             </DialogContent>
         </Dialog>

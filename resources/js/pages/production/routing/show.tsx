@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { createFormAdapter, createSetDataAdapter } from '@/utils/form-adapters';
+import { createFormAdapter } from '@/utils/form-adapters';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import { Badge } from '@/components/ui/badge';
@@ -204,9 +204,9 @@ function RoutingOverviewTab({
     // Create form adapter for TextInput compatibility
     const formAdapter = createFormAdapter({
         data: form.data,
-        setData: createSetDataAdapter(form.setData),
+        setData: form.setData as any,
         errors: form.errors,
-        clearErrors: form.clearErrors as (...fields: string[]) => void
+        clearErrors: form.clearErrors
     });
 
     return (

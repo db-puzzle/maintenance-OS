@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('manufacturing_orders', function (Blueprint $table) {
             $table->id();
-            $table->string('order_number', 100)->unique();
+            $table->string('order_number', 150)->unique()->comment('Format: MO-YYDDD-###[.N.N.N...] where YYDDD is year+julian day, ### is daily counter, .N is hierarchy');
             $table->foreignId('parent_id')->nullable()->constrained('manufacturing_orders')->cascadeOnDelete();
             $table->foreignId('item_id')->nullable()->constrained('items');
             $table->foreignId('bill_of_material_id')->nullable()->constrained('bill_of_materials');

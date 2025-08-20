@@ -6,7 +6,7 @@ import {
     AlertCircle,
     Plus,
     FileText,
-
+    Image,
     Clock,
     Users,
     ChevronRight
@@ -26,6 +26,7 @@ import { User } from '@/types';
 import { Form } from '@/types/work-order';
 import { createFormAdapter } from '@/utils/form-adapters';
 import { toast } from 'sonner';
+import { Toggle } from '@/components/ui/toggle';
 
 import RouteBuilderCore from '@/components/production/RouteBuilderCore';
 import { ManufacturingStepsTable } from '@/components/production/ManufacturingStepsTable';
@@ -97,6 +98,7 @@ export default function ManufacturingOrderRouteTab({
     }, [order, shouldStartInBuilder]);
     const initialViewMode = determineViewMode();
     const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
+    const [showImages, setShowImages] = useState(false);
 
     const [showRouteDialog, setShowRouteDialog] = useState(false);
     const [_selectedTemplate, setSelectedTemplate] = useState<RouteTemplate | null>(null);
@@ -275,10 +277,22 @@ export default function ManufacturingOrderRouteTab({
                                     <h3 className="text-lg font-semibold">{order.manufacturing_route.name}</h3>
                                     {order.manufacturing_route.description && (
                                         <p className="text-sm text-muted-foreground mt-1">
-                                            {order.manufacturing_route.description}
-                                        </p>
-                                    )}
-                                </div>
+                                                                                    {order.manufacturing_route.description}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="flex gap-2">
+                                <Toggle
+                                    variant="outline"
+                                    size="sm"
+                                    pressed={showImages}
+                                    onPressedChange={setShowImages}
+                                    className="w-[135px] flex items-center justify-between data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90"
+                                    aria-label="Toggle images"
+                                >
+                                    <Image className="ml-1 h-4 w-4" />
+                                    <span className="flex-1 ml-1 text-left">{showImages ? 'Hide Images' : 'Show Images'}</span>
+                                </Toggle>
                                 {canCreateRoute && order.status === 'draft' && (
                                     <Button
                                         variant="outline"
@@ -289,12 +303,20 @@ export default function ManufacturingOrderRouteTab({
                                     </Button>
                                 )}
                             </div>
+                        </div>
 
                             {/* Steps Table or Empty State */}
                             {hasSteps ? (
                                 <ManufacturingStepsTable
                                     steps={order.manufacturing_route.steps || []}
                                     canExecute={canExecuteSteps}
+                                    showImages={showImages}
+                                    orderItem={order.item ? {
+                                        id: order.item.id,
+                                        primary_image_url: order.item.primary_image_url,
+                                        primary_image_thumbnail_url: order.item.primary_image_thumbnail_url,
+                                        images_count: order.item.images_count || 0
+                                    } : undefined}
                                 />
                             ) : (
                                 <EmptyCard

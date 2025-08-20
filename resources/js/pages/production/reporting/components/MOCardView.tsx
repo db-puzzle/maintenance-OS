@@ -23,9 +23,10 @@ interface MOCardViewProps {
     orders: ManufacturingOrder[];
     onOrderClick: (order: ManufacturingOrder) => void;
     onAction: (action: string, order: ManufacturingOrder) => void;
+    showImages?: boolean;
 }
 
-export function MOCardView({ orders, onOrderClick, onAction }: MOCardViewProps) {
+export function MOCardView({ orders, onOrderClick, onAction, showImages = true }: MOCardViewProps) {
     const [selectedOrder, setSelectedOrder] = useState<ManufacturingOrder | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [imageOverlays, setImageOverlays] = useState<Record<number, boolean>>({});
@@ -210,22 +211,24 @@ export function MOCardView({ orders, onOrderClick, onAction }: MOCardViewProps) 
 
                 {/* Item Info Section - Always present */}
                 <div className="flex items-start gap-3 mb-3">
-                    {imageUrl ? (
-                        <button
-                            onClick={(e) => toggleImageOverlay(order.id, e)}
-                            className="relative group cursor-pointer focus:outline-none flex-shrink-0 w-16 h-16"
-                        >
-                            <img
-                                src={imageUrl}
-                                alt={order.item?.name || 'Product'}
-                                className="w-full h-full object-contain rounded transition-transform group-hover:scale-105"
-                                style={{ backgroundColor: '#f3f4f6' }}
-                            />
-                        </button>
-                    ) : (
-                        <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
-                            <Package className="w-8 h-8 text-gray-400" />
-                        </div>
+                    {showImages && (
+                        imageUrl ? (
+                            <button
+                                onClick={(e) => toggleImageOverlay(order.id, e)}
+                                className="relative group cursor-pointer focus:outline-none flex-shrink-0 w-16 h-16"
+                            >
+                                <img
+                                    src={imageUrl}
+                                    alt={order.item?.name || 'Product'}
+                                    className="w-full h-full object-contain rounded transition-transform group-hover:scale-105"
+                                    style={{ backgroundColor: '#f3f4f6' }}
+                                />
+                            </button>
+                        ) : (
+                            <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
+                                <Package className="w-8 h-8 text-gray-400" />
+                            </div>
+                        )
                     )}
                     <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">
@@ -329,7 +332,6 @@ export function MOCardView({ orders, onOrderClick, onAction }: MOCardViewProps) 
                 isOpen={isDialogOpen}
                 onOpenChange={setIsDialogOpen}
                 onAction={onAction}
-                onOrderClick={onOrderClick}
             />
         </>
     );

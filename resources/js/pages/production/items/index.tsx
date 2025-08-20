@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { Download, Upload, FileText, Image, ImageOff, Loader2, Copy, QrCode } from 'lucide-react';
+import { Download, Upload, FileText, Loader2, Copy, QrCode } from 'lucide-react';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { CreateItemSheet } from '@/components/CreateItemSheet';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { ItemImageCarouselDialog } from '@/components/production/ItemImageCarouselDialog';
+import { ImageDisplayToggleButton } from '@/components/ImageDisplayToggleButton';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
@@ -298,24 +299,11 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                 createButtonText="Novo Item"
                 actions={
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowImages(!showImages)}
-                            className="flex items-center gap-2"
-                        >
-                            {showImages ? (
-                                <>
-                                    <ImageOff className="h-4 w-4" />
-                                    Ocultar Imagens
-                                </>
-                            ) : (
-                                <>
-                                    <Image className="h-4 w-4" />
-                                    Mostrar Imagens
-                                </>
-                            )}
-                        </Button>
+                        <ImageDisplayToggleButton
+                            showImages={showImages}
+                            onToggle={setShowImages}
+                            size="default"
+                        />
                         {can?.import && (
                             <>
                                 <Button
