@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('manufacturing_steps', function (Blueprint $table) {
             $table->id();
             $table->foreignId('manufacturing_route_id')->constrained('manufacturing_routes')->cascadeOnDelete();
-            $table->integer('step_number');
+            $table->integer('display_order')->default(0);
             $table->enum('step_type', ['standard', 'quality_check', 'rework'])->default('standard');
             $table->string('name', 255);
             $table->text('description')->nullable();
@@ -45,9 +45,16 @@ return new class extends Migration
             $table->foreignId('depends_on_step_id')->nullable()->constrained('manufacturing_steps');
             $table->enum('can_start_when_dependency', ['completed', 'in_progress'])->default('completed');
             
+            // Progressive flow fields
+            $table->enum('dependency_start_condition', ['completed', 'quantity_based', 'percentage_based', 'immediate'])->default('completed');
+            $table->integer('dependency_minimum_quantity')->nullable();
+            $table->decimal('dependency_minimum_percentage', 5, 2)->nullable();
+            $table->integer('cumulative_quantity_completed')->default(0);
+            $table->integer('cumulative_quantity_scrapped')->default(0);
+            
             $table->timestamps();
             
-            $table->unique(['manufacturing_route_id', 'step_number']);
+            $table->index(['manufacturing_route_id', 'display_order']);
             $table->index('status');
             $table->index('step_type');
         });

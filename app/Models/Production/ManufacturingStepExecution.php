@@ -45,6 +45,9 @@ class ManufacturingStepExecution extends Model
         'quality_notes',
         'failure_action',
         'form_execution_id',
+        // Progressive flow fields
+        'quantity_completed',
+        'quantity_scrapped',
     ];
 
     protected $casts = [
@@ -53,6 +56,8 @@ class ManufacturingStepExecution extends Model
         'on_hold_at' => 'datetime',
         'resumed_at' => 'datetime',
         'total_hold_duration' => 'integer',
+        'quantity_completed' => 'integer',
+        'quantity_scrapped' => 'integer',
     ];
 
     /**
@@ -235,5 +240,39 @@ class ManufacturingStepExecution extends Model
     public function scopeFailedQualityChecks($query)
     {
         return $query->where('quality_result', 'failed');
+    }
+
+    /**
+     * Report quantity progress for progressive flow.
+     */
+    public function reportQuantity(int $completed, int $scrapped = 0): void
+    {
+        $this->increment('quantity_completed', $completed);
+        $this->increment('quantity_scrapped', $scrapped);
+        
+        // Update cumulative quantities on the step
+        $this->manufacturingStep->updateCumulativeQuantities($completed, $scrapped);
+        
+        // Update order quantities
+        $order = $this->manufacturingOrder;
+        $order->increment('quantity_completed', $completed);
+        if ($scrapped > 0) {
+            $order->increment('quantity_scrapped', $scrapped);
+        }
+        
+        // If this is a last step, propagate to parent order
+        if ($this->manufacturingStep->isLastStep()) {
+            // Get the service to handle parent order update
+            $service = app(\App\Services\Production\ManufacturingOrderService::class);
+            $service->handleChildOrderProgress($order, $completed);
+        }
+    }
+
+    /**
+     * Get the total quantity reported (completed + scrapped).
+     */
+    public function getTotalQuantityReportedAttribute(): int
+    {
+        return $this->quantity_completed + $this->quantity_scrapped;
     }
 }

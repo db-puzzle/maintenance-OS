@@ -634,6 +634,12 @@ class PermissionSeeder extends Seeder
                     'display_name' => 'Start Manufacturing Orders',
                     'description' => 'Start production on released manufacturing orders',
                     'sort_order' => 130
+                ],
+                [
+                    'name' => 'production.orders.configure_dependencies',
+                    'display_name' => 'Configure Order Dependencies',
+                    'description' => 'Configure progressive flow dependencies for manufacturing orders',
+                    'sort_order' => 131
                 ]
             ];
 

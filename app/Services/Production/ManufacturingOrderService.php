@@ -5,6 +5,8 @@ namespace App\Services\Production;
 use App\Models\Production\ManufacturingStep;
 use App\Models\Production\ManufacturingStepExecution;
 use App\Models\Production\ManufacturingOrder;
+use App\Models\Production\ManufacturingOrderDependency;
+use App\Models\Production\ManufacturingOrderFlow;
 use App\Models\Production\RouteTemplate;
 use App\Models\Production\BillOfMaterial;
 use Illuminate\Support\Facades\DB;
@@ -138,17 +140,10 @@ class ManufacturingOrderService
     public function releaseOrder(ManufacturingOrder $order): void
     {
         if (!$order->canBeReleased()) {
+            if ($order->dependency_type !== 'none') {
+                throw new \Exception('Child order dependencies not met for release');
+            }
             throw new \Exception('Order cannot be released in current status');
-        }
-
-        // Check if order has a manufacturing route
-        if (!$order->manufacturingRoute()->exists()) {
-            throw new \Exception('Order must have a manufacturing route before it can be released');
-        }
-
-        // Check if route has at least one step
-        if ($order->manufacturingRoute->steps()->count() === 0) {
-            throw new \Exception('Manufacturing route must have at least one step before order can be released');
         }
 
         DB::transaction(function () use ($order) {
@@ -157,21 +152,35 @@ class ManufacturingOrderService
                 'actual_start_date' => now(),
             ]);
 
-            // Move all first steps (steps with no dependencies) from pending to queued
-            if ($order->manufacturingRoute) {
-                $firstSteps = $order->manufacturingRoute->steps()
-                    ->where('status', 'pending')
-                    ->where(function ($query) {
-                        $query->whereNull('depends_on_step_id')
-                            ->orWhere('step_number', 1);
-                    })
-                    ->get();
-
-                foreach ($firstSteps as $step) {
-                    $step->moveToQueued();
-                }
+            // Only queue steps if execution can start
+            if ($order->canStartExecution() && $order->manufacturingRoute) {
+                $this->queueFirstSteps($order);
             }
+
+            // Log the release
+            activity()
+                ->performedOn($order)
+                ->causedBy(auth()->user())
+                ->withProperties(['previous_status' => $order->getOriginal('status')])
+                ->log('Manufacturing order released');
         });
+    }
+
+    /**
+     * Queue first steps when order can execute.
+     */
+    protected function queueFirstSteps(ManufacturingOrder $order): void
+    {
+        $firstSteps = $order->manufacturingRoute->steps()
+            ->where('status', 'pending')
+            ->whereNull('depends_on_step_id')
+            ->get();
+            
+        foreach ($firstSteps as $step) {
+            if ($step->canStart()) {
+                $step->moveToQueued();
+            }
+        }
     }
 
     /**
@@ -322,50 +331,31 @@ class ManufacturingOrderService
             return;
         }
 
-        $execution->complete($data);
-
-        // Update MO quantities for standard steps
-        $order = $step->manufacturingRoute->manufacturingOrder;
-        if ($step->step_type === 'standard') {
-            $completed = isset($data['quantity_completed']) ? (int) $data['quantity_completed'] : 0;
-            $scrapped = isset($data['quantity_scrapped']) ? (int) $data['quantity_scrapped'] : 0;
-            if ($completed > 0) {
-                $order->increment('quantity_completed', $completed);
-            }
-            if ($scrapped > 0) {
-                $order->increment('quantity_scrapped', $scrapped);
+        // Track quantities at execution level for progressive flow
+        if (isset($data['quantity_completed'])) {
+            $execution->reportQuantity(
+                $data['quantity_completed'],
+                $data['quantity_scrapped'] ?? 0
+            );
+            
+            // If this is a last step, propagate to parent order
+            if ($step->isLastStep()) {
+                $order = $step->manufacturingRoute->manufacturingOrder;
+                $this->handleChildOrderProgress($order, $data['quantity_completed']);
             }
         }
 
-        // Mark step as completed
-        $step->complete();
+        $execution->complete($data);
 
-        // Check if any dependent steps can now be queued
-        $dependentSteps = $step->dependentSteps()
-            ->where('status', 'pending')
-            ->get();
-
-        foreach ($dependentSteps as $dependentStep) {
-            if ($dependentStep->canStart()) {
-                $dependentStep->moveToQueued();
-            }
+        // Check if step is complete
+        if ($this->isStepComplete($step)) {
+            $step->complete();
         }
 
         // If first execution of the first step started, mark order in progress
-        if ($order->status === 'released' && $step->step_number === 1) {
+        $order = $step->manufacturingRoute->manufacturingOrder;
+        if ($order->status === 'released' && $step->isFirstStep()) {
             $order->update(['status' => 'in_progress']);
-        }
-
-        // If all steps completed, mark order complete
-        $route = $step->manufacturingRoute;
-        if ($route->allStepsCompleted()) {
-            $order->update([
-                'status' => 'completed',
-                'actual_end_date' => now(),
-            ]);
-            if ($order->parent) {
-                $order->parent->incrementCompletedChildren();
-            }
         }
     }
 
@@ -539,5 +529,125 @@ class ManufacturingOrderService
                 }
             }
         });
+    }
+
+    /**
+     * Handle child order completion and propagate to parent.
+     */
+    public function handleChildOrderProgress(ManufacturingOrder $childOrder, float $quantityCompleted): void
+    {
+        if (!$childOrder->parent_id) {
+            return;
+        }
+        
+        DB::transaction(function () use ($childOrder, $quantityCompleted) {
+            $parentOrder = $childOrder->parent;
+            
+            // Record the material flow
+            ManufacturingOrderFlow::create([
+                'source_order_id' => $childOrder->id,
+                'destination_order_id' => $parentOrder->id,
+                'quantity_transferred' => $quantityCompleted,
+                'transferred_at' => now(),
+                'created_by' => auth()->id() ?? $childOrder->created_by
+            ]);
+            
+            // Update parent order progress
+            $parentOrder->updateFromChildProgress($childOrder, $quantityCompleted);
+            
+            // Check if parent should auto-complete
+            if ($parentOrder->auto_complete_on_children) {
+                $parentOrder->checkAutoCompletion();
+            }
+        });
+    }
+
+    /**
+     * Report step progress without completing execution.
+     */
+    public function reportStepProgress(ManufacturingStep $step, array $data): void
+    {
+        DB::transaction(function () use ($step, $data) {
+            // Create a progress report without completing the execution
+            $step->updateCumulativeQuantities(
+                $data['quantity_completed'],
+                $data['quantity_scrapped'] ?? 0
+            );
+            
+            // Update order quantities
+            $order = $step->manufacturingRoute->manufacturingOrder;
+            $order->increment('quantity_completed', $data['quantity_completed']);
+            
+            if (isset($data['quantity_scrapped'])) {
+                $order->increment('quantity_scrapped', $data['quantity_scrapped']);
+            }
+            
+            // If this is a last step, propagate to parent order
+            if ($step->isLastStep()) {
+                $this->handleChildOrderProgress($order, $data['quantity_completed']);
+            }
+        });
+    }
+
+    /**
+     * Check if step is complete based on quantity.
+     */
+    protected function isStepComplete(ManufacturingStep $step): bool
+    {
+        $order = $step->manufacturingRoute->manufacturingOrder;
+        return $step->cumulative_quantity_completed >= $order->quantity;
+    }
+
+    /**
+     * Create initial order dependencies based on BOM.
+     */
+    public function createOrderDependencies(ManufacturingOrder $parentOrder): void
+    {
+        foreach ($parentOrder->children as $childOrder) {
+            ManufacturingOrderDependency::create([
+                'parent_order_id' => $parentOrder->id,
+                'child_order_id' => $childOrder->id,
+                'dependency_type' => 'required',
+                'minimum_percentage' => 100.00 // Default to traditional batch completion
+            ]);
+        }
+        
+        // Calculate total required quantity from children
+        $totalRequired = $parentOrder->children()
+            ->join('bom_items', 'manufacturing_orders.item_id', '=', 'bom_items.item_id')
+            ->where('bom_items.bom_version_id', $parentOrder->billOfMaterial->currentVersion->id)
+            ->sum(DB::raw('bom_items.quantity * manufacturing_orders.quantity'));
+            
+        $parentOrder->update(['cumulative_children_quantity_required' => $totalRequired]);
+    }
+
+    /**
+     * Update dependency configuration.
+     */
+    public function updateOrderDependency(ManufacturingOrder $order, array $data): void
+    {
+        $order->update([
+            'dependency_type' => $data['dependency_type'],
+            'dependency_minimum_quantity' => $data['dependency_minimum_quantity'] ?? null,
+            'dependency_minimum_percentage' => $data['dependency_minimum_percentage'] ?? null,
+            'can_release_before_children' => $data['can_release_before_children'] ?? false,
+        ]);
+        
+        // If progressive dependencies, update individual child dependencies
+        if ($data['dependency_type'] === 'progressive' && isset($data['child_dependencies'])) {
+            foreach ($data['child_dependencies'] as $childDep) {
+                ManufacturingOrderDependency::updateOrCreate(
+                    [
+                        'parent_order_id' => $order->id,
+                        'child_order_id' => $childDep['child_order_id']
+                    ],
+                    [
+                        'dependency_type' => $childDep['dependency_type'] ?? 'required',
+                        'minimum_quantity' => $childDep['minimum_quantity'] ?? null,
+                        'minimum_percentage' => $childDep['minimum_percentage'] ?? null,
+                    ]
+                );
+            }
+        }
     }
 }

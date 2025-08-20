@@ -166,4 +166,22 @@ class ProductionOrderPolicy
 
         return true;
     }
+
+    /**
+     * Determine whether the user can configure dependencies for the order.
+     */
+    public function configureDependencies(User $user, ManufacturingOrder $order): bool
+    {
+        // Order must be in a state where dependencies can be configured
+        if (!in_array($order->status, ['draft', 'planned', 'released'])) {
+            return false;
+        }
+
+        // Must have children to configure dependencies
+        if ($order->children()->count() === 0) {
+            return false;
+        }
+
+        return $user->hasPermissionTo('production.orders.configure_dependencies');
+    }
 } 

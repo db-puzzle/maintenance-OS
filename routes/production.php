@@ -124,6 +124,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('steps/{step}/executions/{execution}/resume', [ManufacturingStepController::class, 'resume'])->name('steps.resume');
     Route::post('steps/{step}/executions/{execution}/quality', [ManufacturingStepController::class, 'recordQualityResult'])->name('steps.quality');
     Route::post('steps/{step}/executions/{execution}/complete', [ManufacturingStepController::class, 'complete'])->name('steps.complete');
+    Route::post('steps/{step}/report-progress', [ManufacturingOrderController::class, 'reportStepProgress'])->name('steps.report-progress');
 
     // Manufacturing Orders
     Route::resource('orders', ManufacturingOrderController::class)->except(['edit']);
@@ -131,6 +132,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('orders/{order}/cancel', [ManufacturingOrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('orders/{order}/apply-template', [ManufacturingOrderController::class, 'applyTemplate'])->name('orders.apply-template');
     Route::post('orders/{order}/report-production', [ManufacturingOrderController::class, 'reportProduction'])->name('orders.report-production');
+    Route::post('orders/{order}/update-dependencies', [ManufacturingOrderController::class, 'updateDependencies'])->name('orders.update-dependencies');
     
     // Order Routes
     Route::get('orders/{order}/routes/create', [ManufacturingOrderController::class, 'createRoute'])->name('orders.routes.create');

@@ -342,8 +342,8 @@ export default function ManufacturingOrders({
         ];
     }, [statusCounts, summaryTotal]);
     const breadcrumbs = [
-        { title: 'Production', href: '/production' },
-        { title: 'Manufacturing Orders', href: '' }
+        { title: 'Planjamento', href: '/planning' },
+        { title: 'Ordens de Manufatura', href: '' }
     ];
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

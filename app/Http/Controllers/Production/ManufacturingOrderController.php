@@ -202,11 +202,18 @@ class ManufacturingOrderController extends BaseSearchController
 
         $order->load([
             'item.category',
-            'billOfMaterial',
-            'parent',
-            'children',
-            'manufacturingRoute.steps.workCell',
-            'createdBy'
+            'billOfMaterial.currentVersion',
+            'parent.item',
+            'children' => function ($query) {
+                $query->with(['item', 'manufacturingRoute'])
+                      ->withCount('children as child_count');
+            },
+            'manufacturingRoute.steps' => function ($query) {
+                $query->with('workCell')
+                      ->orderBy('display_order');
+            },
+            'createdBy',
+            'childDependencies.childOrder.item'
         ]);
 
         // Load children recursively for tree view
@@ -238,15 +245,56 @@ class ManufacturingOrderController extends BaseSearchController
         }
 
         return Inertia::render('production/manufacturing-orders/show', [
-            'order' => $order,
+            'order' => array_merge($order->toArray(), [
+                // Progressive flow data
+                'work_in_progress_quantity' => $order->work_in_progress_quantity,
+                'detailed_wip' => $order->detailed_work_in_progress,
+                'hierarchical_wip' => $order->hierarchical_wip,
+                'production_flow' => [
+                    'entered_production' => $order->first_step_completed_quantity,
+                    'in_process' => $order->work_in_progress_quantity,
+                    'completed' => $order->last_step_completed_quantity,
+                ],
+                'can_execute' => $order->canStartExecution(),
+                'can_release' => $order->canBeReleased(),
+                // Transform children with completion percentage
+                'children' => $order->children->map(function ($child) {
+                    return array_merge($child->toArray(), [
+                        'completion_percentage' => $child->quantity > 0 
+                            ? round(($child->quantity_completed / $child->quantity) * 100, 2) 
+                            : 0,
+                    ]);
+                }),
+                // Transform dependencies with current percentage
+                'dependencies' => $order->childDependencies->map(function ($dep) {
+                    return [
+                        'id' => $dep->id,
+                        'child_order_id' => $dep->child_order_id,
+                        'child_order_number' => $dep->childOrder->order_number,
+                        'child_order_item' => $dep->childOrder->item,
+                        'dependency_type' => $dep->dependency_type,
+                        'minimum_quantity' => $dep->minimum_quantity,
+                        'minimum_percentage' => $dep->minimum_percentage,
+                        'quantity_completed' => $dep->quantity_completed,
+                        'current_percentage' => $dep->childOrder->quantity > 0
+                            ? round(($dep->quantity_completed / $dep->childOrder->quantity) * 100, 2)
+                            : 0,
+                        'is_satisfied' => $dep->is_satisfied,
+                        'satisfied_at' => $dep->satisfied_at?->format('Y-m-d H:i:s'),
+                    ];
+                }),
+            ]),
             'canRelease' => $order->canBeReleased() && auth()->user()->can('production.orders.release'),
             'canCancel' => $order->canBeCancelled() && auth()->user()->can('production.orders.cancel'),
             'canCreateRoute' => $canCreateRoute,
             'canManageRoutes' => auth()->user()->can('production.routes.create'), // For child orders
             'canReportProduction' => auth()->user()->can('reportProduction', $order),
+            'canConfigureDependencies' => auth()->user()->can('production.orders.configure_dependencies'),
             'templates' => $templates,
             'workCells' => WorkCell::where('is_active', true)->get(),
             'stepTypes' => ManufacturingStep::STEP_TYPES,
+            'stepStartConditions' => ManufacturingStep::STEP_START_CONDITIONS,
+            'orderDependencyTypes' => ManufacturingOrder::ORDER_DEPENDENCY_TYPES,
             'forms' => Form::where('is_active', true)->get(['id', 'name']),
             'plants' => \App\Models\AssetHierarchy\Plant::all(['id', 'name']),
             'shifts' => \App\Models\AssetHierarchy\Shift::all(['id', 'name']),
@@ -588,6 +636,52 @@ class ManufacturingOrderController extends BaseSearchController
         });
         
         return back()->with('success', 'Production reported successfully.');
+    }
+
+    /**
+     * Update dependency configuration for an order.
+     */
+    public function updateDependencies(Request $request, ManufacturingOrder $order)
+    {
+        $this->authorize('configureDependencies', $order);
+
+        $validated = $request->validate([
+            'dependency_type' => 'required|in:none,all_children_released,children_quantity,children_percentage,progressive',
+            'dependency_minimum_quantity' => 'nullable|required_if:dependency_type,children_quantity|numeric|min:0',
+            'dependency_minimum_percentage' => 'nullable|required_if:dependency_type,children_percentage|numeric|min:0.01|max:100',
+            'can_release_before_children' => 'boolean',
+            'child_dependencies' => 'nullable|array',
+            'child_dependencies.*.child_order_id' => 'required|exists:manufacturing_orders,id',
+            'child_dependencies.*.dependency_type' => 'required|in:required,optional',
+            'child_dependencies.*.minimum_quantity' => 'nullable|numeric|min:0',
+            'child_dependencies.*.minimum_percentage' => 'nullable|numeric|min:0.01|max:100',
+        ]);
+
+        $this->orderService->updateOrderDependency($order, $validated);
+
+        return redirect()->route('production.orders.show', $order)
+            ->with('success', 'Order dependencies updated successfully.');
+    }
+
+    /**
+     * Report progress on a specific step.
+     */
+    public function reportStepProgress(Request $request, ManufacturingStep $step)
+    {
+        $this->authorize('reportProduction', $step->manufacturingRoute->manufacturingOrder);
+
+        $validated = $request->validate([
+            'quantity_completed' => 'required|integer|min:1',
+            'quantity_scrapped' => 'nullable|integer|min:0',
+        ]);
+
+        $this->orderService->reportStepProgress($step, $validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Progress reported successfully',
+            'step' => $step->fresh(['manufacturingRoute.manufacturingOrder']),
+        ]);
     }
 
 } 

@@ -14,6 +14,8 @@ use App\Models\Production\Item;
 use App\Models\Production\ItemCategory;
 use App\Models\Production\ManufacturingStep;
 use App\Models\Production\ManufacturingOrder;
+use App\Models\Production\ManufacturingOrderDependency;
+use App\Models\Production\ManufacturingOrderFlow;
 use App\Models\Production\ManufacturingRoute;
 use App\Models\Production\QrTracking;
 use App\Models\Production\Shipment;
@@ -28,6 +30,8 @@ use App\Policies\PlantPolicy;
 use App\Policies\Production\BillOfMaterialPolicy;
 use App\Policies\Production\ItemPolicy;
 use App\Policies\Production\ItemCategoryPolicy;
+use App\Policies\Production\ManufacturingOrderDependencyPolicy;
+use App\Policies\Production\ManufacturingOrderFlowPolicy;
 use App\Policies\Production\ManufacturingRoutePolicy;
 use App\Policies\Production\ManufacturingStepPolicy;
 use App\Policies\Production\ProductionOrderPolicy;
@@ -67,6 +71,8 @@ class AuthServiceProvider extends ServiceProvider
         
         // Production Module
         ManufacturingOrder::class => ProductionOrderPolicy::class,
+        ManufacturingOrderDependency::class => ManufacturingOrderDependencyPolicy::class,
+        ManufacturingOrderFlow::class => ManufacturingOrderFlowPolicy::class,
         ManufacturingRoute::class => ManufacturingRoutePolicy::class,
         ManufacturingStep::class => ManufacturingStepPolicy::class,
         Item::class => ItemPolicy::class,

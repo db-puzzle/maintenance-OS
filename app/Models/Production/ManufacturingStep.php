@@ -50,9 +50,16 @@ class ManufacturingStep extends Model
         'sampling' => 'Sampling',
     ];
 
+    public const STEP_START_CONDITIONS = [
+        'completed' => 'Previous step must complete all units',      // Traditional batch processing
+        'quantity_based' => 'Start after specific quantity',         // Progressive flow - quantity threshold
+        'percentage_based' => 'Start after percentage complete',     // Progressive flow - percentage threshold
+        'immediate' => 'Start as soon as previous step begins',      // Maximum progressive flow
+    ];
+
     protected $fillable = [
         'manufacturing_route_id',
-        'step_number',
+        'display_order',
         'step_type',
         'name',
         'description',
@@ -70,6 +77,12 @@ class ManufacturingStep extends Model
         'sampling_size',
         'depends_on_step_id',
         'can_start_when_dependency',
+        // Progressive flow fields
+        'dependency_start_condition',
+        'dependency_minimum_quantity',
+        'dependency_minimum_percentage',
+        'cumulative_quantity_completed',
+        'cumulative_quantity_scrapped',
     ];
 
     protected $casts = [
@@ -81,6 +94,9 @@ class ManufacturingStep extends Model
         'can_start_when_dependency' => 'string',
         'actual_start_time' => 'datetime',
         'actual_end_time' => 'datetime',
+        // Progressive flow casts
+        'dependency_start_condition' => 'string',
+        'dependency_minimum_percentage' => 'decimal:2',
     ];
 
     /**
@@ -91,24 +107,12 @@ class ManufacturingStep extends Model
         parent::boot();
 
         static::saving(function ($step) {
-            // If this is not the first step and no dependency is set, auto-set to previous step
-            if ($step->step_number > 1 && !$step->depends_on_step_id) {
-                $previousStep = static::where('manufacturing_route_id', $step->manufacturing_route_id)
-                    ->where('step_number', '<', $step->step_number)
-                    ->orderBy('step_number', 'desc')
-                    ->first();
-                
-                if ($previousStep) {
-                    $step->depends_on_step_id = $previousStep->id;
-                } else {
-                    // If we can't find a previous step, throw validation error
-                    throw ValidationException::withMessages([
-                        'depends_on_step_id' => ['Steps after the first must have a dependency on a previous step.']
-                    ]);
-                }
+            // Set default dependency start condition if not set
+            if ($step->depends_on_step_id && !$step->dependency_start_condition) {
+                $step->dependency_start_condition = 'completed';
             }
             
-            // Ensure can_start_when_dependency is always 'completed' to enforce linear path
+            // Ensure can_start_when_dependency is set for backward compatibility
             if ($step->depends_on_step_id && !$step->can_start_when_dependency) {
                 $step->can_start_when_dependency = 'completed';
             }
@@ -176,14 +180,43 @@ class ManufacturingStep extends Model
      */
     public function canStart(): bool
     {
+        // For first steps, check order-level dependencies
+        if ($this->isFirstStep()) {
+            $order = $this->manufacturingRoute->manufacturingOrder;
+            if (!$order->canStartExecution()) {
+                return false;
+            }
+        }
+        
+        // If no step dependency, can start
         if (!$this->depends_on_step_id) {
             return true;
         }
         
         $dependency = $this->dependency;
         
-        // Always require dependency to be completed (enforcing linear path)
-        return $dependency->status === 'completed';
+        switch ($this->dependency_start_condition) {
+            case 'completed':
+                return $dependency->status === 'completed';
+                
+            case 'quantity_based':
+                return $dependency->cumulative_quantity_completed >= $this->dependency_minimum_quantity;
+                
+            case 'percentage_based':
+                $targetQuantity = $dependency->manufacturingRoute->manufacturingOrder->quantity;
+                if ($targetQuantity == 0) {
+                    return true;
+                }
+                $completedPercentage = ($dependency->cumulative_quantity_completed / $targetQuantity) * 100;
+                return $completedPercentage >= $this->dependency_minimum_percentage;
+                
+            case 'immediate':
+                return in_array($dependency->status, ['in_progress', 'completed']);
+                
+            default:
+                // Fallback to completed for backward compatibility
+                return $dependency->status === 'completed';
+        }
     }
 
     /**
@@ -217,10 +250,10 @@ class ManufacturingStep extends Model
     public function createReworkStep(): ManufacturingStep
     {
         $route = $this->manufacturingRoute;
-        $maxStepNumber = $route->steps()->max('step_number');
+        $maxDisplayOrder = $route->steps()->max('display_order') ?? 0;
         
         return $route->steps()->create([
-            'step_number' => $maxStepNumber + 1,
+            'display_order' => $maxDisplayOrder + 10,
             'step_type' => 'rework',
             'name' => "Rework for {$this->name}",
             'description' => "Rework step for failed quality check on {$this->name}",
@@ -228,6 +261,7 @@ class ManufacturingStep extends Model
             'setup_time_minutes' => 0,
             'cycle_time_minutes' => $this->cycle_time_minutes * 2, // Estimate
             'depends_on_step_id' => $this->id,
+            'dependency_start_condition' => 'completed', // Rework always waits for full completion
             'status' => 'pending',
         ]);
     }
@@ -434,7 +468,7 @@ class ManufacturingStep extends Model
      */
     public function isFirstStep(): bool
     {
-        return $this->step_number === 1 || !$this->depends_on_step_id;
+        return is_null($this->depends_on_step_id);
     }
 
     /**
@@ -443,6 +477,74 @@ class ManufacturingStep extends Model
     public function scopeCancellable($query)
     {
         return $query->whereNotIn('status', ['completed', 'cancelled']);
+    }
+
+    /**
+     * Get the next step in the production sequence.
+     */
+    public function getNextStep(): ?ManufacturingStep
+    {
+        return $this->manufacturingRoute->steps()
+            ->where('depends_on_step_id', $this->id)
+            ->first();
+    }
+
+    /**
+     * Get the previous step in the production sequence.
+     */
+    public function getPreviousStep(): ?ManufacturingStep
+    {
+        return $this->dependency;
+    }
+
+    /**
+     * Check if the next step in sequence can start.
+     */
+    public function checkNextStepActivation(): void
+    {
+        $nextStep = $this->getNextStep();
+        
+        if ($nextStep && $nextStep->status === 'pending' && $nextStep->canStart()) {
+            $nextStep->moveToQueued();
+        }
+    }
+
+    /**
+     * Get position in the production sequence.
+     */
+    public function getSequencePosition(): int
+    {
+        $position = 1;
+        $currentStep = $this;
+        
+        while ($currentStep->depends_on_step_id) {
+            $position++;
+            $currentStep = $currentStep->dependency;
+        }
+        
+        return $position;
+    }
+
+    /**
+     * Check if this is the last step in the sequence.
+     */
+    public function isLastStep(): bool
+    {
+        return !$this->dependentSteps()->exists();
+    }
+
+    /**
+     * Update cumulative quantities from execution.
+     */
+    public function updateCumulativeQuantities(int $completed, int $scrapped = 0): void
+    {
+        $this->increment('cumulative_quantity_completed', $completed);
+        if ($scrapped > 0) {
+            $this->increment('cumulative_quantity_scrapped', $scrapped);
+        }
+        
+        // Check if the next step can now be activated
+        $this->checkNextStepActivation();
     }
 
 }

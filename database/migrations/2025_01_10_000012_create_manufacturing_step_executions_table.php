@@ -43,6 +43,10 @@ return new class extends Migration
             // Form execution reference
             $table->foreignId('form_execution_id')->nullable();
             
+            // Quantity tracking for progressive flow
+            $table->integer('quantity_completed')->default(0);
+            $table->integer('quantity_scrapped')->default(0);
+            
             $table->timestamps();
             
             $table->index(['manufacturing_step_id', 'manufacturing_order_id']);
