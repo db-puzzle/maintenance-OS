@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from '@inertiajs/react';
-import { router, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
     Package,
     Calendar,
@@ -11,7 +10,14 @@ import {
     Play,
     XCircle,
     FileText,
-    QrCode
+    QrCode,
+    Layers,
+    Ban,
+    PlayCircle,
+    TrendingUp,
+    Percent,
+    Check,
+    Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +45,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { createFormAdapter } from '@/utils/form-adapters';
 import { ClipboardCheck } from 'lucide-react';
+import StateButton from '@/components/StateButton';
 interface Props {
     order: ManufacturingOrder;
     canRelease: boolean;
@@ -159,7 +166,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
         { title: order.order_number, href: '' }
     ];
     const handleRelease = () => {
-        router.post(route('production.orders.release', order.id), {}, {
+        router.post(window.route('production.orders.release', order.id), {}, {
             onSuccess: () => {
                 // Success handled by controller
             },
@@ -167,7 +174,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
     };
     const handleCancel = () => {
         if (confirm('Are you sure you want to cancel this order?')) {
-            router.post(route('production.orders.cancel', order.id), {
+            router.post(window.route('production.orders.cancel', order.id), {
                 reason: 'Cancelled by user'
             });
         }
@@ -175,7 +182,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
     const handleGenerateQrTag = async () => {
         setGeneratingQr(true);
         try {
-            const response = await axios.post(route('production.qr-tags.order', order.id));
+            const response = await axios.post(window.route('production.qr-tags.order', order.id));
             if (response.data.success && response.data.pdf_url) {
                 window.open(response.data.pdf_url, '_blank');
                 toast.success('Etiqueta QR gerada com sucesso!');
@@ -205,7 +212,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                 Scanned via QR code.
                                 {order.has_route && order.manufacturing_route?.current_active_step && (
                                     <Link
-                                        href={route('production.steps.execute', order.manufacturing_route.current_active_step.id)}
+                                        href={window.route('production.steps.execute', order.manufacturing_route.current_active_step.id)}
                                         className="ml-2 underline"
                                     >
                                         Go to current step
@@ -304,13 +311,13 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                             </div>
                         </div>
                         <ItemSelect
-                            label="Source Type"
+                            label="Razão da Ordem"
                             items={[
-                                { id: 1, name: 'Manual', value: 'manual' },
-                                { id: 2, name: 'Sales Order', value: 'sales_order' },
-                                { id: 3, name: 'Forecast', value: 'forecast' },
+                                { id: 'manual', name: 'Manual' },
+                                { id: 'sales_order', name: 'Sales Order' },
+                                { id: 'forecast', name: 'Forecast' },
                             ]}
-                            value={String(form.data.source_type || '')}
+                            value={form.data.source_type || 'manual'}
                             onValueChange={() => { }}
                             view={true}
                         />
@@ -326,7 +333,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                 <label className="text-sm font-medium">Parent Order</label>
                                 <div className="rounded-md border bg-muted/20 p-2 text-sm">
                                     <Link
-                                        href={route('production.orders.show', order.parent_id)}
+                                        href={window.route('production.orders.show', order.parent_id)}
                                         className="font-medium text-primary hover:underline"
                                     >
                                         {order.parent?.order_number}
@@ -342,7 +349,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                             <div className="rounded-md border bg-muted/20 p-2 text-sm">
                                 {order.item ? (
                                     <Link
-                                        href={route('production.items.show', order.item.id)}
+                                        href={window.route('production.items.show', order.item.id)}
                                         className="font-medium text-primary hover:underline"
                                     >
                                         {order.item.item_number}
@@ -374,7 +381,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                 <label className="text-sm font-medium">BOM</label>
                                 <div className="rounded-md border bg-muted/20 p-2 text-sm">
                                     <Link
-                                        href={route('production.bom.show', order.bill_of_material_id)}
+                                        href={window.route('production.bom.show', order.bill_of_material_id)}
                                         className="font-medium text-primary hover:underline"
                                     >
                                         <span className="text-sm text-muted-foreground">
@@ -427,7 +434,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                         <AlertDescription>
                                             This is a child order of{' '}
                                             <Link
-                                                href={route('production.orders.show', order.parent_id)}
+                                                href={window.route('production.orders.show', order.parent_id)}
                                                 className="font-medium text-primary hover:underline"
                                             >
                                                 {order.parent?.order_number}
@@ -462,9 +469,199 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 </div>
             )
         },
+        {
+            id: 'bom-configuration',
+            label: 'BOM Configuration',
+            content: (
+                <div className="space-y-6 py-6">
+                    <h3 className="text-lg font-semibold">Order Type Configuration</h3>
+
+                    {/* Order Type Display */}
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <StateButton
+                                icon={Layers}
+                                title="Com BOM"
+                                description="Usar uma BOM para fabricar o item."
+                                selected={order.bill_of_material_id !== null}
+                                onClick={() => { }}
+                                disabled={true}
+                            />
+                            <StateButton
+                                icon={Package}
+                                title="Sem BOM"
+                                description="Criar ordem diretamente para o item."
+                                selected={order.bill_of_material_id === null}
+                                onClick={() => { }}
+                                disabled={true}
+                            />
+                        </div>
+
+                        {order.bill_of_material_id && (
+                            <>
+                                <Alert>
+                                    <Info className="h-4 w-4" />
+                                    <AlertDescription>
+                                        Esta ordem está usando a BOM{' '}
+                                        <Link
+                                            href={window.route('production.bom.show', order.bill_of_material_id)}
+                                            className="font-medium text-primary hover:underline"
+                                        >
+                                            {order.bill_of_material?.bom_number}
+                                        </Link>
+                                        {order.children && order.children.length > 0 && (
+                                            <span>
+                                                {' '}e criou {order.children.length} ordens de manufatura para os componentes.
+                                            </span>
+                                        )}
+                                    </AlertDescription>
+                                </Alert>
+
+                                {/* Auto-Complete Configuration */}
+                                <div className="mt-4">
+                                    <h4 className="font-medium mb-3">Auto-Complete Configuration</h4>
+                                    <StateButton
+                                        icon={Check}
+                                        title="Completar Automaticamente as Ordens-Pai"
+                                        description={
+                                            order.auto_complete_on_children
+                                                ? "Quando não houver rota especificada, a ordem pai será automaticamente concluída quando todas as ordens filhas forem concluídas"
+                                                : "Quando não houver rota especificada, a ordem pai NÃO será automaticamente concluída quando todas as ordens filhas forem concluídas"
+                                        }
+                                        selected={order.auto_complete_on_children}
+                                        onClick={() => { }}
+                                        disabled={true}
+                                    />
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )
+        },
+        ...(order.bill_of_material_id ? [
+            {
+                id: 'dependencies',
+                label: 'Dependencies',
+                content: (
+                    <div className="space-y-6 py-6">
+                        <h3 className="text-lg font-semibold">Parent-Child Dependencies</h3>
+
+                        {/* Release Dependencies Section */}
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="font-medium mb-2">Release Configuration</h4>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Configure quando a ordem pai pode ser liberada para produção.
+                                </p>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <StateButton
+                                        icon={PlayCircle}
+                                        title="A Qualquer Momento"
+                                        description="A ordem pai pode ser liberada mesmo se as ordens filhas não estiverem prontas"
+                                        selected={order.can_release_before_children !== false}
+                                        onClick={() => { }}
+                                        disabled={true}
+                                    />
+
+                                    <StateButton
+                                        icon={Ban}
+                                        title="Após Ordens Filhas"
+                                        description="A ordem pai deve esperar pelas ordens filhas serem liberadas antes de ser liberada"
+                                        selected={order.can_release_before_children === false}
+                                        onClick={() => { }}
+                                        disabled={true}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Production Dependencies Section */}
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="font-medium mb-2">Production Start Dependencies</h4>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Configure quando a ordem pai pode começar a ser produzida com base no progresso das ordens filhas.
+                                </p>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <StateButton
+                                        icon={PlayCircle}
+                                        title="Todas as Ordens Filhas Completas"
+                                        description="A ordem pai só pode iniciar após todas as ordens filhas serem concluídas"
+                                        selected={order.dependency_type === 'all_children_released'}
+                                        onClick={() => { }}
+                                        disabled={true}
+                                    />
+
+                                    <StateButton
+                                        icon={Ban}
+                                        title="Sem Dependências"
+                                        description="A ordem pai pode começar a qualquer momento, independentemente das ordens filhas"
+                                        selected={order.dependency_type === 'none' || !order.dependency_type}
+                                        onClick={() => { }}
+                                        disabled={true}
+                                    />
+
+                                    <StateButton
+                                        icon={TrendingUp}
+                                        title="Baseado em Quantidade"
+                                        description="A ordem pai só pode iniciar após as ordens filhas concluírem uma quantidade específica"
+                                        selected={order.dependency_type === 'children_quantity'}
+                                        onClick={() => { }}
+                                        disabled={true}
+                                    />
+
+                                    <StateButton
+                                        icon={Percent}
+                                        title="Baseado em Porcentagem"
+                                        description="A ordem pai só pode iniciar após as ordens filhas concluírem uma porcentagem específica de sua quantidade total"
+                                        selected={order.dependency_type === 'children_percentage'}
+                                        onClick={() => { }}
+                                        disabled={true}
+                                    />
+                                </div>
+
+                                {/* Quantity-Based Configuration */}
+                                {order.dependency_type === 'children_quantity' && (
+                                    <div className="mt-6 p-4 rounded-lg border bg-muted/50">
+                                        <label className="text-sm font-medium">Quantidade Mínima Requerida</label>
+                                        <div className="mt-2">
+                                            <span className="text-lg font-semibold">{order.dependency_minimum_quantity || 0}</span>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-2">
+                                            Total de unidades que devem ser concluídas em todas as ordens filhas
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Percentage-Based Configuration */}
+                                {order.dependency_type === 'children_percentage' && (
+                                    <div className="mt-6 p-4 rounded-lg border bg-muted/50">
+                                        <label className="text-sm font-medium">Porcentagem Mínima Requerida</label>
+                                        <div className="mt-2 space-y-2">
+                                            <div className="flex items-center gap-3">
+                                                <Progress value={order.dependency_minimum_percentage || 0} className="h-2 flex-1" />
+                                                <span className="font-medium">{order.dependency_minimum_percentage || 0}%</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-2">
+                                            Porcentagem de quantidade produzida por cada uma das ordens filhas
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        ] : []),
         ...((order.child_orders_count > 0 || (order.children && order.children.length > 0)) ? [{
             id: 'children',
-            label: `Child Orders (${order.child_orders_count || (order.children?.length || 0)})`,
+            label: 'Child Orders',
             content: (
                 /* Show current order as root of the tree */
                 <ManufacturingOrderHierarchicalView
