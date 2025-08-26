@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useForm } from '@inertiajs/react';
 import {
     Factory,
@@ -10,15 +10,21 @@ import {
     ChevronRight,
     Info,
     Search,
-    CheckCircle2
+    Layers,
+    Wrench,
+    FileText,
+    Zap,
+    Ban,
+    PlayCircle,
+    TrendingUp,
+    Percent
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 import { ItemSelect } from '@/components/ItemSelect';
 import InputError from '@/components/input-error';
 import StateButton from '@/components/StateButton';
@@ -58,7 +64,7 @@ interface StepIndicatorProps {
 
 function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
     return (
-        <div className="flex items-center justify-between px-2 -mt-3">
+        <div className="flex items-center justify-between mx-6 px-2 -mt-3">
             {steps.map((step, index) => (
                 <React.Fragment key={step.number}>
                     <div className="flex items-center gap-2">
@@ -117,7 +123,7 @@ export default function CreateManufacturingOrderDialog({
     const [bomsPerPage, setBomsPerPage] = useState(10);
 
     const { data, setData, post, processing, errors, reset } = useForm({
-        order_type: selectedBomId ? 'bom' : 'item',
+        order_type: 'bom',
         item_id: '',
         bill_of_material_id: selectedBomId ? selectedBomId.toString() : '',
         quantity: 1,
@@ -129,14 +135,12 @@ export default function CreateManufacturingOrderDialog({
         auto_complete_on_children: true as boolean,
         route_creation_mode: 'manual',
         route_template_id: '',
+        // Progressive flow fields
+        dependency_type: 'none' as 'none' | 'all_children_released' | 'children_quantity' | 'children_percentage',
+        dependency_minimum_quantity: 0,
+        dependency_minimum_percentage: 0,
+        can_release_before_children: true as boolean,
     });
-
-    const steps = [
-        { number: 1, title: 'Item', icon: <Package className="h-4 w-4" /> },
-        { number: 2, title: 'BOM', icon: <Factory className="h-4 w-4" /> },
-        { number: 3, title: 'Details', icon: <Calendar className="h-4 w-4" /> },
-        { number: 4, title: 'Config', icon: <Settings className="h-4 w-4" /> },
-    ];
 
     const selectedItem = useMemo(() => {
         if (data.item_id) {
@@ -144,6 +148,49 @@ export default function CreateManufacturingOrderDialog({
         }
         return null;
     }, [data.item_id, items]);
+
+    // Filter BOMs that output the selected item
+    const itemBOMs = useMemo(() => {
+        if (!selectedItem) return [];
+        return billsOfMaterial.filter(bom =>
+            bom.output_item_id === selectedItem.id && bom.is_active
+        );
+    }, [selectedItem, billsOfMaterial]);
+
+    const steps = useMemo(() => {
+        const baseSteps = [
+            { number: 1, title: 'Item', icon: <Package className="h-4 w-4" /> },
+            { number: 2, title: 'BOM', icon: <Factory className="h-4 w-4" /> },
+            { number: 3, title: 'Detalhes', icon: <Calendar className="h-4 w-4" /> },
+            { number: 4, title: 'Rotas', icon: <Settings className="h-4 w-4" /> },
+        ];
+
+        // Only add the Dependencies steps if using BOM
+        if (data.order_type === 'bom' && itemBOMs.length > 0) {
+            baseSteps.push({ number: 5, title: 'Liberação', icon: <PlayCircle className="h-4 w-4" /> });
+            baseSteps.push({ number: 6, title: 'Produção', icon: <TrendingUp className="h-4 w-4" /> });
+        }
+
+        return baseSteps;
+    }, [data.order_type, itemBOMs.length]);
+
+    // Handle when selectedBomId is provided (e.g., from BOM show page)
+    useEffect(() => {
+        if (selectedBomId && billsOfMaterial.length > 0) {
+            const bom = billsOfMaterial.find(b => b.id === selectedBomId);
+            if (bom && bom.output_item) {
+                setData(prev => ({
+                    ...prev,
+                    item_id: bom.output_item!.id.toString(),
+                    unit_of_measure: bom.output_item!.unit_of_measure || 'EA',
+                    bill_of_material_id: selectedBomId.toString()
+                }));
+                setSelectedItemId(new Set([bom.output_item!.id]));
+            }
+        }
+    }, [selectedBomId, billsOfMaterial, setData]);
+
+
 
     const selectedBOM = useMemo(() => {
         if (data.order_type === 'bom' && data.bill_of_material_id) {
@@ -163,14 +210,6 @@ export default function CreateManufacturingOrderDialog({
             !t.item_category || t.item_category === selectedItem.category?.name
         );
     }, [selectedItem, routeTemplates]);
-
-    // Filter BOMs that output the selected item
-    const itemBOMs = useMemo(() => {
-        if (!selectedItem) return [];
-        return billsOfMaterial.filter(bom =>
-            bom.output_item_id === selectedItem.id && bom.is_active
-        );
-    }, [selectedItem, billsOfMaterial]);
 
     // Filter items based on search query
     const filteredItems = useMemo(() => {
@@ -230,6 +269,37 @@ export default function CreateManufacturingOrderDialog({
         to: filteredBOMs.length > 0 ? Math.min(bomsPage * bomsPerPage, filteredBOMs.length) : null,
     }), [filteredBOMs, bomsPage, bomsPerPage]);
 
+    // Track selected item
+    const [selectedItemId, setSelectedItemId] = useState<Set<string | number>>(
+        data.item_id ? new Set([parseInt(data.item_id)]) : new Set()
+    );
+
+    // Handle item selection
+    const handleItemSelection = (selectedIds: Set<string | number>) => {
+        setSelectedItemId(selectedIds);
+        // Get the first selected item
+        const selectedId = Array.from(selectedIds)[0];
+        if (selectedId) {
+            const item = filteredItems.find(i => i.id === selectedId);
+            if (item) {
+                setData({
+                    ...data,
+                    item_id: item.id.toString(),
+                    unit_of_measure: item.unit_of_measure || 'EA',
+                    bill_of_material_id: '', // Reset BOM selection
+                });
+            }
+        } else {
+            // Clear selection
+            setData({
+                ...data,
+                item_id: '',
+                unit_of_measure: 'EA',
+                bill_of_material_id: '',
+            });
+        }
+    };
+
     // Define columns for items table (focused on manufacturing info)
     const itemColumns: ColumnConfig<Item>[] = useMemo(() => [
         {
@@ -237,9 +307,7 @@ export default function CreateManufacturingOrderDialog({
             label: '',
             width: 'w-[40px]',
             render: (_value: unknown, item: Item) => (
-                data.item_id === item.id.toString() ? (
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                ) : null
+                data.item_id === item.id.toString() ? <Check className="h-4 w-4 text-primary" /> : null
             )
         },
         {
@@ -276,20 +344,40 @@ export default function CreateManufacturingOrderDialog({
             render: (value: unknown) => <span>{String(value || 'EA')}</span>
         },
         {
-            key: 'primary_bom',
+            key: 'has_bom',
             label: 'Has BOM',
             width: 'w-[100px]',
-            render: (value: unknown, item: Item) => (
-                item.primary_bom ? (
-                    <Badge variant="outline" className="text-xs">
-                        {item.primary_bom.bom_number}
-                    </Badge>
-                ) : (
-                    <span className="text-muted-foreground">-</span>
-                )
-            )
+            render: (_value: unknown, item: Item) => {
+                // Check if item has a primary BOM
+                const primaryBom = item.primary_bom || (item as Item & { primaryBom?: BillOfMaterial }).primaryBom;
+
+                // Also check if there are any BOMs that output this item
+                const hasBoms = billsOfMaterial.some(bom =>
+                    bom.output_item_id === item.id && bom.is_active
+                );
+
+                if (primaryBom) {
+                    return (
+                        <Badge variant="outline" className="text-xs">
+                            {primaryBom.bom_number}
+                        </Badge>
+                    );
+                } else if (hasBoms) {
+                    // If no primary BOM but has active BOMs
+                    const bomCount = billsOfMaterial.filter(bom =>
+                        bom.output_item_id === item.id && bom.is_active
+                    ).length;
+                    return (
+                        <Badge variant="secondary" className="text-xs">
+                            {bomCount} BOM{bomCount > 1 ? 's' : ''}
+                        </Badge>
+                    );
+                }
+
+                return <span className="text-muted-foreground">-</span>;
+            }
         }
-    ], [data.item_id]);
+    ], [data.item_id, billsOfMaterial]);
 
     // Define columns for BOMs table
     const bomColumns: ColumnConfig<BillOfMaterial>[] = useMemo(() => [
@@ -299,7 +387,7 @@ export default function CreateManufacturingOrderDialog({
             width: 'w-[40px]',
             render: (_value: unknown, bom: BillOfMaterial) => (
                 data.bill_of_material_id === bom.id.toString() ? (
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                    <Check className="h-4 w-4 text-primary" />
                 ) : null
             )
         },
@@ -336,11 +424,11 @@ export default function CreateManufacturingOrderDialog({
             }
         },
         {
-            key: 'current_version',
+            key: 'component_count',
             label: 'Components',
             width: 'w-[100px]',
-            render: (value: unknown) => {
-                const version = value as BomVersion | undefined;
+            render: (_value: unknown, bom: BillOfMaterial) => {
+                const version = bom.current_version as BomVersion | undefined;
                 return <span>{version?.items?.length || 0} items</span>;
             }
         }
@@ -376,6 +464,13 @@ export default function CreateManufacturingOrderDialog({
             item_id: data.item_id ? parseInt(data.item_id) : null,
             bill_of_material_id: data.bill_of_material_id ? parseInt(data.bill_of_material_id) : null,
             route_template_id: data.route_template_id ? parseInt(data.route_template_id) : null,
+            // Only include progressive flow fields for BOM orders
+            ...(data.order_type === 'bom' ? {
+                dependency_type: data.dependency_type,
+                dependency_minimum_quantity: data.dependency_minimum_quantity,
+                dependency_minimum_percentage: data.dependency_minimum_percentage,
+                can_release_before_children: data.can_release_before_children,
+            } : {})
         };
 
         post(route('production.orders.store', submitData), {
@@ -395,12 +490,19 @@ export default function CreateManufacturingOrderDialog({
             case 1:
                 return !!data.item_id; // Item selection is required
             case 2:
-                // Skip BOM step if no BOMs available, or BOM selection is valid
-                return itemBOMs.length === 0 || (data.order_type === 'bom' && !!data.bill_of_material_id);
+                // Step is valid if:
+                // - No BOMs available (will be skipped), OR
+                // - Order type is 'item' (no BOM needed), OR
+                // - Order type is 'bom' AND a BOM is selected
+                return itemBOMs.length === 0 || data.order_type === 'item' || (data.order_type === 'bom' && !!data.bill_of_material_id);
             case 3:
                 return data.quantity > 0 && !!data.unit_of_measure;
             case 4:
                 return true; // Configuration is optional
+            case 5:
+                return true; // Release dependencies are optional
+            case 6:
+                return true; // Production dependencies are optional
             default:
                 return false;
         }
@@ -421,10 +523,10 @@ export default function CreateManufacturingOrderDialog({
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="!max-w-[60vw] w-[60vw] h-[80vh]  flex flex-col p-0">
-                <DialogHeader className="px-6 py-4 border-b">
-                    <DialogTitle>Create Manufacturing Order</DialogTitle>
+                <DialogHeader className="mt-4 px-6 py-4 border-b">
+                    <DialogTitle>Criar Ordem de Manufatura</DialogTitle>
                     <DialogDescription>
-                        Create a new manufacturing order for production
+                        Crie uma nova ordem de manufatura paraprodução
                     </DialogDescription>
                 </DialogHeader>
 
@@ -433,12 +535,12 @@ export default function CreateManufacturingOrderDialog({
                 </div>
 
                 <div className="flex-1 flex flex-col overflow-hidden px-6">
-                    <div className="flex-1 flex flex-col py-2">
+                    <div className="flex-1 overflow-y-auto py-2">
                         {/* Step 1: Item Selection */}
                         {currentStep === 1 && (
                             <div className="flex flex-col h-full relative">
                                 <Label className="text-base font-medium mb-4 block">
-                                    Select Item to Manufacture
+                                    Selecione o Item a ser Manufaturado
                                 </Label>
 
                                 {/* Search Box */}
@@ -462,15 +564,23 @@ export default function CreateManufacturingOrderDialog({
                                         data={paginatedItems}
                                         columns={itemColumns}
                                         loading={false}
-                                        emptyMessage="No manufacturable items found."
+                                        emptyMessage="Nenhum item manufaturável encontrado."
                                         maxHeight="350px"
+                                        selectable={true}
+                                        selectedRows={selectedItemId}
+                                        onSelectionChange={handleItemSelection}
+                                        getRowId={(item) => (item as Item).id}
                                         onRowClick={(item) => {
-                                            setData({
-                                                ...data,
-                                                item_id: (item as Item).id.toString(),
-                                                unit_of_measure: (item as Item).unit_of_measure || 'EA',
-                                                bill_of_material_id: '', // Reset BOM selection
-                                            });
+                                            // Handle row click - toggle selection
+                                            const itemId = (item as Item).id;
+                                            const newSelection = new Set(selectedItemId);
+                                            if (newSelection.has(itemId)) {
+                                                newSelection.delete(itemId);
+                                            } else {
+                                                newSelection.clear(); // Clear previous selection
+                                                newSelection.add(itemId);
+                                            }
+                                            handleItemSelection(newSelection);
                                         }}
                                     />
                                 </div>
@@ -480,7 +590,7 @@ export default function CreateManufacturingOrderDialog({
                                 )}
 
                                 {/* Fixed Pagination at bottom */}
-                                <div className="pt-2 border-t">
+                                <div className="pt-2">
                                     <EntityPagination
                                         pagination={itemsPagination}
                                         onPageChange={setItemsPage}
@@ -497,46 +607,48 @@ export default function CreateManufacturingOrderDialog({
                         {/* Step 2: BOM Selection */}
                         {currentStep === 2 && itemBOMs.length > 0 && (
                             <div className="space-y-6">
+
                                 <div>
                                     <Label className="text-base font-medium mb-4 block">
-                                        Select Manufacturing Method
+                                        Selecione o tipo de ordem
                                     </Label>
-                                    <RadioGroup
-                                        value={data.order_type}
-                                        onValueChange={(value: 'item' | 'bom') => {
-                                            setData('order_type', value);
-                                            setData('bill_of_material_id', '');
-                                        }}
-                                        className="space-y-4"
-                                    >
-                                        <div className="flex items-start space-x-3">
-                                            <RadioGroupItem value="item" id="item" className="mt-1" />
-                                            <div>
-                                                <Label htmlFor="item" className="font-normal cursor-pointer">
-                                                    <div className="font-medium">Direct Item Manufacturing</div>
-                                                    <p className="text-sm text-muted-foreground mt-1">
-                                                        Create an order for {selectedItem?.name} without using a BOM
-                                                    </p>
-                                                </Label>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start space-x-3">
-                                            <RadioGroupItem value="bom" id="bom" className="mt-1" />
-                                            <div>
-                                                <Label htmlFor="bom" className="font-normal cursor-pointer">
-                                                    <div className="font-medium">BOM-Based Manufacturing</div>
-                                                    <p className="text-sm text-muted-foreground mt-1">
-                                                        Use a Bill of Materials to manufacture {selectedItem?.name}
-                                                    </p>
-                                                </Label>
-                                            </div>
-                                        </div>
-                                    </RadioGroup>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <StateButton
+                                            icon={Layers}
+                                            title="Com BOM"
+                                            description={`Usar uma BOM para fabricar o item.`}
+                                            selected={data.order_type === 'bom'}
+                                            onClick={() => {
+                                                setData(prev => ({
+                                                    ...prev,
+                                                    order_type: 'bom',
+                                                    bill_of_material_id: '',
+                                                    // Reset route_creation_mode if it was 'template' (not available with BOM)
+                                                    route_creation_mode: prev.route_creation_mode === 'template' ? 'manual' : prev.route_creation_mode
+                                                }));
+                                            }}
+                                        />
+                                        <StateButton
+                                            icon={Package}
+                                            title="Sem BOM"
+                                            description={`Criar ordem diretamente para o item.`}
+                                            selected={data.order_type === 'item'}
+                                            onClick={() => {
+                                                setData(prev => ({
+                                                    ...prev,
+                                                    order_type: 'item',
+                                                    bill_of_material_id: '',
+                                                    // Reset route_creation_mode if it was 'auto' (not available without BOM)
+                                                    route_creation_mode: prev.route_creation_mode === 'auto' ? 'manual' : prev.route_creation_mode
+                                                }));
+                                            }}
+                                        />
+                                    </div>
                                 </div>
 
                                 {data.order_type === 'bom' && (
                                     <div className="flex flex-col h-full relative">
-                                        <Label className="mb-4">Select Bill of Materials</Label>
+                                        <Label className="mb-4">Selecione a Bill of Materials</Label>
 
                                         {/* Search Box */}
                                         <div className="relative mb-4">
@@ -560,16 +672,26 @@ export default function CreateManufacturingOrderDialog({
                                                 columns={bomColumns}
                                                 loading={false}
                                                 emptyMessage={`No BOMs found for ${selectedItem?.name}.`}
-                                                maxHeight="35vh"
+                                                maxHeight="195px"
+                                                selectable={true}
+                                                selectedRows={new Set(data.bill_of_material_id ? [Number(data.bill_of_material_id)] : [])}
+                                                onSelectionChange={(selection: Set<string | number>) => {
+                                                    const selectedId = Array.from(selection)[0];
+                                                    setData('bill_of_material_id', selectedId ? selectedId.toString() : '');
+                                                }}
+                                                getRowId={(bom) => (bom as BillOfMaterial).id}
                                                 onRowClick={(bom) => {
-                                                    setData('bill_of_material_id', (bom as BillOfMaterial).id.toString());
+                                                    // Handle row click - toggle selection
+                                                    const bomId = (bom as BillOfMaterial).id;
+                                                    const newBomId = data.bill_of_material_id === bomId.toString() ? '' : bomId.toString();
+                                                    setData('bill_of_material_id', newBomId);
                                                 }}
                                             />
                                         </div>
 
                                         {/* Fixed Pagination at bottom */}
                                         {filteredBOMs.length > bomsPerPage && (
-                                            <div className="pt-2 border-t">
+                                            <div className="pt-2">
                                                 <EntityPagination
                                                     pagination={bomsPagination}
                                                     onPageChange={setBomsPage}
@@ -585,8 +707,7 @@ export default function CreateManufacturingOrderDialog({
                                             <Alert className="mt-4">
                                                 <Info className="h-4 w-4" />
                                                 <AlertDescription>
-                                                    This will create {bomItems.length} child orders
-                                                    for the components in this BOM
+                                                    Essa ação também criará {bomItems.length} ordens de manufatura para os componentes desta BOM
                                                 </AlertDescription>
                                             </Alert>
                                         )}
@@ -602,10 +723,11 @@ export default function CreateManufacturingOrderDialog({
                         {/* Step 3: Order Details */}
                         {currentStep === 3 && (
                             <ScrollArea className="h-full">
+
                                 <div className="space-y-6 pr-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <Label htmlFor="quantity">Quantity</Label>
+                                            <Label htmlFor="quantity">Quantidade</Label>
                                             <Input
                                                 id="quantity"
                                                 type="number"
@@ -619,12 +741,12 @@ export default function CreateManufacturingOrderDialog({
                                         </div>
 
                                         <div>
-                                            <Label htmlFor="unit_of_measure">Unit of Measure</Label>
+                                            <Label htmlFor="unit_of_measure">Unidade de Medida</Label>
                                             <Input
                                                 id="unit_of_measure"
-                                                value={data.unit_of_measure}
-                                                onChange={(e) => setData('unit_of_measure', e.target.value)}
-                                                required
+                                                value={selectedItem?.unit_of_measure || ''}
+                                                disabled
+                                                className="bg-muted"
                                             />
                                             <InputError message={errors.unit_of_measure} />
                                         </div>
@@ -632,28 +754,34 @@ export default function CreateManufacturingOrderDialog({
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <Label htmlFor="priority">Priority (0-100)</Label>
-                                            <div className="flex items-center gap-4 mt-2">
-                                                <Input
-                                                    id="priority"
-                                                    type="range"
-                                                    min={0}
-                                                    max={100}
+                                            <Label htmlFor="priority">Prioridade (0-100)</Label>
+                                            <div className="flex items-center gap-3 mt-2">
+                                                <Progress
                                                     value={data.priority}
-                                                    onChange={(e) => setData('priority', parseInt(e.target.value))}
-                                                    className="flex-1"
+                                                    className="h-2 flex-1"
                                                 />
-                                                <span className="w-12 text-center font-medium">
-                                                    {data.priority}
-                                                </span>
+                                                <div className="flex items-center gap-1">
+                                                    <Input
+                                                        id="priority"
+                                                        type="number"
+                                                        min={0}
+                                                        max={100}
+                                                        value={data.priority}
+                                                        onChange={(e) => {
+                                                            const value = parseInt(e.target.value) || 0;
+                                                            setData('priority', Math.min(100, Math.max(0, value)));
+                                                        }}
+                                                        className="w-16 h-8 text-center"
+                                                    />
+                                                </div>
                                             </div>
                                             <p className="text-sm text-muted-foreground mt-1">
-                                                Higher values indicate higher priority
+                                                Maiores valores indicam maior prioridade
                                             </p>
                                         </div>
 
                                         <div>
-                                            <Label htmlFor="requested_date">Requested Date</Label>
+                                            <Label htmlFor="requested_date">Data Requerida</Label>
                                             <Input
                                                 id="requested_date"
                                                 type="date"
@@ -666,7 +794,7 @@ export default function CreateManufacturingOrderDialog({
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <ItemSelect
-                                            label="Source Type"
+                                            label="Razão da Ordem"
                                             items={Object.entries(sourceTypes).map(([value, label]) => ({
                                                 id: value,
                                                 name: label,
@@ -677,7 +805,7 @@ export default function CreateManufacturingOrderDialog({
                                         />
 
                                         <div>
-                                            <Label htmlFor="source_reference">Source Reference</Label>
+                                            <Label htmlFor="source_reference">Referência da Ordem</Label>
                                             <Input
                                                 id="source_reference"
                                                 value={data.source_reference}
@@ -699,88 +827,77 @@ export default function CreateManufacturingOrderDialog({
 
                                     {/* Route Configuration */}
                                     <div>
-                                        <h3 className="font-medium mb-4">Manufacturing Route</h3>
-                                        <RadioGroup
-                                            value={data.route_creation_mode}
-                                            onValueChange={(value) =>
-                                                setData('route_creation_mode', value as 'manual' | 'template' | 'auto')
-                                            }
-                                            className="space-y-4"
-                                        >
-                                            <div className="flex items-start space-x-3">
-                                                <RadioGroupItem value="manual" id="manual" className="mt-1" />
-                                                <div>
-                                                    <Label htmlFor="manual" className="font-normal cursor-pointer">
-                                                        <div className="font-medium">Manual Route Creation</div>
-                                                        <p className="text-sm text-muted-foreground mt-1">
-                                                            Create routes manually after order release
-                                                        </p>
-                                                    </Label>
-                                                </div>
+                                        <h3 className="font-medium mb-4">Rota de Manufatura</h3>
+                                        <div className="space-y-4">
+                                            <div className={`grid ${data.order_type === 'bom' ? 'grid-cols-2' : 'grid-cols-2'} gap-4`}>
+                                                <StateButton
+                                                    icon={Wrench}
+                                                    title="Criar Manualmente"
+                                                    description="Criar rotas manualmente após a criação da ordem"
+                                                    selected={data.route_creation_mode === 'manual'}
+                                                    onClick={() => setData('route_creation_mode', 'manual')}
+                                                />
+
+                                                {/* Show "Usar Template de Rota" only when NO BOM is selected */}
+                                                {data.order_type !== 'bom' && (
+                                                    <StateButton
+                                                        icon={FileText}
+                                                        title="Usar Template de Rota"
+                                                        description="Aplicar agora um template predefinido"
+                                                        selected={data.route_creation_mode === 'template'}
+                                                        onClick={() => setData('route_creation_mode', 'template')}
+                                                    />
+                                                )}
+
+                                                {/* Show "Criar Automaticamente" only when BOM is selected */}
+                                                {data.order_type === 'bom' && (
+                                                    <StateButton
+                                                        icon={Zap}
+                                                        title="Criar Automaticamente"
+                                                        description="Criar rotas automaticamente com base na categoria do item"
+                                                        selected={data.route_creation_mode === 'auto'}
+                                                        onClick={() => setData('route_creation_mode', 'auto')}
+                                                    />
+                                                )}
                                             </div>
 
-                                            <div className="flex items-start space-x-3">
-                                                <RadioGroupItem value="template" id="template" className="mt-1" />
-                                                <div className="flex-1">
-                                                    <Label htmlFor="template" className="font-normal cursor-pointer">
-                                                        <div className="font-medium">Use Route Template</div>
-                                                        <p className="text-sm text-muted-foreground mt-1">
-                                                            Apply a predefined route template
-                                                        </p>
-                                                    </Label>
+                                            {data.route_creation_mode === 'template' && data.order_type !== 'bom' && (
+                                                <div className="space-y-3">
+                                                    <ItemSelect
+                                                        label=""
+                                                        items={filteredRouteTemplates}
+                                                        value={data.route_template_id}
+                                                        onValueChange={(value) =>
+                                                            setData('route_template_id', value)
+                                                        }
+                                                        placeholder="Select a route template..."
+                                                    />
 
-                                                    {data.route_creation_mode === 'template' && (
-                                                        <div className="mt-3">
-                                                            <ItemSelect
-                                                                label=""
-                                                                items={filteredRouteTemplates}
-                                                                value={data.route_template_id}
-                                                                onValueChange={(value) =>
-                                                                    setData('route_template_id', value)
-                                                                }
-                                                                placeholder="Select a route template..."
-
-                                                            />
-
-                                                            {data.route_template_id && (
-                                                                <div className="mt-3 p-3 bg-muted/20 rounded-lg">
-                                                                    <p className="text-sm">
-                                                                        {filteredRouteTemplates.find(
-                                                                            t => t.id === parseInt(data.route_template_id)
-                                                                        )?.description}
-                                                                    </p>
-                                                                </div>
-                                                            )}
+                                                    {data.route_template_id && (
+                                                        <div className="p-3 bg-muted/20 rounded-lg">
+                                                            <p className="text-sm">
+                                                                {filteredRouteTemplates.find(
+                                                                    t => t.id === parseInt(data.route_template_id)
+                                                                )?.description}
+                                                            </p>
                                                         </div>
                                                     )}
                                                 </div>
-                                            </div>
-
-                                            <div className="flex items-start space-x-3">
-                                                <RadioGroupItem value="auto" id="auto" className="mt-1" />
-                                                <div>
-                                                    <Label htmlFor="auto" className="font-normal cursor-pointer">
-                                                        <div className="font-medium">Auto-create from Defaults</div>
-                                                        <p className="text-sm text-muted-foreground mt-1">
-                                                            Automatically create routes based on item category
-                                                        </p>
-                                                    </Label>
-                                                </div>
-                                            </div>
-                                        </RadioGroup>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Parent-Child Configuration */}
                                     {data.order_type === 'bom' && (
                                         <div>
-                                            <h3 className="font-medium mb-4">Parent-Child Auto-Complete</h3>
+                                            <h3 className="font-medium mb-4">Auto-Complete</h3>
                                             <StateButton
-                                                icon={CheckCircle2}
-                                                title="Auto-complete parent order"
+                                                icon={Check}
+                                                title="Completar Automaticamente as Ordens-Pai"
                                                 description={
                                                     data.auto_complete_on_children
-                                                        ? "The parent order will automatically transition to completed status when all child orders are finished"
-                                                        : "The parent order will NOT automatically transition to completed status when all child orders are finished"
+                                                        ? "Quando não houver rota especificada, a ordem pai será automaticamente concluída quando todas as ordens filhas forem concluídas"
+                                                        : "Quando não houver rota especificada, a ordem pai NÃO será automaticamente concluída quando todas as ordens filhas forem concluídas"
                                                 }
                                                 selected={data.auto_complete_on_children}
                                                 onClick={() => setData('auto_complete_on_children', !data.auto_complete_on_children)}
@@ -788,6 +905,151 @@ export default function CreateManufacturingOrderDialog({
                                         </div>
                                     )}
 
+                                </div>
+                            </ScrollArea>
+                        )}
+
+                        {/* Step 5: Release Dependencies */}
+                        {currentStep === 5 && data.order_type === 'bom' && (
+                            <ScrollArea className="h-full">
+                                <div className="space-y-6 pr-4">
+                                    <div>
+                                        <h3 className="font-medium mb-2">Liberação da Ordem-Pai</h3>
+                                        <p className="text-sm text-muted-foreground mb-6">
+                                            Configure quando a ordem pai pode ser liberada para produção.
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <StateButton
+                                                icon={PlayCircle}
+                                                title="A Qualquer Momento"
+                                                description="A ordem pai pode ser liberada mesmo se as ordens filhas não estiverem prontas"
+                                                selected={data.can_release_before_children === true}
+                                                onClick={() => setData('can_release_before_children', true)}
+                                            />
+
+                                            <StateButton
+                                                icon={Ban}
+                                                title="Após Ordens Filhas"
+                                                description="A ordem pai deve esperar pelas ordens filhas serem liberadas antes de ser liberada"
+                                                selected={data.can_release_before_children === false}
+                                                onClick={() => setData('can_release_before_children', false)}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </ScrollArea>
+                        )}
+
+                        {/* Step 6: Production Dependencies */}
+                        {currentStep === 6 && data.order_type === 'bom' && (
+                            <ScrollArea className="h-full">
+                                <div className="space-y-6 pr-4">
+                                    <div>
+                                        <h3 className="font-medium mb-2">Dependências para Início da Produção</h3>
+                                        <p className="text-sm text-muted-foreground mb-6">
+                                            Configure quando a ordem pai pode começar a ser produzida com base no progresso das ordens filhas.
+                                        </p>
+
+                                        {/* Dependency Type Selection - 2x2 Grid */}
+                                        <div className="grid grid-cols-2 gap-4">
+
+                                            <StateButton
+                                                icon={PlayCircle}
+                                                title="Todas as Ordens Filhas Completas"
+                                                description="A ordem pai só pode iniciar após todas as ordens filhas serem concluídas"
+                                                selected={data.dependency_type === 'all_children_released'}
+                                                onClick={() => {
+                                                    setData('dependency_type', 'all_children_released');
+                                                    setData('dependency_minimum_quantity', 0);
+                                                    setData('dependency_minimum_percentage', 0);
+                                                }}
+                                            />
+
+                                            <StateButton
+                                                icon={Ban}
+                                                title="Sem Dependências"
+                                                description="A ordem pai pode começar a qualquer momento, independentemente das ordens filhas"
+                                                selected={data.dependency_type === 'none'}
+                                                onClick={() => {
+                                                    setData('dependency_type', 'none');
+                                                    setData('dependency_minimum_quantity', 0);
+                                                    setData('dependency_minimum_percentage', 0);
+                                                }}
+                                            />
+
+                                            <StateButton
+                                                icon={TrendingUp}
+                                                title="Baseado em Quantidade"
+                                                description="A ordem pai só pode iniciar após as ordens filhas concluírem uma quantidade específica"
+                                                selected={data.dependency_type === 'children_quantity'}
+                                                onClick={() => {
+                                                    setData('dependency_type', 'children_quantity');
+                                                    setData('dependency_minimum_percentage', 0);
+                                                }}
+                                            />
+
+                                            <StateButton
+                                                icon={Percent}
+                                                title="Baseado em Porcentagem"
+                                                description="A ordem pai só pode iniciar após as ordens filhas concluírem uma porcentagem específica de sua quantidade total"
+                                                selected={data.dependency_type === 'children_percentage'}
+                                                onClick={() => {
+                                                    setData('dependency_type', 'children_percentage');
+                                                    setData('dependency_minimum_quantity', 0);
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Quantity-Based Configuration */}
+                                        {data.dependency_type === 'children_quantity' && (
+                                            <div className="mt-6 p-4 rounded-lg border bg-muted/50">
+                                                <Label htmlFor="min-quantity">Quantidade Mínima Requerida</Label>
+                                                <Input
+                                                    id="min-quantity"
+                                                    type="number"
+                                                    value={data.dependency_minimum_quantity}
+                                                    onChange={(e) => setData('dependency_minimum_quantity', parseFloat(e.target.value) || 0)}
+                                                    min={0}
+                                                    step={1}
+                                                    className="mt-2"
+                                                />
+                                                <p className="text-xs text-muted-foreground mt-2">
+                                                    Total de unidades que devem ser concluídas em todas as ordens filhas
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {/* Percentage-Based Configuration */}
+                                        {data.dependency_type === 'children_percentage' && (
+                                            <div className="mt-6 p-4 rounded-lg border bg-muted/50">
+                                                <Label htmlFor="min-percentage">Porcentagem Mínima Requerida</Label>
+                                                <div className="flex items-center gap-3 mt-2">
+                                                    <Progress
+                                                        value={data.dependency_minimum_percentage}
+                                                        className="h-2 flex-1"
+                                                    />
+                                                    <div className="flex items-center gap-1">
+                                                        <Input
+                                                            id="min-percentage"
+                                                            type="number"
+                                                            min={0}
+                                                            max={100}
+                                                            value={data.dependency_minimum_percentage}
+                                                            onChange={(e) => {
+                                                                const value = parseInt(e.target.value) || 0;
+                                                                setData('dependency_minimum_percentage', Math.min(100, Math.max(0, value)));
+                                                            }}
+                                                            className="w-16 h-8 text-center"
+                                                        />
+                                                        <span className="text-sm text-muted-foreground">%</span>
+                                                    </div>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground mt-2">
+                                                    Porcentagem de quantidade produzida por cada uma das ordens filhas
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </ScrollArea>
                         )}
@@ -809,6 +1071,7 @@ export default function CreateManufacturingOrderDialog({
                                 type="button"
                                 onClick={handleNext}
                                 disabled={!isStepValid(currentStep)}
+                                title={currentStep === 2 && data.order_type === 'bom' && !data.bill_of_material_id ? 'Selecione uma BOM para continuar' : ''}
                             >
                                 Next
                                 <ChevronRight className="h-4 w-4 ml-2" />

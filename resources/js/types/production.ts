@@ -187,6 +187,16 @@ export interface ManufacturingOrder {
 
     source_type?: 'manual' | 'sales_order' | 'forecast';
     source_reference?: string;
+
+    // Progressive flow fields
+    dependency_type?: 'none' | 'all_children_released' | 'children_quantity' | 'children_percentage' | 'progressive';
+    dependency_minimum_quantity?: number;
+    dependency_minimum_percentage?: number;
+    can_release_before_children?: boolean;
+    cumulative_children_quantity_completed?: number;
+    cumulative_children_quantity_required?: number;
+    work_in_progress_quantity?: number;
+
     children?: ManufacturingOrder[];
     manufacturing_route?: ManufacturingRoute;
     route?: ManufacturingRoute;

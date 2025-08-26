@@ -379,9 +379,7 @@ function DestinationStep({ form }: StepProps) {
     // Create form adapter for TextInput components
     const formAdapter = createFormAdapter({
         data: form.data,
-        setData: ((key: string, value: any) => {
-            form.setData(key as keyof ShipmentFormDataForInertia, value);
-        }) as any,
+        setData: form.setData as Parameters<typeof createFormAdapter<ShipmentFormDataForInertia>>[0]['setData'],
         errors: form.errors,
         clearErrors: form.clearErrors
     });
@@ -455,9 +453,7 @@ function CarrierStep({ form }: StepProps) {
     // Create form adapter for TextInput components
     const formAdapter = createFormAdapter({
         data: form.data,
-        setData: ((key: string, value: any) => {
-            form.setData(key as keyof ShipmentFormDataForInertia, value);
-        }) as any,
+        setData: form.setData as Parameters<typeof createFormAdapter<ShipmentFormDataForInertia>>[0]['setData'],
         errors: form.errors,
         clearErrors: form.clearErrors
     });

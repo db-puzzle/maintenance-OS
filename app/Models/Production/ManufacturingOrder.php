@@ -588,7 +588,7 @@ class ManufacturingOrder extends Model
             ->whereHas('shipment', function ($query) {
                 $query->where('status', 'shipped');
             })
-            ->sum('quantity_shipped');
+            ->sum('quantity');
     }
 
     /**

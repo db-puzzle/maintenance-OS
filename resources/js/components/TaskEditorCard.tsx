@@ -2,6 +2,7 @@ import { ItemSelect } from '@/components/ItemSelect';
 import TaskDescriptionInput from '@/components/TaskDescriptionInput';
 import AddTaskButton from '@/components/tasks/AddTaskButton';
 import { TextInput } from '@/components/TextInput';
+import { createFormAdapter } from '@/utils/form-adapters';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -240,31 +241,34 @@ export default function TaskEditorCard({
                                                 <CardContent className="flex items-center space-x-2">
                                                     <div className="flex-1">
                                                         <TextInput
-                                                            form={{
-                                                                data: {
+                                                            form={(() => {
+                                                                const optionFormData = {
                                                                     ...data,
                                                                     [`option-${index}`]: value,
                                                                     options: undefined
-                                                                } as unknown as Record<string, string | number | boolean | File | null | undefined>,
-                                                                setData: (field: string, value: string | number | boolean | File | null | undefined) => {
-                                                                    if (field === `option-${index}`) {
-                                                                        const newOptions = [...options];
-                                                                        newOptions[index] = value as string;
-                                                                        handleOptionsChange(newOptions);
+                                                                };
+                                                                return createFormAdapter({
+                                                                    data: optionFormData,
+                                                                    setData: ((field: keyof typeof optionFormData, val: typeof optionFormData[keyof typeof optionFormData]) => {
+                                                                        if (field === `option-${index}`) {
+                                                                            const newOptions = [...options];
+                                                                            newOptions[index] = val as string;
+                                                                            handleOptionsChange(newOptions);
+                                                                        }
+                                                                    }) as typeof setData,
+                                                                    errors,
+                                                                    clearErrors: (...fields: (keyof typeof errors)[]) => {
+                                                                        if (fields.includes(`option-${index}` as keyof typeof errors)) {
+                                                                            // Clear specific option error if exists
+                                                                            const newErrors = { ...errors };
+                                                                            delete newErrors[`option-${index}` as keyof typeof newErrors];
+                                                                            clearErrors(...(Object.keys(newErrors) as (keyof typeof errors)[]));
+                                                                        } else {
+                                                                            clearErrors(...fields);
+                                                                        }
                                                                     }
-                                                                },
-                                                                errors,
-                                                                clearErrors: (...fields: string[]) => {
-                                                                    if (fields.includes(`option-${index}`)) {
-                                                                        // Clear specific option error if exists
-                                                                        const newErrors = { ...errors };
-                                                                        delete (newErrors as any)[`option-${index}`];
-                                                                        clearErrors(...Object.keys(newErrors) as any);
-                                                                    } else {
-                                                                        clearErrors(...fields as any);
-                                                                    }
-                                                                }
-                                                            } as any}
+                                                                });
+                                                            })()}
                                                             name={`option-${index}`}
                                                             label={`Opção ${index + 1}`}
                                                             placeholder={`Descreva a opção ${index + 1}`}

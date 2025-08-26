@@ -20,7 +20,7 @@ interface CertificationUser {
     expires_at: string | null;
     certificate_number: string | null;
     is_expired: boolean;
-    [key: string]: any; // Allow index signature for compatibility
+    [key: string]: number | string | null | boolean | undefined; // Allow index signature for compatibility
 }
 interface CertificationWithUsers {
     id: number;

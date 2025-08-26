@@ -40,7 +40,7 @@ export function HoldProductionDialog({ order, onClose }: HoldProductionDialogPro
 
         // Submit with formatted data by updating the form data first
         Object.keys(formData).forEach(key => {
-            setData(key as any, (formData as any)[key]);
+            setData(key as keyof typeof data, formData[key as keyof typeof formData]);
         });
 
         post(route('production.reporting.hold', order.id), {

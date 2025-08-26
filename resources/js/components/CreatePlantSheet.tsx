@@ -8,6 +8,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { estados } from '@/data/estados';
+import { createFormAdapter } from '@/utils/form-adapters';
 import { Plant as ImportedPlant } from '@/types/entities/plant';
 
 
@@ -121,18 +122,19 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                 };
 
                 // Create custom form adapter for zip code field with special formatting
-                const customZipCodeFormAdapter = {
+                // Using createFormAdapter with a wrapper to handle CEP formatting
+                const customZipCodeFormAdapter = createFormAdapter({
                     data,
-                    setData: (key: string, value: string | number | boolean | File | null | undefined) => {
+                    setData: ((key: keyof PlantForm, value: PlantForm[keyof PlantForm]) => {
                         if (key === 'zip_code' && typeof value === 'string') {
                             setData('zip_code', formatCEP(value));
-                        } else if (typeof key === 'string' && key in data) {
-                            (setData as any)(key, value);
+                        } else {
+                            setData(key, value);
                         }
-                    },
+                    }) as typeof setData,
                     errors,
-                    clearErrors: (...fields: string[]) => clearErrors(...fields)
-                } as any;
+                    clearErrors
+                });
 
                 return (
                     <>

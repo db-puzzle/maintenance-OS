@@ -8,7 +8,7 @@ import { DefaultMeasurement } from '@/types/task';
 import { MeasurementUnitCategories, UnitCategory } from '@/types/units';
 import { useEffect, useState } from 'react';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
-import { createFormAdapter } from '@/utils/form-adapters';
+
 // This type alias extends WithSaveFunctionalityProps and is reserved for future measurement-specific props
 type MeasurementTaskContentProps = WithSaveFunctionalityProps & {
     // Future measurement-specific props will be added here
@@ -119,19 +119,12 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
         setFormErrors(newErrors);
     };
 
-    // Create the form adapter with additional properties
-    const baseForm = createFormAdapter({
-        data: formData as any,
-        setData: ((key: string, value: any) => {
-            formSetData(key, value);
-        }) as any,
-        errors: formErrors,
-        clearErrors: ((...fields: string[]) => formClearErrors(...fields)) as any,
-    });
-
-    // Add additional properties that TextInput expects
+    // Create custom form adapter that matches TextInput's expected interface
     const form = {
-        ...baseForm,
+        data: formData,
+        setData: formSetData,
+        errors: formErrors,
+        clearErrors: formClearErrors,
         validateInput: validateInput as ((value: string) => boolean) | undefined,
         processBlur: processBlur as ((name: string, value: string) => void) | undefined,
     };

@@ -37,7 +37,7 @@ interface Shift {
 interface Schedule {
     weekday: string;
     shifts: Shift[];
-    [key: string]: any; // Allow index signature for form compatibility
+    [key: string]: string | Shift[] | undefined; // Allow index signature for form compatibility
 }
 
 // This interface is currently empty but reserved for future shift editor specific props
@@ -289,7 +289,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                     ],
         }));
 
-    const { data, setData, post, put, processing, errors, clearErrors } = useForm<{ name: string; schedules: Schedule[] }>({
+    const { data, setData, post, put, processing, errors, clearErrors } = useForm({
         name: shift?.name || '',
         schedules: initialSchedules,
     });
