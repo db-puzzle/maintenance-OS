@@ -1,27 +1,42 @@
 <?php
 
-use App\Http\Controllers\Production\ItemController;
+use App\Http\Controllers\Production\BillOfMaterialController;
 use App\Http\Controllers\Production\ItemCategoryController;
+use App\Http\Controllers\Production\ItemController;
 use App\Http\Controllers\Production\ItemImageController;
 use App\Http\Controllers\Production\ItemImageImportController;
 use App\Http\Controllers\Production\ItemImageServeController;
-use App\Http\Controllers\Production\BillOfMaterialController;
+use App\Http\Controllers\Production\ManufacturingOrderController;
+use App\Http\Controllers\Production\ManufacturingStepController;
+use App\Http\Controllers\Production\ProductionExecutionController;
 use App\Http\Controllers\Production\ProductionRoutingController;
 use App\Http\Controllers\Production\ProductionScheduleController;
-use App\Http\Controllers\Production\ManufacturingOrderController;
-use App\Http\Controllers\Production\QrTrackingController;
 use App\Http\Controllers\Production\ProductionTrackingController;
+use App\Http\Controllers\Production\QrCodeController;
+use App\Http\Controllers\Production\QrTagController;
+use App\Http\Controllers\Production\QrTagServeController;
+use App\Http\Controllers\Production\QrTrackingController;
+use App\Http\Controllers\Production\RouteTemplateController;
 use App\Http\Controllers\Production\ShipmentController;
 use App\Http\Controllers\Production\WorkCellController;
 use App\Http\Controllers\Production\WorkCellDashboardController;
-use App\Http\Controllers\Production\ProductionExecutionController;
-use App\Http\Controllers\Production\ManufacturingStepController;
-use App\Http\Controllers\Production\QrTagController;
-use App\Http\Controllers\Production\QrTagServeController;
-use App\Http\Controllers\Production\QrCodeController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('production')->name('production.')->group(function () {
+    // Route Templates
+    Route::prefix('templates')->name('templates.')->group(function () {
+        Route::get('/', [RouteTemplateController::class, 'index'])->name('index');
+        Route::get('/create', [RouteTemplateController::class, 'create'])->name('create');
+        Route::post('/', [RouteTemplateController::class, 'store'])->name('store');
+        Route::get('/{template}', [RouteTemplateController::class, 'show'])->name('show');
+        Route::get('/{template}/edit', [RouteTemplateController::class, 'edit'])->name('edit');
+        Route::put('/{template}', [RouteTemplateController::class, 'update'])->name('update');
+        Route::delete('/{template}', [RouteTemplateController::class, 'destroy'])->name('destroy');
+        Route::post('/{template}/duplicate', [RouteTemplateController::class, 'duplicate'])->name('duplicate');
+        Route::post('/{template}/toggle-active', [RouteTemplateController::class, 'toggleActive'])->name('toggle-active');
+        Route::put('/{template}/steps', [RouteTemplateController::class, 'updateSteps'])->name('update-steps');
+    });
+
     // QR scan deep-links (mobile/browser)
     Route::get('items/{item_number}/qr', [QrCodeController::class, 'handleItemScan'])->name('items.qr');
     Route::get('orders/{mo_number}/qr', [QrCodeController::class, 'handleOrderScan'])->name('orders.qr');
@@ -33,22 +48,21 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::delete('categories/{category}', [ItemCategoryController::class, 'destroy'])->name('categories.destroy');
     Route::get('categories/{category}/check-dependencies', [ItemCategoryController::class, 'checkDependencies'])->name('categories.check-dependencies');
 
-
     // Items Management
     // Define specific routes before resource routes to avoid conflicts
     Route::get('items/export', [ItemController::class, 'export'])->name('items.export');
     Route::get('items/import/wizard', [ItemController::class, 'importWizard'])->name('items.import.wizard');
     Route::post('items/import', [ItemController::class, 'import'])->name('items.import');
-    
+
     // Resource routes come after specific routes
     Route::resource('items', ItemController::class)->except(['edit']);
-    
+
     // Item-specific routes
     Route::get('items/{item}/bom', [ItemController::class, 'bom'])->name('items.bom');
     Route::get('items/{item}/bom-history', [ItemController::class, 'bomHistory'])->name('items.bom-history');
     Route::get('items/{item}/where-used', [ItemController::class, 'whereUsed'])->name('items.where-used');
     Route::get('items/{item}/with-images', [ItemController::class, 'getWithImages'])->name('items.with-images');
-    
+
     // Item Images Management
     Route::prefix('items/{item}/images')->name('items.images.')->group(function () {
         Route::post('/', [ItemImageController::class, 'store'])->name('store');
@@ -56,7 +70,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
         Route::delete('/{image}', [ItemImageController::class, 'destroy'])->name('destroy');
         Route::post('/reorder', [ItemImageController::class, 'reorder'])->name('reorder');
         Route::post('/bulk-delete', [ItemImageController::class, 'bulkDelete'])->name('bulk-delete');
-        
+
         // Protected image serving routes
         Route::get('/{image}/serve', [ItemImageServeController::class, 'serve'])->name('serve');
         Route::get('/{image}/variant/{variant}', [ItemImageServeController::class, 'serveVariant'])->name('serve-variant');
@@ -76,25 +90,25 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::get('bom/import/wizard', [BillOfMaterialController::class, 'importWizard'])->name('bom.import.wizard');
     Route::post('bom/import', [BillOfMaterialController::class, 'import'])->name('bom.import');
     Route::post('bom/import/inventor', [BillOfMaterialController::class, 'importInventor'])->name('bom.import.inventor');
-    
+
     // BOM Items Management
     Route::post('bom/{bom}/items', [BillOfMaterialController::class, 'addItem'])->name('bom.items.add');
     Route::put('bom/{bom}/items/{item}', [BillOfMaterialController::class, 'updateItem'])->name('bom.items.update');
     Route::delete('bom/{bom}/items/{item}', [BillOfMaterialController::class, 'removeItem'])->name('bom.items.remove');
     Route::post('bom/{bom}/items/{item}/move', [BillOfMaterialController::class, 'moveItem'])->name('bom.items.move');
-    
+
     // BOM Versions
     Route::post('bom/{bom}/versions', [BillOfMaterialController::class, 'createVersion'])->name('bom.versions.create');
     Route::post('bom/{bom}/versions/{version}/set-current', [BillOfMaterialController::class, 'setCurrentVersion'])->name('bom.versions.set-current');
     // Route::get('bom/{bom}/compare', [BillOfMaterialController::class, 'compare'])->name('bom.compare'); // Temporarily disabled - page not implemented
-    
+
     // BOM Analysis
     Route::get('bom/{bom}/cost-rollup', [BillOfMaterialController::class, 'costRollup'])->name('bom.cost-rollup');
-    
+
     // QR Code Management
     Route::post('bom/{bom}/generate-qr', [BillOfMaterialController::class, 'generateQrCodes'])->name('bom.generate-qr');
     Route::post('bom/{bom}/print-labels', [BillOfMaterialController::class, 'printLabels'])->name('bom.print-labels');
-    
+
     // QR Tag Generation
     Route::prefix('qr-tags')->name('qr-tags.')->group(function () {
         Route::get('/', [QrTagController::class, 'index'])->name('index');
@@ -116,7 +130,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('routing/{routing}/batch-update', [ProductionRoutingController::class, 'batchUpdate'])->name('routing.batch-update');
     Route::post('routing/{routing}/steps/initialize', [ProductionRoutingController::class, 'initializeSteps'])->name('routing.steps.initialize');
     Route::post('routing/{routing}/steps/from-template', [ProductionRoutingController::class, 'createStepsFromTemplate'])->name('routing.steps.from-template');
-    
+
     // Manufacturing Steps
     Route::get('steps/{step}/execute', [ManufacturingStepController::class, 'execute'])->name('steps.execute');
     Route::post('steps/{step}/start', [ManufacturingStepController::class, 'start'])->name('steps.start');
@@ -133,7 +147,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('orders/{order}/apply-template', [ManufacturingOrderController::class, 'applyTemplate'])->name('orders.apply-template');
     Route::post('orders/{order}/report-production', [ManufacturingOrderController::class, 'reportProduction'])->name('orders.report-production');
     Route::post('orders/{order}/update-dependencies', [ManufacturingOrderController::class, 'updateDependencies'])->name('orders.update-dependencies');
-    
+
     // Order Routes
     Route::get('orders/{order}/routes/create', [ManufacturingOrderController::class, 'createRoute'])->name('orders.routes.create');
     Route::post('orders/{order}/routes', [ManufacturingOrderController::class, 'storeRoute'])->name('orders.routes.store');
@@ -201,4 +215,4 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
         Route::post('{execution}/pause', [ProductionExecutionController::class, 'pause'])->name('pause');
         Route::post('{execution}/resume', [ProductionExecutionController::class, 'resume'])->name('resume');
     });
-}); 
+});

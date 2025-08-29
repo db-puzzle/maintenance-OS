@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
@@ -211,20 +210,28 @@ export default function ItemImport({ supportedFormats }: Props) {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    <div className="flex items-center gap-4">
-                                        <Input
-                                            type="file"
-                                            accept={supportedFormats.map(f => `.${f}`).join(',')}
-                                            onChange={handleFileSelect}
-                                            disabled={processing}
-                                        />
-                                        {selectedFile && (
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <FileText className="h-4 w-4" />
-                                                {selectedFile.name}
-                                            </div>
-                                        )}
-                                    </div>
+                                    <input
+                                        type="file"
+                                        accept={supportedFormats.map(f => `.${f}`).join(',')}
+                                        onChange={handleFileSelect}
+                                        disabled={processing}
+                                        className="hidden"
+                                        id="file-upload"
+                                    />
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => document.getElementById('file-upload')?.click()}
+                                        className="flex items-center gap-2"
+                                        disabled={processing}
+                                    >
+                                        <Upload className="h-4 w-4" /> Escolher Arquivo
+                                    </Button>
+                                    {selectedFile && (
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <FileText className="h-4 w-4" />
+                                            {selectedFile.name}
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
 

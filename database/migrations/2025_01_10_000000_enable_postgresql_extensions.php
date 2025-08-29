@@ -11,7 +11,10 @@ return new class extends Migration
     public function up(): void
     {
         // Enable btree_gist extension for exclusion constraints
-        DB::statement('CREATE EXTENSION IF NOT EXISTS btree_gist');
+        // Only run for PostgreSQL, skip for SQLite and MySQL
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('CREATE EXTENSION IF NOT EXISTS btree_gist');
+        }
     }
 
     /**

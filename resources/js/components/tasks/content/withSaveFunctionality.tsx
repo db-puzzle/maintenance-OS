@@ -34,7 +34,7 @@ export const withSaveFunctionality = <P extends object>(WrappedComponent: Compon
             }
             // The onNext will be called after successful save in the parent component
         };
-        const buttonText = props.isLastTask ? 'Completar Rotina' : 'Próxima';
+        const buttonText = props.isLastTask ? 'Concluir Rotina' : 'Próxima';
         const buttonIcon = props.isLastTask ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />;
         return (
             <div className="space-y-4">

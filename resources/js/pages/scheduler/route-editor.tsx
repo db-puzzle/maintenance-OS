@@ -248,7 +248,7 @@ export default function RouteEditor() {
                 return mouseX >= nodeLeft && mouseX <= nodeRight && mouseY >= nodeTop && mouseY <= nodeBottom;
             });
             if (targetNode) {
-                // Completar a conexão com o node alvo
+                // Concluir a conexão com o node alvo
                 handleConnectionEnd(targetNode.id);
             } else {
                 // Cancelar a tentativa de conexão
@@ -269,7 +269,7 @@ export default function RouteEditor() {
         });
         setConnectingFrom(nodeId);
     };
-    // Completar uma conexão entre nodes
+    // Concluir uma conexão entre nodes
     const handleConnectionEnd = (targetNodeId: string) => {
         if (!connectingFrom || connectingFrom === targetNodeId) {
             setConnectingFrom(null);

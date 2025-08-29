@@ -22,6 +22,10 @@ return new class extends Migration
             $table->decimal('quantity_scrapped', 10, 2)->default(0);
             $table->string('unit_of_measure', 20)->default('EA');
             
+            // Smart progress tracking
+            $table->decimal('smart_progress_percentage', 5, 2)->default(0)->comment('Calculated progress based on work units across hierarchy');
+            $table->timestamp('progress_calculated_at')->nullable()->comment('Last time smart progress was calculated');
+            
             // Status tracking
             $table->enum('status', ['draft', 'planned', 'released', 'in_progress', 'on_hold', 'completed', 'cancelled'])->default('draft');
             $table->string('hold_reason')->nullable();
@@ -61,6 +65,8 @@ return new class extends Migration
             $table->index('bill_of_material_id');
             $table->index('parent_id');
             $table->index('dependency_type');
+            $table->index('smart_progress_percentage');
+            $table->index(['progress_calculated_at', 'smart_progress_percentage']);
         });
     }
 

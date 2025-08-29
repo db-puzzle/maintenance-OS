@@ -277,33 +277,33 @@ export default function ManufacturingOrderRouteTab({
                                     <h3 className="text-lg font-semibold">{order.manufacturing_route.name}</h3>
                                     {order.manufacturing_route.description && (
                                         <p className="text-sm text-muted-foreground mt-1">
-                                                                                    {order.manufacturing_route.description}
-                                    </p>
-                                )}
-                            </div>
-                            <div className="flex gap-2">
-                                <Toggle
-                                    variant="outline"
-                                    size="sm"
-                                    pressed={showImages}
-                                    onPressedChange={setShowImages}
-                                    className="w-[135px] flex items-center justify-between data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90"
-                                    aria-label="Toggle images"
-                                >
-                                    <Image className="ml-1 h-4 w-4" />
-                                    <span className="flex-1 ml-1 text-left">{showImages ? 'Hide Images' : 'Show Images'}</span>
-                                </Toggle>
-                                {canCreateRoute && order.status === 'draft' && (
-                                    <Button
+                                            {order.manufacturing_route.description}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex gap-2">
+                                    <Toggle
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => setViewMode('builder')}
+                                        pressed={showImages}
+                                        onPressedChange={setShowImages}
+                                        className="w-[135px] flex items-center justify-between data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90"
+                                        aria-label="Toggle images"
                                     >
-                                        Edit Route
-                                    </Button>
-                                )}
+                                        <Image className="ml-1 h-4 w-4" />
+                                        <span className="flex-1 ml-1 text-left">{showImages ? 'Hide Images' : 'Show Images'}</span>
+                                    </Toggle>
+                                    {canCreateRoute && order.status === 'draft' && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setViewMode('builder')}
+                                        >
+                                            Edit Route
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
-                        </div>
 
                             {/* Steps Table or Empty State */}
                             {hasSteps ? (
@@ -353,7 +353,7 @@ export default function ManufacturingOrderRouteTab({
                                         <Alert>
                                             <AlertCircle className="h-4 w-4" />
                                             <AlertDescription>
-                                                Você não tem permissão para criar roteiros ou a ordem já foi liberada/completada.
+                                                Você não tem permissão para criar roteiros ou a ordem já foi liberada/concluída.
                                             </AlertDescription>
                                         </Alert>
                                     </div>

@@ -444,7 +444,7 @@ class QrCodeController extends Controller
         
         if ($currentStep && $user->can('production.steps.execute', $currentStep)) {
             $actions[] = [
-                'label' => $currentStep->status === 'pending' ? 'Iniciar Etapa' : 'Completar Etapa',
+                'label' => $currentStep->status === 'pending' ? 'Iniciar Etapa' : 'Concluir Etapa',
                 'route' => route('production.steps.execute', $currentStep),
                 'icon' => 'Play',
                 'primary' => true
@@ -1283,7 +1283,7 @@ export default function OrderScan({ order, currentStep, can, actions }: Props) {
                                     ) : (
                                         <>
                                             <CheckCircle className="w-4 h-4 mr-2" />
-                                            Completar Etapa
+                                            Concluir Etapa
                                         </>
                                     )}
                                 </Button>

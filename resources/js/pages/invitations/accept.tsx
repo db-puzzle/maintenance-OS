@@ -167,7 +167,7 @@ export default function InvitationsAccept({ invitation }: Props) {
                                 className="w-full"
                                 disabled={processing}
                             >
-                                {processing ? 'Criando conta...' : 'Completar cadastro'}
+                                {processing ? 'Criando conta...' : 'Concluir cadastro'}
                             </Button>
                         </div>
                     </form>

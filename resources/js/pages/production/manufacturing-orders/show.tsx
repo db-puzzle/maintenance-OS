@@ -11,7 +11,6 @@ import {
     XCircle,
     FileText,
     QrCode,
-    Layers,
     Ban,
     PlayCircle,
     TrendingUp,
@@ -46,6 +45,7 @@ import { toast } from 'sonner';
 import { createFormAdapter } from '@/utils/form-adapters';
 import { ClipboardCheck } from 'lucide-react';
 import StateButton from '@/components/StateButton';
+import type { WorkUnitsBreakdown } from '@/types/production';
 interface Props {
     order: ManufacturingOrder;
     canRelease: boolean;
@@ -90,6 +90,44 @@ function StatCard({ label, value, icon: Icon, className }: { label: string; valu
                 <p className="text-sm text-muted-foreground">{label}</p>
                 <p className="text-2xl font-bold">{value}</p>
             </div>
+        </div>
+    );
+}
+
+function WorkUnitsBreakdownDisplay({ breakdown, level = 0 }: { breakdown: WorkUnitsBreakdown; level?: number }) {
+    const indent = level * 24;
+    const progressPercentage = breakdown.expected_units > 0
+        ? Math.round((breakdown.completed_units / breakdown.expected_units) * 100)
+        : 0;
+
+    return (
+        <div className="space-y-2">
+            <div style={{ marginLeft: `${indent}px` }} className="space-y-1">
+                <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm">
+                        {breakdown.order_number}
+                        {breakdown.step_count && (
+                            <span className="text-muted-foreground ml-2">
+                                ({breakdown.step_count} steps)
+                            </span>
+                        )}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                        {breakdown.completed_units}/{breakdown.expected_units} units
+                    </span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Progress value={progressPercentage} className="h-2 flex-1" />
+                    <span className="text-xs font-medium w-12 text-right">{progressPercentage}%</span>
+                </div>
+            </div>
+            {breakdown.children && breakdown.children.length > 0 && (
+                <div className="border-l-2 border-muted ml-3">
+                    {breakdown.children.map((child, index) => (
+                        <WorkUnitsBreakdownDisplay key={index} breakdown={child} level={level + 1} />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -157,9 +195,12 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 return <AlertCircle className="h-4 w-4" />;
         }
     };
-    const progress = order.quantity > 0
+    const simpleProgress = order.quantity > 0
         ? Math.round((order.quantity_completed / order.quantity) * 100)
         : 0;
+    const smartProgress = order.smart_progress_percentage ?? simpleProgress;
+    const hasChildren = order.child_orders_count > 0;
+    const hasRoute = order.has_route || order.manufacturing_route;
     const breadcrumbs = [
         { title: 'Production', href: '/production' },
         { title: 'Manufacturing Orders', href: '/production/orders' },
@@ -222,40 +263,29 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                         </Alert>
                     )}
 
-                    {/* Progress Section */}
+                    {/* Quantities Section */}
                     <div className="space-y-4">
-                        <h3 className="text-lg font-semibold">Order Progress</h3>
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                                <StatCard
-                                    label="Ordered"
-                                    value={order.quantity}
-                                    icon={Package}
-                                    className="bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
-                                />
-                                <StatCard
-                                    label="Completed"
-                                    value={order.quantity_completed}
-                                    icon={CheckCircle}
-                                    className="bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400"
-                                />
-                                <StatCard
-                                    label="Scrapped"
-                                    value={order.quantity_scrapped}
-                                    icon={XCircle}
-                                    className="bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
-                                />
-                            </div>
-                            <div>
-                                <div className="flex justify-between text-sm mb-2">
-                                    <span>Overall Completion</span>
-                                    <span className="font-medium">{progress}%</span>
-                                </div>
-                                <Progress value={progress} className="h-3" />
-                            </div>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <StatCard
+                                label="Ordered"
+                                value={order.quantity}
+                                icon={Package}
+                                className="bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                            />
+                            <StatCard
+                                label="Completed"
+                                value={order.quantity_completed}
+                                icon={CheckCircle}
+                                className="bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400"
+                            />
+                            <StatCard
+                                label="Scrapped"
+                                value={order.quantity_scrapped}
+                                icon={XCircle}
+                                className="bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
+                            />
                         </div>
                     </div>
-                    <Separator />
 
                     {/* Production Reporting Section */}
                     {canReportProduction &&
@@ -317,7 +347,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                 { id: 'sales_order', name: 'Sales Order' },
                                 { id: 'forecast', name: 'Forecast' },
                             ]}
-                            value={form.data.source_type || 'manual'}
+                            value={String(form.data.source_type || 'manual')}
                             onValueChange={() => { }}
                             view={true}
                         />
@@ -470,71 +500,102 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             )
         },
         {
-            id: 'bom-configuration',
-            label: 'BOM Configuration',
+            id: 'progress',
+            label: 'Progress',
             content: (
                 <div className="space-y-6 py-6">
-                    <h3 className="text-lg font-semibold">Order Type Configuration</h3>
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                        Progresso Geral
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <Info className="h-4 w-4 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Tracks work units across all steps and child orders</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </h3>
 
-                    {/* Order Type Display */}
+                    {/* Progress Overview */}
                     <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <StateButton
-                                icon={Layers}
-                                title="Com BOM"
-                                description="Usar uma BOM para fabricar o item."
-                                selected={order.bill_of_material_id !== null}
-                                onClick={() => { }}
-                                disabled={true}
-                            />
-                            <StateButton
-                                icon={Package}
-                                title="Sem BOM"
-                                description="Criar ordem diretamente para o item."
-                                selected={order.bill_of_material_id === null}
-                                onClick={() => { }}
-                                disabled={true}
-                            />
-                        </div>
-
-                        {order.bill_of_material_id && (
-                            <>
-                                <Alert>
-                                    <Info className="h-4 w-4" />
-                                    <AlertDescription>
-                                        Esta ordem está usando a BOM{' '}
-                                        <Link
-                                            href={window.route('production.bom.show', order.bill_of_material_id)}
-                                            className="font-medium text-primary hover:underline"
-                                        >
-                                            {order.bill_of_material?.bom_number}
-                                        </Link>
-                                        {order.children && order.children.length > 0 && (
-                                            <span>
-                                                {' '}e criou {order.children.length} ordens de manufatura para os componentes.
-                                            </span>
-                                        )}
-                                    </AlertDescription>
-                                </Alert>
-
-                                {/* Auto-Complete Configuration */}
-                                <div className="mt-4">
-                                    <h4 className="font-medium mb-3">Auto-Complete Configuration</h4>
-                                    <StateButton
-                                        icon={Check}
-                                        title="Completar Automaticamente as Ordens-Pai"
-                                        description={
-                                            order.auto_complete_on_children
-                                                ? "Quando não houver rota especificada, a ordem pai será automaticamente concluída quando todas as ordens filhas forem concluídas"
-                                                : "Quando não houver rota especificada, a ordem pai NÃO será automaticamente concluída quando todas as ordens filhas forem concluídas"
-                                        }
-                                        selected={order.auto_complete_on_children}
-                                        onClick={() => { }}
-                                        disabled={true}
-                                    />
+                        <div className="">
+                            <div className="space-y-3">
+                                {/* Smart Progress */}
+                                <div className="flex items-center gap-2">
+                                    <Progress value={smartProgress} className="h-4 flex-1" />
+                                    <span className="text-sm font-medium w-12 text-right">{Math.round(smartProgress)}%</span>
                                 </div>
-                            </>
-                        )}
+
+                                {/* Last Updated */}
+                                {order.progress_calculated_at && (
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                        Progress updated {new Date(order.progress_calculated_at).toLocaleString()}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Work Units Breakdown */}
+                    {order.work_units_breakdown && (hasChildren || hasRoute) ? (
+                        <>
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-semibold flex items-center gap-2">
+                                    Work Units Breakdown
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger>
+                                                <Info className="h-4 w-4 text-muted-foreground" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Each unit passing through each step counts as one work unit</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </h3>
+                                <div className="">
+                                    <WorkUnitsBreakdownDisplay breakdown={order.work_units_breakdown} />
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <Alert>
+                            <Info className="h-4 w-4" />
+                            <AlertDescription>
+                                {!hasRoute && !hasChildren
+                                    ? "This order has no manufacturing route or child orders. Progress is based on quantity completed."
+                                    : "Work units breakdown is not available for this order."}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
+                    {/* Progress Statistics */}
+                    <Separator />
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Progress Statistics</h3>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <div className="border rounded-lg p-4">
+                                <p className="text-sm text-muted-foreground">Total Expected Work Units</p>
+                                <p className="text-2xl font-bold">
+                                    {order.work_units_breakdown?.expected_units || order.quantity}
+                                </p>
+                            </div>
+                            <div className="border rounded-lg p-4">
+                                <p className="text-sm text-muted-foreground">Completed Work Units</p>
+                                <p className="text-2xl font-bold">
+                                    {order.work_units_breakdown?.completed_units || order.quantity_completed}
+                                </p>
+                            </div>
+                            <div className="border rounded-lg p-4">
+                                <p className="text-sm text-muted-foreground">Remaining Work Units</p>
+                                <p className="text-2xl font-bold">
+                                    {(order.work_units_breakdown?.expected_units || order.quantity) -
+                                        (order.work_units_breakdown?.completed_units || order.quantity_completed)}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )
@@ -546,6 +607,20 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 content: (
                     <div className="space-y-6 py-6">
                         <h3 className="text-lg font-semibold">Parent-Child Dependencies</h3>
+
+                        {/* BOM Information */}
+                        <Alert>
+                            <Info className="h-4 w-4" />
+                            <AlertDescription>
+                                Esta ordem está usando a BOM{' '}
+                                <Link
+                                    href={window.route('production.bom.show', order.bill_of_material_id)}
+                                    className="font-medium text-primary hover:underline"
+                                >
+                                    {order.bill_of_material?.bom_number}
+                                </Link>
+                            </AlertDescription>
+                        </Alert>
 
                         {/* Release Dependencies Section */}
                         <div className="space-y-4">
@@ -655,6 +730,70 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                 )}
                             </div>
                         </div>
+
+                        <Separator />
+
+                        {/* Auto-Complete Configuration - Only show for orders with children */}
+                        {(order.child_orders_count > 0 || order.bill_of_material_id) && (
+                            <div className="space-y-4">
+                                <h4 className="font-medium mb-3">Conclusão da Ordem</h4>
+
+                                {/* Show current configuration */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <StateButton
+                                        icon={Check}
+                                        title="Concluir Automaticamente"
+                                        description="A ordem será automaticamente concluída quando todas as ordens filhas forem concluídas"
+                                        selected={order.auto_complete_on_children === true && !order.has_route}
+                                        onClick={() => { }}
+                                        disabled={true}
+                                    />
+                                    <StateButton
+                                        icon={Ban}
+                                        title="Concluir Manualmente"
+                                        description={order.has_route
+                                            ? "A ordem será concluída quando todas as etapas de roteamento forem completadas"
+                                            : "A ordem precisará ser concluída manualmente, mesmo após todas as ordens filhas serem concluídas"}
+                                        selected={order.auto_complete_on_children === false || order.has_route || false}
+                                        onClick={() => { }}
+                                        disabled={true}
+                                    />
+                                </div>
+
+                                {/* Show info about routing override */}
+                                {order.has_route && order.manufacturing_route?.steps && order.manufacturing_route.steps.length > 0 && (
+                                    <Alert className="mt-4">
+                                        <Info className="h-4 w-4" />
+                                        <AlertDescription>
+                                            Esta ordem possui etapas de roteamento. A conclusão automática foi desabilitada e a ordem será concluída quando todas as etapas forem completadas.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+
+                                {/* Show warning about future routing */}
+                                {!order.has_route && order.auto_complete_on_children === true && (
+                                    <Alert className="mt-4">
+                                        <Info className="h-4 w-4" />
+                                        <AlertDescription>
+                                            Se etapas de roteamento forem adicionadas posteriormente, a conclusão automática será desabilitada.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                            </div>
+                        )}
+
+                        {/* For orders without children (non-BOM), show completion info */}
+                        {order.child_orders_count === 0 && !order.bill_of_material_id && (
+                            <div className="space-y-4">
+                                <h4 className="font-medium mb-3">Conclusão da Ordem</h4>
+                                <Alert>
+                                    <Info className="h-4 w-4" />
+                                    <AlertDescription>
+                                        Esta ordem não possui ordens filhas e deve ser concluída manualmente ou através de etapas de roteamento.
+                                    </AlertDescription>
+                                </Alert>
+                            </div>
+                        )}
                     </div>
                 )
             }
@@ -748,8 +887,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             </Badge>
         </>
     );
-    // Check if order has a route
-    const hasRoute = (order as ManufacturingOrder).has_route || (order.manufacturing_route && order.manufacturing_route.steps && order.manufacturing_route.steps.length > 0);
+    // Check if order has a route - using the already declared hasRoute variable
     const shouldShowRelease = ['draft', 'planned'].includes(order.status);
     // Additional actions for the header
     const headerActions = (

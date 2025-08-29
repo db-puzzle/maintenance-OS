@@ -278,24 +278,55 @@ export default function ManufacturingOrders({
             ),
         },
         {
+            key: 'completed',
+            label: 'Completed',
+            width: 'w-[120px]',
+            render: (value: unknown, order: ManufacturingOrder) => (
+                <div className="text-sm">
+                    <span className="font-medium">
+                        {order.quantity_completed as React.ReactNode}
+                    </span>
+                    <span className="text-muted-foreground">
+                        {' / '}{order.quantity as React.ReactNode} {order.unit_of_measure as React.ReactNode}
+                    </span>
+                </div>
+            ),
+        },
+        {
             key: 'progress',
             label: 'Progress',
-            width: 'w-[120px]',
+            width: 'w-[140px]',
             render: (value: unknown, order: ManufacturingOrder) => {
-                const progress = (order.quantity as number) > 0
+                const smartProgress = order.smart_progress_percentage ?? 0;
+                const simpleProgress = (order.quantity as number) > 0
                     ? Math.round(((order.quantity_completed as number) / (order.quantity as number)) * 100)
                     : 0;
+
+                const hasChildren = (order.child_orders_count as number) > 0;
+                const hasRoute = order.has_route || order.manufacturing_route;
+                const showSmartProgress = hasChildren || hasRoute;
+
                 return (
-                    <div className="w-24">
-                        <div className="flex items-center justify-between text-sm mb-1">
-                            <span>{progress}%</span>
+                    <div className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">{Math.round(smartProgress)}%</span>
+                            {showSmartProgress && smartProgress !== simpleProgress && (
+                                <span className="text-xs text-muted-foreground">
+                                    ({simpleProgress}% output)
+                                </span>
+                            )}
                         </div>
                         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                             <div
                                 className="h-full bg-primary transition-all"
-                                style={{ width: `${progress}%` }}
+                                style={{ width: `${smartProgress}%` }}
                             />
                         </div>
+                        {order.progress_calculated_at && (
+                            <div className="text-xs text-muted-foreground">
+                                Updated {new Date(order.progress_calculated_at).toLocaleTimeString()}
+                            </div>
+                        )}
                     </div>
                 );
             },

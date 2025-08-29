@@ -138,7 +138,7 @@ class QrCodeController extends Controller
         
         if ($currentStep && $user?->can('production.steps.execute')) {
             $actions[] = [
-                'label' => $currentStep->status === 'pending' ? 'Iniciar Etapa' : 'Completar Etapa',
+                'label' => $currentStep->status === 'pending' ? 'Iniciar Etapa' : 'Concluir Etapa',
                 'route' => route('production.steps.execute', $currentStep),
                 'icon' => 'Play',
                 'primary' => true

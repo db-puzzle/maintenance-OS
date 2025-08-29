@@ -161,6 +161,16 @@ export interface WorkCell {
     updated_at: string;
 }
 
+export interface WorkUnitsBreakdown {
+    order_id: number;
+    order_number: string;
+    expected_units: number;
+    completed_units: number;
+    step_count?: number;
+    progress: number;
+    children: WorkUnitsBreakdown[];
+}
+
 export interface ManufacturingOrder {
     id: number;
     order_number: string;
@@ -196,6 +206,12 @@ export interface ManufacturingOrder {
     cumulative_children_quantity_completed?: number;
     cumulative_children_quantity_required?: number;
     work_in_progress_quantity?: number;
+
+    // Smart progress fields
+    smart_progress_percentage?: number;
+    progress_calculated_at?: string;
+    smart_progress?: number; // Alias for convenience
+    work_units_breakdown?: WorkUnitsBreakdown;
 
     children?: ManufacturingOrder[];
     manufacturing_route?: ManufacturingRoute;

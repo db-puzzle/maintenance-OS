@@ -15,16 +15,35 @@ class ManufacturingRoute extends Model
     protected $fillable = [
         'manufacturing_order_id',
         'item_id',
-        'route_template_id',
+        'route_template_id', // Deprecated, will be removed
+        'template_source_id',
         'name',
         'description',
         'is_active',
+        'is_template',
+        'item_category_id',
         'created_by',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_template' => 'boolean',
     ];
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($route) {
+            // Ensure consistency between is_template and manufacturing_order_id
+            if ($route->is_template) {
+                $route->manufacturing_order_id = null;
+            }
+        });
+    }
 
     /**
      * Get the production order that owns the route.
@@ -43,7 +62,7 @@ class ManufacturingRoute extends Model
     }
 
     /**
-     * Get the route template used.
+     * Get the route template used (deprecated).
      */
     public function routeTemplate(): BelongsTo
     {
@@ -51,11 +70,39 @@ class ManufacturingRoute extends Model
     }
 
     /**
+     * Get the template source (new unified approach).
+     */
+    public function templateSource(): BelongsTo
+    {
+        return $this->belongsTo(ManufacturingRoute::class, 'template_source_id');
+    }
+
+    /**
+     * Get routes derived from this template.
+     */
+    public function derivedRoutes(): HasMany
+    {
+        return $this->hasMany(ManufacturingRoute::class, 'template_source_id');
+    }
+
+    /**
+     * Get the item category (for templates).
+     */
+    public function itemCategory(): BelongsTo
+    {
+        return $this->belongsTo(ItemCategory::class);
+    }
+
+    /**
      * Get the manufacturing steps.
      */
     public function steps(): HasMany
     {
-        return $this->hasMany(ManufacturingStep::class)->orderBy('step_number');
+        if ($this->is_template) {
+            return $this->hasMany(ManufacturingStep::class)->orderBy('step_number');
+        }
+
+        return $this->hasMany(ManufacturingStep::class)->orderBy('display_order');
     }
 
     /**
@@ -67,13 +114,20 @@ class ManufacturingRoute extends Model
     }
 
     /**
-     * Create route from template.
+     * Create route from template (unified approach).
      */
-    public function createFromTemplate(RouteTemplate $template): void
+    public function createFromTemplate(ManufacturingRoute $template): void
     {
+        if (! $template->is_template) {
+            throw new \InvalidArgumentException('Source must be a template');
+        }
+
+        $stepMapping = [];
+
         foreach ($template->steps as $templateStep) {
-            $this->steps()->create([
-                'step_number' => $templateStep->step_number,
+            $newStep = $this->steps()->create([
+                'display_order' => $templateStep->step_number * 10,
+                'step_number' => $templateStep->step_number, // Keep for reference
                 'step_type' => $templateStep->step_type,
                 'name' => $templateStep->name,
                 'description' => $templateStep->description,
@@ -84,7 +138,29 @@ class ManufacturingRoute extends Model
                 'quality_check_mode' => $templateStep->quality_check_mode,
                 'sampling_size' => $templateStep->sampling_size,
                 'status' => 'pending',
+                'is_template' => false,
             ]);
+
+            $stepMapping[$templateStep->id] = $newStep;
+        }
+
+        // Set up dependencies based on step_number sequence
+        $this->setupStepDependencies();
+    }
+
+    /**
+     * Set up step dependencies based on sequential order.
+     */
+    protected function setupStepDependencies(): void
+    {
+        $steps = $this->steps()->orderBy('display_order')->get();
+        $previousStep = null;
+
+        foreach ($steps as $step) {
+            if ($previousStep) {
+                $step->update(['depends_on_step_id' => $previousStep->id]);
+            }
+            $previousStep = $step;
         }
     }
 
@@ -94,7 +170,7 @@ class ManufacturingRoute extends Model
     public function getTotalEstimatedTimeAttribute(): int
     {
         return $this->steps->sum(function ($step) {
-            return $step->setup_time_minutes + 
+            return $step->setup_time_minutes +
                    ($step->cycle_time_minutes * $this->manufacturingOrder->quantity);
         });
     }
@@ -138,7 +214,7 @@ class ManufacturingRoute extends Model
     public function getCompletionPercentageAttribute(): float
     {
         $totalSteps = $this->steps()->count();
-        
+
         if ($totalSteps === 0) {
             return 0;
         }
@@ -156,5 +232,36 @@ class ManufacturingRoute extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope for templates.
+     */
+    public function scopeTemplates($query)
+    {
+        return $query->where('is_template', true);
+    }
+
+    /**
+     * Scope for production routes.
+     */
+    public function scopeProduction($query)
+    {
+        return $query->where('is_template', false);
+    }
+
+    /**
+     * Scope for templates compatible with a category.
+     */
+    public function scopeForCategory($query, ?int $categoryId)
+    {
+        if (! $categoryId) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($categoryId) {
+            $q->whereNull('item_category_id')
+                ->orWhere('item_category_id', $categoryId);
+        });
     }
 }

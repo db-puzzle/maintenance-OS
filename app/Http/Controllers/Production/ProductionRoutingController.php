@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
+use App\Models\Forms\Form;
+use App\Models\Production\Item;
+use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingRoute;
+// RouteTemplate is deprecated - using unified ManufacturingRoute model
 use App\Models\Production\ManufacturingStep;
 use App\Models\Production\WorkCell;
-use App\Models\Production\ManufacturingOrder;
-use App\Models\Production\RouteTemplate;
-use App\Models\Production\Item;
-use App\Models\Forms\Form;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -28,11 +28,11 @@ class ProductionRoutingController extends Controller
             ->when($request->input('search'), function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%")
-                      ->orWhereHas('item', function ($query) use ($search) {
-                          $query->where('item_number', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('item', function ($query) use ($search) {
+                            $query->where('item_number', 'like', "%{$search}%")
                                 ->orWhere('name', 'like', "%{$search}%");
-                      });
+                        });
                 });
             })
             ->when($request->filled('is_active'), function ($query) use ($request) {
@@ -86,7 +86,7 @@ class ProductionRoutingController extends Controller
         $validated = $request->validate([
             'manufacturing_order_id' => 'nullable|exists:manufacturing_orders,id',
             'item_id' => 'required|exists:items,id',
-            'route_template_id' => 'nullable|exists:route_templates,id',
+            'template_source_id' => 'nullable|exists:manufacturing_routes,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
         ]);
@@ -98,9 +98,11 @@ class ProductionRoutingController extends Controller
             $routing = ManufacturingRoute::create($validated);
 
             // Create steps from template if provided
-            if (!empty($validated['route_template_id'])) {
-                $template = RouteTemplate::find($validated['route_template_id']);
-                $routing->createFromTemplate($template);
+            if (! empty($validated['template_source_id'])) {
+                $template = ManufacturingRoute::templates()->find($validated['template_source_id']);
+                if ($template) {
+                    $routing->createFromTemplate($template);
+                }
             }
         });
 
@@ -126,23 +128,17 @@ class ProductionRoutingController extends Controller
         // Load templates if user can manage steps
         $templates = [];
         if (auth()->user()->can('manageSteps', $routing)) {
-            $templates = RouteTemplate::where('is_active', true)
-                ->when($routing->item?->item_category_id, function ($query, $categoryId) {
-                    $query->where('item_category_id', $categoryId)
-                          ->orWhereNull('item_category_id');
-                })
+            $templates = ManufacturingRoute::templates()
+                ->where('is_active', true)
+                ->forCategory($routing->item?->item_category_id)
                 ->withCount('steps')
+                ->withCount('derivedRoutes as usage_count')
                 ->get()
                 ->map(function ($template) {
                     // Calculate total estimated time
                     $template->estimated_time = $template->steps()
                         ->sum(\DB::raw('COALESCE(setup_time_minutes, 0) + COALESCE(cycle_time_minutes, 0)'));
-                    
-                    // Get usage count
-                    $template->usage_count = \DB::table('manufacturing_routes')
-                        ->where('route_template_id', $template->id)
-                        ->count();
-                        
+
                     return $template;
                 });
         }
@@ -179,7 +175,7 @@ class ProductionRoutingController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -242,7 +238,7 @@ class ProductionRoutingController extends Controller
             // Get existing step IDs
             $existingIds = $routing->steps()->pluck('id')->toArray();
             $updatedIds = array_filter(array_column($validated['steps'], 'id'));
-            
+
             // Delete removed steps (only if pending)
             $toDelete = array_diff($existingIds, $updatedIds);
             ManufacturingStep::whereIn('id', $toDelete)
@@ -253,7 +249,7 @@ class ProductionRoutingController extends Controller
             foreach ($validated['steps'] as $index => $stepData) {
                 $stepData['step_number'] = $index + 1;
                 $stepData['status'] = $stepData['status'] ?? 'pending';
-                
+
                 if (isset($stepData['id'])) {
                     $step = ManufacturingStep::find($stepData['id']);
                     if ($step && $step->status === 'pending') {
@@ -274,7 +270,7 @@ class ProductionRoutingController extends Controller
 
     /**
      * Display the visual builder for the routing.
-     * 
+     *
      * @deprecated This method is deprecated and should no longer be used.
      * The visual builder functionality has been removed from the application.
      */
@@ -289,7 +285,7 @@ class ProductionRoutingController extends Controller
     public function storeStep(Request $request, ManufacturingRoute $routing)
     {
         $this->authorize('update', $routing);
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -305,7 +301,7 @@ class ProductionRoutingController extends Controller
                     }
                 },
                 'nullable',
-                'exists:manufacturing_steps,id'
+                'exists:manufacturing_steps,id',
             ],
             'can_start_when_dependency' => 'nullable|in:completed',
             'quality_check_mode' => 'nullable|in:every_part,entire_lot,sampling',
@@ -315,12 +311,12 @@ class ProductionRoutingController extends Controller
 
         $validated['manufacturing_route_id'] = $routing->id;
         $validated['status'] = 'pending';
-        
+
         // Default to 'completed' if not provided
-        if (!isset($validated['can_start_when_dependency'])) {
+        if (! isset($validated['can_start_when_dependency'])) {
             $validated['can_start_when_dependency'] = 'completed';
         }
-        
+
         // Check if step_number already exists and find the next available one
         $existingStep = $routing->steps()->where('step_number', $validated['step_number'])->first();
         if ($existingStep) {
@@ -340,11 +336,11 @@ class ProductionRoutingController extends Controller
     public function updateStep(Request $request, ManufacturingRoute $routing, ManufacturingStep $step)
     {
         $this->authorize('update', $routing);
-        
+
         if ($step->manufacturing_route_id !== $routing->id) {
             abort(404);
         }
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -359,21 +355,21 @@ class ProductionRoutingController extends Controller
                     }
                 },
                 'nullable',
-                'exists:manufacturing_steps,id'
+                'exists:manufacturing_steps,id',
             ],
             'can_start_when_dependency' => 'nullable|in:completed',
             'quality_check_mode' => 'nullable|in:every_part,entire_lot,sampling',
             'sampling_size' => 'nullable|integer|min:0',
             'form_id' => 'nullable|exists:forms,id',
         ]);
-        
+
         // Default to 'completed' if not provided
-        if (!isset($validated['can_start_when_dependency'])) {
+        if (! isset($validated['can_start_when_dependency'])) {
             $validated['can_start_when_dependency'] = 'completed';
         }
-        
+
         $step->update($validated);
-        
+
         return back()->with('success', 'Step updated successfully.');
     }
 
@@ -383,28 +379,28 @@ class ProductionRoutingController extends Controller
     public function destroyStep(ManufacturingRoute $routing, ManufacturingStep $step)
     {
         $this->authorize('update', $routing);
-        
+
         if ($step->manufacturing_route_id !== $routing->id) {
             abort(404);
         }
-        
+
         // Check if step has executions
         if ($step->executions()->exists()) {
             return back()->with('error', 'Cannot delete a step that has been executed.');
         }
-        
+
         // Check if other steps depend on this one
         if ($step->dependentSteps()->exists()) {
             return back()->with('error', 'Cannot delete a step that other steps depend on.');
         }
-        
+
         $step->delete();
-        
+
         // Reorder remaining steps
         $routing->steps()
             ->where('step_number', '>', $step->step_number)
             ->decrement('step_number');
-        
+
         return back()->with('success', 'Step deleted successfully.');
     }
 
@@ -414,27 +410,27 @@ class ProductionRoutingController extends Controller
     public function reorderSteps(Request $request, ManufacturingRoute $routing)
     {
         $this->authorize('update', $routing);
-        
+
         $validated = $request->validate([
             'steps' => 'required|array',
             'steps.*.id' => 'required|exists:manufacturing_steps,id',
             'steps.*.step_number' => 'required|integer|min:1',
         ]);
-        
+
         // Verify all steps belong to this route
         $stepIds = collect($validated['steps'])->pluck('id');
         $routeStepIds = $routing->steps()->pluck('id');
-        
+
         if ($stepIds->diff($routeStepIds)->isNotEmpty() || $routeStepIds->diff($stepIds)->isNotEmpty()) {
             return back()->with('error', 'Invalid step IDs provided.');
         }
-        
+
         // Update step numbers
         foreach ($validated['steps'] as $stepData) {
             ManufacturingStep::where('id', $stepData['id'])
                 ->update(['step_number' => $stepData['step_number']]);
         }
-        
+
         return back()->with('success', 'Steps reordered successfully.');
     }
 
@@ -444,7 +440,7 @@ class ProductionRoutingController extends Controller
     public function batchUpdate(Request $request, ManufacturingRoute $routing)
     {
         $this->authorize('update', $routing);
-        
+
         $validated = $request->validate([
             'route_name' => 'required|string|max:255',
             'route_description' => 'nullable|string',
@@ -467,16 +463,16 @@ class ProductionRoutingController extends Controller
             'steps.*.form_id' => 'nullable|exists:forms,id',
             'steps.*.is_new' => 'boolean',
         ]);
-        
+
         // Additional validation: ensure non-first steps have dependencies
         foreach ($validated['steps'] as $index => $step) {
             if ($step['step_number'] > 1 && empty($step['depends_on_step_id'])) {
                 return back()->withErrors([
-                    "steps.{$index}.depends_on_step_id" => 'Steps after the first must have a dependency.'
+                    "steps.{$index}.depends_on_step_id" => 'Steps after the first must have a dependency.',
                 ]);
             }
         }
-        
+
         DB::transaction(function () use ($validated, $routing) {
             // Update route info
             $routing->update([
@@ -484,14 +480,14 @@ class ProductionRoutingController extends Controller
                 'description' => $validated['route_description'],
                 'is_active' => $validated['is_active'] ?? $routing->is_active,
             ]);
-            
+
             // Delete removed steps
-            if (!empty($validated['deleted_step_ids'])) {
+            if (! empty($validated['deleted_step_ids'])) {
                 ManufacturingStep::whereIn('id', $validated['deleted_step_ids'])
                     ->where('manufacturing_route_id', $routing->id)
                     ->delete();
             }
-            
+
             // First, temporarily set ALL existing steps to high step numbers to avoid conflicts
             // This prevents unique constraint violations when reordering steps
             ManufacturingStep::where('manufacturing_route_id', $routing->id)
@@ -500,10 +496,10 @@ class ProductionRoutingController extends Controller
                 ->each(function ($step, $index) {
                     $step->update(['step_number' => 1000 + $index]);
                 });
-            
+
             // Now create/update all steps with correct step numbers
             $stepMapping = []; // Map temporary IDs to real IDs
-            
+
             foreach ($validated['steps'] as $stepData) {
                 $stepAttributes = [
                     'step_number' => $stepData['step_number'],
@@ -519,12 +515,12 @@ class ProductionRoutingController extends Controller
                     'form_id' => $stepData['form_id'] ?? null,
                     // Don't set depends_on_step_id yet
                 ];
-                
-                if (empty($stepData['id']) || !empty($stepData['is_new'])) {
+
+                if (empty($stepData['id']) || ! empty($stepData['is_new'])) {
                     // Create new step
                     $newStep = $routing->steps()->create($stepAttributes);
                     // Store mapping of temporary ID to real ID
-                    if (!empty($stepData['id'])) {
+                    if (! empty($stepData['id'])) {
                         $stepMapping[$stepData['id']] = $newStep->id;
                     }
                 } else {
@@ -536,22 +532,22 @@ class ProductionRoutingController extends Controller
                     $stepMapping[$stepData['id']] = $stepData['id'];
                 }
             }
-            
+
             // Second pass: Update dependencies using real IDs
             foreach ($validated['steps'] as $stepData) {
-                if (!empty($stepData['depends_on_step_id'])) {
+                if (! empty($stepData['depends_on_step_id'])) {
                     $realStepId = null;
-                    
+
                     // Determine the real ID of the current step
-                    if (!empty($stepData['is_new']) && !empty($stepData['id'])) {
+                    if (! empty($stepData['is_new']) && ! empty($stepData['id'])) {
                         $realStepId = $stepMapping[$stepData['id']] ?? null;
-                    } elseif (!empty($stepData['id'])) {
+                    } elseif (! empty($stepData['id'])) {
                         $realStepId = $stepData['id'];
                     }
-                    
+
                     // Determine the real ID of the dependency
                     $realDependencyId = $stepMapping[$stepData['depends_on_step_id']] ?? $stepData['depends_on_step_id'];
-                    
+
                     // Only update if we have valid IDs and the dependency is not a temporary ID
                     if ($realStepId && $realDependencyId && $realDependencyId < 1000000000) {
                         ManufacturingStep::where('id', $realStepId)
@@ -561,7 +557,7 @@ class ProductionRoutingController extends Controller
                 }
             }
         });
-        
+
         return back()->with('success', 'Route and steps updated successfully.');
     }
 
@@ -571,12 +567,12 @@ class ProductionRoutingController extends Controller
     public function initializeSteps(Request $request, ManufacturingRoute $routing)
     {
         $this->authorize('update', $routing);
-        
+
         // Check if routing already has steps
         if ($routing->steps()->exists()) {
             return back()->with('info', 'This routing already has steps configured.');
         }
-        
+
         // Return success to trigger the builder view
         return back()->with('openRouteBuilder', true);
     }
@@ -587,63 +583,30 @@ class ProductionRoutingController extends Controller
     public function createStepsFromTemplate(Request $request, ManufacturingRoute $routing)
     {
         $this->authorize('update', $routing);
-        
+
         $validated = $request->validate([
-            'template_id' => 'required|exists:route_templates,id',
+            'template_id' => 'required|exists:manufacturing_routes,id',
         ]);
-        
+
         // Check if routing already has steps
         if ($routing->steps()->exists()) {
             return back()->with('error', 'This routing already has steps configured.');
         }
-        
+
         try {
             DB::transaction(function () use ($validated, $routing) {
-                $template = RouteTemplate::find($validated['template_id']);
-                
-                // Copy steps from template
-                $stepMapping = [];
-                foreach ($template->steps as $templateStep) {
-                    $newStep = $routing->steps()->create([
-                        'step_number' => $templateStep->step_number,
-                        'name' => $templateStep->name,
-                        'description' => $templateStep->description,
-                        'step_type' => $templateStep->step_type,
-                        'work_cell_id' => $templateStep->work_cell_id,
-                        'setup_time_minutes' => $templateStep->setup_time_minutes,
-                        'cycle_time_minutes' => $templateStep->cycle_time_minutes,
-                        'depends_on_step_id' => null, // Will update after all steps are created
-                        'can_start_when_dependency' => $templateStep->can_start_when_dependency,
-                        'quality_check_mode' => $templateStep->quality_check_mode,
-                        'sampling_size' => $templateStep->sampling_size,
-                        'form_id' => $templateStep->form_id,
-                        'status' => 'pending',
-                    ]);
-                    
-                    $stepMapping[$templateStep->id] = $newStep->id;
+                $template = ManufacturingRoute::templates()->find($validated['template_id']);
+
+                if ($template) {
+                    $routing->createFromTemplate($template);
+                    $routing->update(['template_source_id' => $template->id]);
                 }
-                
-                // Update dependencies
-                foreach ($template->steps as $templateStep) {
-                    if ($templateStep->depends_on_step_id) {
-                        $newStepId = $stepMapping[$templateStep->id];
-                        $newDependencyId = $stepMapping[$templateStep->depends_on_step_id] ?? null;
-                        
-                        if ($newDependencyId) {
-                            ManufacturingStep::where('id', $newStepId)
-                                ->update(['depends_on_step_id' => $newDependencyId]);
-                        }
-                    }
-                }
-                
-                // Update routing to reference the template
-                $routing->update(['route_template_id' => $template->id]);
             });
-            
+
             return back()->with('success', 'Steps created from template successfully.')
                 ->with('openRouteBuilder', true);
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to create steps from template: ' . $e->getMessage());
         }
     }
-} 
+}

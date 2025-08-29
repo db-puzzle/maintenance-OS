@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\BaseSearchController;
-use App\Models\Production\ManufacturingOrder;
-use App\Models\Production\ManufacturingStep;
-use App\Models\Production\RouteTemplate;
-use App\Models\Production\WorkCell;
 use App\Models\Forms\Form;
+use App\Models\Production\ManufacturingOrder;
+use App\Models\Production\ManufacturingRoute;
+use App\Models\Production\ManufacturingStep;
+use App\Models\Production\WorkCell;
 use App\Services\Production\ManufacturingOrderService;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class ManufacturingOrderController extends BaseSearchController
 {
@@ -36,9 +36,10 @@ class ManufacturingOrderController extends BaseSearchController
                     'order_number',
                     [
                         'relation' => 'item',
-                        'columns' => ['name', 'item_number']
-                    ]
+                        'columns' => ['name', 'item_number'],
+                    ],
                 ];
+
                 return $this->applySearchFilter($query, $search, $searchConfig);
             })
             ->when($request->parent_id !== null, function ($query) use ($request) {
@@ -63,33 +64,34 @@ class ManufacturingOrderController extends BaseSearchController
         // Now apply status filter for the actual data display
         $orders = (clone $baseQuery)
             ->with([
-                'item', 
-                'billOfMaterial', 
-                'parent', 
+                'item',
+                'billOfMaterial',
+                'parent',
                 'children.manufacturingRoute.steps',
                 'manufacturingRoute.steps',
-                'createdBy'
+                'createdBy',
             ])
             ->when($request->status, function ($query, $status) {
                 $query->where('status', $status);
             })
             ->orderBy('created_at', 'desc')
             ->paginate(20);
-        
+
         $ordersArray = $orders->toArray();
 
         // Get data for create dialog
-        $routeTemplates = RouteTemplate::active()
+        $routeTemplates = \App\Models\Production\ManufacturingRoute::templates()
+            ->active()
             ->with('steps')
             ->get();
-            
+
         $items = \App\Models\Production\Item::where('can_be_manufactured', true)
             ->where('is_active', true)
             ->orderBy('item_number')
             ->get();
-            
+
         $billsOfMaterial = \App\Models\Production\BillOfMaterial::with([
-            'currentVersion.items.item'
+            'currentVersion.items.item',
         ])
             ->where('is_active', true)
             ->orderBy('bom_number')
@@ -124,17 +126,18 @@ class ManufacturingOrderController extends BaseSearchController
     {
         $this->authorize('create', ManufacturingOrder::class);
 
-        $routeTemplates = RouteTemplate::active()
+        $routeTemplates = \App\Models\Production\ManufacturingRoute::templates()
+            ->active()
             ->with('steps')
             ->get();
-            
+
         $items = \App\Models\Production\Item::where('can_be_manufactured', true)
             ->where('is_active', true)
             ->orderBy('item_number')
             ->get();
-            
+
         $billsOfMaterial = \App\Models\Production\BillOfMaterial::with([
-            'currentVersion.items.item'
+            'currentVersion.items.item',
         ])
             ->where('is_active', true)
             ->orderBy('bom_number')
@@ -174,11 +177,11 @@ class ManufacturingOrderController extends BaseSearchController
         // Extract non-database fields before creating order
         $orderType = $validated['order_type'];
         $routeCreationMode = $validated['route_creation_mode'] ?? 'manual';
-        
+
         // Remove fields that aren't in the database
         unset($validated['order_type']);
         unset($validated['route_creation_mode']);
-        
+
         $validated['created_by'] = auth()->id();
         $validated['status'] = 'draft';
 
@@ -193,7 +196,7 @@ class ManufacturingOrderController extends BaseSearchController
             ->with('success', 'Manufacturing order created successfully.');
     }
 
-        /**
+    /**
      * Display the specified manufacturing order.
      */
     public function show(Request $request, ManufacturingOrder $order)
@@ -206,14 +209,14 @@ class ManufacturingOrderController extends BaseSearchController
             'parent.item',
             'children' => function ($query) {
                 $query->with(['item', 'manufacturingRoute'])
-                      ->withCount('children as child_count');
+                    ->withCount('children as child_count');
             },
             'manufacturingRoute.steps' => function ($query) {
-                $query->with('workCell')
-                      ->orderBy('display_order');
+                $query->with(['workCell', 'dependentSteps'])
+                    ->orderBy('display_order');
             },
             'createdBy',
-            'childDependencies.childOrder.item'
+            'childDependencies.childOrder.item',
         ]);
 
         // Load children recursively for tree view
@@ -223,23 +226,20 @@ class ManufacturingOrderController extends BaseSearchController
 
         // Can create/edit routes if user has permission and order is in draft or planned status
         $canCreateRoute = auth()->user()->can('production.routes.create') && in_array($order->status, ['draft', 'planned']);
-        
+
         // Load route templates if user can create routes (for any child orders that might need them)
         $templates = [];
         if (auth()->user()->can('production.routes.create')) {
-            $templates = RouteTemplate::where('is_active', true)
+            $templates = ManufacturingRoute::templates()
+                ->where('is_active', true)
                 ->withCount('steps')
+                ->withCount('derivedRoutes as usage_count')
                 ->get()
                 ->map(function ($template) {
                     // Calculate total estimated time
                     $template->estimated_time = $template->steps()
                         ->sum(\DB::raw('COALESCE(setup_time_minutes, 0) + COALESCE(cycle_time_minutes, 0)'));
-                    
-                    // Get usage count
-                    $template->usage_count = \DB::table('manufacturing_routes')
-                        ->where('route_template_id', $template->id)
-                        ->count();
-                        
+
                     return $template;
                 });
         }
@@ -257,12 +257,16 @@ class ManufacturingOrderController extends BaseSearchController
                 ],
                 'can_execute' => $order->canStartExecution(),
                 'can_release' => $order->canBeReleased(),
-                // Transform children with completion percentage
+                // Smart progress data
+                'smart_progress' => $order->smart_progress_percentage,
+                'work_units_breakdown' => $order->getWorkUnitsBreakdown(),
+                // Transform children with completion percentage and smart progress
                 'children' => $order->children->map(function ($child) {
                     return array_merge($child->toArray(), [
-                        'completion_percentage' => $child->quantity > 0 
-                            ? round(($child->quantity_completed / $child->quantity) * 100, 2) 
+                        'completion_percentage' => $child->quantity > 0
+                            ? round(($child->quantity_completed / $child->quantity) * 100, 2)
                             : 0,
+                        'smart_progress' => $child->smart_progress_percentage,
                     ]);
                 }),
                 // Transform dependencies with current percentage
@@ -324,7 +328,7 @@ class ManufacturingOrderController extends BaseSearchController
     {
         $this->authorize('update', $order);
 
-        if (!in_array($order->status, ['draft', 'planned'])) {
+        if (! in_array($order->status, ['draft', 'planned'])) {
             return redirect()->route('production.orders.show', $order)
                 ->with('error', 'Only draft or planned orders can be edited.');
         }
@@ -332,7 +336,7 @@ class ManufacturingOrderController extends BaseSearchController
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -343,7 +347,7 @@ class ManufacturingOrderController extends BaseSearchController
     {
         $this->authorize('update', $order);
 
-        if (!in_array($order->status, ['draft', 'planned'])) {
+        if (! in_array($order->status, ['draft', 'planned'])) {
             return back()->with('error', 'Only draft or planned orders can be updated.');
         }
 
@@ -371,7 +375,7 @@ class ManufacturingOrderController extends BaseSearchController
 
         try {
             $this->orderService->releaseOrder($order);
-            
+
             return redirect()->route('production.orders.show', $order)
                 ->with('success', 'Manufacturing order released for production.');
         } catch (\Exception $e) {
@@ -397,7 +401,7 @@ class ManufacturingOrderController extends BaseSearchController
 
         try {
             $this->orderService->cancelOrder($order);
-            
+
             return redirect()->route('production.orders.show', $order)
                 ->with('success', 'Manufacturing order cancelled.');
         } catch (\Exception $e) {
@@ -436,7 +440,7 @@ class ManufacturingOrderController extends BaseSearchController
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -451,23 +455,24 @@ class ManufacturingOrderController extends BaseSearchController
             return back()->with('error', 'This order already has a route. Please remove it first.');
         }
 
-        if (!in_array($order->status, ['draft', 'planned'])) {
+        if (! in_array($order->status, ['draft', 'planned'])) {
             return back()->with('error', 'Route templates can only be applied to draft or planned orders.');
         }
 
         $validated = $request->validate([
-            'template_id' => 'required|exists:route_templates,id',
+            'template_id' => 'required|exists:manufacturing_routes,id',
         ]);
 
-        $template = RouteTemplate::findOrFail($validated['template_id']);
+        $template = ManufacturingRoute::templates()->findOrFail($validated['template_id']);
 
         // Create route from template
         $route = $order->manufacturingRoute()->create([
             'item_id' => $order->item_id,
-            'route_template_id' => $template->id,
+            'template_source_id' => $template->id,
             'name' => $template->name,
             'description' => $template->description,
             'is_active' => true,
+            'is_template' => false,
             'created_by' => auth()->id(),
         ]);
 
@@ -487,32 +492,30 @@ class ManufacturingOrderController extends BaseSearchController
     public function createRoute(ManufacturingOrder $order)
     {
         $this->authorize('update', $order);
-        
-        if (!in_array($order->status, ['draft', 'planned'])) {
+
+        if (! in_array($order->status, ['draft', 'planned'])) {
             return redirect()->route('production.orders.show', $order)
                 ->with('error', 'Routes can only be created for draft or planned orders.');
         }
-        
+
         if ($order->manufacturingRoute()->exists()) {
             return redirect()->route('production.routing.show', $order->manufacturingRoute->id)
                 ->with('info', 'This order already has a route.');
         }
-        
-        $templates = RouteTemplate::where('is_active', true)
-            ->when($order->item?->item_category_id, function ($query, $categoryId) {
-                $query->where('item_category_id', $categoryId);
-            })
+
+        $templates = ManufacturingRoute::templates()
+            ->where('is_active', true)
+            ->forCategory($order->item?->item_category_id)
             ->withCount('steps')
+            ->withCount('derivedRoutes as usage_count')
             ->get()
             ->map(function ($template) {
                 $template->total_time = $template->steps()
                     ->sum(\DB::raw('setup_time_minutes + cycle_time_minutes'));
-                $template->usage_count = \DB::table('manufacturing_routes')
-                    ->where('route_template_id', $template->id)
-                    ->count();
+
                 return $template;
             });
-        
+
         return Inertia::render('production/orders/routes/create', [
             'order' => $order->load('item'),
             'templates' => $templates,
@@ -525,23 +528,23 @@ class ManufacturingOrderController extends BaseSearchController
     public function storeRoute(Request $request, ManufacturingOrder $order)
     {
         $this->authorize('update', $order);
-        
-        if (!in_array($order->status, ['draft', 'planned'])) {
+
+        if (! in_array($order->status, ['draft', 'planned'])) {
             return redirect()->route('production.orders.show', $order)
                 ->with('error', 'Routes can only be created for draft or planned orders.');
         }
-        
+
         if ($order->manufacturingRoute()->exists()) {
             return redirect()->route('production.orders.show', $order)
                 ->with('info', 'This order already has a route.');
         }
-        
+
         $validated = $request->validate([
-            'template_id' => 'nullable|exists:route_templates,id',
+            'template_id' => 'nullable|exists:manufacturing_routes,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
         ]);
-        
+
         try {
             if ($validated['template_id']) {
                 $this->orderService->createRouteFromTemplate($order, $validated['template_id']);
@@ -551,10 +554,11 @@ class ManufacturingOrderController extends BaseSearchController
                     'name' => $validated['name'],
                     'description' => $validated['description'],
                     'is_active' => true,
+                    'is_template' => false,
                     'created_by' => auth()->id(),
                 ]);
             }
-            
+
             return redirect()->route('production.orders.show', ['order' => $order->id, 'openRouteBuilder' => 1])
                 ->with('success', 'Route created successfully.');
         } catch (\Exception $e) {
@@ -568,61 +572,61 @@ class ManufacturingOrderController extends BaseSearchController
     public function reportProduction(Request $request, ManufacturingOrder $order)
     {
         $this->authorize('reportProduction', $order);
-        
+
         // Validate order can receive manual reports
         if ($order->status === 'completed' || $order->status === 'cancelled') {
             return back()->with('error', 'Cannot report production on completed or cancelled orders.');
         }
-        
+
         // Validate no active route or allow manual reporting alongside route
         $hasActiveRoute = $order->manufacturingRoute && $order->manufacturingRoute->steps()->count() > 0;
-        if ($hasActiveRoute && !config('production.allow_manual_with_route')) {
+        if ($hasActiveRoute && ! config('production.allow_manual_with_route')) {
             return back()->with('error', 'This order has a route. Use step execution to report production.');
         }
-        
+
         $validated = $request->validate([
             'quantity_completed' => 'required|integer|min:0',
             'quantity_scrapped' => 'nullable|integer|min:0',
             'notes' => 'nullable|string|max:500',
-            'mark_complete' => 'boolean'
+            'mark_complete' => 'boolean',
         ]);
-        
+
         // Additional validation
         $maxCompletable = $order->quantity - $order->quantity_completed;
         if ($validated['quantity_completed'] > $maxCompletable) {
             return back()->withErrors(['quantity_completed' => 'Cannot complete more than remaining quantity.']);
         }
-        
+
         DB::transaction(function () use ($order, $validated) {
             // Update quantities
             if ($validated['quantity_completed'] > 0) {
                 $order->increment('quantity_completed', $validated['quantity_completed']);
             }
-            
+
             if (($validated['quantity_scrapped'] ?? 0) > 0) {
                 $order->increment('quantity_scrapped', $validated['quantity_scrapped']);
             }
-            
+
             // Update status
             if ($order->status === 'released') {
                 $order->update([
                     'status' => 'in_progress',
-                    'actual_start_date' => $order->actual_start_date ?? now()
+                    'actual_start_date' => $order->actual_start_date ?? now(),
                 ]);
             }
-            
+
             if ($validated['mark_complete'] ?? false) {
                 $order->update([
                     'status' => 'completed',
-                    'actual_end_date' => now()
+                    'actual_end_date' => now(),
                 ]);
-                
+
                 // Check parent auto-completion
                 if ($order->parent) {
                     $order->parent->checkAutoCompletion();
                 }
             }
-            
+
             // Create audit log
             activity()
                 ->performedOn($order)
@@ -630,11 +634,11 @@ class ManufacturingOrderController extends BaseSearchController
                 ->withProperties([
                     'quantity_completed' => $validated['quantity_completed'],
                     'quantity_scrapped' => $validated['quantity_scrapped'] ?? 0,
-                    'notes' => $validated['notes'] ?? null
+                    'notes' => $validated['notes'] ?? null,
                 ])
                 ->log('Manual production reported');
         });
-        
+
         return back()->with('success', 'Production reported successfully.');
     }
 
@@ -683,5 +687,4 @@ class ManufacturingOrderController extends BaseSearchController
             'step' => $step->fresh(['manufacturingRoute.manufacturingOrder']),
         ]);
     }
-
-} 
+}

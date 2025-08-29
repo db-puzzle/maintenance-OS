@@ -464,6 +464,9 @@ export default function CreateManufacturingOrderDialog({
             item_id: data.item_id ? parseInt(data.item_id) : null,
             bill_of_material_id: data.bill_of_material_id ? parseInt(data.bill_of_material_id) : null,
             route_template_id: data.route_template_id ? parseInt(data.route_template_id) : null,
+            // For BOM orders, use the user's choice
+            // For non-BOM orders, always set to false (no children to auto-complete on)
+            auto_complete_on_children: data.order_type === 'bom' ? data.auto_complete_on_children : false,
             // Only include progressive flow fields for BOM orders
             ...(data.order_type === 'bom' ? {
                 dependency_type: data.dependency_type,
@@ -498,7 +501,8 @@ export default function CreateManufacturingOrderDialog({
             case 3:
                 return data.quantity > 0 && !!data.unit_of_measure;
             case 4:
-                return true; // Configuration is optional
+                // For BOM orders, auto_complete_on_children must be selected
+                return data.order_type !== 'bom' || data.auto_complete_on_children !== undefined;
             case 5:
                 return true; // Release dependencies are optional
             case 6:
@@ -887,22 +891,43 @@ export default function CreateManufacturingOrderDialog({
                                         </div>
                                     </div>
 
-                                    {/* Parent-Child Configuration */}
+                                    {/* Auto-Complete Configuration - Only for BOM orders (orders with children) */}
                                     {data.order_type === 'bom' && (
                                         <div>
-                                            <h3 className="font-medium mb-4">Auto-Complete</h3>
-                                            <StateButton
-                                                icon={Check}
-                                                title="Completar Automaticamente as Ordens-Pai"
-                                                description={
-                                                    data.auto_complete_on_children
-                                                        ? "Quando não houver rota especificada, a ordem pai será automaticamente concluída quando todas as ordens filhas forem concluídas"
-                                                        : "Quando não houver rota especificada, a ordem pai NÃO será automaticamente concluída quando todas as ordens filhas forem concluídas"
-                                                }
-                                                selected={data.auto_complete_on_children}
-                                                onClick={() => setData('auto_complete_on_children', !data.auto_complete_on_children)}
-                                            />
+                                            <h3 className="font-medium mb-4">Conclusão da Ordem Pai</h3>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <StateButton
+                                                    icon={Check}
+                                                    title="Concluir Automaticamente"
+                                                    description="A ordem pai será automaticamente concluída quando todas as ordens filhas forem concluídas"
+                                                    selected={data.auto_complete_on_children === true}
+                                                    onClick={() => setData('auto_complete_on_children', true)}
+                                                />
+                                                <StateButton
+                                                    icon={Ban}
+                                                    title="Concluir Manualmente"
+                                                    description="A ordem pai precisará ser concluída manualmente, mesmo após todas as ordens filhas serem concluídas"
+                                                    selected={data.auto_complete_on_children === false}
+                                                    onClick={() => setData('auto_complete_on_children', false)}
+                                                />
+                                            </div>
+                                            <Alert className="mt-4">
+                                                <Info className="h-4 w-4" />
+                                                <AlertDescription>
+                                                    Nota: Se etapas de roteamento forem adicionadas posteriormente, a ordem sempre será concluída manualmente.
+                                                </AlertDescription>
+                                            </Alert>
                                         </div>
+                                    )}
+
+                                    {/* For non-BOM orders, no auto-complete option */}
+                                    {data.order_type !== 'bom' && (
+                                        <Alert className="mt-4">
+                                            <Info className="h-4 w-4" />
+                                            <AlertDescription>
+                                                Ordens sem BOM devem ser concluídas manualmente ou através de etapas de roteamento.
+                                            </AlertDescription>
+                                        </Alert>
                                     )}
 
                                 </div>
@@ -913,6 +938,16 @@ export default function CreateManufacturingOrderDialog({
                         {currentStep === 5 && data.order_type === 'bom' && (
                             <ScrollArea className="h-full">
                                 <div className="space-y-6 pr-4">
+                                    {/* Add inheritance info alert */}
+                                    <Alert>
+                                        <Info className="h-4 w-4" />
+                                        <AlertDescription>
+                                            A configuração de liberação selecionada será replicada automaticamente
+                                            para todas as ordens filhas. Você poderá ajustar individualmente
+                                            durante o planejamento, antes da liberação das ordens.
+                                        </AlertDescription>
+                                    </Alert>
+
                                     <div>
                                         <h3 className="font-medium mb-2">Liberação da Ordem-Pai</h3>
                                         <p className="text-sm text-muted-foreground mb-6">
@@ -944,6 +979,17 @@ export default function CreateManufacturingOrderDialog({
                         {currentStep === 6 && data.order_type === 'bom' && (
                             <ScrollArea className="h-full">
                                 <div className="space-y-6 pr-4">
+                                    {/* Add inheritance info alert */}
+                                    <Alert>
+                                        <Info className="h-4 w-4" />
+                                        <AlertDescription>
+                                            As dependências de produção selecionadas serão aplicadas a todas as
+                                            ordens filhas. Para dependências baseadas em quantidade, os valores
+                                            serão ajustados proporcionalmente. Ajustes individuais podem ser
+                                            feitos durante o planejamento.
+                                        </AlertDescription>
+                                    </Alert>
+
                                     <div>
                                         <h3 className="font-medium mb-2">Dependências para Início da Produção</h3>
                                         <p className="text-sm text-muted-foreground mb-6">

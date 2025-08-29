@@ -8,15 +8,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Validation\ValidationException;
 
 class ManufacturingStep extends Model
 {
     use HasFactory;
 
     /**
-     * Step Status Constants
-     * 
+     * Step Status Constants.
+     *
      * State Transitions:
      * - pending: Initial state when step is created
      * - queued: Step is ready to execute (dependencies met, MO is released)
@@ -60,6 +59,8 @@ class ManufacturingStep extends Model
     protected $fillable = [
         'manufacturing_route_id',
         'display_order',
+        'step_number', // For templates
+        'is_template',
         'step_type',
         'name',
         'description',
@@ -94,6 +95,7 @@ class ManufacturingStep extends Model
         'can_start_when_dependency' => 'string',
         'actual_start_time' => 'datetime',
         'actual_end_time' => 'datetime',
+        'is_template' => 'boolean',
         // Progressive flow casts
         'dependency_start_condition' => 'string',
         'dependency_minimum_percentage' => 'decimal:2',
@@ -107,13 +109,29 @@ class ManufacturingStep extends Model
         parent::boot();
 
         static::saving(function ($step) {
+            // Handle template steps
+            if ($step->manufacturingRoute && $step->manufacturingRoute->is_template) {
+                $step->is_template = true;
+                $step->status = null;
+                $step->actual_start_time = null;
+                $step->actual_end_time = null;
+                $step->cumulative_quantity_completed = 0;
+                $step->cumulative_quantity_scrapped = 0;
+            } else {
+                // Production steps
+                $step->is_template = false;
+                if (! $step->status) {
+                    $step->status = 'pending';
+                }
+            }
+
             // Set default dependency start condition if not set
-            if ($step->depends_on_step_id && !$step->dependency_start_condition) {
+            if ($step->depends_on_step_id && ! $step->dependency_start_condition) {
                 $step->dependency_start_condition = 'completed';
             }
-            
+
             // Ensure can_start_when_dependency is set for backward compatibility
-            if ($step->depends_on_step_id && !$step->can_start_when_dependency) {
+            if ($step->depends_on_step_id && ! $step->can_start_when_dependency) {
                 $step->can_start_when_dependency = 'completed';
             }
         });
@@ -183,36 +201,37 @@ class ManufacturingStep extends Model
         // For first steps, check order-level dependencies
         if ($this->isFirstStep()) {
             $order = $this->manufacturingRoute->manufacturingOrder;
-            if (!$order->canStartExecution()) {
+            if (! $order->canStartExecution()) {
                 return false;
             }
         }
-        
+
         // If no step dependency, can start
-        if (!$this->depends_on_step_id) {
+        if (! $this->depends_on_step_id) {
             return true;
         }
-        
+
         $dependency = $this->dependency;
-        
+
         switch ($this->dependency_start_condition) {
             case 'completed':
                 return $dependency->status === 'completed';
-                
+
             case 'quantity_based':
                 return $dependency->cumulative_quantity_completed >= $this->dependency_minimum_quantity;
-                
+
             case 'percentage_based':
                 $targetQuantity = $dependency->manufacturingRoute->manufacturingOrder->quantity;
                 if ($targetQuantity == 0) {
                     return true;
                 }
                 $completedPercentage = ($dependency->cumulative_quantity_completed / $targetQuantity) * 100;
+
                 return $completedPercentage >= $this->dependency_minimum_percentage;
-                
+
             case 'immediate':
                 return in_array($dependency->status, ['in_progress', 'completed']);
-                
+
             default:
                 // Fallback to completed for backward compatibility
                 return $dependency->status === 'completed';
@@ -224,7 +243,7 @@ class ManufacturingStep extends Model
      */
     public function startExecution($partNumber = null, $totalParts = null): ManufacturingStepExecution
     {
-        if (!$this->canStart()) {
+        if (! $this->canStart()) {
             throw new \Exception('Step dependencies not met');
         }
 
@@ -251,7 +270,7 @@ class ManufacturingStep extends Model
     {
         $route = $this->manufacturingRoute;
         $maxDisplayOrder = $route->steps()->max('display_order') ?? 0;
-        
+
         return $route->steps()->create([
             'display_order' => $maxDisplayOrder + 10,
             'step_type' => 'rework',
@@ -285,7 +304,7 @@ class ManufacturingStep extends Model
                 'actual_end_date' => now(),
                 'quantity_completed' => $order->quantity,
             ]);
-            
+
             // Check parent order auto-completion
             if ($order->parent) {
                 $order->parent->incrementCompletedChildren();
@@ -298,7 +317,7 @@ class ManufacturingStep extends Model
      */
     public function getActualDurationAttribute(): ?int
     {
-        if (!$this->actual_start_time || !$this->actual_end_time) {
+        if (! $this->actual_start_time || ! $this->actual_end_time) {
             return null;
         }
 
@@ -311,6 +330,7 @@ class ManufacturingStep extends Model
     public function getTotalEstimatedTimeAttribute(): int
     {
         $quantity = $this->manufacturingRoute->manufacturingOrder->quantity;
+
         return $this->setup_time_minutes + ($this->cycle_time_minutes * $quantity);
     }
 
@@ -351,13 +371,13 @@ class ManufacturingStep extends Model
      */
     public function getEstimatedRemainingTime(): int
     {
-        if ($this->status !== 'in_progress' || !$this->actual_start_time) {
+        if ($this->status !== 'in_progress' || ! $this->actual_start_time) {
             return $this->getEstimatedDuration();
         }
 
         $elapsedMinutes = $this->actual_start_time->diffInMinutes(now());
         $estimatedDuration = $this->getEstimatedDuration();
-        
+
         return max(0, $estimatedDuration - $elapsedMinutes);
     }
 
@@ -383,11 +403,12 @@ class ManufacturingStep extends Model
         }
 
         // Check if dependencies are met
-        if (!$this->canStart()) {
+        if (! $this->canStart()) {
             return false;
         }
 
         $this->update(['status' => 'queued']);
+
         return true;
     }
 
@@ -397,11 +418,12 @@ class ManufacturingStep extends Model
      */
     public function putOnHold(): bool
     {
-        if (!in_array($this->status, ['in_progress', 'awaiting_quality'])) {
+        if (! in_array($this->status, ['in_progress', 'awaiting_quality'])) {
             return false;
         }
 
         $this->update(['status' => 'on_hold']);
+
         return true;
     }
 
@@ -417,7 +439,7 @@ class ManufacturingStep extends Model
 
         // Determine the state to return to based on execution status
         $newStatus = 'in_progress';
-        
+
         // If this is a quality check step with executions that have been completed
         // but no quality result, it should go to awaiting_quality
         if ($this->step_type === 'quality_check') {
@@ -425,13 +447,14 @@ class ManufacturingStep extends Model
                 ->where('status', 'completed')
                 ->whereNull('quality_result')
                 ->exists();
-                
+
             if ($hasCompletedExecution) {
                 $newStatus = 'awaiting_quality';
             }
         }
 
         $this->update(['status' => $newStatus]);
+
         return true;
     }
 
@@ -446,6 +469,7 @@ class ManufacturingStep extends Model
         }
 
         $this->update(['status' => 'cancelled']);
+
         return true;
     }
 
@@ -460,6 +484,7 @@ class ManufacturingStep extends Model
         }
 
         $this->update(['status' => 'awaiting_quality']);
+
         return true;
     }
 
@@ -503,7 +528,7 @@ class ManufacturingStep extends Model
     public function checkNextStepActivation(): void
     {
         $nextStep = $this->getNextStep();
-        
+
         if ($nextStep && $nextStep->status === 'pending' && $nextStep->canStart()) {
             $nextStep->moveToQueued();
         }
@@ -516,12 +541,12 @@ class ManufacturingStep extends Model
     {
         $position = 1;
         $currentStep = $this;
-        
+
         while ($currentStep->depends_on_step_id) {
             $position++;
             $currentStep = $currentStep->dependency;
         }
-        
+
         return $position;
     }
 
@@ -530,7 +555,7 @@ class ManufacturingStep extends Model
      */
     public function isLastStep(): bool
     {
-        return !$this->dependentSteps()->exists();
+        return ! $this->dependentSteps()->exists();
     }
 
     /**
@@ -542,9 +567,22 @@ class ManufacturingStep extends Model
         if ($scrapped > 0) {
             $this->increment('cumulative_quantity_scrapped', $scrapped);
         }
-        
+
         // Check if the next step can now be activated
         $this->checkNextStepActivation();
     }
 
+    /**
+     * Get step_number attribute (for backward compatibility).
+     * For templates, returns the actual step_number.
+     * For production steps, returns display_order.
+     */
+    public function getStepNumberAttribute()
+    {
+        if ($this->is_template) {
+            return $this->attributes['step_number'] ?? $this->display_order;
+        }
+
+        return $this->display_order;
+    }
 }

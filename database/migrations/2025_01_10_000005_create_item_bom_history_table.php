@@ -34,7 +34,10 @@ return new class extends Migration
         });
         
         // Add exclusion constraint for PostgreSQL to prevent overlapping date ranges
-        DB::statement('ALTER TABLE item_bom_history ADD CONSTRAINT no_overlapping_dates EXCLUDE USING gist (item_id WITH =, daterange(effective_from, effective_to, \'[)\') WITH &&)');
+        // Only run for PostgreSQL, skip for SQLite and MySQL
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE item_bom_history ADD CONSTRAINT no_overlapping_dates EXCLUDE USING gist (item_id WITH =, daterange(effective_from, effective_to, \'[)\') WITH &&)');
+        }
     }
 
     /**
