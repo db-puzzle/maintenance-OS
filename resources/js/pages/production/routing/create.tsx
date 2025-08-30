@@ -1,3 +1,8 @@
+/**
+ * @deprecated This page has been replaced with CreateManufacturingRouteDialog modal component.
+ * It's kept here for reference but should not be used in production.
+ * The routing index page now uses the modal dialog for creating new routings.
+ */
 import React from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';

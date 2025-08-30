@@ -63,10 +63,14 @@ class ManufacturingRoute extends Model
 
     /**
      * Get the route template used (deprecated).
+     * @deprecated This relationship is no longer used. Use templateSource() instead.
      */
     public function routeTemplate(): BelongsTo
     {
-        return $this->belongsTo(RouteTemplate::class);
+        // Return a dummy relationship that will always be null
+        // This prevents errors when old code tries to load this relationship
+        return $this->belongsTo(ManufacturingRoute::class, 'route_template_id')
+            ->whereRaw('1 = 0'); // This ensures it always returns null
     }
 
     /**

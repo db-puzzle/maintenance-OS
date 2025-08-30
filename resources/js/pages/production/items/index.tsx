@@ -16,7 +16,7 @@ import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
 import { Item, ItemCategory } from '@/types/production';
-import { Link } from '@inertiajs/react';
+
 import { toast } from 'sonner';
 
 interface Props {
@@ -34,6 +34,8 @@ interface Props {
         status?: string;
         type?: string; // Keep for backward compatibility, but won't be used
         per_page?: number;
+        sort_by?: string;
+        sort_direction?: 'asc' | 'desc';
     };
     categories?: ItemCategory[];
     can?: {
@@ -63,19 +65,53 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
 
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
-        router.get(route('production.items.index'), { search: value }, {
+        router.get(route('production.items.index'), {
+            ...filters,
+            search: value
+        }, {
             preserveState: true,
             preserveScroll: true
         });
     };
+
     const handlePageChange = (page: number) => {
-        router.get(route('production.items.index'), { ...filters, search: searchValue, page }, {
+        router.get(route('production.items.index'), {
+            ...filters,
+            search: searchValue,
+            page
+        }, {
             preserveState: true,
             preserveScroll: true
         });
     };
+
     const handlePerPageChange = (perPage: number) => {
-        router.get(route('production.items.index'), { ...filters, search: searchValue, per_page: perPage, page: 1 }, {
+        router.get(route('production.items.index'), {
+            ...filters,
+            search: searchValue,
+            per_page: perPage,
+            page: 1
+        }, {
+            preserveState: true,
+            preserveScroll: true
+        });
+    };
+
+    const handleSort = (columnKey: string) => {
+        let newDirection: 'asc' | 'desc' = 'asc';
+
+        // If clicking the same column, toggle direction
+        if (filters.sort_by === columnKey) {
+            newDirection = filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        }
+
+        router.get(route('production.items.index'), {
+            ...filters,
+            search: searchValue,
+            sort_by: columnKey,
+            sort_direction: newDirection,
+            page: 1 // Reset to first page when sorting
+        }, {
             preserveState: true,
             preserveScroll: true
         });
@@ -208,17 +244,20 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         key: 'name',
         label: 'Nome',
         sortable: true,
-        width: showImages ? 'w-[350px]' : 'w-[400px]',
+        width: showImages ? 'w-[250px]' : 'w-[300px]',
+        render: (value: unknown) => (
+            <div className="font-medium">{value as React.ReactNode}</div>
+        )
+    };
+
+    const categoryColumn: ColumnConfig<Item> = {
+        key: 'category',
+        label: 'Categoria',
+        sortable: true,
+        width: 'w-[200px]',
         render: (value: unknown, item: Item) => (
-            <div>
-                <div className="font-medium">{value as React.ReactNode}</div>
-                {item.category ? (
-                    <div className="text-muted-foreground text-sm">
-                        {item.category.name && item.category.name.length > 40
-                            ? `${item.category.name.substring(0, 40)}...`
-                            : item.category.name || '-'}
-                    </div>
-                ) : null}
+            <div className="text-sm">
+                {item.category?.name || '-'}
             </div>
         )
     };
@@ -234,6 +273,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         {
             key: 'capabilities',
             label: 'Capacidades',
+            sortable: true,
             width: 'w-[200px]',
             render: (value: unknown, item: Item) => {
                 const capabilities = [];
@@ -245,19 +285,11 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         },
         {
             key: 'primary_bom',
-            label: 'BOM Atual',
-            width: 'w-[150px]',
+            label: 'Has BOM',
+            sortable: true,
+            width: 'w-[120px]',
             render: (value: unknown, item: Item) => (
-                item.primary_bom && item.can_be_manufactured ? (
-                    <Link
-                        href={route('production.bom.show', item.primary_bom.id)}
-                        className="text-primary hover:underline"
-                    >
-                        {item.primary_bom.bom_number}
-                    </Link>
-                ) : (
-                    '-'
-                )
+                item.primary_bom && item.can_be_manufactured ? 'Sim' : 'Não'
             )
         },
         {
@@ -281,6 +313,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         ...baseColumns,
         ...(showImages ? [imageColumn] : []),
         nameColumn,
+        categoryColumn,
         ...otherColumns
     ];
     const breadcrumbs = [
@@ -352,6 +385,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                         loading={loading}
                         emptyMessage="Nenhum item encontrado."
                         onRowClick={(item) => router.visit(route('production.items.show', (item as unknown as Item).id))}
+                        onSort={handleSort}
                         actions={(item) => (
                             <EntityActionDropdown
                                 onEdit={() => setEditItem(item as unknown as Item)}

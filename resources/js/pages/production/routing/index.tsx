@@ -5,9 +5,10 @@ import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
+import CreateManufacturingRouteDialog from '@/components/production/CreateManufacturingRouteDialog';
 
 import { ColumnConfig } from '@/types/shared';
-import { ManufacturingRoute as Routing } from '@/types/production';
+import { ManufacturingRoute as Routing, Item, ManufacturingOrder, ItemCategory, WorkCell } from '@/types/production';
 import { toast } from 'sonner';
 interface Props {
     routings: {
@@ -26,9 +27,25 @@ interface Props {
     can: {
         create?: boolean;
     };
+    items?: Item[];
+    orders?: ManufacturingOrder[];
+    routeTemplates?: Routing[];
+    itemCategories?: ItemCategory[];
+    workCells?: WorkCell[];
 }
-export default function RoutingIndex({ routings, filters, can }: Props) {
+export default function RoutingIndex({
+    routings,
+    filters,
+    can,
+    items = [],
+    orders = [],
+    routeTemplates = [],
+    itemCategories = [],
+    workCells = []
+}: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
+    const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(
@@ -161,7 +178,8 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
                 searchPlaceholder="Buscar por número, nome ou item..."
                 searchValue={searchValue}
                 onSearchChange={handleSearchChange}
-                createRoute={can.create ? window.route('production.routing.create') : undefined}
+                createRoute={can.create ? '#' : undefined}
+                onCreateClick={can.create ? () => setCreateDialogOpen(true) : undefined}
                 createButtonText="Novo Roteiro"
             >
                 <div className="space-y-4">
@@ -191,6 +209,17 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
                     />
                 </div>
             </ListLayout>
+
+            {/* Create Routing Dialog */}
+            <CreateManufacturingRouteDialog
+                open={createDialogOpen}
+                onOpenChange={setCreateDialogOpen}
+                items={items}
+                orders={orders}
+                routeTemplates={routeTemplates}
+                itemCategories={itemCategories}
+                workCells={workCells}
+            />
         </AppLayout>
     );
 } 

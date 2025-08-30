@@ -7,11 +7,10 @@ use App\Models\Production\BillOfMaterial;
 use App\Models\Production\Item;
 use App\Models\Production\ItemCategory;
 use App\Models\Production\ManufacturingOrder;
-use App\Services\Production\ItemImportService;
 use App\Services\Production\ItemImageBulkImportService;
-use Illuminate\Http\Request;
+use App\Services\Production\ItemImportService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,7 +29,24 @@ class ItemController extends BaseSearchController
     {
         $this->authorize('viewAny', Item::class);
 
-        $items = Item::query()
+        // Define sortable columns
+        $sortableColumns = [
+            'item_number' => 'item_number',
+            'name' => 'name',
+            'category' => 'item_category_id',
+            'status' => 'status',
+            'capabilities' => 'capabilities', // This will need custom sorting logic
+            'primary_bom' => 'primary_bom', // This will need custom sorting logic
+        ];
+
+        // Get sort parameters
+        $sortBy = $request->input('sort_by', 'item_number');
+        $sortDirection = $request->input('sort_direction', 'asc');
+
+        // Validate sort column
+        $sortColumn = $sortableColumns[$sortBy] ?? 'item_number';
+
+        $query = Item::query()
             ->when($request->input('search'), function ($query, $search) {
                 return $this->applySearchFilter($query, $search, ['name', 'item_number', 'description']);
             })
@@ -53,10 +69,35 @@ class ItemController extends BaseSearchController
                     $query->where('can_be_manufactured', true);
                 }
             })
-            ->with(['category', 'createdBy', 'primaryImage'])
-            ->withCount('images')
-            ->orderBy('item_number')
-            ->paginate($request->input('per_page', 10))
+            ->with(['category', 'createdBy', 'primaryImage', 'primaryBom'])
+            ->withCount('images');
+
+        // Apply custom sorting logic
+        if ($sortBy === 'capabilities') {
+            // Sort by capabilities (combination of can_be_sold, can_be_manufactured, can_be_purchased)
+            // This will sort by the number of capabilities in descending order by default
+            // PostgreSQL-compatible: cast boolean to integer
+            $query->orderByRaw("(CAST(can_be_sold AS INTEGER) + CAST(can_be_manufactured AS INTEGER) + CAST(can_be_purchased AS INTEGER)) $sortDirection");
+        } elseif ($sortBy === 'primary_bom') {
+            // Sort by whether item has a primary BOM (and can be manufactured)
+            // Items with BOM and can_be_manufactured = true will be sorted first/last based on direction
+            // We need to use a subquery to check if a BOM exists for this item
+            $query->orderByRaw("
+                CASE 
+                    WHEN can_be_manufactured = true AND EXISTS (
+                        SELECT 1 FROM bill_of_materials 
+                        WHERE output_item_id = items.id 
+                        AND is_active = true
+                    ) THEN 1 
+                    ELSE 0 
+                END $sortDirection
+            ");
+        } else {
+            // Default sorting
+            $query->orderBy($sortColumn, $sortDirection);
+        }
+
+        $items = $query->paginate($request->input('per_page', 10))
             ->withQueryString();
 
         $categories = ItemCategory::active()->orderBy('name')->get();
@@ -64,7 +105,7 @@ class ItemController extends BaseSearchController
         return Inertia::render('production/items/index', [
             'items' => $items,
             'categories' => $categories,
-            'filters' => $request->only(['search', 'category', 'status', 'type', 'per_page']),
+            'filters' => $request->only(['search', 'category', 'status', 'type', 'per_page', 'sort_by', 'sort_direction']),
             'can' => [
                 'create' => $request->user()->can('create', Item::class),
                 'import' => $request->user()->can('import', Item::class),
@@ -140,7 +181,7 @@ class ItemController extends BaseSearchController
         $whereUsedBomsQuery = BillOfMaterial::whereHas('currentVersion.items', function ($query) use ($item) {
             $query->where('item_id', $item->id);
         })
-        ->with(['outputItem', 'currentVersion']);
+            ->with(['outputItem', 'currentVersion']);
 
         // Apply search filter
         if ($request->filled('bom_search')) {
@@ -150,8 +191,8 @@ class ItemController extends BaseSearchController
                 'name',
                 [
                     'relation' => 'outputItem',
-                    'columns' => ['item_number', 'name']
-                ]
+                    'columns' => ['item_number', 'name'],
+                ],
             ];
             $whereUsedBomsQuery = $this->applySearchFilter($whereUsedBomsQuery, $search, $searchConfig);
         }
@@ -171,8 +212,8 @@ class ItemController extends BaseSearchController
         if ($request->filled('mo_search')) {
             $moSearch = $request->get('mo_search');
             $manufacturingOrdersQuery = $this->applySearchFilter(
-                $manufacturingOrdersQuery, 
-                $moSearch, 
+                $manufacturingOrdersQuery,
+                $moSearch,
                 ['order_number', 'status', 'source_reference']
             );
         }
@@ -184,8 +225,12 @@ class ItemController extends BaseSearchController
             ->paginate($moPerPage, ['*'], 'mo_page')
             ->withQueryString();
 
+        // Load categories for the form
+        $categories = ItemCategory::active()->orderBy('name')->get();
+
         return Inertia::render('production/items/show', [
             'item' => $item,
+            'categories' => $categories,
             'whereUsedBoms' => $whereUsedBoms,
             'bomFilters' => $request->only(['bom_search', 'bom_per_page']),
             'manufacturingOrders' => $manufacturingOrders,
@@ -206,7 +251,7 @@ class ItemController extends BaseSearchController
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -252,7 +297,7 @@ class ItemController extends BaseSearchController
     {
         $this->authorize('delete', $item);
 
-        if (!$item->canBeDeleted()) {
+        if (! $item->canBeDeleted()) {
             return back()->withErrors(['error' => 'This item cannot be deleted because it is being used.']);
         }
 
@@ -263,14 +308,14 @@ class ItemController extends BaseSearchController
     }
 
     /**
-     * Export items to JSON or CSV
+     * Export items to JSON or CSV.
      */
     public function export(Request $request)
     {
         $this->authorize('export', Item::class);
 
         $format = $request->input('format', 'json');
-        
+
         // Get filtered items based on request parameters
         $query = Item::query()
             ->when($request->input('search'), function ($query, $search) {
@@ -298,7 +343,7 @@ class ItemController extends BaseSearchController
     }
 
     /**
-     * Export items as JSON
+     * Export items as JSON.
      */
     protected function exportJson($items)
     {
@@ -335,18 +380,18 @@ class ItemController extends BaseSearchController
                     'tags' => $item->tags,
                     'custom_attributes' => $item->custom_attributes,
                 ];
-            })
+            }),
         ];
 
         $jsonContent = json_encode($exportData, JSON_PRETTY_PRINT);
-        
+
         return response($jsonContent)
             ->header('Content-Type', 'application/json')
             ->header('Content-Disposition', 'attachment; filename="items-' . date('Y-m-d') . '.json"');
     }
 
     /**
-     * Export items as CSV
+     * Export items as CSV.
      */
     protected function exportCsv($items)
     {
@@ -379,7 +424,7 @@ class ItemController extends BaseSearchController
 
         $csv = fopen('php://temp', 'r+');
         fputcsv($csv, $headers);
-        
+
         foreach ($items as $item) {
             fputcsv($csv, [
                 $item->item_number,
@@ -408,7 +453,7 @@ class ItemController extends BaseSearchController
                 is_array($item->tags) ? implode(', ', $item->tags) : '',
             ]);
         }
-        
+
         rewind($csv);
         $output = stream_get_contents($csv);
         fclose($csv);
@@ -419,7 +464,7 @@ class ItemController extends BaseSearchController
     }
 
     /**
-     * Show import wizard
+     * Show import wizard.
      */
     public function importWizard(): Response
     {
@@ -447,7 +492,7 @@ class ItemController extends BaseSearchController
     }
 
     /**
-     * Import items from file
+     * Import items from file.
      */
     public function import(Request $request)
     {
@@ -466,9 +511,9 @@ class ItemController extends BaseSearchController
         try {
             $file = $request->file('file');
             $extension = $file->getClientOriginalExtension();
-            
+
             $updateExisting = $request->input('update_existing', true);
-            
+
             if ($extension === 'json') {
                 // Handle JSON import
                 $data = json_decode(file_get_contents($file->getRealPath()), true);
@@ -482,12 +527,13 @@ class ItemController extends BaseSearchController
                 }
                 $result = $this->importService->importFromCsv($file, $mapping, $updateExisting);
             }
-            
+
             if (count($result['errors']) > 0) {
-                $message = "Imported {$result['count']} items with " . count($result['errors']) . " errors.";
+                $message = "Imported {$result['count']} items with " . count($result['errors']) . ' errors.';
                 if (isset($result['skipped']) && $result['skipped'] > 0) {
                     $message .= " {$result['skipped']} items were skipped (already exist).";
                 }
+
                 return back()->with('warning', $message)
                     ->withErrors($result['errors']);
             }
@@ -508,6 +554,7 @@ class ItemController extends BaseSearchController
                     if (isset($result['skipped']) && $result['skipped'] > 0) {
                         $message .= " {$result['skipped']} items were skipped (already exist).";
                     }
+
                     return redirect()->route('production.items.index')
                         ->with('success', $message);
                 }
@@ -517,26 +564,25 @@ class ItemController extends BaseSearchController
             if (isset($result['skipped']) && $result['skipped'] > 0) {
                 $message .= " {$result['skipped']} items were skipped (already exist).";
             }
-            
+
             return redirect()->route('production.items.index')
                 ->with('success', $message);
-                
         } catch (\Exception $e) {
             return back()->withErrors(['file' => 'Import failed: ' . $e->getMessage()]);
         }
     }
 
     /**
-     * Get item with images (API endpoint for carousel)
+     * Get item with images (API endpoint for carousel).
      */
     public function getWithImages(Item $item): JsonResponse
     {
         $this->authorize('view', $item);
-        
+
         $item->load(['images', 'primaryImage']);
-        
+
         return response()->json([
-            'item' => $item
+            'item' => $item,
         ]);
     }
-} 
+}

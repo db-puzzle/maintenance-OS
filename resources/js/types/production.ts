@@ -262,15 +262,20 @@ export interface RouteTemplateStep {
 
 export interface ManufacturingRoute {
     id: number;
-    manufacturing_order_id: number;
+    manufacturing_order_id?: number | null;
     manufacturing_order?: ManufacturingOrder;
-    item_id: number;
+    item_id?: number | null;
     item?: Item;
     route_template_id?: number;
     route_template?: RouteTemplate;
+    template_source_id?: number | null;
+    template_source?: ManufacturingRoute;
     name: string;
     description?: string;
     is_active: boolean;
+    is_template?: boolean;
+    item_category_id?: number | null;
+    item_category?: ItemCategory;
     steps?: ManufacturingStep[];
     steps_count?: number;
     current_active_step?: ManufacturingStep;

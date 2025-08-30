@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Production;
 use App\Http\Controllers\Controller;
 use App\Models\Forms\Form;
 use App\Models\Production\Item;
+use App\Models\Production\ItemCategory;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingRoute;
 // RouteTemplate is deprecated - using unified ManufacturingRoute model
@@ -38,7 +39,7 @@ class ProductionRoutingController extends Controller
             ->when($request->filled('is_active'), function ($query) use ($request) {
                 $query->where('is_active', $request->boolean('is_active'));
             })
-            ->with(['item', 'manufacturingOrder', 'createdBy', 'routeTemplate'])
+            ->with(['item', 'manufacturingOrder', 'createdBy', 'templateSource'])
             ->withCount('steps')
             ->orderBy('id', 'desc')
             ->paginate($request->input('per_page', 10))
@@ -50,6 +51,16 @@ class ProductionRoutingController extends Controller
             'can' => [
                 'create' => $request->user()->can('create', ManufacturingRoute::class),
             ],
+            // Data for create dialog
+            'items' => Item::where('is_active', true)->orderBy('item_number')->get(),
+            'orders' => ManufacturingOrder::with('item')
+                ->whereIn('status', ['released'])
+                ->whereDoesntHave('manufacturingRoute')
+                ->orderBy('order_number')
+                ->get(),
+            'routeTemplates' => ManufacturingRoute::templates()->where('is_active', true)->get(),
+            'itemCategories' => ItemCategory::where('is_active', true)->orderBy('name')->get(),
+            'workCells' => WorkCell::where('is_active', true)->get(),
         ]);
     }
 
@@ -72,7 +83,7 @@ class ProductionRoutingController extends Controller
                 ->orderBy('order_number')
                 ->get(),
             'workCells' => WorkCell::where('is_active', true)->get(),
-            'routeTemplates' => RouteTemplate::where('is_active', true)->get(),
+            'routeTemplates' => ManufacturingRoute::templates()->where('is_active', true)->get(),
         ]);
     }
 
@@ -85,13 +96,27 @@ class ProductionRoutingController extends Controller
 
         $validated = $request->validate([
             'manufacturing_order_id' => 'nullable|exists:manufacturing_orders,id',
-            'item_id' => 'required|exists:items,id',
+            'item_id' => 'nullable|exists:items,id',
             'template_source_id' => 'nullable|exists:manufacturing_routes,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'is_template' => 'boolean',
+            'item_category_id' => 'nullable|exists:item_categories,id',
         ]);
 
-        DB::transaction(function () use ($validated) {
+        // Additional validation logic
+        if (empty($validated['is_template']) || !$validated['is_template']) {
+            // For production routes, either manufacturing_order_id or item_id is required
+            if (empty($validated['manufacturing_order_id']) && empty($validated['item_id'])) {
+                return back()->withErrors(['item_id' => 'Either a manufacturing order or an item must be selected.']);
+            }
+        } else {
+            // For templates, item_id should be null
+            $validated['item_id'] = null;
+            $validated['manufacturing_order_id'] = null;
+        }
+
+        $routing = DB::transaction(function () use ($validated) {
             $validated['created_by'] = auth()->id();
             $validated['is_active'] = true;
 
@@ -104,10 +129,11 @@ class ProductionRoutingController extends Controller
                     $routing->createFromTemplate($template);
                 }
             }
+            return $routing;
         });
 
         return redirect()->route('production.routing.index')
-            ->with('success', 'Routing created successfully.');
+            ->with('success', 'Roteiro criado com sucesso.');
     }
 
     /**
@@ -121,7 +147,7 @@ class ProductionRoutingController extends Controller
             'item',
             'manufacturingOrder',
             'steps.workCell',
-            'routeTemplate',
+            'templateSource',
             'createdBy',
         ]);
 
