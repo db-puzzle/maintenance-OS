@@ -3,10 +3,10 @@
 namespace App\Models\Production;
 
 use App\Models\AssetHierarchy\Area;
+use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\AssetHierarchy\Shift;
-use App\Models\AssetHierarchy\Manufacturer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,8 +20,11 @@ class WorkCell extends Model
         'name',
         'description',
         'cell_type',
-        'available_hours_per_day',
-        'efficiency_percentage',
+        'has_finite_capacity',
+        'default_production_rate_per_hour',
+        'default_unit_of_measure',
+        'default_setup_time_minutes',
+        'max_parallel_executions',
         'shift_id',
         'plant_id',
         'area_id',
@@ -31,8 +34,10 @@ class WorkCell extends Model
     ];
 
     protected $casts = [
-        'available_hours_per_day' => 'decimal:2',
-        'efficiency_percentage' => 'decimal:2',
+        'has_finite_capacity' => 'boolean',
+        'default_production_rate_per_hour' => 'decimal:3',
+        'default_setup_time_minutes' => 'integer',
+        'max_parallel_executions' => 'integer',
         'is_active' => 'boolean',
     ];
 
@@ -94,6 +99,38 @@ class WorkCell extends Model
     }
 
     /**
+     * Get the item rates for this work cell.
+     */
+    public function itemRates(): HasMany
+    {
+        return $this->hasMany(WorkCellItemRate::class);
+    }
+
+    /**
+     * Get the constraints for this work cell.
+     */
+    public function constraints(): HasMany
+    {
+        return $this->hasMany(WorkCellConstraint::class);
+    }
+
+    /**
+     * Get the capacity bookings for this work cell.
+     */
+    public function capacityBookings(): HasMany
+    {
+        return $this->hasMany(WorkCellCapacityBooking::class);
+    }
+
+    /**
+     * Get the parallel resources for this work cell.
+     */
+    public function parallelResources(): HasMany
+    {
+        return $this->hasMany(WorkCellParallelResource::class);
+    }
+
+    /**
      * Get the production schedules for this work cell.
      */
     // TODO: Uncomment when ProductionSchedule model is created
@@ -127,49 +164,204 @@ class WorkCell extends Model
     }
 
     /**
-     * Get the effective capacity in hours per day.
+     * Get the production rate for a specific item.
      */
-    public function getEffectiveCapacityAttribute()
+    public function getProductionRateForItem(Item $item): ?WorkCellItemRate
     {
-        return $this->available_hours_per_day * ($this->efficiency_percentage / 100);
+        return $this->itemRates()->where('item_id', $item->id)->first();
     }
 
     /**
-     * Check if work cell is available for a given time period.
+     * Get the effective production rate for an item (specific rate or default).
      */
-    public function isAvailable($startTime, $endTime)
+    public function getEffectiveProductionRate(Item $item): float
     {
-        return !$this->productionSchedules()
-            ->where(function ($query) use ($startTime, $endTime) {
-                $query->where(function ($q) use ($startTime, $endTime) {
-                    // Check if any existing schedule overlaps with the requested time
-                    $q->where('scheduled_start', '<=', $endTime)
-                      ->where('scheduled_end', '>=', $startTime);
-                });
+        $itemRate = $this->getProductionRateForItem($item);
+
+        return $itemRate ? $itemRate->production_rate_per_hour : ($this->default_production_rate_per_hour ?? 0);
+    }
+
+    /**
+     * Get the effective setup time for an item (specific setup time or default).
+     */
+    public function getEffectiveSetupTime(Item $item): int
+    {
+        $itemRate = $this->getProductionRateForItem($item);
+
+        return $itemRate ? $itemRate->setup_time_minutes : ($this->default_setup_time_minutes ?? 0);
+    }
+
+    /**
+     * Get the effective unit of measure for an item (specific UOM or default).
+     */
+    public function getEffectiveUnitOfMeasure(Item $item): string
+    {
+        $itemRate = $this->getProductionRateForItem($item);
+
+        return $itemRate ? $itemRate->unit_of_measure : ($this->default_unit_of_measure ?? 'PC');
+    }
+
+    /**
+     * Calculate available time on a specific date (in minutes).
+     */
+    public function getAvailableTimeOnDate(\Carbon\Carbon $date): int
+    {
+        // Infinite capacity work cells have unlimited time
+        if (! $this->has_finite_capacity) {
+            return PHP_INT_MAX;
+        }
+
+        // No shift means no available time
+        if (! $this->shift) {
+            return 0;
+        }
+
+        // Get shift working time for the date
+        $weekday = strtolower($date->format('l'));
+        $shiftTimes = $this->shift->getShiftTimesForDateInUTC($date->format('Y-m-d'), $weekday);
+
+        $totalMinutes = 0;
+        foreach ($shiftTimes as $shiftTime) {
+            $workMinutes = $shiftTime['start']->diffInMinutes($shiftTime['end']);
+
+            // Subtract break times
+            foreach ($shiftTime['breaks'] as $break) {
+                $breakMinutes = $break['start']->diffInMinutes($break['end']);
+                $workMinutes -= $breakMinutes;
+            }
+
+            $totalMinutes += $workMinutes;
+        }
+
+        // Subtract constraints for this date
+        $constraints = $this->constraints()
+            ->whereDate('start_datetime', '<=', $date)
+            ->whereDate('end_datetime', '>=', $date)
+            ->get();
+
+        foreach ($constraints as $constraint) {
+            // Calculate overlap with the date
+            $constraintStart = $constraint->start_datetime->max($date->startOfDay());
+            $constraintEnd = $constraint->end_datetime->min($date->endOfDay());
+            $constraintMinutes = $constraintStart->diffInMinutes($constraintEnd);
+            $totalMinutes -= $constraintMinutes;
+        }
+
+        return max(0, $totalMinutes);
+    }
+
+    /**
+     * Check if work cell has capacity for a given duration on a date.
+     */
+    public function hasCapacityFor(int $durationMinutes, \Carbon\Carbon $date): bool
+    {
+        // Infinite capacity always has room
+        if (! $this->has_finite_capacity) {
+            return true;
+        }
+
+        $availableMinutes = $this->getAvailableTimeOnDate($date);
+
+        // Get already booked time
+        $bookedMinutes = $this->capacityBookings()
+            ->active()
+            ->onDate($date)
+            ->sum('time_minutes');
+
+        $remainingMinutes = $availableMinutes - $bookedMinutes;
+
+        return $remainingMinutes >= $durationMinutes;
+    }
+
+    /**
+     * Get the utilization percentage for a given date.
+     */
+    public function getUtilizationOnDate(\Carbon\Carbon $date): float
+    {
+        if (! $this->has_finite_capacity) {
+            return 0; // Infinite capacity doesn't have utilization
+        }
+
+        $availableMinutes = $this->getAvailableTimeOnDate($date);
+        if ($availableMinutes <= 0) {
+            return 0;
+        }
+
+        $bookedMinutes = $this->capacityBookings()
+            ->active()
+            ->onDate($date)
+            ->sum('time_minutes');
+
+        return round(($bookedMinutes / $availableMinutes) * 100, 2);
+    }
+
+    /**
+     * Get available parallel resources for a specific date and shift.
+     */
+    public function getAvailableParallelResources(\Carbon\Carbon $date, ?int $shiftId = null): int
+    {
+        // First check for a specific date/shift resource entry
+        $resource = $this->parallelResources()
+            ->where('resource_date', $date->format('Y-m-d'))
+            ->when($shiftId, function ($query) use ($shiftId) {
+                return $query->where('shift_id', $shiftId);
             })
-            ->whereIn('status', ['scheduled', 'ready', 'in_progress'])
-            ->exists();
+            ->first();
+
+        if ($resource) {
+            return $resource->available_count;
+        }
+
+        // If no specific resource entry, return the max parallel executions
+        return $this->max_parallel_executions;
     }
 
     /**
-     * Get the utilization percentage for a given date range.
+     * Get the number of booked parallel slots for a specific time period.
      */
-    public function getUtilization($startDate, $endDate)
+    public function getBookedParallelSlots(\Carbon\Carbon $date, string $startTime, string $endTime): int
     {
-        // TODO: Uncomment when ProductionSchedule model is created
-        // $totalAvailableMinutes = $this->available_hours_per_day * 60 * 
-        //     $startDate->diffInDays($endDate);
-        
-        // $scheduledMinutes = $this->productionSchedules()
-        //     ->whereBetween('scheduled_start', [$startDate, $endDate])
-        //     ->sum(\DB::raw('TIMESTAMPDIFF(MINUTE, scheduled_start, scheduled_end)'));
-        
-        // return $totalAvailableMinutes > 0 
-        //     ? round(($scheduledMinutes / $totalAvailableMinutes) * 100, 2)
-        //     : 0;
-        
-        // Temporary return 0 until ProductionSchedule model is created
-        return 0;
+        return $this->capacityBookings()
+            ->active()
+            ->onDate($date)
+            ->overlappingTime($startTime, $endTime)
+            ->distinct('parallel_slot')
+            ->count('parallel_slot');
+    }
+
+    /**
+     * Check if a parallel slot is available for a given time period.
+     */
+    public function hasAvailableParallelSlot(\Carbon\Carbon $date, string $startTime, string $endTime, ?int $shiftId = null): bool
+    {
+        $availableResources = $this->getAvailableParallelResources($date, $shiftId);
+        $bookedSlots = $this->getBookedParallelSlots($date, $startTime, $endTime);
+
+        return $bookedSlots < $availableResources;
+    }
+
+    /**
+     * Get the next available parallel slot for a time period.
+     */
+    public function getNextAvailableParallelSlot(\Carbon\Carbon $date, string $startTime, string $endTime): ?int
+    {
+        $bookedSlots = $this->capacityBookings()
+            ->active()
+            ->onDate($date)
+            ->overlappingTime($startTime, $endTime)
+            ->pluck('parallel_slot')
+            ->unique()
+            ->sort()
+            ->values();
+
+        // Find the first available slot
+        for ($slot = 1; $slot <= $this->max_parallel_executions; $slot++) {
+            if (! $bookedSlots->contains($slot)) {
+                return $slot;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -178,6 +370,7 @@ class WorkCell extends Model
     public function getDisplayNameAttribute()
     {
         $typeIndicator = $this->cell_type === 'external' ? ' (Ext)' : '';
+
         return "{$this->name}{$typeIndicator}";
     }
 
@@ -191,11 +384,11 @@ class WorkCell extends Model
         static::deleting(function ($workCell) {
             // Dependency checking is now handled by the controller's checkDependencies method
             // This allows for better error handling and user feedback
-            
+
             if ($workCell->routingSteps()->exists()) {
                 throw new \Exception('Esta célula de trabalho possui etapas de roteiro vinculadas.');
             }
-            
+
             // TODO: Uncomment when ProductionSchedule model is created
             // if ($workCell->productionSchedules()->exists()) {
             //     throw new \Exception('Esta célula de trabalho possui agendamentos de produção vinculados.');

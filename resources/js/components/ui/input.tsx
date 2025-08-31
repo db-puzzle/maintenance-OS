@@ -14,7 +14,7 @@ const inputVariants = cva(
         ],
         destructive: [
           "border-destructive",
-          "placeholder:text-destructive/60",
+          "placeholder:text-muted-foreground",
           "file:text-destructive",
           "selection:bg-destructive selection:text-destructive-foreground",
           "focus-visible:border-destructive focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 focus-visible:ring-[2px] focus-visible:bg-destructive/5",

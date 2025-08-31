@@ -718,45 +718,323 @@ GET    /api/calendars       - List all calendars
 
 ## 14. Implementation Architecture for Laravel/React Project
 
-### 14.1 Component Structure
+### 14.1 Modular Component Architecture
+
+#### Folder Structure
 ```
-resources/js/components/gantt/
-├── GanttChart.tsx                 // Main container component
-├── GanttProvider.tsx              // Context provider for state
-├── components/
-│   ├── GanttGrid/
-│   │   ├── GanttGrid.tsx         // Left panel grid
-│   │   ├── GanttRow.tsx          // Individual row
-│   │   ├── GanttCell.tsx         // Cell components
-│   │   └── TreeControls.tsx      // Expand/collapse
-│   ├── GanttTimeline/
-│   │   ├── GanttTimeline.tsx     // Right panel timeline
-│   │   ├── TimeAxis.tsx          // Time headers
-│   │   ├── TaskBar.tsx           // Task visualization
-│   │   ├── DependencyLines.tsx   // Dependency arrows
-│   │   └── NonWorkingTime.tsx    // Weekend/holiday overlay
-│   ├── ResourceScheduler/
-│   │   ├── ResourceGrid.tsx      // Resource list
-│   │   ├── ResourceTimeline.tsx  // Resource allocations
-│   │   └── AllocationBar.tsx     // Resource task blocks
-│   └── shared/
-│       ├── ScrollSync.tsx        // Scroll synchronization
-│       ├── ZoomControls.tsx      // Zoom in/out
-│       └── GanttTooltip.tsx      // Hover tooltips
+resources/js/components/production/scheduler/
+├── index.tsx                           // Main export
+├── ProductionScheduler.tsx             // Main container component
+├── contexts/
+│   └── ScrollSyncContext.tsx          // Scroll synchronization context
 ├── hooks/
-│   ├── useGanttState.ts          // Main state management
-│   ├── useScrollSync.ts          // Scroll coordination
-│   ├── useTaskDrag.ts            // Drag operations
-│   └── useTimeScale.ts           // Zoom/time scaling
+│   ├── useScrollSync.ts               // Scroll synchronization logic
+│   ├── useSchedulerState.ts           // State management
+│   └── useVirtualization.ts           // Virtual scrolling helpers
+├── components/
+│   ├── Toolbar/
+│   │   ├── Toolbar.tsx                // Main toolbar
+│   │   ├── ZoomControls.tsx           // Zoom in/out
+│   │   └── ViewControls.tsx           // View options
+│   ├── GanttView/
+│   │   ├── GanttView.tsx              // Gantt container
+│   │   ├── GanttGrid/
+│   │   │   ├── GanttGrid.tsx          // Left panel grid
+│   │   │   ├── GanttHeader.tsx        // Column headers
+│   │   │   ├── GanttRow.tsx           // Row component
+│   │   │   └── TreeCell.tsx           // Tree hierarchy cell
+│   │   └── GanttTimeline/
+│   │       ├── GanttTimeline.tsx      // Right panel timeline
+│   │       ├── TimeAxis.tsx           // Time scale header
+│   │       ├── StepBar.tsx            // Task/step visualization
+│   │       ├── Dependencies.tsx       // Dependency lines
+│   │       └── NonWorkingTime.tsx     // Weekend/holiday overlay
+│   ├── SchedulerView/
+│   │   ├── SchedulerView.tsx          // Scheduler container
+│   │   ├── SchedulerGrid/
+│   │   │   ├── SchedulerGrid.tsx      // Resource grid
+│   │   │   ├── SchedulerHeader.tsx    // Column headers
+│   │   │   └── WorkCellRow.tsx        // Resource row
+│   │   └── SchedulerTimeline/
+│   │       ├── SchedulerTimeline.tsx  // Resource timeline
+│   │       ├── AllocationBar.tsx      // Resource allocation
+│   │       └── CapacityIndicator.tsx  // Utilization display
+│   └── shared/
+│       ├── VirtualList.tsx            // Virtualized list wrapper
+│       ├── ScrollContainer.tsx        // Scroll container with sync
+│       ├── ResizableSplitter.tsx      // Between views
+│       └── Tooltip.tsx                // Hover tooltips
 ├── utils/
-│   ├── dateCalculations.ts       // Date/duration logic
-│   ├── taskPositioning.ts        // Layout calculations
-│   └── dependencyPaths.ts        // SVG path generation
+│   ├── dateCalculations.ts            // Date/time helpers
+│   ├── positioning.ts                 // Layout calculations
+│   └── canvasRenderer.ts              // Canvas rendering utilities
 └── types/
-    └── gantt.ts                  // TypeScript interfaces
+    └── scheduler.ts                   // TypeScript interfaces
 ```
 
-### 14.2 State Management with Zustand
+#### Main Container Component
+```typescript
+// ProductionScheduler.tsx
+import { ScrollSyncProvider } from './contexts/ScrollSyncContext';
+import { Toolbar } from './components/Toolbar/Toolbar';
+import { GanttView } from './components/GanttView/GanttView';
+import { SchedulerView } from './components/SchedulerView/SchedulerView';
+import { ResizableSplitter } from './components/shared/ResizableSplitter';
+import { useSchedulerState } from './hooks/useSchedulerState';
+
+export const ProductionScheduler: React.FC<Props> = ({ steps, workCells, onUpdate }) => {
+  const schedulerState = useSchedulerState({ steps, workCells });
+  
+  return (
+    <ScrollSyncProvider>
+      <div className="production-scheduler flex flex-col h-full">
+        <Toolbar {...schedulerState.toolbar} />
+        
+        <div className="flex-1 flex flex-col min-h-0">
+          <GanttView 
+            steps={schedulerState.visibleSteps}
+            onStepUpdate={schedulerState.updateStep}
+          />
+          
+          <ResizableSplitter 
+            orientation="horizontal"
+            defaultSize={0.5}
+            minSize={200}
+          />
+          
+          <SchedulerView 
+            workCells={schedulerState.workCells}
+            allocations={schedulerState.allocations}
+            onAllocationUpdate={schedulerState.updateAllocation}
+          />
+        </div>
+      </div>
+    </ScrollSyncProvider>
+  );
+};
+```
+
+#### Scroll Synchronization Context
+```typescript
+// contexts/ScrollSyncContext.tsx
+import { createContext, useContext, useRef, useCallback } from 'react';
+
+interface ScrollSyncContextValue {
+  registerScrollContainer: (id: string, ref: HTMLElement) => void;
+  unregisterScrollContainer: (id: string) => void;
+  syncScroll: (source: string, axis: 'x' | 'y', value: number) => void;
+  getScrollPosition: () => { x: number; y: { gantt: number; scheduler: number } };
+}
+
+const ScrollSyncContext = createContext<ScrollSyncContextValue | null>(null);
+
+export const ScrollSyncProvider: React.FC = ({ children }) => {
+  const scrollContainers = useRef<Map<string, HTMLElement>>(new Map());
+  const scrollState = useRef({ x: 0, y: { gantt: 0, scheduler: 0 } });
+  
+  const syncScroll = useCallback((source: string, axis: 'x' | 'y', value: number) => {
+    // Synchronization logic here
+  }, []);
+  
+  return (
+    <ScrollSyncContext.Provider value={{ registerScrollContainer, unregisterScrollContainer, syncScroll, getScrollPosition }}>
+      {children}
+    </ScrollSyncContext.Provider>
+  );
+};
+```
+
+#### Component Benefits
+
+1. **Modular Structure**:
+   - Each component has a single responsibility
+   - Easy to test individual components
+   - Better code organization
+   - Reusable components
+
+2. **Maintainability**:
+   - Clear separation of concerns
+   - Easy to locate and modify features
+   - Better team collaboration
+   - Type safety with dedicated interfaces
+
+3. **Performance**:
+   - Code splitting opportunities
+   - Lazy loading of components
+   - Better tree shaking
+   - Isolated re-renders
+
+4. **Scroll Synchronization**:
+   - Centralized in context
+   - Components register/unregister
+   - Clean API for sync operations
+   - No prop drilling
+
+### 14.2 Detailed Scrolling Synchronization
+
+#### Quadrant Layout and Scrolling Rules
+```
+┌─────────────────┬─────────────────────────┐
+│  Gantt Grid     │  Gantt Timeline         │
+│  (Quadrant 1)   │  (Quadrant 2)           │
+│                 │                         │
+│  Scrolls: Y     │  Scrolls: X, Y         │
+├─────────────────┼─────────────────────────┤
+│  Scheduler Grid │  Scheduler Timeline     │
+│  (Quadrant 3)   │  (Quadrant 4)           │
+│                 │                         │
+│  Scrolls: Y     │  Scrolls: X, Y         │
+└─────────────────┴─────────────────────────┘
+
+Synchronization Rules:
+- Q1 ↔ Q2: Vertical scroll synced (same Y position)
+- Q3 ↔ Q4: Vertical scroll synced (same Y position)
+- Q2 ↔ Q4: Horizontal scroll synced (same X position)
+- Q1 ↔ Q3: No sync (independent vertical scrolling)
+```
+
+#### Implementation Details
+```typescript
+// Scroll event handling with debouncing
+const handleScroll = useMemo(() => 
+  debounce((source: string, scrollLeft: number, scrollTop: number) => {
+    switch(source) {
+      case 'gantt-timeline':
+        // Update X for both timelines, Y for gantt only
+        setScrollX(scrollLeft);
+        setScrollY('gantt', scrollTop);
+        break;
+      case 'scheduler-timeline':
+        // Update X for both timelines, Y for scheduler only
+        setScrollX(scrollLeft);
+        setScrollY('scheduler', scrollTop);
+        break;
+      case 'gantt-grid':
+        // Update Y for gantt only
+        setScrollY('gantt', scrollTop);
+        break;
+      case 'scheduler-grid':
+        // Update Y for scheduler only
+        setScrollY('scheduler', scrollTop);
+        break;
+    }
+  }, 10), // 10ms debounce for smooth scrolling
+  []
+);
+
+// Passive scroll listeners for performance
+useEffect(() => {
+  const options = { passive: true };
+  
+  ganttTimelineRef.current?.addEventListener('scroll', handleScroll, options);
+  // ... add other listeners
+  
+  return () => {
+    // ... remove listeners
+  };
+}, []);
+```
+
+#### Virtual Scrolling with react-window
+```typescript
+// Custom virtual list with scroll sync
+const VirtualGanttGrid = () => {
+  const { scrollY } = useContext(ScrollSyncContext);
+  const listRef = useRef<VariableSizeList>(null);
+  
+  // Sync virtual list scroll position
+  useEffect(() => {
+    listRef.current?.scrollTo(scrollY.gantt);
+  }, [scrollY.gantt]);
+  
+  return (
+    <VariableSizeList
+      ref={listRef}
+      height={containerHeight}
+      itemCount={steps.length}
+      itemSize={getItemSize}
+      onScroll={({ scrollOffset }) => setScrollY('gantt', scrollOffset)}
+      style={{ overflow: 'hidden' }} // Hide scrollbar, use overlay
+    >
+      {Row}
+    </VariableSizeList>
+  );
+};
+```
+
+#### Performance Optimizations
+1. **RAF Throttling**: Use requestAnimationFrame for smooth updates
+2. **Passive Listeners**: Mark scroll handlers as passive
+3. **Will-Change**: CSS hints for GPU acceleration
+4. **Transform3d**: Use transform3d for hardware acceleration
+5. **Debouncing**: Debounce scroll events to prevent jank
+
+### 14.3 Component Communication for Scroll Sync
+
+#### ScrollContainer Component
+```typescript
+// components/shared/ScrollContainer.tsx
+export const ScrollContainer: React.FC<{
+  id: string;
+  axis: 'x' | 'y' | 'xy';
+  children: React.ReactNode;
+}> = ({ id, axis, children }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const { registerScrollContainer, unregisterScrollContainer, syncScroll } = useScrollSync();
+  
+  useEffect(() => {
+    if (ref.current) {
+      registerScrollContainer(id, ref.current);
+    }
+    return () => unregisterScrollContainer(id);
+  }, [id]);
+  
+  const handleScroll = useCallback((e: React.UIEvent) => {
+    const element = e.currentTarget;
+    if (axis.includes('x')) syncScroll(id, 'x', element.scrollLeft);
+    if (axis.includes('y')) syncScroll(id, 'y', element.scrollTop);
+  }, [id, axis]);
+  
+  return (
+    <div ref={ref} onScroll={handleScroll} className="scroll-container">
+      {children}
+    </div>
+  );
+};
+```
+
+#### Usage in Components
+```typescript
+// GanttGrid.tsx
+export const GanttGrid = () => (
+  <ScrollContainer id="gantt-grid" axis="y">
+    <VirtualList items={steps} />
+  </ScrollContainer>
+);
+
+// GanttTimeline.tsx  
+export const GanttTimeline = () => (
+  <ScrollContainer id="gantt-timeline" axis="xy">
+    <Canvas />
+  </ScrollContainer>
+);
+
+// SchedulerGrid.tsx
+export const SchedulerGrid = () => (
+  <ScrollContainer id="scheduler-grid" axis="y">
+    <VirtualList items={workCells} />
+  </ScrollContainer>
+);
+
+// SchedulerTimeline.tsx
+export const SchedulerTimeline = () => (
+  <ScrollContainer id="scheduler-timeline" axis="xy">
+    <Canvas />
+  </ScrollContainer>
+);
+```
+
+### 14.4 State Management with Zustand
 ```typescript
 // stores/ganttStore.ts
 interface GanttStore {
@@ -780,7 +1058,7 @@ interface GanttStore {
 }
 ```
 
-### 14.3 Integration Points
+### 14.5 Integration Points
 
 #### With Existing TextInput Component
 ```typescript
@@ -821,7 +1099,7 @@ interface GanttStore {
 />
 ```
 
-### 14.4 Canvas/SVG Rendering Strategy
+### 14.6 Canvas/SVG Rendering Strategy
 ```typescript
 // Canvas-first approach for performance with thousands of tasks
 const GanttTimeline = () => {
@@ -856,7 +1134,7 @@ const GanttTimeline = () => {
 };
 ```
 
-### 14.5 API Integration Pattern
+### 14.7 API Integration Pattern
 ```typescript
 // Using Inertia.js patterns
 const GanttPage = ({ tasks, resources, assignments }) => {
@@ -877,7 +1155,7 @@ const GanttPage = ({ tasks, resources, assignments }) => {
 };
 ```
 
-### 14.6 Performance Optimizations for Large Datasets
+### 14.8 Performance Optimizations for Large Datasets
 
 #### Virtual Scrolling Implementation
 ```typescript

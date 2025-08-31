@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\BaseSearchController;
-use App\Models\Production\WorkCell;
-use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Area;
+use App\Models\AssetHierarchy\Manufacturer;
+use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\AssetHierarchy\Shift;
-use App\Models\AssetHierarchy\Manufacturer;
-
+use App\Models\Production\UnitOfMeasure;
+use App\Models\Production\WorkCell;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class WorkCellController extends BaseSearchController
 {
@@ -33,16 +33,16 @@ class WorkCellController extends BaseSearchController
                 'description',
                 [
                     'relation' => 'plant',
-                    'columns' => ['name']
+                    'columns' => ['name'],
                 ],
                 [
                     'relation' => 'area',
-                    'columns' => ['name']
+                    'columns' => ['name'],
                 ],
                 [
                     'relation' => 'sector',
-                    'columns' => ['name']
-                ]
+                    'columns' => ['name'],
+                ],
             ];
             $query = $this->applySearchFilter($query, $search, $searchConfig);
         }
@@ -60,7 +60,7 @@ class WorkCellController extends BaseSearchController
         // Apply sorting
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
-        
+
         switch ($sort) {
             case 'plant':
                 $query->leftJoin('plants', 'work_cells.plant_id', '=', 'plants.id')
@@ -87,6 +87,10 @@ class WorkCellController extends BaseSearchController
         $plants = Plant::orderBy('name')->get(['id', 'name']);
         $shifts = Shift::orderBy('name')->get(['id', 'name']);
         $manufacturers = Manufacturer::orderBy('name')->get(['id', 'name']);
+        $unitsOfMeasure = UnitOfMeasure::where('is_active', true)
+            ->orderBy('uom_type')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name', 'symbol', 'uom_type']);
 
         return Inertia::render('production/work-cells/index', [
             'workCells' => $workCells,
@@ -101,6 +105,7 @@ class WorkCellController extends BaseSearchController
             'plants' => $plants,
             'shifts' => $shifts,
             'manufacturers' => $manufacturers,
+            'unitsOfMeasure' => $unitsOfMeasure,
         ]);
     }
 
@@ -121,7 +126,7 @@ class WorkCellController extends BaseSearchController
         // Apply sorting for routing steps
         $stepsSort = $request->input('steps_sort', 'step_number');
         $stepsDirection = $request->input('steps_direction', 'asc');
-        
+
         if ($stepsSort === 'route') {
             $routingStepsQuery->leftJoin('manufacturing_routes', 'manufacturing_steps.manufacturing_route_id', '=', 'manufacturing_routes.id')
                 ->leftJoin('items', 'manufacturing_routes.item_id', '=', 'items.id')
@@ -142,7 +147,7 @@ class WorkCellController extends BaseSearchController
         // Apply sorting for schedules - keep these for the view even though we're not using them yet
         $schedulesSort = $request->input('schedules_sort', 'scheduled_start');
         $schedulesDirection = $request->input('schedules_direction', 'desc');
-        
+
         // if ($schedulesSort === 'order') {
         //     $schedulesQuery->leftJoin('manufacturing_orders', 'production_schedules.manufacturing_order_id', '=', 'manufacturing_orders.id')
         //         ->orderBy('manufacturing_orders.order_number', $schedulesDirection)
@@ -152,27 +157,30 @@ class WorkCellController extends BaseSearchController
         // }
 
         // $productionSchedules = $schedulesQuery->paginate(10, ['*'], 'schedules_page');
-        
+
         // Temporary empty collection until ProductionSchedule model is created
         $productionSchedules = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 
-        // Calculate utilization for the current month
-        $startOfMonth = now()->startOfMonth();
-        $endOfMonth = now()->endOfMonth();
-        $utilization = $workCell->getUtilization($startOfMonth, $endOfMonth);
+        // Calculate utilization for today
+        $today = now();
+        $utilization = $workCell->getUtilizationOnDate($today);
 
         // Get all plants for editing
         $plants = Plant::orderBy('name')->get(['id', 'name']);
         $shifts = Shift::orderBy('name')->get(['id', 'name']);
         $manufacturers = Manufacturer::orderBy('name')->get(['id', 'name']);
-        
+        $unitsOfMeasure = UnitOfMeasure::where('is_active', true)
+            ->orderBy('uom_type')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name', 'symbol', 'uom_type']);
+
         // Get areas if plant is selected
-        $areas = $workCell->plant_id 
+        $areas = $workCell->plant_id
             ? Area::where('plant_id', $workCell->plant_id)->orderBy('name')->get(['id', 'name'])
             : [];
-            
+
         // Get sectors if area is selected
-        $sectors = $workCell->area_id 
+        $sectors = $workCell->area_id
             ? Sector::where('area_id', $workCell->area_id)->orderBy('name')->get(['id', 'name'])
             : [];
 
@@ -186,6 +194,7 @@ class WorkCellController extends BaseSearchController
             'sectors' => $sectors,
             'shifts' => $shifts,
             'manufacturers' => $manufacturers,
+            'unitsOfMeasure' => $unitsOfMeasure,
             'activeTab' => $request->input('tab', 'informacoes'),
             'filters' => [
                 'steps' => [
@@ -211,8 +220,11 @@ class WorkCellController extends BaseSearchController
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'cell_type' => 'required|in:internal,external',
-            'available_hours_per_day' => 'required|numeric|min:0.01|max:24',
-            'efficiency_percentage' => 'required|numeric|min:0|max:100',
+            'has_finite_capacity' => 'boolean',
+            'default_production_rate_per_hour' => 'nullable|numeric|min:0.001',
+            'default_unit_of_measure' => 'nullable|string|max:50',
+            'default_setup_time_minutes' => 'integer|min:0|max:9999',
+            'max_parallel_executions' => 'integer|min:1|max:999',
             'shift_id' => 'nullable|exists:shifts,id',
             'plant_id' => 'nullable|exists:plants,id',
             'area_id' => 'nullable|exists:areas,id',
@@ -221,8 +233,26 @@ class WorkCellController extends BaseSearchController
             'is_active' => 'boolean',
         ]);
 
+        // Set defaults
+        $validated['has_finite_capacity'] = $validated['has_finite_capacity'] ?? true;
+        $validated['default_unit_of_measure'] = $validated['default_unit_of_measure'] ?? 'PC';
+        $validated['default_setup_time_minutes'] = $validated['default_setup_time_minutes'] ?? 0;
+        $validated['max_parallel_executions'] = $validated['max_parallel_executions'] ?? 1;
+
+        // Validate finite capacity requirements - shift is only required for cells with finite capacity
+        if ($validated['has_finite_capacity'] && empty($validated['shift_id'])) {
+            return back()->withErrors(['shift_id' => 'Turno é obrigatório para células com capacidade finita.']);
+        }
+
+        // Clear finite capacity fields when infinite capacity is selected
+        if (! $validated['has_finite_capacity']) {
+            $validated['shift_id'] = null;
+            $validated['default_production_rate_per_hour'] = null;
+            $validated['max_parallel_executions'] = 1;
+        }
+
         // Ensure area belongs to plant if both are provided
-        if (!empty($validated['plant_id']) && !empty($validated['area_id'])) {
+        if (! empty($validated['plant_id']) && ! empty($validated['area_id'])) {
             $area = Area::find($validated['area_id']);
             if ($area->plant_id != $validated['plant_id']) {
                 return back()->withErrors(['area_id' => 'A área selecionada não pertence à planta escolhida.']);
@@ -230,7 +260,7 @@ class WorkCellController extends BaseSearchController
         }
 
         // Ensure sector belongs to area if both are provided
-        if (!empty($validated['area_id']) && !empty($validated['sector_id'])) {
+        if (! empty($validated['area_id']) && ! empty($validated['sector_id'])) {
             $sector = Sector::find($validated['sector_id']);
             if ($sector->area_id != $validated['area_id']) {
                 return back()->withErrors(['sector_id' => 'O setor selecionado não pertence à área escolhida.']);
@@ -262,8 +292,11 @@ class WorkCellController extends BaseSearchController
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'cell_type' => 'required|in:internal,external',
-            'available_hours_per_day' => 'required|numeric|min:0.01|max:24',
-            'efficiency_percentage' => 'required|numeric|min:0|max:100',
+            'has_finite_capacity' => 'boolean',
+            'default_production_rate_per_hour' => 'nullable|numeric|min:0.001',
+            'default_unit_of_measure' => 'nullable|string|max:50',
+            'default_setup_time_minutes' => 'integer|min:0|max:9999',
+            'max_parallel_executions' => 'integer|min:1|max:999',
             'shift_id' => 'nullable|exists:shifts,id',
             'plant_id' => 'nullable|exists:plants,id',
             'area_id' => 'nullable|exists:areas,id',
@@ -272,8 +305,26 @@ class WorkCellController extends BaseSearchController
             'is_active' => 'boolean',
         ]);
 
+        // Set defaults
+        $validated['has_finite_capacity'] = $validated['has_finite_capacity'] ?? true;
+        $validated['default_unit_of_measure'] = $validated['default_unit_of_measure'] ?? 'PC';
+        $validated['default_setup_time_minutes'] = $validated['default_setup_time_minutes'] ?? 0;
+        $validated['max_parallel_executions'] = $validated['max_parallel_executions'] ?? 1;
+
+        // Validate finite capacity requirements - shift is only required for cells with finite capacity
+        if ($validated['has_finite_capacity'] && empty($validated['shift_id'])) {
+            return back()->withErrors(['shift_id' => 'Turno é obrigatório para células com capacidade finita.']);
+        }
+
+        // Clear finite capacity fields when infinite capacity is selected
+        if (! $validated['has_finite_capacity']) {
+            $validated['shift_id'] = null;
+            $validated['default_production_rate_per_hour'] = null;
+            $validated['max_parallel_executions'] = 1;
+        }
+
         // Ensure area belongs to plant if both are provided
-        if (!empty($validated['plant_id']) && !empty($validated['area_id'])) {
+        if (! empty($validated['plant_id']) && ! empty($validated['area_id'])) {
             $area = Area::find($validated['area_id']);
             if ($area->plant_id != $validated['plant_id']) {
                 return back()->withErrors(['area_id' => 'A área selecionada não pertence à planta escolhida.']);
@@ -281,7 +332,7 @@ class WorkCellController extends BaseSearchController
         }
 
         // Ensure sector belongs to area if both are provided
-        if (!empty($validated['area_id']) && !empty($validated['sector_id'])) {
+        if (! empty($validated['area_id']) && ! empty($validated['sector_id'])) {
             $sector = Sector::find($validated['sector_id']);
             if ($sector->area_id != $validated['area_id']) {
                 return back()->withErrors(['sector_id' => 'O setor selecionado não pertence à área escolhida.']);
@@ -345,7 +396,7 @@ class WorkCellController extends BaseSearchController
                     ->map(function ($step) {
                         $route = $step->manufacturingRoute;
                         $order = $route->manufacturingOrder;
-                        
+
                         return [
                             'id' => $step->id,
                             'name' => "Etapa {$step->step_number} - {$step->name}",
@@ -353,12 +404,12 @@ class WorkCellController extends BaseSearchController
                             'manufacturing_order' => [
                                 'id' => $order->id,
                                 'order_number' => $order->order_number,
-                                'route' => route('production.orders.show', ['order' => $order->id])
+                                'route' => route('production.orders.show', ['order' => $order->id]),
                             ],
                             'manufacturing_route' => [
                                 'id' => $route->id,
                                 'name' => $route->name,
-                                'route' => route('production.routing.show', ['routing' => $route->id])
+                                'route' => route('production.routing.show', ['routing' => $route->id]),
                             ],
                             'step_route' => route('production.steps.execute', ['step' => $step->id]),
                         ];
@@ -388,7 +439,7 @@ class WorkCellController extends BaseSearchController
         // }
 
         return response()->json([
-            'can_delete' => !$hasDependencies,
+            'can_delete' => ! $hasDependencies,
             'dependencies' => $dependencies,
         ]);
     }
@@ -399,6 +450,7 @@ class WorkCellController extends BaseSearchController
     public function getAreas(Plant $plant)
     {
         $areas = $plant->areas()->orderBy('name')->get(['id', 'name']);
+
         return response()->json($areas);
     }
 
@@ -408,6 +460,7 @@ class WorkCellController extends BaseSearchController
     public function getSectors(Area $area)
     {
         $sectors = $area->sectors()->orderBy('name')->get(['id', 'name']);
+
         return response()->json($sectors);
     }
 }

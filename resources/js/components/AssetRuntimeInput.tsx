@@ -58,10 +58,10 @@ export default function AssetRuntimeInput({ assetId, runtimeData: initialRuntime
 
     return (
         <div className="h-full space-y-4">
-            <div className="flex h-full flex-col rounded-lg border border-gray-200 p-6">
+            <div className="flex h-full flex-col rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                 {/* Header with title and report button */}
                 <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900">Runtime do Ativo</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Runtime do Ativo</h3>
                     <Button onClick={handleReportClick} size="sm" variant="action">
                         <Clock className="mr-2 h-4 w-4" />
                         Reportar Horimetro
@@ -71,33 +71,33 @@ export default function AssetRuntimeInput({ assetId, runtimeData: initialRuntime
                 {/* Current Runtime - More compact */}
                 <div className="mb-4">
                     <div className="mb-1 flex items-center gap-2">
-                        <Gauge className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium text-gray-700">Horímetro Calculado</span>
+                        <Gauge className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Horímetro Calculado</span>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">{currentHours.toFixed(1)} horas</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{currentHours.toFixed(1)} horas</p>
                 </div>
 
                 {/* Last Measurement - More compact */}
                 {lastMeasurement ? (
                     <div className="">
                         <div className="mb-1 flex items-center gap-2">
-                            <span className="text-sm leading-none font-medium">Última Medição</span>
+                            <span className="text-sm leading-none font-medium dark:text-gray-200">Última Medição</span>
                         </div>
-                        <div className="mt-2 flex items-center gap-1 text-sm">
+                        <div className="mt-2 flex items-center gap-1 text-sm dark:text-gray-300">
                             <span>{lastMeasurement.hours.toFixed(1)}h</span>
                             <span>em {formatLastMeasurement(lastMeasurement.datetime, userTimezone)}</span>
                             <span>{lastMeasurement.user_name ? `por ${lastMeasurement.user_name}` : ''}</span>
                         </div>
                         {lastMeasurement.source === 'shift_change' && (
-                            <p className="mt-1 text-xs text-gray-500">Registrado automaticamente devido à mudança de turno</p>
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Registrado automaticamente devido à mudança de turno</p>
                         )}
                         {lastMeasurement.source === 'shift_update' && (
-                            <p className="mt-1 text-xs text-gray-500">Registrado automaticamente devido à atualização do turno</p>
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Registrado automaticamente devido à atualização do turno</p>
                         )}
                     </div>
                 ) : (
-                    <div className="rounded-md bg-gray-50 p-3">
-                        <p className="text-center text-xs text-gray-500">Nenhuma medição registrada</p>
+                    <div className="rounded-md bg-gray-50 dark:bg-gray-800/50 p-3">
+                        <p className="text-center text-xs text-gray-500 dark:text-gray-400">Nenhuma medição registrada</p>
                     </div>
                 )}
 

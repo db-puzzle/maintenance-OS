@@ -47,6 +47,10 @@ const gerenciamentoNavItems: NavGroup = {
                     href: '/production/orders',
                 },
                 {
+                    title: 'Células de Trabalho',
+                    href: '/production/work-cells',
+                },
+                {
                     title: 'Roteiros',
                     href: '/production/routing',
                 },
@@ -64,10 +68,6 @@ const gerenciamentoNavItems: NavGroup = {
                 {
                     title: 'Apontamento',
                     href: '/production/reporting',
-                },
-                {
-                    title: 'Células de Trabalho',
-                    href: '/production/work-cells',
                 },
             ],
         },

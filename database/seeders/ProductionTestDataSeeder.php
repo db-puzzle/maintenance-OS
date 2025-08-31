@@ -2,71 +2,76 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use App\Models\User;
-use App\Models\Production\Item;
-use App\Models\Production\ItemCategory;
 use App\Models\Production\BillOfMaterial;
-use App\Models\Production\BomVersion;
 use App\Models\Production\BomItem;
-use App\Models\Production\WorkCell;
+use App\Models\Production\BomVersion;
+use App\Models\Production\Item;
+use App\Models\Production\ItemBomHistory;
+use App\Models\Production\ItemCategory;
+use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingRoute;
 use App\Models\Production\ManufacturingStep;
-use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingStepExecution;
 use App\Models\Production\QrTracking;
 use App\Models\Production\Shipment;
 use App\Models\Production\ShipmentItem;
 use App\Models\Production\ShipmentPhoto;
-use App\Models\Production\ItemBomHistory;
+use App\Models\Production\WorkCell;
+use App\Models\Production\WorkCellItemRate;
+use App\Models\User;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class ProductionTestDataSeeder extends Seeder
 {
     private $items = [];
     private $workCells = [];
     private $categories = [];
-    
+
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
         $this->command->info('Criando dados de produção de bicicletas...');
-        
+
         // Clean up existing data in reverse dependency order
         $this->cleanDatabase();
-        
+
         // Get existing user as creator - do not create users to preserve admin privileges
         $creator = User::first();
-        if (!$creator) {
+        if (! $creator) {
             $this->command->error('No users found in database. Please create a user through the interface first to establish admin privileges.');
             $this->command->info('After creating your first user, you can run this seeder with: php artisan db:seed --class=ProductionTestDataSeeder');
+
             return;
         }
-        
+
         // Load categories
         $this->loadCategories();
-        
+
         // Create work cells
         $this->createWorkCells();
-        
+
         // Create items for bicycle production
         $this->createBicycleItems($creator);
-        
+
         // Create BOM structure
         $this->createBicycleBOM($creator);
-        
+
+        // Create work cell item rates with setup times
+        $this->createWorkCellItemRates();
+
         // Create production orders and routes
         $this->createProductionOrders($creator);
-        
+
         $this->command->info('Dados de produção de bicicletas criados com sucesso!');
     }
-    
+
     private function cleanDatabase(): void
     {
         DB::statement('SET CONSTRAINTS ALL DEFERRED');
-        
+
         ShipmentPhoto::query()->delete();
         ShipmentItem::query()->delete();
         Shipment::query()->delete();
@@ -80,15 +85,16 @@ class ProductionTestDataSeeder extends Seeder
         ItemBomHistory::query()->delete();
         BillOfMaterial::query()->delete();
         Item::query()->delete();
+        WorkCellItemRate::query()->delete();
         WorkCell::query()->delete();
-        
+
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
-    
+
     private function loadCategories(): void
     {
         $this->command->info('Carregando categorias...');
-        
+
         // Map old category names to new category names
         $categoryMap = [
             'Produto Final' => 'Eletrônicos',
@@ -96,7 +102,7 @@ class ProductionTestDataSeeder extends Seeder
             'Componente' => 'Mecânica',
             'Matéria Prima' => 'Matéria Prima',
         ];
-        
+
         foreach ($categoryMap as $oldName => $newName) {
             $category = ItemCategory::firstOrCreate(
                 ['name' => $newName],
@@ -108,11 +114,11 @@ class ProductionTestDataSeeder extends Seeder
             $this->categories[$oldName] = $category->id;
         }
     }
-    
+
     private function createWorkCells(): void
     {
         $this->command->info('Criando células de trabalho...');
-        
+
         $this->workCells = [
             'usinagem' => WorkCell::create([
                 'name' => 'Centro de Usinagem',
@@ -171,12 +177,112 @@ class ProductionTestDataSeeder extends Seeder
                 'is_active' => true,
             ]),
         ];
+
+        // Update work cells with new parallel execution fields
+        $this->updateWorkCellsWithParallelExecution();
     }
-    
+
+    private function updateWorkCellsWithParallelExecution(): void
+    {
+        $this->command->info('Atualizando células de trabalho com execução paralela...');
+
+        // Get a shift for internal cells (assuming at least one exists)
+        $shift = \App\Models\AssetHierarchy\Shift::first();
+
+        // Update work cells with parallel execution data
+        $parallelExecutionData = [
+            'usinagem' => [
+                'has_finite_capacity' => true,
+                'default_production_rate_per_hour' => 20,
+                'default_unit_of_measure' => 'PC',
+                'default_setup_time_minutes' => 30,
+                'max_parallel_executions' => 2,
+                'shift_id' => $shift ? $shift->id : null,
+            ],
+            'soldagem' => [
+                'has_finite_capacity' => true,
+                'default_production_rate_per_hour' => 15,
+                'default_unit_of_measure' => 'PC',
+                'default_setup_time_minutes' => 45,
+                'max_parallel_executions' => 3,
+                'shift_id' => $shift ? $shift->id : null,
+            ],
+            'pintura' => [
+                'has_finite_capacity' => true,
+                'default_production_rate_per_hour' => 10,
+                'default_unit_of_measure' => 'PC',
+                'default_setup_time_minutes' => 60,
+                'max_parallel_executions' => 1,
+                'shift_id' => $shift ? $shift->id : null,
+            ],
+            'montagem_rodas' => [
+                'has_finite_capacity' => true,
+                'default_production_rate_per_hour' => 30,
+                'default_unit_of_measure' => 'PC',
+                'default_setup_time_minutes' => 15,
+                'max_parallel_executions' => 4,
+                'shift_id' => $shift ? $shift->id : null,
+            ],
+            'montagem_final' => [
+                'has_finite_capacity' => true,
+                'default_production_rate_per_hour' => 8,
+                'default_unit_of_measure' => 'PC',
+                'default_setup_time_minutes' => 20,
+                'max_parallel_executions' => 6,
+                'shift_id' => $shift ? $shift->id : null,
+            ],
+            'inspecao' => [
+                'has_finite_capacity' => true,
+                'default_production_rate_per_hour' => 25,
+                'default_unit_of_measure' => 'PC',
+                'default_setup_time_minutes' => 10,
+                'max_parallel_executions' => 2,
+                'shift_id' => $shift ? $shift->id : null,
+            ],
+            'embalagem' => [
+                'has_finite_capacity' => true,
+                'default_production_rate_per_hour' => 20,
+                'default_unit_of_measure' => 'PC',
+                'default_setup_time_minutes' => 5,
+                'max_parallel_executions' => 3,
+                'shift_id' => $shift ? $shift->id : null,
+            ],
+        ];
+
+        foreach ($parallelExecutionData as $key => $data) {
+            if (isset($this->workCells[$key])) {
+                $this->workCells[$key]->update($data);
+
+                // Create sample parallel resources
+                if ($shift) {
+                    $availableCount = $data['max_parallel_executions'];
+
+                    // Create resources for the next 30 days
+                    for ($i = 0; $i < 30; $i++) {
+                        $date = now()->addDays($i);
+
+                        // Reduce available resources on weekends
+                        if ($date->isWeekend()) {
+                            $availableCount = max(1, (int) ($data['max_parallel_executions'] * 0.5));
+                        }
+
+                        \App\Models\Production\WorkCellParallelResource::create([
+                            'work_cell_id' => $this->workCells[$key]->id,
+                            'shift_id' => $shift->id,
+                            'resource_date' => $date->format('Y-m-d'),
+                            'available_count' => $availableCount,
+                            'notes' => $date->isWeekend() ? 'Reduced weekend capacity' : null,
+                        ]);
+                    }
+                }
+            }
+        }
+    }
+
     private function createBicycleItems($creator): void
     {
         $this->command->info('Criando itens de bicicleta...');
-        
+
         // Nível 0 - Produto Final
         $this->items['bicicleta'] = Item::create([
             'item_number' => 'BIKE-001',
@@ -193,13 +299,13 @@ class ProductionTestDataSeeder extends Seeder
             'weight' => 15.5,
             'dimensions' => ['length' => 180, 'width' => 60, 'height' => 110, 'unit' => 'cm'],
             'list_price' => 1500.00,
-                            'manufacturing_cost' => 750.00,
+            'manufacturing_cost' => 750.00,
             'manufacturing_lead_time_days' => 5,
             'track_inventory' => true,
             'tags' => ['bicicleta', 'produto-final', 'urbana'],
             'created_by' => $creator->id,
         ]);
-        
+
         // Nível 1 - Subconjuntos Principais
         $this->items['quadro_completo'] = Item::create([
             'item_number' => 'QDR-001',
@@ -220,7 +326,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['quadro', 'subconjunto'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['conjunto_rodas'] = Item::create([
             'item_number' => 'CRD-001',
             'name' => 'Conjunto de Rodas',
@@ -240,7 +346,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['rodas', 'subconjunto'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['grupo_transmissao'] = Item::create([
             'item_number' => 'GTR-001',
             'name' => 'Grupo de Transmissão',
@@ -260,7 +366,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['transmissao', 'subconjunto'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['sistema_freios'] = Item::create([
             'item_number' => 'FRE-001',
             'name' => 'Sistema de Freios',
@@ -280,7 +386,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['freios', 'subconjunto'],
             'created_by' => $creator->id,
         ]);
-        
+
         // Nível 2 - Componentes do Quadro
         $this->items['estrutura_quadro'] = Item::create([
             'item_number' => 'EST-001',
@@ -301,7 +407,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['estrutura', 'componente'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['garfo'] = Item::create([
             'item_number' => 'GAR-001',
             'name' => 'Garfo Dianteiro',
@@ -323,7 +429,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['garfo', 'componente', 'comprado'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['mesa_direcao'] = Item::create([
             'item_number' => 'MES-001',
             'name' => 'Mesa e Direção',
@@ -343,7 +449,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['mesa', 'direcao', 'componente'],
             'created_by' => $creator->id,
         ]);
-        
+
         // Nível 2 - Componentes das Rodas
         $this->items['roda_montada'] = Item::create([
             'item_number' => 'RDA-001',
@@ -364,7 +470,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['roda', 'componente'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['conjunto_pneu'] = Item::create([
             'item_number' => 'PNE-001',
             'name' => 'Conjunto Pneu e Câmara',
@@ -384,7 +490,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['pneu', 'componente'],
             'created_by' => $creator->id,
         ]);
-        
+
         // Nível 3 - Componentes da Estrutura
         $this->items['tubo_superior'] = Item::create([
             'item_number' => 'TUB-001',
@@ -407,7 +513,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['tubo', 'aluminio', 'materia-prima'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['tubo_inferior'] = Item::create([
             'item_number' => 'TUB-002',
             'name' => 'Tubo Inferior',
@@ -429,7 +535,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['tubo', 'aluminio', 'materia-prima'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['tubo_selim'] = Item::create([
             'item_number' => 'TUB-003',
             'name' => 'Tubo do Selim',
@@ -451,7 +557,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['tubo', 'aluminio', 'materia-prima'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['suporte_traseiro'] = Item::create([
             'item_number' => 'SUP-001',
             'name' => 'Suporte Traseiro',
@@ -471,7 +577,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['suporte', 'componente'],
             'created_by' => $creator->id,
         ]);
-        
+
         // Nível 3 - Componentes das Rodas
         $this->items['aro'] = Item::create([
             'item_number' => 'ARO-001',
@@ -494,7 +600,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['aro', 'componente', 'comprado'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['cubo'] = Item::create([
             'item_number' => 'CUB-001',
             'name' => 'Cubo de Roda',
@@ -516,7 +622,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['cubo', 'componente', 'comprado'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['raios'] = Item::create([
             'item_number' => 'RAI-001',
             'name' => 'Conjunto de Raios',
@@ -538,7 +644,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['raios', 'componente', 'comprado'],
             'created_by' => $creator->id,
         ]);
-        
+
         // Nível 3 - Componentes de Pneu
         $this->items['pneu'] = Item::create([
             'item_number' => 'PNE-002',
@@ -561,7 +667,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['pneu', 'componente', 'comprado'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['camara'] = Item::create([
             'item_number' => 'CAM-001',
             'name' => 'Câmara de Ar 26"',
@@ -583,7 +689,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['camara', 'componente', 'comprado'],
             'created_by' => $creator->id,
         ]);
-        
+
         // Nível 4 - Componentes do Suporte Traseiro
         $this->items['chapa_suporte'] = Item::create([
             'item_number' => 'CHP-001',
@@ -606,7 +712,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['chapa', 'aluminio', 'materia-prima'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['parafusos_suporte'] = Item::create([
             'item_number' => 'PAR-001',
             'name' => 'Kit Parafusos M8',
@@ -628,7 +734,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['parafusos', 'fixacao', 'comprado'],
             'created_by' => $creator->id,
         ]);
-        
+
         // Componentes adicionais de transmissão
         $this->items['cambio_traseiro'] = Item::create([
             'item_number' => 'CMB-001',
@@ -651,7 +757,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['cambio', 'transmissao', 'comprado'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['corrente'] = Item::create([
             'item_number' => 'COR-001',
             'name' => 'Corrente',
@@ -673,7 +779,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['corrente', 'transmissao', 'comprado'],
             'created_by' => $creator->id,
         ]);
-        
+
         // Componentes adicionais
         $this->items['selim'] = Item::create([
             'item_number' => 'SEL-001',
@@ -696,7 +802,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['selim', 'acessorio', 'comprado'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['guidao'] = Item::create([
             'item_number' => 'GUI-001',
             'name' => 'Guidão Urbano',
@@ -718,7 +824,7 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['guidao', 'direcao', 'comprado'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->items['pedais'] = Item::create([
             'item_number' => 'PED-001',
             'name' => 'Par de Pedais',
@@ -740,14 +846,14 @@ class ProductionTestDataSeeder extends Seeder
             'tags' => ['pedais', 'acessorio', 'comprado'],
             'created_by' => $creator->id,
         ]);
-        
+
         $this->command->info('Criados ' . count($this->items) . ' itens');
     }
-    
+
     private function createBicycleBOM($creator): void
     {
         $this->command->info('Criando estrutura de BOM...');
-        
+
         // Create BOM for the bicycle
         $bom = BillOfMaterial::create([
             'bom_number' => 'BOM-BIKE-001',
@@ -757,7 +863,7 @@ class ProductionTestDataSeeder extends Seeder
             'is_active' => true,
             'created_by' => $creator->id,
         ]);
-        
+
         // Create version
         $version = BomVersion::create([
             'bill_of_material_id' => $bom->id,
@@ -767,7 +873,7 @@ class ProductionTestDataSeeder extends Seeder
             'published_by' => $creator->id,
             'is_current' => true,
         ]);
-        
+
         // Create root BOM item for the bicycle itself
         $rootBomItem = BomItem::create([
             'bom_version_id' => $version->id,
@@ -778,7 +884,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 0,
             'sequence_number' => 0,
         ]);
-        
+
         // Level 1 - Main Subassemblies (now children of root)
         $bomQuadro = BomItem::create([
             'bom_version_id' => $version->id,
@@ -790,7 +896,7 @@ class ProductionTestDataSeeder extends Seeder
             'sequence_number' => 10,
             'bom_notes' => ['posicao' => 'centro', 'critico' => true],
         ]);
-        
+
         $bomRodas = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $rootBomItem->id, // Now child of root
@@ -801,7 +907,7 @@ class ProductionTestDataSeeder extends Seeder
             'sequence_number' => 20,
             'bom_notes' => ['observacao' => 'Montar após pintura do quadro'],
         ]);
-        
+
         $bomTransmissao = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $rootBomItem->id, // Now child of root
@@ -811,7 +917,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 1,
             'sequence_number' => 30,
         ]);
-        
+
         $bomFreios = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $rootBomItem->id, // Now child of root
@@ -821,7 +927,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 1,
             'sequence_number' => 40,
         ]);
-        
+
         // Additional Level 1 items
         $bomSelim = BomItem::create([
             'bom_version_id' => $version->id,
@@ -832,7 +938,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 1,
             'sequence_number' => 50,
         ]);
-        
+
         $bomGuidao = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $rootBomItem->id, // Now child of root
@@ -842,7 +948,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 1,
             'sequence_number' => 60,
         ]);
-        
+
         $bomPedais = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $rootBomItem->id, // Now child of root
@@ -852,7 +958,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 1,
             'sequence_number' => 70,
         ]);
-        
+
         // Level 2 - Components of Quadro
         $bomEstrutura = BomItem::create([
             'bom_version_id' => $version->id,
@@ -864,10 +970,10 @@ class ProductionTestDataSeeder extends Seeder
             'sequence_number' => 10,
             'assembly_instructions' => [
                 'passo1' => 'Posicionar estrutura na bancada',
-                'passo2' => 'Verificar alinhamento'
+                'passo2' => 'Verificar alinhamento',
             ],
         ]);
-        
+
         $bomGarfo = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $bomQuadro->id,
@@ -877,7 +983,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 2,
             'sequence_number' => 20,
         ]);
-        
+
         $bomMesa = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $bomQuadro->id,
@@ -887,7 +993,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 2,
             'sequence_number' => 30,
         ]);
-        
+
         // Level 2 - Components of Rodas
         $bomRodaMontada = BomItem::create([
             'bom_version_id' => $version->id,
@@ -898,7 +1004,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 2,
             'sequence_number' => 10,
         ]);
-        
+
         $bomConjuntoPneu = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $bomRodas->id,
@@ -908,7 +1014,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 2,
             'sequence_number' => 20,
         ]);
-        
+
         // Level 2 - Components of Transmissão
         $bomCambio = BomItem::create([
             'bom_version_id' => $version->id,
@@ -919,7 +1025,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 2,
             'sequence_number' => 10,
         ]);
-        
+
         $bomCorrente = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $bomTransmissao->id,
@@ -929,7 +1035,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 2,
             'sequence_number' => 20,
         ]);
-        
+
         // Level 3 - Components of Estrutura
         $bomTuboSuperior = BomItem::create([
             'bom_version_id' => $version->id,
@@ -940,7 +1046,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 3,
             'sequence_number' => 10,
         ]);
-        
+
         $bomTuboInferior = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $bomEstrutura->id,
@@ -950,7 +1056,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 3,
             'sequence_number' => 20,
         ]);
-        
+
         $bomTuboSelim = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $bomEstrutura->id,
@@ -960,7 +1066,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 3,
             'sequence_number' => 30,
         ]);
-        
+
         $bomSuporteTraseiro = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $bomEstrutura->id,
@@ -970,7 +1076,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 3,
             'sequence_number' => 40,
         ]);
-        
+
         // Level 3 - Components of Roda Montada
         $bomAro = BomItem::create([
             'bom_version_id' => $version->id,
@@ -981,7 +1087,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 3,
             'sequence_number' => 10,
         ]);
-        
+
         $bomCubo = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $bomRodaMontada->id,
@@ -991,7 +1097,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 3,
             'sequence_number' => 20,
         ]);
-        
+
         $bomRaios = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $bomRodaMontada->id,
@@ -1001,7 +1107,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 3,
             'sequence_number' => 30,
         ]);
-        
+
         // Level 3 - Components of Conjunto Pneu
         $bomPneu = BomItem::create([
             'bom_version_id' => $version->id,
@@ -1012,7 +1118,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 3,
             'sequence_number' => 10,
         ]);
-        
+
         $bomCamara = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $bomConjuntoPneu->id,
@@ -1022,7 +1128,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 3,
             'sequence_number' => 20,
         ]);
-        
+
         // Level 4 - Components of Suporte Traseiro
         $bomChapa = BomItem::create([
             'bom_version_id' => $version->id,
@@ -1033,7 +1139,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 4,
             'sequence_number' => 10,
         ]);
-        
+
         $bomParafusos = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => $bomSuporteTraseiro->id,
@@ -1043,7 +1149,7 @@ class ProductionTestDataSeeder extends Seeder
             'level' => 4,
             'sequence_number' => 20,
         ]);
-        
+
         // Create Item BOM History
         ItemBomHistory::create([
             'item_id' => $this->items['bicicleta']->id,
@@ -1052,14 +1158,102 @@ class ProductionTestDataSeeder extends Seeder
             'change_reason' => 'BOM inicial criada',
             'effective_from' => now(),
         ]);
-        
+
         $this->command->info('Estrutura de BOM criada com 4 níveis');
     }
-    
+
+    private function createWorkCellItemRates(): void
+    {
+        $this->command->info('Criando taxas de produção específicas por item com tempos de setup...');
+
+        $itemRates = [
+            // Usinagem - specific rates for metal components
+            [
+                'work_cell' => 'usinagem',
+                'item' => 'tubo_aco',
+                'setup_time_minutes' => 45,
+                'production_rate_per_hour' => 15,
+                'unit_of_measure' => 'PC',
+                'notes' => 'Corte e usinagem de tubos de aço',
+            ],
+            [
+                'work_cell' => 'usinagem',
+                'item' => 'garfo',
+                'setup_time_minutes' => 60,
+                'production_rate_per_hour' => 10,
+                'unit_of_measure' => 'PC',
+                'notes' => 'Usinagem de garfos - processo complexo',
+            ],
+
+            // Soldagem - specific rates for welding operations
+            [
+                'work_cell' => 'soldagem',
+                'item' => 'quadro',
+                'setup_time_minutes' => 90,
+                'production_rate_per_hour' => 8,
+                'unit_of_measure' => 'PC',
+                'notes' => 'Soldagem de quadros - requer gabaritos específicos',
+            ],
+
+            // Pintura - specific rates for painting
+            [
+                'work_cell' => 'pintura',
+                'item' => 'quadro',
+                'setup_time_minutes' => 120,
+                'production_rate_per_hour' => 12,
+                'unit_of_measure' => 'PC',
+                'notes' => 'Preparação da cabine de pintura compartilhada',
+            ],
+
+            // Montagem de rodas - specific rates
+            [
+                'work_cell' => 'montagem_rodas',
+                'item' => 'roda_completa',
+                'setup_time_minutes' => 20,
+                'production_rate_per_hour' => 25,
+                'unit_of_measure' => 'PC',
+                'notes' => 'Montagem e calibragem de rodas',
+            ],
+
+            // Montagem final - specific rates for different bike models
+            [
+                'work_cell' => 'montagem_final',
+                'item' => 'bicicleta_urbana',
+                'setup_time_minutes' => 30,
+                'production_rate_per_hour' => 6,
+                'unit_of_measure' => 'PC',
+                'notes' => 'Montagem de bicicleta urbana - modelo complexo',
+            ],
+            [
+                'work_cell' => 'montagem_final',
+                'item' => 'bicicleta_infantil',
+                'setup_time_minutes' => 15,
+                'production_rate_per_hour' => 12,
+                'unit_of_measure' => 'PC',
+                'notes' => 'Montagem de bicicleta infantil - modelo simples',
+            ],
+        ];
+
+        foreach ($itemRates as $rateData) {
+            if (isset($this->workCells[$rateData['work_cell']]) && isset($this->items[$rateData['item']])) {
+                \App\Models\Production\WorkCellItemRate::create([
+                    'work_cell_id' => $this->workCells[$rateData['work_cell']]->id,
+                    'item_id' => $this->items[$rateData['item']]->id,
+                    'setup_time_minutes' => $rateData['setup_time_minutes'],
+                    'production_rate_per_hour' => $rateData['production_rate_per_hour'],
+                    'unit_of_measure' => $rateData['unit_of_measure'],
+                    'notes' => $rateData['notes'],
+                ]);
+            }
+        }
+
+        $this->command->info('Taxas de produção específicas criadas com tempos de setup');
+    }
+
     private function createProductionOrders($creator): void
     {
         $this->command->info('Criando ordens de produção...');
-        
+
         // Create main production order for bicycles
         $mainOrder = ManufacturingOrder::create([
             'order_number' => sprintf('OP-%s-%04d', date('Y'), 1),
@@ -1079,13 +1273,13 @@ class ProductionTestDataSeeder extends Seeder
             'source_reference' => 'PED-0001',
             'created_by' => $creator->id,
         ]);
-        
+
         // Create manufacturing route for the main order
         $this->createManufacturingRoute($mainOrder, $creator);
-        
+
         // Create child orders for sub-assemblies (based on BOM)
         $this->createChildOrders($mainOrder, $creator);
-        
+
         // Create additional orders with different statuses
         for ($i = 2; $i <= 5; $i++) {
             $order = ManufacturingOrder::create([
@@ -1106,16 +1300,16 @@ class ProductionTestDataSeeder extends Seeder
                 'source_reference' => 'PED-' . str_pad($i, 4, '0', STR_PAD_LEFT),
                 'created_by' => $creator->id,
             ]);
-            
+
             // Create route for each order
             if ($i <= 3) {
                 $this->createManufacturingRoute($order, $creator);
             }
         }
-        
+
         $this->command->info('Ordens de produção criadas com rotas de manufatura');
     }
-    
+
     private function createManufacturingRoute($order, $creator): void
     {
         $route = ManufacturingRoute::create([
@@ -1126,7 +1320,7 @@ class ProductionTestDataSeeder extends Seeder
             'is_active' => true,
             'created_by' => $creator->id,
         ]);
-        
+
         // Create steps based on item type
         if ($order->item_id === $this->items['bicicleta']->id) {
             $this->createBicycleManufacturingSteps($route);
@@ -1138,7 +1332,7 @@ class ProductionTestDataSeeder extends Seeder
             $this->createWheelManufacturingSteps($route);
         }
     }
-    
+
     private function createBicycleManufacturingSteps($route): void
     {
         // Step 1: Initial Assembly
@@ -1153,7 +1347,7 @@ class ProductionTestDataSeeder extends Seeder
             'setup_time_minutes' => 10,
             'cycle_time_minutes' => 20,
         ]);
-        
+
         // Step 2: Transmission Assembly
         $step2 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
@@ -1167,7 +1361,7 @@ class ProductionTestDataSeeder extends Seeder
             'cycle_time_minutes' => 30,
             'depends_on_step_id' => $step1->id,
         ]);
-        
+
         // Step 3: Brake System Assembly
         $step3 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
@@ -1181,7 +1375,7 @@ class ProductionTestDataSeeder extends Seeder
             'cycle_time_minutes' => 20,
             'depends_on_step_id' => $step2->id,
         ]);
-        
+
         // Step 4: Accessories Assembly
         $step4 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
@@ -1195,7 +1389,7 @@ class ProductionTestDataSeeder extends Seeder
             'cycle_time_minutes' => 15,
             'depends_on_step_id' => $step3->id,
         ]);
-        
+
         // Step 5: Quality Inspection
         $step5 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
@@ -1210,7 +1404,7 @@ class ProductionTestDataSeeder extends Seeder
             'quality_check_mode' => 'every_part',
             'depends_on_step_id' => $step4->id,
         ]);
-        
+
         // Step 6: Final Packaging
         $step6 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
@@ -1224,7 +1418,7 @@ class ProductionTestDataSeeder extends Seeder
             'cycle_time_minutes' => 10,
             'depends_on_step_id' => $step5->id,
         ]);
-        
+
         // Create some step executions for in-progress order
         if ($route->manufacturingOrder->status === 'in_progress') {
             $firstStep = $route->steps()->where('step_number', 1)->first();
@@ -1239,12 +1433,12 @@ class ProductionTestDataSeeder extends Seeder
                     'completed_at' => now()->subHour(),
                     'work_cell_id' => $firstStep->work_cell_id,
                 ]);
-                
+
                 $firstStep->update(['status' => 'completed']);
             }
         }
     }
-    
+
     private function createFrameManufacturingSteps($route): void
     {
         // Step 1: Frame Assembly
@@ -1259,7 +1453,7 @@ class ProductionTestDataSeeder extends Seeder
             'setup_time_minutes' => 10,
             'cycle_time_minutes' => 15,
         ]);
-        
+
         // Step 2: Frame Painting
         $step2 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
@@ -1273,7 +1467,7 @@ class ProductionTestDataSeeder extends Seeder
             'cycle_time_minutes' => 60,
             'depends_on_step_id' => $step1->id,
         ]);
-        
+
         // Step 3: Paint Quality Check
         ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
@@ -1289,7 +1483,7 @@ class ProductionTestDataSeeder extends Seeder
             'quality_check_mode' => 'entire_lot',
         ]);
     }
-    
+
     private function createFrameStructureManufacturingSteps($route): void
     {
         // Step 1: Tube Cutting
@@ -1304,7 +1498,7 @@ class ProductionTestDataSeeder extends Seeder
             'setup_time_minutes' => 15,
             'cycle_time_minutes' => 10,
         ]);
-        
+
         // Step 2: Welding
         ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
@@ -1317,7 +1511,7 @@ class ProductionTestDataSeeder extends Seeder
             'setup_time_minutes' => 30,
             'cycle_time_minutes' => 45,
         ]);
-        
+
         // Step 3: Weld Quality Check
         ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
@@ -1332,7 +1526,7 @@ class ProductionTestDataSeeder extends Seeder
             'quality_check_mode' => 'sampling',
             'sampling_size' => 3,
         ]);
-        
+
         // Step 4: Finishing
         ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
@@ -1346,7 +1540,7 @@ class ProductionTestDataSeeder extends Seeder
             'cycle_time_minutes' => 20,
         ]);
     }
-    
+
     private function createWheelManufacturingSteps($route): void
     {
         // Step 1: Spoke Assembly
@@ -1361,7 +1555,7 @@ class ProductionTestDataSeeder extends Seeder
             'setup_time_minutes' => 10,
             'cycle_time_minutes' => 25,
         ]);
-        
+
         // Step 2: Wheel Truing
         ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
@@ -1374,7 +1568,7 @@ class ProductionTestDataSeeder extends Seeder
             'setup_time_minutes' => 5,
             'cycle_time_minutes' => 15,
         ]);
-        
+
         // Step 3: Wheel Quality Check
         ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
@@ -1389,27 +1583,27 @@ class ProductionTestDataSeeder extends Seeder
             'quality_check_mode' => 'every_part',
         ]);
     }
-    
+
     private function createChildOrders($parentOrder, $creator): void
     {
-        if (!$parentOrder->bill_of_material_id) {
+        if (! $parentOrder->bill_of_material_id) {
             return;
         }
-        
+
         $bomVersion = $parentOrder->billOfMaterial->currentVersion;
-        if (!$bomVersion) {
+        if (! $bomVersion) {
             return;
         }
-        
+
         // Get level 1 BOM items with eager loaded item relationship
         $level1Items = $bomVersion->items()->with('item')->where('level', 1)->get();
-        
+
         foreach ($level1Items as $bomItem) {
             // Only create child orders for manufactured items
             if ($bomItem->item->item_type !== 'manufactured') {
                 continue;
             }
-            
+
             $childOrder = ManufacturingOrder::create([
                 'order_number' => sprintf('OP-%s-%04d-C%d', date('Y'), $parentOrder->id, $bomItem->id),
                 'parent_id' => $parentOrder->id,
@@ -1428,12 +1622,12 @@ class ProductionTestDataSeeder extends Seeder
                 'source_reference' => $parentOrder->order_number,
                 'created_by' => $creator->id,
             ]);
-            
+
             // Create route for child order
             $this->createManufacturingRoute($childOrder, $creator);
-            
+
             // Update parent's child order count
             $parentOrder->increment('child_orders_count');
         }
     }
-} 
+}

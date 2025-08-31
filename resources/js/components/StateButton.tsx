@@ -28,27 +28,27 @@ const StateButton: React.FC<StateButtonProps> = ({
         switch (variant) {
             case 'green':
                 return selected
-                    ? 'border-green-600 ring-green-600/10 bg-green-50 text-green-800'
-                    : 'border-input hover:bg-green-100/50 hover:border-green-500';
+                    ? 'border-green-600 dark:border-green-500 ring-green-600/10 dark:ring-green-500/20 bg-green-50 dark:bg-green-950/50 text-green-800 dark:text-green-200'
+                    : 'border-input hover:bg-green-100/50 dark:hover:bg-green-950/30 hover:border-green-500 dark:hover:border-green-600';
             case 'red':
                 return selected
-                    ? 'border-red-500 ring-red-500/10 bg-red-50 text-red-900'
-                    : 'border-input hover:bg-red-50/50 hover:border-red-300';
+                    ? 'border-red-500 dark:border-red-500 ring-red-500/10 dark:ring-red-500/20 bg-red-50 dark:bg-red-950/50 text-red-900 dark:text-red-200'
+                    : 'border-input hover:bg-red-50/50 dark:hover:bg-red-950/30 hover:border-red-300 dark:hover:border-red-600';
             default:
                 return selected
-                    ? 'border-ring ring-ring/10 bg-input-focus'
-                    : 'border-input hover:bg-muted/50';
+                    ? 'border-ring dark:border-slate-600 ring-ring/10 dark:ring-slate-500/20 bg-input-focus dark:bg-slate-800/50'
+                    : 'border-input hover:bg-muted/50 dark:hover:bg-slate-800/30';
         }
     };
     const getIconClasses = () => {
-        if (!selected) return cn(iconClasses, 'flex-shrink-0 self-start');
+        if (!selected) return cn(iconClasses, 'flex-shrink-0 self-start text-muted-foreground');
         switch (variant) {
             case 'green':
-                return cn(iconClasses, 'flex-shrink-0 self-start text-green-700');
+                return cn(iconClasses, 'flex-shrink-0 self-start text-green-700 dark:text-green-400');
             case 'red':
-                return cn(iconClasses, 'flex-shrink-0 self-start text-red-600');
+                return cn(iconClasses, 'flex-shrink-0 self-start text-red-600 dark:text-red-400');
             default:
-                return cn(iconClasses, 'flex-shrink-0 self-start');
+                return cn(iconClasses, 'flex-shrink-0 self-start text-foreground');
         }
     };
     return (

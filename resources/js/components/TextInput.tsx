@@ -27,12 +27,16 @@ interface TextInputProps {
     required?: boolean;
     disabled?: boolean;
     view?: boolean;
+    type?: string;
+    min?: string | number;
+    max?: string | number;
+    helperText?: string;
     onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
     validateInput?: (value: string) => boolean;
 }
 
 const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
-    ({ form, name, label, placeholder, required = false, disabled = false, view = false, onBlur, validateInput }, ref) => {
+    ({ form, name, label, placeholder, required = false, disabled = false, view = false, type, min, max, helperText, onBlur, validateInput }, ref) => {
         const value = form.data?.[name];
         const hasValue = value !== null && value !== undefined && value !== '';
 
@@ -53,13 +57,20 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
                             form={form}
                             name={name}
                             placeholder={placeholder}
+                            type={type}
+                            min={min}
+                            max={max}
                             disabled={disabled}
                             view={view}
                             onBlur={onBlur}
                             validateInput={validateInput || form.validateInput}
+                            hasError={!!form.errors?.[name]}
                         />
                     )}
                 </div>
+                {helperText && (
+                    <p className="text-sm text-muted-foreground">{helperText}</p>
+                )}
                 <InputError message={form.errors?.[name]} />
             </div>
         );

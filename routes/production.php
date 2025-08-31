@@ -20,6 +20,7 @@ use App\Http\Controllers\Production\RouteTemplateController;
 use App\Http\Controllers\Production\ShipmentController;
 use App\Http\Controllers\Production\WorkCellController;
 use App\Http\Controllers\Production\WorkCellDashboardController;
+use App\Http\Controllers\Production\WorkCellParallelResourceController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('production')->name('production.')->group(function () {
@@ -207,6 +208,13 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('work-cells/{workCell}/export', [WorkCellDashboardController::class, 'export'])->name('work-cells.export');
     Route::get('plants/{plant}/areas', [WorkCellController::class, 'getAreas'])->name('work-cells.get-areas');
     Route::get('areas/{area}/sectors', [WorkCellController::class, 'getSectors'])->name('work-cells.get-sectors');
+    
+    // Work Cell Parallel Resources
+    Route::get('work-cells/{workCell}/parallel-resources', [WorkCellParallelResourceController::class, 'index'])->name('work-cells.parallel-resources.index');
+    Route::post('work-cells/{workCell}/parallel-resources', [WorkCellParallelResourceController::class, 'store'])->name('work-cells.parallel-resources.store');
+    Route::post('work-cells/{workCell}/parallel-resources/bulk', [WorkCellParallelResourceController::class, 'bulkUpdate'])->name('work-cells.parallel-resources.bulk');
+    Route::delete('work-cells/{workCell}/parallel-resources/{parallelResource}', [WorkCellParallelResourceController::class, 'destroy'])->name('work-cells.parallel-resources.destroy');
+    Route::get('work-cells/{workCell}/parallel-resources/availability', [WorkCellParallelResourceController::class, 'availability'])->name('work-cells.parallel-resources.availability');
 
     // Production Execution
     Route::prefix('executions')->name('executions.')->group(function () {

@@ -45,8 +45,9 @@ export default function WorkCellFormComponent({
         name: workCell.name || '',
         description: workCell.description || '',
         cell_type: workCell.cell_type || 'internal',
-        available_hours_per_day: workCell.available_hours_per_day?.toString() || '8',
-        efficiency_percentage: workCell.efficiency_percentage?.toString() || '85',
+        has_finite_capacity: workCell.has_finite_capacity ?? true,
+        default_production_rate_per_hour: workCell.default_production_rate_per_hour?.toString() || '',
+        default_unit_of_measure: workCell.default_unit_of_measure || 'PC',
         shift_id: workCell.shift_id?.toString() || '',
         plant_id: workCell.plant_id?.toString() || '',
         area_id: workCell.area_id?.toString() || '',
@@ -137,19 +138,21 @@ export default function WorkCellFormComponent({
                         </h4>
                         <div className="grid gap-4 sm:grid-cols-3">
                             <div>
-                                <Label className="text-muted-foreground text-sm">Horas Disponíveis/Dia</Label>
-                                <p className="font-medium">{workCell.available_hours_per_day}h</p>
+                                <Label className="text-muted-foreground text-sm">Tipo de Capacidade</Label>
+                                <p className="font-medium">{workCell.has_finite_capacity ? 'Capacidade Finita' : 'Capacidade Infinita'}</p>
                             </div>
-                            <div>
-                                <Label className="text-muted-foreground text-sm">Eficiência</Label>
-                                <p className="font-medium">{workCell.efficiency_percentage}%</p>
-                            </div>
-                            <div>
-                                <Label className="text-muted-foreground text-sm">Capacidade Efetiva</Label>
-                                <p className="font-medium">
-                                    {(workCell.available_hours_per_day * workCell.efficiency_percentage / 100).toFixed(2)}h/dia
-                                </p>
-                            </div>
+                            {workCell.default_production_rate_per_hour && (
+                                <div>
+                                    <Label className="text-muted-foreground text-sm">Taxa de Produção</Label>
+                                    <p className="font-medium">{workCell.default_production_rate_per_hour} {workCell.default_unit_of_measure}/h</p>
+                                </div>
+                            )}
+                            {workCell.shift && (
+                                <div>
+                                    <Label className="text-muted-foreground text-sm">Turno</Label>
+                                    <p className="font-medium">{workCell.shift.name}</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                     {/* Location/Assignment */}

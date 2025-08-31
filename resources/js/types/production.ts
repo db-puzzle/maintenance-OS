@@ -135,15 +135,32 @@ export interface BomItem {
     updated_at: string;
 }
 
+export interface UnitOfMeasure {
+    id: number;
+    code: string;
+    name: string;
+    symbol?: string;
+    uom_type: 'COUNT' | 'MASS' | 'LENGTH' | 'AREA' | 'VOLUME' | 'TIME';
+    is_base_unit: boolean;
+    base_unit_id?: number;
+    base_unit?: UnitOfMeasure;
+    conversion_to_base: number;
+    decimal_places: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface WorkCell {
     id: number;
     name: string;
-    code?: string;
     description?: string;
     cell_type: 'internal' | 'external';
-    status?: 'active' | 'maintenance' | 'inactive';
-    available_hours_per_day: number;
-    efficiency_percentage: number;
+    has_finite_capacity: boolean;
+    default_production_rate_per_hour?: number;
+    default_unit_of_measure: string;
+    default_setup_time_minutes: number;
+    max_parallel_executions: number;
     shift_id?: number;
     shift?: Shift;
     plant_id?: number;
@@ -156,7 +173,69 @@ export interface WorkCell {
     manufacturer?: Manufacturer;
     is_active: boolean;
     routing_steps_count?: number;
-    production_schedules_count?: number;
+    item_rates?: WorkCellItemRate[];
+    constraints?: WorkCellConstraint[];
+    capacity_bookings?: WorkCellCapacityBooking[];
+    parallel_resources?: WorkCellParallelResource[];
+    created_at: string;
+    updated_at: string;
+}
+
+export interface WorkCellItemRate {
+    id: number;
+    work_cell_id: number;
+    work_cell?: WorkCell;
+    item_id: number;
+    item?: Item;
+    setup_time_minutes: number;
+    production_rate_per_hour: number;
+    unit_of_measure: string;
+    notes?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface WorkCellConstraint {
+    id: number;
+    work_cell_id: number;
+    work_cell?: WorkCell;
+    constraint_type: 'maintenance' | 'training' | 'audit' | 'holiday' | 'other';
+    start_datetime: string;
+    end_datetime: string;
+    is_recurring: boolean;
+    recurrence_pattern?: string;
+    description?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface WorkCellCapacityBooking {
+    id: number;
+    work_cell_id: number;
+    work_cell?: WorkCell;
+    manufacturing_step_id: number;
+    manufacturing_step?: ManufacturingStep;
+    scheduled_date: string;
+    start_time: string;
+    end_time: string;
+    time_minutes: number;
+    parallel_slot: number;
+    quantity?: number;
+    unit_of_measure?: string;
+    status: 'reserved' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
+    created_at: string;
+    updated_at: string;
+}
+
+export interface WorkCellParallelResource {
+    id: number;
+    work_cell_id: number;
+    work_cell?: WorkCell;
+    shift_id?: number;
+    shift?: Shift;
+    resource_date: string;
+    available_count: number;
+    notes?: string;
     created_at: string;
     updated_at: string;
 }

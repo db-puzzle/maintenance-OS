@@ -45,20 +45,22 @@ This document outlines a simplified refactoring of the WorkCell model to support
 - has_finite_capacity (boolean, default true)
 - default_production_rate_per_hour (in pieces or base UOM, ignored if infinite capacity)
 - default_unit_of_measure (for the production rate)
+- default_setup_time_minutes (integer, default 0, standard setup time if not overridden by item)
+- max_parallel_executions (integer, default 1, number of operations that can run in parallel)
 ```
 
 ## New Related Models
 
 ### 1. WorkCellItemRate
-Defines production rates for specific items on this work cell
+Defines production rates and setup times for specific items on this work cell. This allows overriding the work cell's default values for specific items that may require different processing parameters.
 
 ```
 Fields:
 - work_cell_id
 - item_id
-- setup_time_minutes
-- production_rate_per_hour
-- unit_of_measure
+- setup_time_minutes (overrides work cell's default_setup_time_minutes)
+- production_rate_per_hour (overrides work cell's default_production_rate_per_hour)
+- unit_of_measure (overrides work cell's default_unit_of_measure)
 - notes
 ```
 
@@ -74,6 +76,18 @@ Fields:
 - is_recurring
 - recurrence_pattern (if recurring)
 - description
+```
+
+### 3. WorkCellParallelResource
+Tracks available parallel resources for work cells
+
+```
+Fields:
+- work_cell_id
+- shift_id (optional, for shift-specific resources)
+- resource_date (for date-specific assignments)
+- available_count (number of parallel resources available)
+- notes
 ```
 
 ## Capacity Calculation System
@@ -96,8 +110,13 @@ For work cells with finite capacity:
 
 ```
 Available Time = Shift Working Hours - Breaks - Constraints
-Production Capacity = Available Time × Production Rate
+Base Production Capacity = Available Time × Production Rate
+
+// With parallel execution capability
+Effective Production Capacity = Base Production Capacity × min(max_parallel_executions, available_parallel_resources)
 ```
+
+Where `available_parallel_resources` is tracked in the WorkCellParallelResource table and represents the actual number of parallel resources available (operators, machines, stations, etc.) for a given work cell at a specific time.
 
 ### 3. Time Availability (Finite Capacity Only)
 The system calculates available time by:
@@ -105,18 +124,54 @@ The system calculates available time by:
 - Subtracting scheduled breaks
 - Subtracting any constraints (maintenance, holidays, etc.)
 
-### 4. Production Rate Application (Finite Capacity Only)
+### 4. Production Rate and Setup Time Application (Finite Capacity Only)
 For scheduling operations on finite capacity work cells:
 ```
-// Get the appropriate production rate
-Production Rate = WorkCellItemRate for specific item
-                  OR default_production_rate_per_hour
+// Get the appropriate production rate and setup time
+Production Rate = WorkCellItemRate.production_rate_per_hour for specific item
+                  OR WorkCell.default_production_rate_per_hour
 
-// Calculate time required
-Time Required = Setup Time + (Quantity / Production Rate)
+Setup Time = WorkCellItemRate.setup_time_minutes for specific item
+             OR WorkCell.default_setup_time_minutes
+
+// Calculate time required for single execution
+Base Time Required = Setup Time + (Quantity / Production Rate × 60)
+
+// With parallel execution, setup time is always applied once for the entire operation
+// regardless of how many parallel resources are used
+Parallel Time Required = Setup Time + (Quantity / (Production Rate × Active Parallel Executions) × 60)
 
 // Check if fits within available capacity
-Can Schedule = Time Required <= Available Time
+Can Schedule = Parallel Time Required <= Available Time
+```
+
+#### Parallel Execution Time Calculation Example:
+```
+Work Cell: Assembly Station
+- Default Setup Time: 30 minutes
+- Production Rate: 10 units/hour per resource
+- max_parallel_executions: 4
+- Currently available parallel resources: 3
+
+Order: 120 units of Product A
+Product A uses default setup time and rate
+
+// Sequential execution (1 resource):
+Time = 30 min + (120 / 10) × 60 min = 30 + 720 = 750 minutes
+
+// Parallel execution with shared setup (3 resources):
+Time = 30 min + (120 / (10 × 3)) × 60 min = 30 + 240 = 270 minutes
+
+// Parallel execution with independent setup (3 resources):
+// Each resource needs its own 30-minute setup
+// But they can set up and run in parallel
+Time per resource = 30 min + (40 / 10) × 60 min = 30 + 240 = 270 minutes
+// Total time is still 270 minutes as all run in parallel
+
+// Different Product B with custom setup:
+Product B: 60 minutes setup, 8 units/hour
+// Sequential: 60 + (120 / 8) × 60 = 60 + 900 = 960 minutes
+// Parallel (3 resources, shared setup): 60 + (120 / (8 × 3)) × 60 = 60 + 300 = 360 minutes
 ```
 
 ### 5. Scheduling Logic by Capacity Type
@@ -129,8 +184,16 @@ if (!validateUOMTypeCompatibility(item.uom, workCell.uom)) {
 if (workCell.has_finite_capacity) {
     // Apply all capacity constraints
     checkAvailableTime();
-    calculateRequiredTime();
+    
+    // Determine active parallel executions
+    activeParallelExecutions = determineActiveParallelCapacity(workCell, scheduledDateTime);
+    
+    // Calculate time with parallel execution consideration
+    calculateRequiredTimeWithParallel(quantity, activeParallelExecutions);
+    
+    // Check both time capacity and parallel slot availability
     verifyCapacityFit();
+    verifyParallelSlotAvailable();
 } else {
     // Infinite capacity - always can schedule
     return true;
@@ -158,10 +221,26 @@ Converted Quantity = Order Quantity × UOM Conversion Factor
 ```
 For each Manufacturing Step:
 1. Find work cell's available time slots
-2. Calculate time required (setup + production)
-3. Find earliest slot that fits
-4. Book the time slot
-5. Update remaining capacity
+2. Check parallel execution slots availability
+3. Calculate time required considering parallel execution
+4. Find earliest slot that fits both time and parallel constraints
+5. Book the time slot and parallel execution slot
+6. Update remaining capacity and parallel slot count
+```
+
+### 3. Parallel Execution Slot Management
+```
+// Track concurrent operations
+For each time period:
+- Track number of operations currently executing
+- Ensure concurrent operations <= max_parallel_executions
+- Consider resource availability (operators, machines, etc.)
+
+// Booking logic
+When scheduling an operation:
+1. Find time slots with available parallel capacity
+2. Reserve both time and parallel slot
+3. Track which parallel "lane" is used (for visualization)
 ```
 
 ## Integration Points
@@ -195,6 +274,8 @@ ALTER TABLE work_cells
 ADD COLUMN has_finite_capacity BOOLEAN DEFAULT TRUE,
 ADD COLUMN default_production_rate_per_hour DECIMAL(10,3),
 ADD COLUMN default_unit_of_measure VARCHAR(50) DEFAULT 'pieces',
+ADD COLUMN default_setup_time_minutes INTEGER DEFAULT 0,
+ADD COLUMN max_parallel_executions INTEGER DEFAULT 1,
 DROP COLUMN available_hours_per_day,
 DROP COLUMN efficiency_percentage;
 ```
@@ -254,7 +335,22 @@ INSERT INTO units_of_measure (code, name, uom_type, is_base_unit) VALUES
 ('L', 'Liters', 'VOLUME', true);
 ```
 
-### 5. Simple Capacity Tracking
+### 5. Work Cell Parallel Resources
+```sql
+CREATE TABLE work_cell_parallel_resources (
+    id BIGSERIAL PRIMARY KEY,
+    work_cell_id BIGINT REFERENCES work_cells(id),
+    shift_id BIGINT REFERENCES shifts(id),
+    resource_date DATE,
+    available_count INTEGER NOT NULL DEFAULT 1,
+    notes TEXT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    INDEX idx_resource_lookup (work_cell_id, resource_date, shift_id)
+);
+```
+
+### 6. Enhanced Capacity Tracking with Parallel Slots
 ```sql
 CREATE TABLE work_cell_capacity_bookings (
     id BIGSERIAL PRIMARY KEY,
@@ -264,11 +360,13 @@ CREATE TABLE work_cell_capacity_bookings (
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     time_minutes INTEGER NOT NULL,
+    parallel_slot INTEGER DEFAULT 1, -- Which parallel execution slot (1 to max_parallel_executions)
     quantity DECIMAL(10,3),
     unit_of_measure VARCHAR(50),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    INDEX idx_capacity_date_cell (scheduled_date, work_cell_id, start_time)
+    INDEX idx_capacity_date_cell (scheduled_date, work_cell_id, start_time),
+    INDEX idx_parallel_slots (work_cell_id, scheduled_date, start_time, parallel_slot)
 );
 ```
 
@@ -370,10 +468,11 @@ Example validations:
 A CNC milling work cell:
 - Dedicated to milling operations only
 - Default rate: 20 pieces/hour
-- Part A: Uses default rate
-- Part B: 10 pieces/hour (more complex geometry)
-- Setup time varies by part
-- Capacity = shift hours × production rate
+- Default setup time: 30 minutes
+- Part A: Uses default rate and setup time
+- Part B: 10 pieces/hour (more complex geometry), 60 minutes setup
+- Part C: 15 pieces/hour, 45 minutes setup
+- Capacity calculation includes both setup and production time
 
 ### 2. Bulk Processing Work Cell
 A chemical mixing tank:
@@ -384,13 +483,42 @@ A chemical mixing tank:
 - For mass-based items, need a different work cell or convert at item level
 - Simple time calculation: volume needed / flow rate
 
-### 3. Assembly Work Cell
-Manual assembly station:
+### 3. Assembly Work Cell with Parallel Resources
+Manual assembly station with multiple workstations:
 - Rate varies by product complexity
-- Default: 50 units/hour
-- Complex products: 20 units/hour
+- Default: 50 units/hour per workstation
+- Default setup time: 15 minutes
+- Complex products: 20 units/hour per workstation, 30 minutes setup
+- max_parallel_executions: 6
+- Morning shift: 4 resources available
+- Afternoon shift: 6 resources available
+- Each resource can work independently on different orders
+- Setup not shared - each workstation needs individual setup
 
-### 4. Outsourced Operations (Infinite Capacity)
+### 4. Packaging Line with Parallel Stations
+Packaging work cell with multiple packing stations:
+- Base rate: 100 packages/hour per station
+- Default setup time: 20 minutes
+- max_parallel_executions: 4
+- All 4 stations always available during operating hours
+- Setup time is applied once for all stations
+- Product A: Uses defaults
+- Product B: 80 packages/hour, 40 minutes setup (special packaging)
+- Orders can be split across multiple stations for faster completion
+
+### 5. CNC Machining Center with Multiple Machines
+Automated machining center:
+- Rate depends on part complexity
+- Default setup time: 45 minutes
+- max_parallel_executions: 3
+- 3 identical CNC machines
+- Each machine can run independently
+- Setup time is applied once per operation
+- Part X: 30 pieces/hour, 30 minutes setup
+- Part Y: 15 pieces/hour, 90 minutes setup (complex tooling)
+- Maintenance can reduce available machines
+
+### 6. Outsourced Operations (Infinite Capacity)
 External vendor with unlimited capacity:
 - `has_finite_capacity = false`
 - No shift constraints
@@ -398,17 +526,76 @@ External vendor with unlimited capacity:
 - Lead time tracked separately
 - Production rates used only for costing/reporting
 
+## Parallel Execution Considerations
+
+### 1. Setup Time Handling
+Setup time is a critical component of capacity planning.
+
+#### Default Setup Time (Work Cell Level)
+- Each work cell has a `default_setup_time_minutes`
+- Applies to all items unless overridden
+- Represents the standard changeover/preparation time
+
+#### Item-Specific Setup Time (WorkCellItemRate Level)
+- Override setup time for specific items
+- Accounts for item-specific tooling, material prep, or configuration
+- Takes precedence over work cell default
+
+#### Parallel Execution Setup Model
+When using parallel execution:
+- Setup time is always applied once for the entire operation
+- The setup happens at the beginning of the operation before any parallel processing
+- All parallel resources benefit from the single setup
+- This simplifies scheduling and capacity planning
+
+### 2. Order Splitting
+When parallel execution is available:
+- Large orders can be split across multiple parallel slots
+- System automatically optimizes split to minimize total time
+- Maintains lot traceability by linking split operations
+
+### 3. Resource Availability Tracking
+- Track actual available resources by shift/date
+- Handle dynamic changes (operator sick days, machine breakdowns)
+- Prevent over-scheduling beyond actual available resources
+- Use WorkCellParallelResource table for resource count management
+
+### 4. Scheduling Algorithm Adjustments
+```
+// Finding best slot with parallel execution
+For each time slot:
+1. Check total time availability
+2. Check parallel slot availability
+3. Calculate effective capacity with available parallel resources
+4. Consider setup time sharing possibilities
+5. Optimize for earliest completion time
+
+// Parallel slot assignment
+When booking:
+1. Assign to lowest available parallel slot number
+2. Track slot usage for visualization
+3. Enable easy identification of bottlenecks
+```
+
+### 5. Capacity Visualization
+The system should provide views showing:
+- Timeline view with parallel "swimlanes" for each execution slot
+- Resource utilization across parallel slots
+- Bottleneck identification when all slots are full
+
 ## Performance Considerations
 
 ### 1. Efficient Queries
 - Index on (work_cell_id, scheduled_date) for fast capacity lookups
 - Cache shift schedule calculations for the day
 - Batch capacity checks when scheduling multiple operations
+- Additional index on parallel_slot for quick slot availability checks
 
 ### 2. Simple Data Model
 - Minimal joins required for capacity calculations
 - Direct relationship between shift hours and capacity
 - Fast constraint checking with date range indexes
+- Efficient parallel slot tracking with proper indexing
 
 ## Future Enhancements
 
@@ -429,17 +616,26 @@ External vendor with unlimited capacity:
 
 ## Conclusion
 
-This simplified WorkCell model provides flexibility for different capacity scenarios:
+This enhanced WorkCell model provides comprehensive flexibility for different capacity and execution scenarios:
 
 **For Finite Capacity Work Cells:**
 - **Time availability** from shift schedules
 - **Production rates** that can vary by item
+- **Parallel execution support** for multiple operators, machines, or stations
+- **Dynamic resource tracking** for accurate capacity planning
 - **Simple constraints** for maintenance and downtime
-- Clear formula: `Available Time × Production Rate`
+- Clear formula: `Available Time × Production Rate × Active Parallel Executions`
+
+**For Parallel Execution:**
+- **Simple resource tracking**: just track available count, not type
+- **Shared or independent setup times** based on work cell characteristics
+- **Automatic order splitting** across available parallel slots
+- **Real-time resource availability** tracking via WorkCellParallelResource
+- **Optimized scheduling** considering both time and parallel constraints
 
 **For Infinite Capacity Work Cells:**
 - No scheduling constraints
 - Ideal for outsourced operations or unconstrained resources
 - Production rates used only for costing and reporting
 
-The model supports both constrained and unconstrained scheduling scenarios while remaining easy to understand, implement, and maintain. UOM conversions are supported when needed, keeping the core logic simple and efficient.
+The model supports sequential, parallel, constrained, and unconstrained scheduling scenarios while remaining easy to understand, implement, and maintain. The parallel execution feature significantly enhances capacity utilization for work cells with multiple resources, enabling more efficient production scheduling and better resource utilization. UOM conversions are supported when needed, keeping the core logic simple and efficient.

@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             
             // Production Module
             ProductionRoleSeeder::class,
+            UnitOfMeasureSeeder::class,
             
             // Asset Hierarchy
             ManufacturerSeeder::class,

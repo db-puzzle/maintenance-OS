@@ -101,8 +101,8 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                         const schedule = schedules.find((s) => s.weekday === day.key);
                         if (!showAllDays && !schedule) return null;
                         return (
-                            <div key={day.key} className="flex h-10 flex-1 flex-col items-center justify-center border-b px-2">
-                                <span className="text-sm font-medium">{day.label}</span>
+                            <div key={day.key} className="flex h-10 flex-1 flex-col items-center justify-center border-b dark:border-gray-700 px-2">
+                                <span className="text-sm font-medium dark:text-gray-200">{day.label}</span>
                             </div>
                         );
                     })}
@@ -112,7 +112,7 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                     {/* Coluna de horas */}
                     <div className="w-20 flex-shrink-0">
                         {timeMarkers.map(({ hour, isNextDay }, index) => (
-                            <div key={index} className="relative flex h-12 items-center justify-center border-r text-xs text-gray-500">
+                            <div key={index} className="relative flex h-12 items-center justify-center border-r dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
                                 <span className="absolute -top-2.5">
                                     {hour}h{isNextDay && <span className="text-muted-foreground text-[10px]"> (dia seg.)</span>}
                                 </span>
@@ -129,7 +129,7 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                                 <div key={dayKey} className="relative">
                                     {/* Renderiza as linhas da grade */}
                                     {timeMarkers.map((_, index) => (
-                                        <div key={index} className="relative h-12 border-r border-b" />
+                                        <div key={index} className="relative h-12 border-r border-b dark:border-gray-700" />
                                     ))}
                                     {/* Renderiza os turnos do dia atual */}
                                     {schedule?.shifts.map((shift, index) => {
@@ -145,7 +145,7 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                                         return (
                                             <div
                                                 key={`${index}-current`}
-                                                className="absolute right-0.5 left-0.5 rounded-sm bg-blue-500/50"
+                                                className="absolute right-0.5 left-0.5 rounded-sm bg-blue-500/50 dark:bg-blue-600/50"
                                                 style={{
                                                     top: `${relativeStartMinutes * 0.8 + 1}px`,
                                                     height: `${(relativeEndMinutes - relativeStartMinutes) * 0.8 - 2}px`,
@@ -165,7 +165,7 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                                                         return (
                                                             <div
                                                                 key={breakIndex}
-                                                                className="absolute right-0 left-0 rounded-sm bg-red-500/50"
+                                                                className="absolute right-0 left-0 rounded-sm bg-red-500/50 dark:bg-red-600/50"
                                                                 style={{
                                                                     top: `${(relativeBreakStart - relativeStartMinutes) * 0.8}px`,
                                                                     height: `${(Math.min(relativeBreakEnd, relativeEndMinutes) - relativeBreakStart) * 0.8}px`,
@@ -191,7 +191,7 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                                                 return (
                                                     <div
                                                         key={`prev-${scheduleIndex}-${shiftIndex}`}
-                                                        className="absolute right-0.5 left-0.5 rounded-sm bg-blue-500/50"
+                                                        className="absolute right-0.5 left-0.5 rounded-sm bg-blue-500/50 dark:bg-blue-600/50"
                                                         style={{
                                                             top: '0px',
                                                             height: `${relativeEndMinutes * 0.8}px`,
@@ -209,7 +209,7 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                                                                 return (
                                                                     <div
                                                                         key={`prev-break-${breakIndex}`}
-                                                                        className="absolute right-0 left-0 rounded-sm bg-red-500/50"
+                                                                        className="absolute right-0 left-0 rounded-sm bg-red-500/50 dark:bg-red-600/50"
                                                                         style={{
                                                                             top: '0px',
                                                                             height: `${Math.min(relativeBreakEnd, relativeEndMinutes) * 0.8}px`,
@@ -222,7 +222,7 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                                                                 return (
                                                                     <div
                                                                         key={`current-break-${breakIndex}`}
-                                                                        className="absolute right-0 left-0 rounded-sm bg-red-500/50"
+                                                                        className="absolute right-0 left-0 rounded-sm bg-red-500/50 dark:bg-red-600/50"
                                                                         style={{
                                                                             top: `${relativeBreakStart * 0.8}px`,
                                                                             height: `${(relativeBreakEnd - relativeBreakStart) * 0.8}px`,

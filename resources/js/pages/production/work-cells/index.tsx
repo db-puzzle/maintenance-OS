@@ -61,8 +61,15 @@ interface Props {
         id: number;
         name: string;
     }[];
+    unitsOfMeasure: {
+        id: number;
+        code: string;
+        name: string;
+        symbol?: string;
+        uom_type: 'COUNT' | 'MASS' | 'LENGTH' | 'AREA' | 'VOLUME' | 'TIME';
+    }[];
 }
-export default function WorkCells({ workCells: initialWorkCells, filters, plants, shifts, manufacturers }: Props) {
+export default function WorkCells({ workCells: initialWorkCells, filters, plants, shifts, manufacturers, unitsOfMeasure }: Props) {
     const entityOps = useEntityOperations<WorkCell>({
         entityName: 'work-cell',
         entityLabel: 'Célula de Trabalho',
@@ -180,8 +187,10 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
                 const workCell = row as unknown as WorkCell;
                 return (
                     <div className="text-sm">
-                        <div>{workCell.available_hours_per_day}h/dia</div>
-                        <div className="text-muted-foreground">Eficiência: {workCell.efficiency_percentage}%</div>
+                        <div>{workCell.has_finite_capacity ? 'Capacidade Finita' : 'Capacidade Infinita'}</div>
+                        {workCell.default_production_rate_per_hour && (
+                            <div className="text-muted-foreground">Taxa: {workCell.default_production_rate_per_hour} {workCell.default_unit_of_measure}/h</div>
+                        )}
                     </div>
                 );
             },
@@ -305,17 +314,18 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
             </ListLayout>
             <CreateWorkCellSheet
                 workCell={editingWorkCell || undefined}
-                open={isEditSheetOpen}
+                isOpen={isEditSheetOpen}
                 onOpenChange={(open) => {
                     setIsEditSheetOpen(open);
                     if (!open) {
                         setEditingWorkCell(null);
                     }
                 }}
-                mode={editingWorkCell ? 'edit' : 'create'}
+                isNew={!editingWorkCell}
                 plants={plants}
                 shifts={shifts}
                 manufacturers={manufacturers}
+                unitsOfMeasure={unitsOfMeasure}
             />
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}

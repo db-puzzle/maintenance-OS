@@ -16,25 +16,28 @@ return new class extends Migration
             $table->string('name', 255);
             $table->text('description')->nullable();
             $table->enum('cell_type', ['internal', 'external'])->default('internal');
-            
+
             // Capacity
-            $table->decimal('available_hours_per_day', 4, 2)->default(8);
-            $table->decimal('efficiency_percentage', 5, 2)->default(85);
-            
-            // Shift relationship
+            $table->boolean('has_finite_capacity')->default(true);
+            $table->decimal('default_production_rate_per_hour', 10, 3)->nullable();
+            $table->string('default_unit_of_measure', 50)->default('PC');
+            $table->integer('default_setup_time_minutes')->default(0);
+            $table->integer('max_parallel_executions')->default(1);
+
+            // Shift relationship (required for internal cells)
             $table->foreignId('shift_id')->nullable()->constrained('shifts');
-            
+
             // Location (optional)
             $table->foreignId('plant_id')->nullable()->constrained('plants');
             $table->foreignId('area_id')->nullable()->constrained('areas');
             $table->foreignId('sector_id')->nullable()->constrained('sectors');
-            
+
             // External vendor info (if cell_type = 'external')
             $table->foreignId('manufacturer_id')->nullable()->constrained('manufacturers');
-            
+
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
+
             $table->index(['cell_type', 'is_active']);
             $table->index(['plant_id', 'area_id', 'sector_id']);
             $table->index('shift_id');

@@ -42,7 +42,7 @@ export function ItemImagePreview({
                 </>
             ) : (
                 <div
-                    className="relative h-full w-full bg-gray-100 flex flex-col items-center justify-center text-gray-400 cursor-pointer"
+                    className="relative h-full w-full bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                     onClick={onClick}
                 >
                     <Camera className="h-8 w-8 mb-2" />

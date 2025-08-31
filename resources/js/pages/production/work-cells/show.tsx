@@ -112,12 +112,14 @@ export default function Show({
             <span className="text-muted-foreground">•</span>
             <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
-                <span>{workCell.available_hours_per_day}h/dia</span>
+                <span>{workCell.has_finite_capacity ? 'Capacidade Finita' : 'Capacidade Infinita'}</span>
             </span>
             <span className="text-muted-foreground">•</span>
             <span className="flex items-center gap-1">
                 <Gauge className="h-4 w-4" />
-                <span>{workCell.efficiency_percentage}% eficiência</span>
+                {workCell.default_production_rate_per_hour && (
+                    <span>{workCell.default_production_rate_per_hour} {workCell.default_unit_of_measure}/h</span>
+                )}
             </span>
             <span className="text-muted-foreground">•</span>
             <span className="flex items-center gap-1">

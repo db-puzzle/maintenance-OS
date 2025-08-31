@@ -1,20 +1,27 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BaseEntitySheet } from '@/components/BaseEntitySheet';
+import { useForm, router } from '@inertiajs/react';
+import React, { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Building2, Factory, Infinity as InfinityIcon, Save, X, CheckCircle2, XCircle } from 'lucide-react';
+import StateButton from '@/components/StateButton';
 import { ItemSelect } from '@/components/ItemSelect';
 import { TextInput } from '@/components/TextInput';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Switch } from '@/components/ui/switch';
+import { createFormAdapter } from '@/utils/form-adapters';
 import { WorkCell } from '@/types/production';
-
 
 interface WorkCellForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
     description: string;
     cell_type: 'internal' | 'external';
-    available_hours_per_day: string;
-    efficiency_percentage: string;
+    has_finite_capacity: boolean;
+    default_production_rate_per_hour: string;
+    default_unit_of_measure: string;
+    default_setup_time_minutes: string;
+    max_parallel_executions: string;
     shift_id: string;
     plant_id: string;
     area_id: string;
@@ -22,74 +29,170 @@ interface WorkCellForm {
     manufacturer_id: string;
     is_active: boolean;
 }
+
 interface CreateWorkCellSheetProps {
-    workCell?: WorkCell;
-    open?: boolean;
+    isOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
-    mode?: 'create' | 'edit';
-    onSuccess?: () => void;
-    plants?: {
-        id: number;
-        name: string;
-    }[];
-    shifts?: {
-        id: number;
-        name: string;
-    }[];
-    manufacturers?: {
-        id: number;
-        name: string;
-    }[];
+    workCell?: WorkCell;
+    isNew?: boolean;
+    onSuccess?: (workCell: WorkCell) => void;
     // Props para SheetTrigger
     triggerText?: string;
     triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     showTrigger?: boolean;
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
+    triggerIcon?: React.ReactNode;
+    // Available options
+    plants?: { id: number; name: string }[];
+    shifts?: { id: number; name: string }[];
+    manufacturers?: { id: number; name: string }[];
+    unitsOfMeasure?: {
+        id: number;
+        code: string;
+        name: string;
+        symbol?: string;
+        uom_type: 'COUNT' | 'MASS' | 'LENGTH' | 'AREA' | 'VOLUME' | 'TIME';
+    }[];
 }
+
 const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
-    workCell,
-    open,
+    isOpen,
     onOpenChange,
-    mode = 'create',
+    workCell,
+    isNew = true,
     onSuccess,
-    plants = [],
-    shifts = [],
-    manufacturers = [],
     triggerText = 'Nova Célula de Trabalho',
     triggerVariant = 'outline',
     showTrigger = false,
     triggerRef,
+    triggerIcon,
+    plants = [],
+    shifts = [],
+    manufacturers = [],
+    unitsOfMeasure = [],
 }) => {
-    const nameInputRef = useRef<HTMLInputElement>(null);
+    const { data, setData, processing } = useForm<WorkCellForm>({
+        name: workCell?.name || '',
+        description: workCell?.description || '',
+        cell_type: workCell?.cell_type || 'internal',
+        has_finite_capacity: workCell?.has_finite_capacity ?? true,
+        default_production_rate_per_hour: workCell?.default_production_rate_per_hour?.toString() || '',
+        default_unit_of_measure: workCell?.default_unit_of_measure || 'PC',
+        default_setup_time_minutes: workCell?.default_setup_time_minutes?.toString() || '0',
+        max_parallel_executions: workCell?.max_parallel_executions?.toString() || '1',
+        shift_id: workCell?.shift_id?.toString() || '',
+        plant_id: workCell?.plant_id?.toString() || '',
+        area_id: workCell?.area_id?.toString() || '',
+        sector_id: workCell?.sector_id?.toString() || '',
+        manufacturer_id: workCell?.manufacturer_id?.toString() || '',
+        is_active: workCell?.is_active ?? true,
+    });
+    const [internalSheetOpen, setInternalSheetOpen] = useState(false);
+
+    // Local state for client-side validation errors
+    const [errors, setErrors] = useState<Partial<Record<keyof WorkCellForm, string>>>({});
+
+    // Location state
     const [areas, setAreas] = useState<{ id: number; name: string }[]>([]);
     const [sectors, setSectors] = useState<{ id: number; name: string }[]>([]);
-    const [cellType, setCellType] = useState<'internal' | 'external'>(workCell?.cell_type || 'internal');
-    const [selectedPlantId, setSelectedPlantId] = useState<string>(workCell?.plant_id?.toString() || '');
-    const [selectedAreaId, setSelectedAreaId] = useState<string>(workCell?.area_id?.toString() || '');
 
-    // Memoize the formConfig to prevent unnecessary re-renders
-    const formConfig = useMemo(() => ({
-        initialData: {
-            name: workCell?.name || '',
-            description: workCell?.description || '',
-            cell_type: workCell?.cell_type || 'internal',
-            available_hours_per_day: workCell?.available_hours_per_day?.toString() || '8',
-            efficiency_percentage: workCell?.efficiency_percentage?.toString() || '85',
-            shift_id: workCell?.shift_id?.toString() || '',
-            plant_id: workCell?.plant_id?.toString() || '',
-            area_id: workCell?.area_id?.toString() || '',
-            sector_id: workCell?.sector_id?.toString() || '',
-            manufacturer_id: workCell?.manufacturer_id?.toString() || '',
-            is_active: workCell?.is_active ?? true,
-        },
-        createRoute: 'production.work-cells.store',
-        updateRoute: 'production.work-cells.update',
-        entityName: 'Célula de Trabalho',
-    }), [workCell]);
+    const nameInputRef = useRef<HTMLInputElement>(null);
+
+    // Group units of measure by type for better organization
+    const uomByType = React.useMemo(() => {
+        const grouped: Record<string, typeof unitsOfMeasure> = {};
+        unitsOfMeasure.forEach(uom => {
+            if (!grouped[uom.uom_type]) {
+                grouped[uom.uom_type] = [];
+            }
+            grouped[uom.uom_type].push(uom);
+        });
+        return grouped;
+    }, [unitsOfMeasure]);
+
+    // Create custom clearErrors function for local state
+    const clearErrors = (...fields: (keyof WorkCellForm)[]) => {
+        if (fields.length === 0) {
+            setErrors({});
+        } else {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                fields.forEach(field => delete newErrors[field]);
+                return newErrors;
+            });
+        }
+    };
+
+    // Create form adapter for TextInput components
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
+
+    // Validation function for parallel executions
+    const validateParallelExecutions = (value: string): boolean => {
+        // Allow empty string while typing
+        if (value === '') return true;
+
+        // Check if it's a valid number pattern (digits only)
+        if (!/^\d+$/.test(value)) return false;
+
+        const num = parseInt(value);
+        // Allow any positive number up to 999
+        return !isNaN(num) && num <= 999;
+    };
+
+    // Determina se deve usar controle interno ou externo
+    const sheetOpen = isOpen !== undefined ? isOpen : internalSheetOpen;
+    const setSheetOpen = isOpen !== undefined && onOpenChange ? onOpenChange : setInternalSheetOpen;
+
+    // Atualiza os dados quando o workCell muda
+    useEffect(() => {
+        if (workCell && workCell.id) {
+            setData({
+                name: workCell.name || '',
+                description: workCell.description || '',
+                cell_type: workCell.cell_type || 'internal',
+                has_finite_capacity: workCell.has_finite_capacity ?? true,
+                default_production_rate_per_hour: workCell.default_production_rate_per_hour?.toString() || '',
+                default_unit_of_measure: workCell.default_unit_of_measure || 'PC',
+                default_setup_time_minutes: workCell.default_setup_time_minutes?.toString() || '0',
+                max_parallel_executions: workCell.max_parallel_executions?.toString() || '1',
+                shift_id: workCell.shift_id?.toString() || '',
+                plant_id: workCell.plant_id?.toString() || '',
+                area_id: workCell.area_id?.toString() || '',
+                sector_id: workCell.sector_id?.toString() || '',
+                manufacturer_id: workCell.manufacturer_id?.toString() || '',
+                is_active: workCell.is_active ?? true,
+            });
+        }
+    }, [workCell, setData]);
+
+    // Fetch areas when plant changes
+    useEffect(() => {
+        if (data.plant_id) {
+            fetch(route('production.work-cells.get-areas', { plant: data.plant_id }))
+                .then(response => response.json())
+                .then(data => setAreas(data))
+                .catch(error => console.error('Error fetching areas:', error));
+        } else {
+            setAreas([]);
+            setSectors([]);
+        }
+    }, [data.plant_id]);
+
+    // Fetch sectors when area changes
+    useEffect(() => {
+        if (data.area_id) {
+            fetch(route('production.work-cells.get-sectors', { area: data.area_id }))
+                .then(response => response.json())
+                .then(data => setSectors(data))
+                .catch(error => console.error('Error fetching sectors:', error));
+        } else {
+            setSectors([]);
+        }
+    }, [data.area_id]);
 
     // Auto-focus the name input when sheet opens for creation
     useEffect(() => {
-        if (open && mode === 'create') {
+        if (sheetOpen && isNew) {
             // Use requestAnimationFrame to ensure the DOM is ready
             const focusInput = () => {
                 requestAnimationFrame(() => {
@@ -107,209 +210,467 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                 timers.forEach((timer) => clearTimeout(timer));
             };
         }
-    }, [open, mode]);
+    }, [sheetOpen, isNew]);
 
-    // Fetch areas when plant changes
-    useEffect(() => {
-        if (selectedPlantId) {
-            fetch(route('production.work-cells.get-areas', { plant: selectedPlantId }))
-                .then(response => response.json())
-                .then(data => setAreas(data))
-                .catch(error => console.error('Error fetching areas:', error));
-        } else {
-            setAreas([]);
-            setSectors([]);
-        }
-    }, [selectedPlantId]);
-
-    // Fetch sectors when area changes
-    useEffect(() => {
-        if (selectedAreaId) {
-            fetch(route('production.work-cells.get-sectors', { area: selectedAreaId }))
-                .then(response => response.json())
-                .then(data => setSectors(data))
-                .catch(error => console.error('Error fetching sectors:', error));
-        } else {
-            setSectors([]);
-        }
-    }, [selectedAreaId]);
-
-    // Handle onOpenChange to focus when sheet opens
-    const handleOpenChange = (open: boolean) => {
-        if (onOpenChange) {
-            onOpenChange(open);
-        }
-        // Focus the input when opening in create mode
-        if (open && mode === 'create') {
-            setTimeout(() => {
-                nameInputRef.current?.focus();
-            }, 100);
+    const updateData = (key: keyof WorkCellForm, value: string | number | boolean | null | undefined) => {
+        setData(key, value);
+        // Clear error for this field when user starts typing
+        if (errors[key]) {
+            clearErrors(key);
         }
     };
 
-    return (
-        <BaseEntitySheet<WorkCellForm>
-            entity={workCell}
-            open={open}
-            onOpenChange={handleOpenChange}
-            mode={mode}
-            onSuccess={onSuccess}
-            triggerText={triggerText}
-            triggerVariant={triggerVariant}
-            showTrigger={showTrigger}
-            triggerRef={triggerRef}
-            formConfig={formConfig}
-        >
-            {({ data, setData, errors, formAdapter }) => (
-                <>
-                    {/* Nome - Campo Obrigatório */}
-                    <TextInput
-                        ref={nameInputRef}
-                        form={formAdapter}
-                        name="name"
-                        label="Nome da Célula"
-                        placeholder="Nome da célula de trabalho"
-                        required
-                    />
-                    {/* Descrição */}
-                    <TextInput
-                        form={formAdapter}
-                        name="description"
-                        label="Descrição"
-                        placeholder="Descrição da célula de trabalho"
-                    />
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // Client-side validation
+        clearErrors(); // Clear any existing errors first
+
+        const validationErrors: Record<string, string> = {};
+        if (!data.name) validationErrors.name = 'Nome é obrigatório';
+        if (!data.cell_type) validationErrors.cell_type = 'Tipo de célula é obrigatório';
+
+        // Validate finite capacity requirements - shift is only required for cells with finite capacity
+        if (data.has_finite_capacity && !data.shift_id) {
+            validationErrors.shift_id = 'Turno é obrigatório para células com capacidade finita';
+        }
+
+        // Validate parallel executions
+        if (data.has_finite_capacity) {
+            const parallelExecutions = parseInt(data.max_parallel_executions);
+            if (!data.max_parallel_executions || isNaN(parallelExecutions) || parallelExecutions < 1) {
+                validationErrors.max_parallel_executions = 'Execuções paralelas deve ser pelo menos 1';
+            }
+        }
+
+        // Validate external cell requirements
+        if (data.cell_type === 'external' && !data.manufacturer_id) {
+            validationErrors.manufacturer_id = 'Fabricante é obrigatório para células externas';
+        }
+
+        // Set validation errors if any exist
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            const firstError = Object.values(validationErrors)[0];
+            toast.error(firstError);
+            return;
+        }
+
+        const url = isNew
+            ? route('production.work-cells.store')
+            : route('production.work-cells.update', { workCell: workCell?.id });
+        const method = isNew ? 'post' : 'put';
+
+        // Convert empty strings to null for numeric fields
+        const payload = {
+            ...data,
+            default_production_rate_per_hour: data.default_production_rate_per_hour || null,
+            default_setup_time_minutes: parseInt(data.default_setup_time_minutes) || 0,
+            max_parallel_executions: parseInt(data.max_parallel_executions) || 1,
+            shift_id: data.shift_id || null,
+            plant_id: data.plant_id || null,
+            area_id: data.area_id || null,
+            sector_id: data.sector_id || null,
+            manufacturer_id: data.manufacturer_id || null,
+        };
+
+        router[method](url, payload, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: (page) => {
+                toast.success(isNew ? 'Célula de trabalho criada com sucesso!' : 'Célula de trabalho atualizada com sucesso!');
+                setSheetOpen(false);
+
+                // Reset form if creating new
+                if (isNew) {
+                    setData({
+                        name: '',
+                        description: '',
+                        cell_type: 'internal',
+                        has_finite_capacity: true,
+                        default_production_rate_per_hour: '',
+                        default_unit_of_measure: 'PC',
+                        default_setup_time_minutes: '0',
+                        max_parallel_executions: '1',
+                        shift_id: '',
+                        plant_id: '',
+                        area_id: '',
+                        sector_id: '',
+                        manufacturer_id: '',
+                        is_active: true,
+                    });
+                }
+
+                // Call onSuccess callback if provided
+                if (onSuccess) {
+                    const workCellData = (page.props as { workCell?: WorkCell }).workCell || workCell;
+                    if (workCellData) {
+                        onSuccess(workCellData);
+                    }
+                }
+            },
+            onError: (serverErrors) => {
+                setErrors(serverErrors as Partial<Record<keyof WorkCellForm, string>>);
+                const firstError = Object.values(serverErrors)[0];
+                toast.error(firstError || 'Erro ao salvar célula de trabalho');
+            },
+        });
+    };
+
+    const handleCancel = () => {
+        // Reset form to original values
+        if (workCell) {
+            setData({
+                name: workCell.name || '',
+                description: workCell.description || '',
+                cell_type: workCell.cell_type || 'internal',
+                has_finite_capacity: workCell.has_finite_capacity ?? true,
+                default_production_rate_per_hour: workCell.default_production_rate_per_hour?.toString() || '',
+                default_unit_of_measure: workCell.default_unit_of_measure || 'PC',
+                default_setup_time_minutes: workCell.default_setup_time_minutes?.toString() || '0',
+                max_parallel_executions: workCell.max_parallel_executions?.toString() || '1',
+                shift_id: workCell.shift_id?.toString() || '',
+                plant_id: workCell.plant_id?.toString() || '',
+                area_id: workCell.area_id?.toString() || '',
+                sector_id: workCell.sector_id?.toString() || '',
+                manufacturer_id: workCell.manufacturer_id?.toString() || '',
+                is_active: workCell.is_active ?? true,
+            });
+        } else {
+            setData({
+                name: '',
+                description: '',
+                cell_type: 'internal',
+                has_finite_capacity: true,
+                default_production_rate_per_hour: '',
+                default_unit_of_measure: 'PC',
+                default_setup_time_minutes: '0',
+                max_parallel_executions: '1',
+                shift_id: '',
+                plant_id: '',
+                area_id: '',
+                sector_id: '',
+                manufacturer_id: '',
+                is_active: true,
+            });
+        }
+        setErrors({});
+        setSheetOpen(false);
+    };
+
+    const sheetContent = (
+        <SheetContent className="w-full overflow-y-auto sm:max-w-[650px]">
+            <form onSubmit={handleSubmit}>
+                <SheetHeader>
+                    <SheetTitle>{isNew ? 'Nova Célula de Trabalho' : 'Editar Célula de Trabalho'}</SheetTitle>
+                    <SheetDescription>
+                        {isNew ? 'Preencha os dados para criar uma nova célula de trabalho.' : 'Atualize os dados da célula de trabalho.'}
+                    </SheetDescription>
+                </SheetHeader>
+                <div className="space-y-6 px-4">
+                    {/* Basic Information */}
+                    <div className="space-y-4">
+                        <TextInput
+                            ref={nameInputRef}
+                            form={formAdapter}
+                            name="name"
+                            label="Nome da Célula"
+                            placeholder="Nome da célula de trabalho"
+                            required
+                            disabled={processing}
+                        />
+                        <TextInput
+                            form={formAdapter}
+                            name="description"
+                            label="Descrição"
+                            placeholder="Descrição da célula de trabalho"
+                            disabled={processing}
+                        />
+                    </div>
+
                     {/* Tipo de Célula */}
-                    <div className="grid gap-2">
-                        <Label>Tipo de Célula <span className="text-destructive">*</span></Label>
-                        <RadioGroup
-                            value={data.cell_type}
-                            onValueChange={(value) => {
-                                setData('cell_type', value);
-                                setCellType(value as 'internal' | 'external');
-                                // Clear location fields when switching to external
-                                if (value === 'external') {
-                                    setData('plant_id', '');
-                                    setData('area_id', '');
-                                    setData('sector_id', '');
-                                    setSelectedPlantId('');
-                                    setSelectedAreaId('');
-                                }
-                                // Clear manufacturer when switching to internal
-                                if (value === 'internal') {
-                                    setData('manufacturer_id', '');
-                                }
-                            }}
-                        >
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="internal" id="internal" />
-                                <Label htmlFor="internal">Interna</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="external" id="external" />
-                                <Label htmlFor="external">Externa</Label>
-                            </div>
-                        </RadioGroup>
-                        {errors.cell_type && <span className="text-destructive text-sm">{errors.cell_type}</span>}
-                    </div>
-                    {/* Capacidade */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <TextInput
-                            form={formAdapter}
-                            name="available_hours_per_day"
-                            label="Horas Disponíveis/Dia"
-                            placeholder="8"
-                            required
-                        />
-                        <TextInput
-                            form={formAdapter}
-                            name="efficiency_percentage"
-                            label="Eficiência (%)"
-                            placeholder="85"
-                            required
-                        />
-                    </div>
-                    {/* Turno */}
-                    <ItemSelect
-                        label="Turno"
-                        items={shifts}
-                        value={data.shift_id?.toString() || ''}
-                        onValueChange={(value) => setData('shift_id', value)}
-                        placeholder="Selecione um turno"
-                        error={errors.shift_id}
-                        canClear
-                    />
-                    {/* Localização - Only for internal cells */}
-                    {cellType === 'internal' && (
-                        <>
-                            <ItemSelect
-                                label="Planta"
-                                items={plants}
-                                value={data.plant_id?.toString() || ''}
-                                onValueChange={(value) => {
-                                    setData('plant_id', value);
-                                    setSelectedPlantId(value);
-                                    // Clear dependent fields
-                                    setData('area_id', '');
-                                    setData('sector_id', '');
-                                    setSelectedAreaId('');
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Tipo de Célula</h3>
+                        <div className="space-y-3">
+                            <StateButton
+                                icon={Building2}
+                                title="Célula Interna"
+                                description="Célula de trabalho operada internamente pela empresa"
+                                selected={data.cell_type === 'internal'}
+                                onClick={() => {
+                                    updateData('cell_type', 'internal');
+                                    // Clear manufacturer when switching to internal
+                                    updateData('manufacturer_id', '');
                                 }}
-                                placeholder="Selecione uma planta"
-                                error={errors.plant_id}
-                                canClear
+                                disabled={processing}
                             />
-                            {selectedPlantId && (
-                                <ItemSelect
-                                    label="Área"
-                                    items={areas}
-                                    value={data.area_id?.toString() || ''}
-                                    onValueChange={(value) => {
-                                        setData('area_id', value);
-                                        setSelectedAreaId(value);
-                                        // Clear dependent field
-                                        setData('sector_id', '');
-                                    }}
-                                    placeholder="Selecione uma área"
-                                    error={errors.area_id}
-                                    canClear
-                                />
+                            {data.cell_type === 'internal' && (
+                                <div className="border-l border-gray-200">
+                                    <div className="ml-6 space-y-4">
+                                        <ItemSelect
+                                            label="Planta"
+                                            items={plants}
+                                            value={data.plant_id}
+                                            onValueChange={(value) => {
+                                                updateData('plant_id', value);
+                                                // Clear dependent fields
+                                                updateData('area_id', '');
+                                                updateData('sector_id', '');
+                                            }}
+                                            placeholder="Selecione uma planta"
+                                            error={errors.plant_id}
+                                            canClear
+                                        />
+                                        {data.plant_id && (
+                                            <ItemSelect
+                                                label="Área"
+                                                items={areas}
+                                                value={data.area_id}
+                                                onValueChange={(value) => {
+                                                    updateData('area_id', value);
+                                                    // Clear dependent field
+                                                    updateData('sector_id', '');
+                                                }}
+                                                placeholder="Selecione uma área"
+                                                error={errors.area_id}
+                                                canClear
+                                            />
+                                        )}
+                                        {data.area_id && (
+                                            <ItemSelect
+                                                label="Setor"
+                                                items={sectors}
+                                                value={data.sector_id}
+                                                onValueChange={(value) => updateData('sector_id', value)}
+                                                placeholder="Selecione um setor"
+                                                error={errors.sector_id}
+                                                canClear
+                                            />
+                                        )}
+                                    </div>
+                                </div>
                             )}
-                            {selectedAreaId && (
-                                <ItemSelect
-                                    label="Setor"
-                                    items={sectors}
-                                    value={data.sector_id?.toString() || ''}
-                                    onValueChange={(value) => setData('sector_id', value)}
-                                    placeholder="Selecione um setor"
-                                    error={errors.sector_id}
-                                    canClear
-                                />
+                            <StateButton
+                                icon={Factory}
+                                title="Célula Externa"
+                                description="Célula de trabalho operada por um fornecedor externo"
+                                selected={data.cell_type === 'external'}
+                                onClick={() => {
+                                    updateData('cell_type', 'external');
+                                    // Clear location fields when switching to external
+                                    updateData('plant_id', '');
+                                    updateData('area_id', '');
+                                    updateData('sector_id', '');
+                                }}
+                                disabled={processing}
+                            />
+                            {data.cell_type === 'external' && (
+                                <div className="border-l border-gray-200">
+                                    <div className="ml-6 space-y-4">
+                                        <ItemSelect
+                                            label="Fabricante"
+                                            items={manufacturers}
+                                            value={data.manufacturer_id}
+                                            onValueChange={(value) => updateData('manufacturer_id', value)}
+                                            placeholder="Selecione um fabricante"
+                                            error={errors.manufacturer_id}
+                                            required
+                                        />
+                                    </div>
+                                </div>
                             )}
-                        </>
-                    )}
-                    {/* Fabricante - Only for external cells */}
-                    {cellType === 'external' && (
-                        <ItemSelect
-                            label="Fabricante"
-                            items={manufacturers}
-                            value={data.manufacturer_id?.toString() || ''}
-                            onValueChange={(value) => setData('manufacturer_id', value)}
-                            placeholder="Selecione um fabricante"
-                            error={errors.manufacturer_id}
-                            required
-                        />
-                    )}
-                    {/* Status */}
-                    <div className="flex items-center justify-between">
-                        <Label htmlFor="is_active">Ativa</Label>
-                        <Switch
-                            id="is_active"
-                            checked={data.is_active}
-                            onCheckedChange={(checked) => setData('is_active', checked)}
-                        />
+                        </div>
+
                     </div>
-                </>
-            )}
-        </BaseEntitySheet>
+
+                    {/* Capacidade */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Capacidade</h3>
+                        <div className="space-y-3">
+                            <StateButton
+                                icon={InfinityIcon}
+                                title="Capacidade Infinita"
+                                description="A célula tem capacidade ilimitada (ex: operações terceirizadas)"
+                                selected={!data.has_finite_capacity}
+                                onClick={() => {
+                                    updateData('has_finite_capacity', false);
+                                    // Clear finite capacity related fields
+                                    updateData('shift_id', '');
+                                    updateData('default_production_rate_per_hour', '');
+                                    updateData('default_setup_time_minutes', '0');
+                                    updateData('max_parallel_executions', '1');
+                                }}
+                                disabled={processing}
+                            />
+                            <StateButton
+                                icon={Building2}
+                                title="Capacidade Finita"
+                                description="A célula tem limitações de capacidade baseadas em turnos e taxas de produção"
+                                selected={data.has_finite_capacity}
+                                onClick={() => updateData('has_finite_capacity', true)}
+                                disabled={processing}
+                            />
+                            {data.has_finite_capacity && (
+                                <div className="border-l border-gray-200">
+                                    <div className="ml-6 space-y-4">
+                                        <ItemSelect
+                                            label="Turno"
+                                            items={shifts}
+                                            value={data.shift_id}
+                                            onValueChange={(value) => updateData('shift_id', value)}
+                                            placeholder="Selecione um turno"
+                                            error={errors.shift_id}
+                                            required
+                                            canClear
+                                        />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="flex items-end gap-2">
+                                                <div className="flex-1">
+                                                    <TextInput
+                                                        form={formAdapter}
+                                                        name="default_production_rate_per_hour"
+                                                        label="Taxa Padrão de Produção"
+                                                        placeholder="100"
+                                                        disabled={processing}
+                                                    />
+                                                </div>
+                                                <span className="text-sm text-muted-foreground mb-2 whitespace-nowrap">por hora</span>
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="default_unit_of_measure">Unidade de Medida</Label>
+                                                <Select
+                                                    value={data.default_unit_of_measure}
+                                                    onValueChange={(value) => updateData('default_unit_of_measure', value)}
+                                                    disabled={processing}
+                                                >
+                                                    <SelectTrigger className="w-full">
+                                                        <SelectValue placeholder="Selecione uma unidade" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {Object.entries(uomByType).map(([type, units]) => (
+                                                            <SelectGroup key={type}>
+                                                                <SelectLabel>
+                                                                    {type === 'COUNT' ? 'Contagem' :
+                                                                        type === 'MASS' ? 'Massa' :
+                                                                            type === 'LENGTH' ? 'Comprimento' :
+                                                                                type === 'AREA' ? 'Área' :
+                                                                                    type === 'VOLUME' ? 'Volume' :
+                                                                                        type === 'TIME' ? 'Tempo' : type}
+                                                                </SelectLabel>
+                                                                {units.map((uom) => (
+                                                                    <SelectItem key={uom.id} value={uom.code}>
+                                                                        {uom.code} - {uom.name}
+                                                                        {uom.symbol && ` (${uom.symbol})`}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectGroup>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {errors.default_unit_of_measure && (
+                                                    <p className="text-sm text-red-600 mt-1">{errors.default_unit_of_measure}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <div className="flex items-end gap-2">
+                                                    <div className="flex-1">
+                                                        <TextInput
+                                                            form={formAdapter}
+                                                            name="default_setup_time_minutes"
+                                                            label="Tempo Padrão de Setup"
+                                                            placeholder="30"
+                                                            type="number"
+                                                            min="0"
+                                                            max="9999"
+                                                            disabled={processing}
+                                                        />
+                                                    </div>
+                                                    <span className="text-sm text-muted-foreground pb-1 whitespace-nowrap">minutos</span>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground mt-1">Tempo padrão de preparação/setup em minutos</p>
+                                            </div>
+                                            <div>
+                                                <TextInput
+                                                    form={formAdapter}
+                                                    name="max_parallel_executions"
+                                                    label="Execuções Paralelas Máximas"
+                                                    placeholder="1"
+                                                    type="number"
+                                                    min="1"
+                                                    max="999"
+                                                    required
+                                                    disabled={processing}
+                                                    validateInput={validateParallelExecutions}
+                                                    helperText="Máximo de operações em paralelo"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Status */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Status</h3>
+                        <div className="grid grid-cols-2 gap-3">
+                            <StateButton
+                                icon={CheckCircle2}
+                                title="Ativa"
+                                description="Célula de trabalho está ativa e disponível para uso"
+                                selected={data.is_active}
+                                onClick={() => updateData('is_active', true)}
+                                disabled={processing}
+                                variant="green"
+                            />
+                            <StateButton
+                                icon={XCircle}
+                                title="Inativa"
+                                description="Célula de trabalho está inativa e não disponível para uso"
+                                selected={!data.is_active}
+                                onClick={() => updateData('is_active', false)}
+                                disabled={processing}
+                                variant="red"
+                            />
+                        </div>
+                    </div>
+                </div>
+                <SheetFooter className="px-6">
+                    <Button type="submit" disabled={processing}>
+                        <Save className="mr-2 h-4 w-4" />
+                        {processing ? 'Salvando...' : 'Salvar'}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleCancel} disabled={processing}>
+                        <X className="mr-2 h-4 w-4" />
+                        Cancelar
+                    </Button>
+                </SheetFooter>
+            </form>
+        </SheetContent>
+    );
+
+    if (showTrigger) {
+        return (
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+                <SheetTrigger asChild>
+                    <Button variant={triggerVariant} ref={triggerRef}>
+                        {triggerIcon || <Building2 className="mr-2 h-4 w-4" />}
+                        {triggerText}
+                    </Button>
+                </SheetTrigger>
+                {sheetContent}
+            </Sheet>
+        );
+    }
+
+    return (
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            {sheetContent}
+        </Sheet>
     );
 };
+
 export default CreateWorkCellSheet;

@@ -43,7 +43,7 @@ export default function ShiftTableView({ schedules }: ShiftTableViewProps) {
                         const activeShifts = schedule?.shifts.filter((s) => s.active) || [];
                         return (
                             <TableRow key={day.key}>
-                                <TableCell className="text-base font-medium">{day.label}</TableCell>
+                                <TableCell className="text-base font-medium dark:text-gray-200">{day.label}</TableCell>
                                 <TableCell>
                                     {activeShifts.length > 0 ? (
                                         <div className="space-y-1">

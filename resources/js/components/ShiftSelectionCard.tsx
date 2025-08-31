@@ -192,10 +192,10 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
         const hasSelectedShift = (isEditingShift ? tempSelectedShiftId : selectedShiftId) && currentShift;
         return (
             <div className="h-full space-y-4">
-                <div className="flex h-full flex-col rounded-lg border border-gray-200 p-6">
+                <div className="flex h-full flex-col rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                     {/* Header with title and action buttons */}
                     <div className="mb-4 flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-gray-900">Configuração de Turno</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Configuração de Turno</h3>
                         {!isEditingShift && hasSelectedShift ? (
                             <Button onClick={handleEditShiftClick} variant="outline" size="sm">
                                 <Calendar className="mr-2 h-4 w-4" />
@@ -221,13 +221,13 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                     <div className="mb-4">
                         {/* Header - always visible */}
                         <div className="mb-1 flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm font-medium text-gray-700">Turno de Operação</span>
+                            <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Turno de Operação</span>
                         </div>
                         {!isEditingShift ? (
                             // View mode - Display shift name like runtime hours
                             <div>
-                                <p className="text-2xl font-bold text-gray-900">{currentShift?.name || 'Nenhum turno selecionado'}</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{currentShift?.name || 'Nenhum turno selecionado'}</p>
                             </div>
                         ) : (
                             // Edit mode - Show ItemSelect
@@ -271,27 +271,27 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                             <div>
                                 <div className="grid grid-cols-3 gap-2">
                                     <div>
-                                        <p className="text-sm font-medium text-gray-700">Horas Semanais</p>
-                                        <p className="text-lg font-bold text-gray-900">{formatHours(totalWorkMinutes)}</p>
+                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Horas Semanais</p>
+                                        <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatHours(totalWorkMinutes)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-gray-700">Intervalos</p>
-                                        <p className="text-lg font-bold text-gray-900">{formatHours(totalBreakMinutes)}</p>
+                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Intervalos</p>
+                                        <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatHours(totalBreakMinutes)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-gray-700">Trabalhando</p>
-                                        <p className="text-primary-600 text-lg font-bold">{formatHours(netWorkMinutes)}</p>
+                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Trabalhando</p>
+                                        <p className="text-primary-600 dark:text-primary-400 text-lg font-bold">{formatHours(netWorkMinutes)}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     ) : selectedShiftId || tempSelectedShiftId ? (
-                        <div className="mb-4 rounded-md bg-gray-50 p-3">
-                            <p className="text-center text-xs text-gray-500">Carregando informações do turno...</p>
+                        <div className="mb-4 rounded-md bg-gray-50 dark:bg-gray-800/50 p-3">
+                            <p className="text-center text-xs text-gray-500 dark:text-gray-400">Carregando informações do turno...</p>
                         </div>
                     ) : (
-                        <div className="mb-4 rounded-md bg-gray-50 p-3">
-                            <p className="text-center text-xs text-gray-500">Selecione um turno para ver o resumo</p>
+                        <div className="mb-4 rounded-md bg-gray-50 dark:bg-gray-800/50 p-3">
+                            <p className="text-center text-xs text-gray-500 dark:text-gray-400">Selecione um turno para ver o resumo</p>
                         </div>
                     )}
                     {/* Alert about automatic runtime recording */}
