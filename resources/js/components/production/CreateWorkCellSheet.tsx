@@ -278,7 +278,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             preserveScroll: true,
             preserveState: true,
             onSuccess: (page) => {
-                toast.success(isNew ? 'Célula de trabalho criada com sucesso!' : 'Célula de trabalho atualizada com sucesso!');
+                // Success message is handled by the backend flash data
                 setSheetOpen(false);
 
                 // Reset form if creating new
@@ -303,9 +303,20 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
 
                 // Call onSuccess callback if provided
                 if (onSuccess) {
-                    const workCellData = (page.props as { workCell?: WorkCell }).workCell || workCell;
+                    // Debug: log the entire page props to see what's available
+                    console.log('Page props after work cell creation:', page.props);
+
+                    // Try to get the work cell from flash data
+                    const flashData = (page.props as { flash?: { workCell?: WorkCell } }).flash;
+                    const workCellData = flashData?.workCell;
+
+                    console.log('Flash data:', flashData);
+                    console.log('Work cell data:', workCellData);
+
                     if (workCellData) {
                         onSuccess(workCellData);
+                    } else {
+                        console.warn('No work cell data found in response');
                     }
                 }
             },

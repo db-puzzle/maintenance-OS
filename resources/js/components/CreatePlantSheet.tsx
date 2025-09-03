@@ -8,7 +8,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { estados } from '@/data/estados';
-import { createFormAdapter } from '@/utils/form-adapters';
+
 import { Plant as ImportedPlant } from '@/types/entities/plant';
 
 
@@ -80,14 +80,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
             }, 100);
         }
     };
-    const formatCEP = (value: string) => {
-        // Remove todos os caracteres não numéricos
-        const numbers = value.replace(/\D/g, '');
-        // Limita a 8 dígitos
-        const cep = numbers.slice(0, 8);
-        // Adiciona o hífen após os 5 primeiros dígitos
-        return cep.replace(/(\d{5})(\d{3})/, '$1-$2');
-    };
+
     return (
         <BaseEntitySheet<PlantForm>
             entity={plant}
@@ -115,26 +108,8 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                 routeParameterName: 'plant',
             }}
         >
-            {({ data, setData, errors, clearErrors, formAdapter }) => {
-                // Custom handler for zip_code field with CEP formatting
-                const _handleZipCodeChange = (value: string) => {
-                    setData('zip_code', formatCEP(value));
-                };
+            {({ data, setData, formAdapter }) => {
 
-                // Create custom form adapter for zip code field with special formatting
-                // Using createFormAdapter with a wrapper to handle CEP formatting
-                const customZipCodeFormAdapter = createFormAdapter({
-                    data,
-                    setData: ((key: keyof PlantForm, value: PlantForm[keyof PlantForm]) => {
-                        if (key === 'zip_code' && typeof value === 'string') {
-                            setData('zip_code', formatCEP(value));
-                        } else {
-                            setData(key, value);
-                        }
-                    }) as typeof setData,
-                    errors,
-                    clearErrors
-                });
 
                 return (
                     <>
@@ -168,7 +143,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                 </div>
                                 <div>
                                     <TextInput
-                                        form={customZipCodeFormAdapter}
+                                        form={formAdapter}
                                         name="zip_code"
                                         label="CEP"
                                         placeholder="00000-000"

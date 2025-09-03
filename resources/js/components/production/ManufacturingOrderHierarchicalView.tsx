@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     Package,
-    ArrowRight,
     Route,
     MoreVertical,
     Trash2,
@@ -10,8 +9,13 @@ import {
     Play,
     XCircle,
     Eye,
+    CheckCircle2,
+    AlertCircle,
+    Clock,
+    FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ManufacturingOrder, RouteTemplate } from '@/types/production';
 import {
@@ -43,6 +47,8 @@ import { GenericHierarchicalTreeView, GenericTreeNode, NodeRenderProps } from '.
 import { HierarchicalViewHeader } from './shared/HierarchicalViewHeader';
 import { useTreeExpansion } from './shared/useTreeExpansion';
 import { toast } from 'sonner';
+import { OrderCardCompact } from './manufacturing-order/OrderCardCompact';
+import { formatNumber } from '@/utils/number';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: string | number | Record<string, string | number>) => string;
@@ -58,23 +64,35 @@ interface ManufacturingOrderHierarchicalViewProps {
     orders: ManufacturingOrderTreeNode[];
     showActions?: boolean;
     onOrderClick?: (order: ManufacturingOrderTreeNode) => void;
+    onOrderSelect?: (orderId: number, multiSelect: boolean) => void;
+    selectedOrders?: Set<number>;
     routeTemplates?: RouteTemplate[];
     canManageRoutes?: boolean;
+    showThumbnails?: boolean;
+    searchQuery?: string;
+    enhancedMode?: 'standard' | 'planning';
+    compactMode?: boolean;
 }
 
 export default function ManufacturingOrderHierarchicalView({
     orders,
-    showActions = true,
+    showActions: _showActions = true,
     onOrderClick,
+    onOrderSelect,
+    selectedOrders = new Set(),
     routeTemplates = [],
-    canManageRoutes = false
+    canManageRoutes = false,
+    showThumbnails: externalShowThumbnails,
+    searchQuery: _searchQuery = '',
+    enhancedMode = 'standard',
+    compactMode = false
 }: ManufacturingOrderHierarchicalViewProps) {
     const { props } = usePage<{ auth: { permissions?: string[] } }>();
     const auth = props.auth;
     const userPermissions = auth?.permissions || [];
 
     // State
-    const [showImages, setShowImages] = useState(false);
+    const [showImages, setShowImages] = useState(externalShowThumbnails !== undefined ? externalShowThumbnails : false);
     const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
     const [selectedOrderForRoute, setSelectedOrderForRoute] = useState<ManufacturingOrderTreeNode | null>(null);
     const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
@@ -200,16 +218,108 @@ export default function ManufacturingOrderHierarchicalView({
         return order.status === 'draft' && (!order.children || order.children.length === 0);
     };
 
+    // Planning mode helpers
+    const getRouteCompleteness = (order: ManufacturingOrderTreeNode) => {
+        if (!order.manufacturing_route) {
+            return { configured: 0, required: 0, percentage: 0 };
+        }
+
+        const steps = order.manufacturing_route.steps || [];
+        const configuredSteps = steps.filter((step) => step.work_cell_id).length;
+        const requiredSteps = steps.filter((step) => step.step_type !== 'rework').length;
+
+        return {
+            configured: configuredSteps,
+            required: requiredSteps || steps.length,
+            percentage: steps.length > 0 ? Math.round((configuredSteps / steps.length) * 100) : 0
+        };
+    };
+
+    const getRouteStatus = (order: ManufacturingOrderTreeNode) => {
+        const completeness = getRouteCompleteness(order);
+
+        if (!order.manufacturing_route) {
+            return 'no-route';
+        } else if (completeness.percentage === 100) {
+            return 'complete';
+        } else if (completeness.percentage > 0) {
+            return 'in-progress';
+        } else {
+            return 'empty';
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'complete': return 'text-green-600';
+            case 'in-progress': return 'text-yellow-600';
+            case 'no-route': return 'text-red-600';
+            case 'empty': return 'text-orange-600';
+            default: return 'text-gray-600';
+        }
+    };
+
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'complete': return CheckCircle2;
+            case 'in-progress': return Clock;
+            case 'no-route': return AlertCircle;
+            case 'empty': return FileText;
+            default: return Route;
+        }
+    };
+
     // Custom node renderer
     const renderOrderNode = (node: ManufacturingOrderTreeNode, _props: NodeRenderProps) => {
         const canManageNodeRoute = canManageRoutes && ['draft', 'planned'].includes(node.status);
+        const isSelected = selectedOrders.has(node.id);
+        const routeStatus = getRouteStatus(node);
+        const routeCompleteness = getRouteCompleteness(node);
+        const StatusIcon = getStatusIcon(routeStatus);
 
+        // Compact mode rendering
+        if (compactMode) {
+            return (
+                <OrderCardCompact
+                    order={node}
+                    isSelected={isSelected}
+                    enhancedMode={enhancedMode}
+                    showThumbnails={showImages}
+                    onOrderClick={onOrderClick}
+                    onOrderSelect={onOrderSelect}
+                    canManageRoute={canManageNodeRoute}
+                    permissions={{
+                        canRelease: canReleaseOrders,
+                        canCancel: canCancelOrders,
+                        canUpdate: canUpdateOrders,
+                        canDelete: canDeleteOrders,
+                    }}
+                    onApplyTemplate={handleApplyTemplate}
+                    onCreateCustomRoute={handleCreateCustomRoute}
+                    onRemoveRoute={handleRemoveRoute}
+                    onReleaseOrder={handleReleaseOrder}
+                    onCancelOrder={handleCancelOrder}
+                />
+            );
+        }
+
+        // Standard mode rendering
         return (
             <div
                 className={cn(
                     "w-full p-3 border rounded-lg transition-all hover:bg-muted/50",
-                    onOrderClick && "cursor-pointer"
+                    onOrderClick && "cursor-pointer",
+                    isSelected && "ring-2 ring-primary bg-primary/5",
+                    enhancedMode === 'planning' && selectedOrders.has(node.id) && "border-primary"
                 )}
+                onClick={(e) => {
+                    if (onOrderSelect && enhancedMode === 'planning') {
+                        e.stopPropagation();
+                        onOrderSelect(node.id, e.ctrlKey || e.metaKey);
+                    } else if (onOrderClick) {
+                        onOrderClick(node);
+                    }
+                }}
             >
                 <div className={cn(
                     "grid gap-2 items-center w-full",
@@ -258,7 +368,7 @@ export default function ManufacturingOrderHierarchicalView({
 
                     {/* Quantity */}
                     <div className={cn("text-right", !showImages && "col-span-1")}>
-                        <div className="text-sm font-medium">{node.quantity}</div>
+                        <div className="text-sm font-medium">{formatNumber(node.quantity)}</div>
                     </div>
 
                     {/* Unit of Measure */}
@@ -268,22 +378,56 @@ export default function ManufacturingOrderHierarchicalView({
 
                     {/* Route Name */}
                     <div className={!showImages ? "col-span-2" : ""}>
-                        <div className="text-sm text-center">
-                            {node.manufacturing_route ? (
-                                <span className="font-medium text-foreground">
-                                    {node.manufacturing_route.name}
-                                </span>
-                            ) : (
-                                <span className="text-muted-foreground italic">
-                                    Nenhuma rota
-                                </span>
-                            )}
-                        </div>
+                        {enhancedMode === 'planning' ? (
+                            <div className="flex items-center justify-center space-x-2">
+                                <StatusIcon className={cn("h-4 w-4", getStatusColor(routeStatus))} />
+                                <div className="flex flex-col items-center">
+                                    <div className="text-sm">
+                                        {node.manufacturing_route ? (
+                                            <span className="font-medium text-foreground">
+                                                {node.manufacturing_route.name}
+                                            </span>
+                                        ) : (
+                                            <span className="text-muted-foreground italic">
+                                                No route
+                                            </span>
+                                        )}
+                                    </div>
+                                    {node.manufacturing_route && (
+                                        <Badge variant="outline" className="text-xs mt-1">
+                                            {routeCompleteness.configured}/{routeCompleteness.required}
+                                            {routeCompleteness.percentage === 100 && " ✓"}
+                                        </Badge>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-sm text-center">
+                                {node.manufacturing_route ? (
+                                    <span className="font-medium text-foreground">
+                                        {node.manufacturing_route.name}
+                                    </span>
+                                ) : (
+                                    <span className="text-muted-foreground italic">
+                                        Nenhuma rota
+                                    </span>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Status */}
                     <div className={cn("flex items-center justify-center", !showImages && "col-span-1")}>
-                        <span className="text-sm font-medium">{node.status.toUpperCase()}</span>
+                        {enhancedMode === 'planning' ? (
+                            <Badge
+                                variant={node.status === 'planned' ? 'default' : node.status === 'draft' ? 'secondary' : 'default'}
+                                className={cn("text-xs", node.status === 'planned' && "bg-green-100 text-green-800")}
+                            >
+                                {node.status.toUpperCase()}
+                            </Badge>
+                        ) : (
+                            <span className="text-sm font-medium">{node.status.toUpperCase()}</span>
+                        )}
                     </div>
 
                     {/* Actions */}
@@ -433,28 +577,18 @@ export default function ManufacturingOrderHierarchicalView({
                     </div>
                 )}
 
-                {/* Actions */}
-                {showActions && (
-                    <div className="mt-2 flex justify-end">
-                        <Button
-                            asChild
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs"
-                        >
-                            <Link href={route('production.orders.show', node.id)}>
-                                View Details
-                                <ArrowRight className="h-3 w-3 ml-1" />
-                            </Link>
-                        </Button>
-                    </div>
-                )}
+
             </div>
         );
     };
 
     // Header columns
-    const headerColumns = (
+    const headerColumns = compactMode ? (
+        <div className="bg-muted/50 p-2 rounded-md font-semibold text-xs mb-2 flex justify-between items-center">
+            <div>Manufacturing Orders</div>
+            <div className="text-muted-foreground">Route / Status</div>
+        </div>
+    ) : (
         <div className={cn(
             "bg-muted/50 p-3 rounded-lg grid gap-2 font-semibold text-sm mb-2",
             showImages ? "grid-cols-[60px_3fr_3fr_1fr_1fr_2fr_1fr_1fr]" : "grid-cols-12"
@@ -495,11 +629,16 @@ export default function ManufacturingOrderHierarchicalView({
     const totalOrdersCount = countAllOrders(orders);
 
     return (
-        <div className="flex flex-col -mx-6 -my-8 lg:-mx-8">
+        <div className={cn(
+            "flex flex-col",
+            !compactMode && "-mx-6 -my-8 lg:-mx-8"
+        )}>
             {/* Header */}
-            <div className="px-6 pt-8 pb-4 lg:px-8">
+            <div className={cn(
+                compactMode ? "-mt-4 px-4 py-2" : "px-6 pt-8 pb-4 lg:px-8"
+            )}>
                 <HierarchicalViewHeader
-                    title={`Child Orders (${totalOrdersCount})`}
+                    title={compactMode ? `Orders (${totalOrdersCount})` : `Child Orders (${totalOrdersCount})`}
                     subtitle=""
                     maxDepth={maxDepth}
                     currentLevel={currentLevel}
@@ -507,11 +646,14 @@ export default function ManufacturingOrderHierarchicalView({
                     showImages={showImages}
                     onToggleImages={setShowImages}
                     showLevelControls={maxDepth > 0}
+                    compact={compactMode}
                 />
             </div>
 
             {/* Tree view */}
-            <div className="px-6 pb-8 lg:px-8">
+            <div className={cn(
+                compactMode ? "" : "px-6 pb-8 lg:px-8"
+            )}>
                 <GenericHierarchicalTreeView
                     data={orders}
                     renderNode={renderOrderNode}

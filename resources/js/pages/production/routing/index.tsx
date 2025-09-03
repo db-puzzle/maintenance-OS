@@ -218,7 +218,7 @@ export default function RoutingIndex({
                 orders={orders}
                 routeTemplates={routeTemplates}
                 itemCategories={itemCategories}
-                workCells={workCells}
+                _workCells={workCells}
             />
         </AppLayout>
     );

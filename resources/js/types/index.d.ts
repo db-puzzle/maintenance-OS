@@ -50,3 +50,79 @@ export interface User {
     roles?: Array<{ id: number; name: string }>; // User roles
     [key: string]: unknown; // This allows for additional properties...
 }
+
+export interface PageProps {
+    auth: Auth;
+    [key: string]: unknown;
+}
+
+export interface WorkCell {
+    id: number;
+    name: string;
+    code?: string;
+    description?: string;
+    type?: string;
+    capacity?: number;
+    is_active: boolean;
+    utilization?: number;
+}
+
+export interface ManufacturingOrder {
+    id: number;
+    order_number: string;
+    source_reference?: string;
+    quantity: number;
+    unit_of_measure: string;
+    status: string;
+    planned_start_date?: string;
+    actual_start_date?: string;
+    parent_order_id?: number | null;
+    item_id?: number;
+    item?: {
+        id: number;
+        name: string;
+        item_number: string;
+        primary_image_url?: string;
+        primary_image_thumbnail_url?: string;
+        images?: { id: number; item_id: number; image_url: string }[];
+        sector?: {
+            id: number;
+            name: string;
+            area: {
+                id: number;
+                name: string;
+                plant: {
+                    id: number;
+                    name: string;
+                };
+            };
+        };
+    };
+    manufacturing_route?: {
+        id: number;
+        name: string;
+        steps?: Array<{
+            id: number;
+            sequence: number;
+            name: string;
+            work_cell_id?: number | null;
+            is_required?: boolean;
+            setup_time_minutes?: number;
+            cycle_time_minutes?: number;
+        }>;
+    };
+    manufacturingRoute?: {
+        id: number;
+        name: string;
+        steps?: Array<{
+            id: number;
+            sequence: number;
+            name: string;
+            work_cell_id?: number | null;
+            is_required?: boolean;
+            setup_time_minutes?: number;
+            cycle_time_minutes?: number;
+        }>;
+    };
+    children?: ManufacturingOrder[];
+}

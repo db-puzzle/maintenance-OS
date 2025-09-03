@@ -203,7 +203,7 @@ export default function WorkCellDashboard({
                     <div>
                         <h1 className="text-2xl font-bold">{workCell.name} Dashboard</h1>
                         <p className="text-muted-foreground">
-                            {workCell.code} • {activeOperators.length} active operators • {statistics.utilizationRate}% utilization
+                            {activeOperators.length} active operators • {statistics.utilizationRate}% utilization
                         </p>
                     </div>
                     <div className="flex items-center gap-2">

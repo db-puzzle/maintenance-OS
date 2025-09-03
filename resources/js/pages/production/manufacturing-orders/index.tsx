@@ -144,11 +144,14 @@ export default function ManufacturingOrders({
             case 'draft':
                 return 'secondary';
             case 'planned':
+            case 'scheduled':
                 return 'outline';
             case 'released':
             case 'in_progress':
             case 'completed':
                 return 'default';
+            case 'on_hold':
+                return 'secondary';
             case 'cancelled':
                 return 'destructive';
             default:
@@ -469,9 +472,49 @@ export default function ManufacturingOrders({
                                         label: 'View',
                                         onClick: () => router.visit(route('production.orders.show', order.id))
                                     },
-                                    ...((order.status === 'draft' || order.status === 'planned') && order.manufacturing_route ? [{
+                                    // Plan action - for draft or planned orders
+                                    ...(order.status === 'draft' || order.status === 'planned' ? [{
+                                        label: 'Plan',
+                                        onClick: () => router.visit(route('production.planning.index', { selectedMO: order.id }))
+                                    }] : []),
+                                    // Schedule action - for planned orders
+                                    ...(order.status === 'planned' ? [{
+                                        label: 'Schedule',
+                                        onClick: () => router.post(route('production.orders.schedule', order.id))
+                                    }] : []),
+                                    // Release action - for draft, planned, or scheduled orders
+                                    ...((['draft', 'planned', 'scheduled'].includes(order.status)) ? [{
                                         label: 'Release',
                                         onClick: () => router.post(route('production.orders.release', order.id))
+                                    }] : []),
+                                    // Start production - for released orders
+                                    ...(order.status === 'released' ? [{
+                                        label: 'Start Production',
+                                        onClick: () => router.post(route('production.orders.start', order.id))
+                                    }] : []),
+                                    // Hold - for in progress orders
+                                    ...(order.status === 'in_progress' ? [{
+                                        label: 'Hold',
+                                        onClick: () => {
+                                            const reason = prompt('Reason for hold (optional):');
+                                            router.post(route('production.orders.hold', order.id), { reason });
+                                        }
+                                    }] : []),
+                                    // Resume - for on hold orders
+                                    ...(order.status === 'on_hold' ? [{
+                                        label: 'Resume',
+                                        onClick: () => router.post(route('production.orders.resume', order.id))
+                                    }] : []),
+                                    // Cancel - for non-draft, non-completed, non-cancelled orders
+                                    ...(!['draft', 'completed', 'cancelled'].includes(order.status) ? [{
+                                        label: 'Cancel',
+                                        onClick: () => {
+                                            if (confirm('Are you sure you want to cancel this order?')) {
+                                                router.post(route('production.orders.cancel', order.id), {
+                                                    reason: 'Cancelled by user'
+                                                });
+                                            }
+                                        }
                                     }] : [])
                                     // View Children action temporarily disabled - route not implemented yet
                                 ]}

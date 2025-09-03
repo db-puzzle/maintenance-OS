@@ -23,8 +23,7 @@ class WorkCellController extends BaseSearchController
     {
         $this->authorize('viewAny', WorkCell::class);
 
-        $query = WorkCell::with(['plant', 'area', 'sector', 'shift', 'manufacturer'])
-            ->withCount('routingSteps');
+        $query = WorkCell::with(['plant', 'area', 'sector', 'shift', 'manufacturer']);
 
         // Apply search filter
         if ($search = $request->input('search')) {
@@ -268,8 +267,13 @@ class WorkCellController extends BaseSearchController
 
         // If request has 'stay' parameter (indicates Sheet/Modal)
         if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
-            return back()->with('success', "Célula de trabalho {$workCell->name} criada com sucesso.")
-                ->with('newWorkCellId', $workCell->id);
+            // Load relationships that might be needed
+            $workCell->load(['plant', 'area', 'sector', 'shift', 'manufacturer']);
+            
+            return back()
+                ->with('success', "Célula de trabalho {$workCell->name} criada com sucesso.")
+                ->with('newWorkCellId', $workCell->id)
+                ->with('workCell', $workCell->toArray());
         }
 
         return redirect()->route('production.work-cells.show', $workCell)

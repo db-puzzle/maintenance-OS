@@ -137,9 +137,60 @@ class ManufacturingOrderService
     }
 
     /**
+     * Plan the manufacturing order.
+     *
+     * State Transition Rule: Draft → Planned (requires route with work cells)
+     */
+    public function planOrder(ManufacturingOrder $order): void
+    {
+        if (! $order->canBePlanned()) {
+            throw new \Exception('Order cannot be planned. Ensure it has a route with all steps assigned to work cells.');
+        }
+
+        DB::transaction(function () use ($order) {
+            $order->update([
+                'status' => 'planned',
+                'planned_start_date' => $order->planned_start_date ?? now()->addDays(1),
+            ]);
+
+            // Log the planning
+            activity()
+                ->performedOn($order)
+                ->causedBy(auth()->user())
+                ->withProperties(['previous_status' => 'draft'])
+                ->log('Manufacturing order planned');
+        });
+    }
+
+    /**
+     * Schedule the manufacturing order.
+     *
+     * State Transition Rule: Planned → Scheduled
+     */
+    public function scheduleOrder(ManufacturingOrder $order): void
+    {
+        if (! $order->canBeScheduled()) {
+            throw new \Exception('Order must be in planned status to be scheduled.');
+        }
+
+        DB::transaction(function () use ($order) {
+            $order->update([
+                'status' => 'scheduled',
+            ]);
+
+            // Log the scheduling
+            activity()
+                ->performedOn($order)
+                ->causedBy(auth()->user())
+                ->withProperties(['previous_status' => 'planned'])
+                ->log('Manufacturing order scheduled');
+        });
+    }
+
+    /**
      * Release order for production.
      *
-     * State Transition Rule: MO released → All first steps move to queued
+     * State Transition Rule: Draft/Scheduled → Released
      */
     public function releaseOrder(ManufacturingOrder $order): void
     {
@@ -151,9 +202,10 @@ class ManufacturingOrderService
         }
 
         DB::transaction(function () use ($order) {
+            $previousStatus = $order->status;
+
             $order->update([
                 'status' => 'released',
-                'actual_start_date' => now(),
             ]);
 
             // Only queue steps if execution can start
@@ -165,9 +217,68 @@ class ManufacturingOrderService
             activity()
                 ->performedOn($order)
                 ->causedBy(auth()->user())
-                ->withProperties(['previous_status' => $order->getOriginal('status')])
+                ->withProperties(['previous_status' => $previousStatus])
                 ->log('Manufacturing order released');
         });
+    }
+
+    /**
+     * Start production on the manufacturing order.
+     *
+     * State Transition Rule: Released → In Progress
+     */
+    public function startProduction(ManufacturingOrder $order): void
+    {
+        if (! $order->canStartProduction()) {
+            throw new \Exception('Order cannot start production. Must be released and dependencies met.');
+        }
+
+        DB::transaction(function () use ($order) {
+            $order->update([
+                'status' => 'in_progress',
+                'actual_start_date' => now(),
+            ]);
+
+            // Queue first steps if route exists
+            if ($order->manufacturingRoute) {
+                $this->queueFirstSteps($order);
+            }
+
+            // Log the start
+            activity()
+                ->performedOn($order)
+                ->causedBy(auth()->user())
+                ->withProperties(['previous_status' => 'released'])
+                ->log('Manufacturing order production started');
+        });
+    }
+
+    /**
+     * Hold the manufacturing order.
+     *
+     * State Transition Rule: In Progress → On Hold
+     */
+    public function holdOrder(ManufacturingOrder $order, ?string $reason = null): void
+    {
+        if (! $order->canBePutOnHold()) {
+            throw new \Exception('Order can only be put on hold when in progress.');
+        }
+
+        $this->putOrderOnHold($order, $reason);
+    }
+
+    /**
+     * Resume the manufacturing order from hold.
+     *
+     * State Transition Rule: On Hold → In Progress
+     */
+    public function resumeOrder(ManufacturingOrder $order): void
+    {
+        if (! $order->canBeResumed()) {
+            throw new \Exception('Order can only be resumed when on hold.');
+        }
+
+        $this->resumeOrderFromHold($order);
     }
 
     /**

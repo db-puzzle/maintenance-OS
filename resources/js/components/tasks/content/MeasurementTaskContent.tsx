@@ -1,5 +1,4 @@
 import { ItemSelect } from '@/components/ItemSelect';
-import { TextInput } from '@/components/TextInput';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -111,23 +110,9 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
         setResponse({ ...response, [name]: value });
     };
 
-    const formClearErrors = (...fields: string[]) => {
-        const newErrors = { ...formErrors };
-        fields.forEach(field => {
-            delete newErrors[field as keyof MeasurementFormData];
-        });
-        setFormErrors(newErrors);
-    };
 
-    // Create custom form adapter that matches TextInput's expected interface
-    const form = {
-        data: formData,
-        setData: formSetData,
-        errors: formErrors,
-        clearErrors: formClearErrors,
-        validateInput: validateInput as ((value: string) => boolean) | undefined,
-        processBlur: processBlur as ((name: string, value: string) => void) | undefined,
-    };
+
+
     const handleUpdate = (target: number | undefined, min: number | undefined, max: number | undefined) => {
         onUpdate?.({
             ...task,
@@ -193,31 +178,40 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                         </div>
                         <div className="col-span-1 grid grid-cols-3 gap-3 lg:col-span-12 lg:gap-4">
                             <div className="col-span-1 space-y-2">
-                                <TextInput
-                                    form={form}
+                                <Label htmlFor="targetValue">Valor Alvo</Label>
+                                <Input
+                                    id="targetValue"
                                     name="targetValue"
-                                    label="Valor Alvo"
+                                    value={formData.targetValue}
+                                    onChange={(e) => formSetData('targetValue', e.target.value)}
+                                    onBlur={(e) => processBlur('targetValue', e.target.value)}
                                     placeholder="Sem Alvo"
-                                    onBlur={(e: React.FocusEvent<HTMLInputElement>) => processBlur('targetValue', e.target.value)}
                                 />
+                                {formErrors.targetValue && <InputError message={formErrors.targetValue} />}
                             </div>
                             <div className="col-span-1 space-y-2">
-                                <TextInput
-                                    form={form}
+                                <Label htmlFor="minValue">Valor Mínimo</Label>
+                                <Input
+                                    id="minValue"
                                     name="minValue"
-                                    label="Valor Mínimo"
+                                    value={formData.minValue}
+                                    onChange={(e) => formSetData('minValue', e.target.value)}
+                                    onBlur={(e) => processBlur('minValue', e.target.value)}
                                     placeholder="Sem Min"
-                                    onBlur={(e: React.FocusEvent<HTMLInputElement>) => processBlur('minValue', e.target.value)}
                                 />
+                                {formErrors.minValue && <InputError message={formErrors.minValue} />}
                             </div>
                             <div className="col-span-1 space-y-2">
-                                <TextInput
-                                    form={form}
+                                <Label htmlFor="maxValue">Valor Máximo</Label>
+                                <Input
+                                    id="maxValue"
                                     name="maxValue"
-                                    label="Valor Máximo"
+                                    value={formData.maxValue}
+                                    onChange={(e) => formSetData('maxValue', e.target.value)}
+                                    onBlur={(e) => processBlur('maxValue', e.target.value)}
                                     placeholder="Sem Max"
-                                    onBlur={(e: React.FocusEvent<HTMLInputElement>) => processBlur('maxValue', e.target.value)}
                                 />
+                                {formErrors.maxValue && <InputError message={formErrors.maxValue} />}
                             </div>
                         </div>
                     </div>

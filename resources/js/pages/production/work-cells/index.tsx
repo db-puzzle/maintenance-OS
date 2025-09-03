@@ -5,7 +5,7 @@ import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
 import { EntityPagination } from '@/components/shared/EntityPagination';
-import { Badge } from '@/components/ui/badge';
+
 import { useEntityOperations } from '@/hooks/useEntityOperations';
 import { useSorting } from '@/hooks/useSorting';
 import AppLayout from '@/layouts/app-layout';
@@ -144,11 +144,7 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
             sortable: true,
             width: 'w-[100px]',
             render: (value) => {
-                return (
-                    <Badge variant={value === 'internal' ? 'default' : 'secondary'}>
-                        {value === 'internal' ? 'Interna' : 'Externa'}
-                    </Badge>
-                );
+                return value === 'internal' ? 'Interna' : 'Externa';
             },
         },
         {
@@ -208,11 +204,7 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
             sortable: true,
             width: 'w-[100px]',
             render: (value) => {
-                return (
-                    <Badge variant={value ? 'default' : 'secondary'}>
-                        {value ? 'Ativa' : 'Inativa'}
-                    </Badge>
-                );
+                return value ? 'Ativa' : 'Inativa';
             },
         },
     ];

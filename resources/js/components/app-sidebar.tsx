@@ -60,6 +60,10 @@ const gerenciamentoNavItems: NavGroup = {
                 },
                 {
                     title: 'Programação',
+                    href: '/production/schedules',
+                },
+                {
+                    title: 'Planejar',
                     href: '/production/planning',
                 },
             ],

@@ -291,10 +291,23 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
 
     const { data, setData, post, put, processing, errors, clearErrors } = useForm({
         name: shift?.name || '',
-        schedules: initialSchedules,
+        schedules: JSON.stringify(initialSchedules),
     });
 
     const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
+
+    // Helper functions to work with serialized schedules
+    const getSchedules = (): Schedule[] => {
+        try {
+            return JSON.parse(data.schedules);
+        } catch {
+            return initialSchedules;
+        }
+    };
+
+    const updateSchedules = (newSchedules: Schedule[]) => {
+        setData('schedules', JSON.stringify(newSchedules));
+    };
 
     const [selectedDay, setSelectedDay] = useState(weekdays[0].key);
     const [selectedDays, setSelectedDays] = useState<string[]>([]);
@@ -302,7 +315,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
 
     // Função para adicionar um novo turno em um dia específico
     const addShift = (dayIndex: number) => {
-        const newSchedules = [...data.schedules];
+        const newSchedules = [...getSchedules()];
         const existingShifts = newSchedules[dayIndex].shifts;
 
         // Se não houver turnos, usa o padrão
@@ -357,12 +370,12 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             });
         }
 
-        setData('schedules', newSchedules);
+        updateSchedules(newSchedules);
     };
 
     // Função para remover um turno de um dia específico
     const removeShift = (dayIndex: number, shiftIndex: number) => {
-        const newSchedules = data.schedules.map((day: Schedule, idx: number) => {
+        const newSchedules = getSchedules().map((day: Schedule, idx: number) => {
             if (idx === dayIndex) {
                 return {
                     ...day,
@@ -372,12 +385,12 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             return day;
         });
 
-        setData('schedules', newSchedules);
+        updateSchedules(newSchedules);
     };
 
     // Função para adicionar um intervalo em um turno específico
     const addBreak = (dayIndex: number, shiftIndex: number) => {
-        const newSchedules = [...data.schedules];
+        const newSchedules = [...getSchedules()];
         const shift = newSchedules[dayIndex].shifts[shiftIndex];
 
         if (shift.breaks.length === 0) {
@@ -406,11 +419,11 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             }
         }
 
-        setData('schedules', newSchedules);
+        updateSchedules(newSchedules);
     };
 
     const removeBreak = (dayIndex: number, shiftIndex: number, breakIndex: number) => {
-        const newSchedules = data.schedules.map((day: Schedule, idx: number) => {
+        const newSchedules = getSchedules().map((day: Schedule, idx: number) => {
             if (idx === dayIndex) {
                 return {
                     ...day,
@@ -428,20 +441,20 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             return day;
         });
 
-        setData('schedules', newSchedules);
+        updateSchedules(newSchedules);
     };
 
     const updateBreak = (dayIndex: number, shiftIndex: number, breakIndex: number, field: keyof Break, value: string) => {
-        const newSchedules = [...data.schedules];
+        const newSchedules = [...getSchedules()];
         newSchedules[dayIndex].shifts[shiftIndex].breaks[breakIndex][field] = value;
-        setData('schedules', newSchedules);
+        updateSchedules(newSchedules);
     };
 
     const applyToSelectedDays = () => {
-        const sourceDay = data.schedules.find((s: Schedule) => s.weekday === selectedDay);
+        const sourceDay = getSchedules().find((s: Schedule) => s.weekday === selectedDay);
         if (!sourceDay) return;
 
-        const newSchedules = data.schedules.map((schedule: Schedule) => {
+        const newSchedules = getSchedules().map((schedule: Schedule) => {
             if (selectedDays.includes(schedule.weekday)) {
                 // Cria uma cópia profunda do dia de origem
                 return {
@@ -456,30 +469,34 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             return schedule;
         });
 
-        setData('schedules', newSchedules);
+        updateSchedules(newSchedules);
         setSelectedDays([]);
     };
 
     const handleSave = () => {
         // Remove os segundos de todos os horários antes de enviar
-        const formattedData = {
-            ...data,
-            schedules: data.schedules.map((schedule: Schedule) => ({
-                ...schedule,
-                shifts: schedule.shifts.map((shift: Shift) => ({
-                    ...shift,
-                    start_time: shift.start_time?.substring(0, 5) || shift.start_time,
-                    end_time: shift.end_time?.substring(0, 5) || shift.end_time,
-                    breaks: shift.breaks.map((breakTime: Break) => ({
-                        start_time: breakTime.start_time?.substring(0, 5) || breakTime.start_time,
-                        end_time: breakTime.end_time?.substring(0, 5) || breakTime.end_time,
-                    })),
+        const formattedSchedules = getSchedules().map((schedule: Schedule) => ({
+            ...schedule,
+            shifts: schedule.shifts.map((shift: Shift) => ({
+                ...shift,
+                start_time: shift.start_time?.substring(0, 5) || shift.start_time,
+                end_time: shift.end_time?.substring(0, 5) || shift.end_time,
+                breaks: shift.breaks.map((breakTime: Break) => ({
+                    start_time: breakTime.start_time?.substring(0, 5) || breakTime.start_time,
+                    end_time: breakTime.end_time?.substring(0, 5) || breakTime.end_time,
                 })),
             })),
+        }));
+
+        // Create the data object with parsed schedules for submission
+        const submitData = {
+            name: data.name,
+            schedules: formattedSchedules,
         };
 
-        // Atualiza os dados do formulário com os valores formatados
-        setData(formattedData);
+        // Update form data with formatted schedules
+        setData('name', submitData.name);
+        setData('schedules', JSON.stringify(submitData.schedules));
 
         if (mode === 'create') {
             post(route('asset-hierarchy.shifts.store'), {
@@ -568,7 +585,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                             type="button"
                                                             variant="outline"
                                                             size="sm"
-                                                            disabled={data.schedules[dayIndex].shifts.length === 0}
+                                                            disabled={getSchedules()[dayIndex].shifts.length === 0}
                                                         >
                                                             <Copy className="mr-2 h-4 w-4" />
                                                             Copiar para Múltiplos Dias
@@ -623,7 +640,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                         </div>
 
                                         {/* Lista de turnos do dia */}
-                                        {data.schedules[dayIndex].shifts.length === 0 ? (
+                                        {getSchedules()[dayIndex].shifts.length === 0 ? (
                                             <div className="bg-muted/50 rounded-lg border p-6 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
                                                 <div className="flex flex-col items-center justify-center py-8 text-center">
                                                     <div className="bg-muted mb-3 flex size-12 items-center justify-center rounded-full">
@@ -634,8 +651,8 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                 </div>
                                             </div>
                                         ) : (
-                                            data.schedules[dayIndex].shifts.map((shift: Shift, shiftIndex: number) => {
-                                                const overlappingShifts = findOverlappingShifts(data.schedules[dayIndex].shifts, shiftIndex);
+                                            getSchedules()[dayIndex].shifts.map((shift: Shift, shiftIndex: number) => {
+                                                const overlappingShifts = findOverlappingShifts(getSchedules()[dayIndex].shifts, shiftIndex);
 
                                                 return (
                                                     <Card
@@ -652,9 +669,9 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                                     <TimeSelect
                                                                         value={shift.start_time}
                                                                         onChange={(value: string) => {
-                                                                            const newSchedules = [...data.schedules];
+                                                                            const newSchedules = [...getSchedules()];
                                                                             newSchedules[dayIndex].shifts[shiftIndex].start_time = value;
-                                                                            setData('schedules', newSchedules);
+                                                                            updateSchedules(newSchedules);
                                                                         }}
                                                                     />
                                                                     <span className="text-muted-foreground">até</span>
@@ -662,9 +679,9 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                                     <TimeSelect
                                                                         value={shift.end_time}
                                                                         onChange={(value: string) => {
-                                                                            const newSchedules = [...data.schedules];
+                                                                            const newSchedules = [...getSchedules()];
                                                                             newSchedules[dayIndex].shifts[shiftIndex].end_time = value;
-                                                                            setData('schedules', newSchedules);
+                                                                            updateSchedules(newSchedules);
                                                                         }}
                                                                     />
                                                                     {/* Botão para remover turno */}
@@ -850,7 +867,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                 <CardTitle>Visualização dos Turnos</CardTitle>
                                             </CardHeader>
                                             <CardContent>
-                                                <ShiftCalendarView schedules={data.schedules} />
+                                                <ShiftCalendarView schedules={getSchedules()} />
                                             </CardContent>
                                         </Card>
                                     </div>
@@ -863,7 +880,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                 <CardTitle>Visão Geral Semanal</CardTitle>
                                             </CardHeader>
                                             <CardContent>
-                                                <ShiftTableView schedules={data.schedules} />
+                                                <ShiftTableView schedules={getSchedules()} />
                                             </CardContent>
                                         </Card>
                                     </div>

@@ -19,6 +19,7 @@ class ManufacturingOrder extends Model
     public const STATUSES = [
         'draft' => 'Draft',
         'planned' => 'Planned',
+        'scheduled' => 'Scheduled',
         'released' => 'Released',
         'in_progress' => 'In Progress',
         'on_hold' => 'On Hold',
@@ -477,8 +478,8 @@ class ManufacturingOrder extends Model
      */
     public function canBeReleased(): bool
     {
-        // Order must be in draft or planned status
-        if (! in_array($this->status, ['draft', 'planned'])) {
+        // Order must be in draft, planned, or scheduled status
+        if (! in_array($this->status, ['draft', 'planned', 'scheduled'])) {
             return false;
         }
 
@@ -487,13 +488,7 @@ class ManufacturingOrder extends Model
             return $this->checkChildOrderDependencies();
         }
 
-        // Order must have a manufacturing route with at least one step
-        // This check is now optional based on business rules
-        if ($this->manufacturingRoute()->exists() &&
-            $this->manufacturingRoute->steps()->count() === 0) {
-            return false;
-        }
-
+        // Route is now optional for release
         return true;
     }
 
@@ -777,6 +772,70 @@ class ManufacturingOrder extends Model
     public function canBeCancelled(): bool
     {
         return ! in_array($this->status, ['draft', 'completed', 'cancelled']);
+    }
+
+    /**
+     * Check if order can be planned.
+     */
+    public function canBePlanned(): bool
+    {
+        // Order must be in draft status
+        if ($this->status !== 'draft') {
+            return false;
+        }
+
+        // Must have a route with all steps assigned to work cells
+        if (! $this->manufacturingRoute) {
+            return false;
+        }
+
+        // All steps must have work cells assigned
+        $unassignedSteps = $this->manufacturingRoute->steps()
+            ->whereNull('work_cell_id')
+            ->count();
+
+        return $unassignedSteps === 0;
+    }
+
+    /**
+     * Check if order can be scheduled.
+     */
+    public function canBeScheduled(): bool
+    {
+        // Order must be in planned status
+        return $this->status === 'planned';
+    }
+
+    /**
+     * Check if order can be put on hold.
+     */
+    public function canBePutOnHold(): bool
+    {
+        // Order must be in progress
+        return $this->status === 'in_progress';
+    }
+
+    /**
+     * Check if order can be resumed from hold.
+     */
+    public function canBeResumed(): bool
+    {
+        // Order must be on hold
+        return $this->status === 'on_hold';
+    }
+
+    /**
+     * Check if order can start production.
+     */
+    public function canStartProduction(): bool
+    {
+        // Order must be released
+        if ($this->status !== 'released') {
+            return false;
+        }
+
+        // Check if execution dependencies are met
+        return $this->canStartExecution();
     }
 
     /**

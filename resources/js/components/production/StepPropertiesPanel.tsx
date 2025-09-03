@@ -390,10 +390,10 @@ export default function StepPropertiesPanel({
 
             {/* CreateWorkCellSheet */}
             <CreateWorkCellSheet
-                open={workCellSheetOpen}
+                isOpen={workCellSheetOpen}
                 onOpenChange={setWorkCellSheetOpen}
-                mode="create"
-                onSuccess={handleWorkCellCreated}
+                isNew={true}
+                onSuccess={(newWorkCell) => handleWorkCellCreated(newWorkCell)}
                 plants={plants}
                 shifts={shifts}
                 manufacturers={manufacturers}
@@ -410,56 +410,91 @@ export default function StepPropertiesPanel({
         setWorkCellSheetOpen(true);
     }
 
-    function handleWorkCellCreated() {
+    function handleWorkCellCreated(newWorkCell?: WorkCell) {
         setWorkCellSheetOpen(false);
 
-        // Store the current workCells length before reload
-        setPreviousWorkCellsLength(workCells.length);
+        // If we received the new work cell directly, use it
+        if (newWorkCell && displayStep) {
+            // Set the newly created work cell ID in the form
+            stepForm.setData('work_cell_id', newWorkCell.id.toString());
 
-        // Reload to get the updated work cells
-        router.reload({
-            only: ['workCells'],
-            onSuccess: (page) => {
-                // Get the updated workCells from the page props
-                const updatedWorkCells = (page.props as { workCells?: WorkCell[] }).workCells || [];
+            // Update the local state with the new work cell
+            onLocalStepUpdate(displayStep.id, {
+                work_cell_id: newWorkCell.id,
+                work_cell: newWorkCell
+            });
 
-                // Find the newly created work cell - it should be the newest one (highest ID)
-                let newWorkCell: WorkCell | undefined;
-
-                if (updatedWorkCells.length > previousWorkCellsLength && displayStep) {
-                    // Sort by ID descending to get the newest
-                    const sortedWorkCells = [...updatedWorkCells].sort((a, b) => b.id - a.id);
-                    newWorkCell = sortedWorkCells[0];
-
-                    if (newWorkCell) {
-                        // Set the newly created work cell ID in the form
-                        stepForm.setData('work_cell_id', newWorkCell.id.toString());
-
-                        // Update the local state with the new work cell
-                        onLocalStepUpdate(displayStep.id, {
-                            work_cell_id: newWorkCell.id,
-                            work_cell: newWorkCell
-                        });
-                    }
-                }
-
-                // After reload, focus the work cell select field
-                setTimeout(() => {
-                    const selectButton = workCellSelectRef.current;
-                    if (selectButton) {
-                        selectButton.focus();
-                        // Add a temporary highlight effect with smooth transition
-                        selectButton.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all', 'duration-300');
+            // Focus and highlight the work cell select field
+            setTimeout(() => {
+                const selectButton = workCellSelectRef.current;
+                if (selectButton) {
+                    selectButton.focus();
+                    // Add a temporary highlight effect with smooth transition
+                    selectButton.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all', 'duration-300');
+                    setTimeout(() => {
+                        selectButton.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+                        // Remove transition classes after animation completes
                         setTimeout(() => {
-                            selectButton.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
-                            // Remove transition classes after animation completes
-                            setTimeout(() => {
-                                selectButton.classList.remove('transition-all', 'duration-300');
-                            }, 300);
-                        }, 2000);
+                            selectButton.classList.remove('transition-all', 'duration-300');
+                        }, 300);
+                    }, 2000);
+                }
+            }, 100);
+
+            // Reload to get the updated work cells list for the select
+            router.reload({
+                only: ['workCells']
+            });
+        } else {
+            // Fallback to the original method if no work cell is provided
+            // Store the current workCells length before reload
+            setPreviousWorkCellsLength(workCells.length);
+
+            // Reload to get the updated work cells
+            router.reload({
+                only: ['workCells'],
+                onSuccess: (page) => {
+                    // Get the updated workCells from the page props
+                    const updatedWorkCells = (page.props as { workCells?: WorkCell[] }).workCells || [];
+
+                    // Find the newly created work cell - it should be the newest one (highest ID)
+                    let foundWorkCell: WorkCell | undefined;
+
+                    if (updatedWorkCells.length > previousWorkCellsLength && displayStep) {
+                        // Sort by ID descending to get the newest
+                        const sortedWorkCells = [...updatedWorkCells].sort((a, b) => b.id - a.id);
+                        foundWorkCell = sortedWorkCells[0];
+
+                        if (foundWorkCell) {
+                            // Set the newly created work cell ID in the form
+                            stepForm.setData('work_cell_id', foundWorkCell.id.toString());
+
+                            // Update the local state with the new work cell
+                            onLocalStepUpdate(displayStep.id, {
+                                work_cell_id: foundWorkCell.id,
+                                work_cell: foundWorkCell
+                            });
+                        }
                     }
-                }, 100);
-            }
-        });
+
+                    // After reload, focus the work cell select field
+                    setTimeout(() => {
+                        const selectButton = workCellSelectRef.current;
+                        if (selectButton) {
+                            selectButton.focus();
+                            // Add a temporary highlight effect with smooth transition
+                            selectButton.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all', 'duration-300');
+                            setTimeout(() => {
+                                selectButton.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+                                // Remove transition classes after animation completes
+                                setTimeout(() => {
+                                    selectButton.classList.remove('transition-all', 'duration-300');
+                                }, 300);
+                            }, 2000);
+                        }
+                    }, 100);
+                }
+            });
+        }
     }
 }

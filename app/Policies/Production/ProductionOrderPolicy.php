@@ -104,6 +104,23 @@ class ProductionOrderPolicy
     }
 
     /**
+     * Determine whether the user can plan the production order.
+     */
+    public function plan(User $user, ManufacturingOrder $order): bool
+    {
+        if (!$user->hasPermissionTo('production.orders.plan')) {
+            return false;
+        }
+
+        // Only draft orders can be planned
+        if ($order->status !== 'draft') {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Determine whether the user can release the production order.
      */
     public function release(User $user, ManufacturingOrder $order): bool

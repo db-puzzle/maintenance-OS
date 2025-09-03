@@ -1,0 +1,42 @@
+---
+description:Always use number formatting utilities from `@/utils/number` for consistent number display across the application.
+
+## Standard Usage:
+```typescript
+import { formatNumber, formatCurrency, formatPercentage } from '@/utils/number';
+
+// Basic number formatting (removes unnecessary decimals)
+formatNumber(50.0000)    // "50"
+formatNumber(50.25)      // "50.25"
+
+// Currency formatting
+formatCurrency(1234.5)   // "R$ 1.234,50"
+
+// Percentage formatting
+formatPercentage(85.5)   // "85.5%"
+```
+
+## Form Integration:
+```typescript
+const { data, setData, errors } = useForm({
+    production_rate: formatNumber(workCell.production_rate),
+    // Use formatNumber for clean form initialization
+});
+
+// In display
+<span>{formatNumber(workCell.production_rate)} {unit}/hora</span>
+```
+
+## Common Patterns:
+1. **View Mode**: `{formatNumber(value)}` for production rates, quantities
+2. **Table Columns**: `render: (value) => formatNumber(value)`
+3. **Currency**: `{formatCurrency(price)}` for costs, budgets
+4. **Percentages**: `{formatPercentage(efficiency)}` for rates, utilization
+
+DO NOT:
+- Use `.toString()` or `.toFixed()` directly for display
+- Display raw decimal numbers without formatting
+- Create custom number formatting logic
+globs:
+alwaysApply: false
+---

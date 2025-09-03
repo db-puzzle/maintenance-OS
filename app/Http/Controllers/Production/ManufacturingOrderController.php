@@ -224,8 +224,8 @@ class ManufacturingOrderController extends BaseSearchController
             $this->loadChildrenRecursively($order);
         }
 
-        // Can create/edit routes if user has permission and order is in draft or planned status
-        $canCreateRoute = auth()->user()->can('production.routes.create') && in_array($order->status, ['draft', 'planned']);
+        // Can create/edit routes if user has permission and order is in draft, planned, or scheduled status
+        $canCreateRoute = auth()->user()->can('production.routes.create') && in_array($order->status, ['draft', 'planned', 'scheduled']);
 
         // Load route templates if user can create routes (for any child orders that might need them)
         $templates = [];
@@ -288,7 +288,12 @@ class ManufacturingOrderController extends BaseSearchController
                     ];
                 }),
             ]),
+            'canPlan' => $order->canBePlanned() && auth()->user()->can('update', $order),
+            'canSchedule' => $order->canBeScheduled() && auth()->user()->can('update', $order),
             'canRelease' => $order->canBeReleased() && auth()->user()->can('production.orders.release'),
+            'canStart' => $order->canStartProduction() && auth()->user()->can('production.orders.release'),
+            'canHold' => $order->canBePutOnHold() && auth()->user()->can('update', $order),
+            'canResume' => $order->canBeResumed() && auth()->user()->can('update', $order),
             'canCancel' => $order->canBeCancelled() && auth()->user()->can('production.orders.cancel'),
             'canCreateRoute' => $canCreateRoute,
             'canManageRoutes' => auth()->user()->can('production.routes.create'), // For child orders
@@ -328,9 +333,9 @@ class ManufacturingOrderController extends BaseSearchController
     {
         $this->authorize('update', $order);
 
-        if (! in_array($order->status, ['draft', 'planned'])) {
+        if (! in_array($order->status, ['draft', 'planned', 'scheduled'])) {
             return redirect()->route('production.orders.show', $order)
-                ->with('error', 'Only draft or planned orders can be edited.');
+                ->with('error', 'Only draft, planned, or scheduled orders can be edited.');
         }
 
         // Method temporarily disabled - page not implemented yet
@@ -347,8 +352,8 @@ class ManufacturingOrderController extends BaseSearchController
     {
         $this->authorize('update', $order);
 
-        if (! in_array($order->status, ['draft', 'planned'])) {
-            return back()->with('error', 'Only draft or planned orders can be updated.');
+        if (! in_array($order->status, ['draft', 'planned', 'scheduled'])) {
+            return back()->with('error', 'Only draft, planned, or scheduled orders can be updated.');
         }
 
         $validated = $request->validate([
@@ -378,6 +383,95 @@ class ManufacturingOrderController extends BaseSearchController
 
             return redirect()->route('production.orders.show', $order)
                 ->with('success', 'Manufacturing order released for production.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Plan the manufacturing order.
+     */
+    public function plan(ManufacturingOrder $order)
+    {
+        $this->authorize('update', $order);
+
+        try {
+            $this->orderService->planOrder($order);
+
+            return redirect()->route('production.orders.show', $order)
+                ->with('success', 'Manufacturing order moved to planned status.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Schedule the manufacturing order.
+     */
+    public function schedule(ManufacturingOrder $order)
+    {
+        $this->authorize('update', $order);
+
+        try {
+            $this->orderService->scheduleOrder($order);
+
+            return redirect()->route('production.orders.show', $order)
+                ->with('success', 'Manufacturing order scheduled successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Start production on the manufacturing order.
+     */
+    public function start(ManufacturingOrder $order)
+    {
+        $this->authorize('release', $order);
+
+        try {
+            $this->orderService->startProduction($order);
+
+            return redirect()->route('production.orders.show', $order)
+                ->with('success', 'Production started successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Put the manufacturing order on hold.
+     */
+    public function hold(Request $request, ManufacturingOrder $order)
+    {
+        $this->authorize('update', $order);
+
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $this->orderService->holdOrder($order, $validated['reason'] ?? null);
+
+            return redirect()->route('production.orders.show', $order)
+                ->with('success', 'Manufacturing order put on hold.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Resume the manufacturing order from hold.
+     */
+    public function resume(ManufacturingOrder $order)
+    {
+        $this->authorize('update', $order);
+
+        try {
+            $this->orderService->resumeOrder($order);
+
+            return redirect()->route('production.orders.show', $order)
+                ->with('success', 'Manufacturing order resumed successfully.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -455,8 +549,8 @@ class ManufacturingOrderController extends BaseSearchController
             return back()->with('error', 'This order already has a route. Please remove it first.');
         }
 
-        if (! in_array($order->status, ['draft', 'planned'])) {
-            return back()->with('error', 'Route templates can only be applied to draft or planned orders.');
+        if (! in_array($order->status, ['draft', 'planned', 'scheduled'])) {
+            return back()->with('error', 'Route templates can only be applied to draft, planned, or scheduled orders.');
         }
 
         $validated = $request->validate([
@@ -493,9 +587,9 @@ class ManufacturingOrderController extends BaseSearchController
     {
         $this->authorize('update', $order);
 
-        if (! in_array($order->status, ['draft', 'planned'])) {
+        if (! in_array($order->status, ['draft', 'planned', 'scheduled'])) {
             return redirect()->route('production.orders.show', $order)
-                ->with('error', 'Routes can only be created for draft or planned orders.');
+                ->with('error', 'Routes can only be created for draft, planned, or scheduled orders.');
         }
 
         if ($order->manufacturingRoute()->exists()) {
@@ -529,9 +623,9 @@ class ManufacturingOrderController extends BaseSearchController
     {
         $this->authorize('update', $order);
 
-        if (! in_array($order->status, ['draft', 'planned'])) {
+        if (! in_array($order->status, ['draft', 'planned', 'scheduled'])) {
             return redirect()->route('production.orders.show', $order)
-                ->with('error', 'Routes can only be created for draft or planned orders.');
+                ->with('error', 'Routes can only be created for draft, planned, or scheduled orders.');
         }
 
         if ($order->manufacturingRoute()->exists()) {

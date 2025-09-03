@@ -21,22 +21,22 @@ return new class extends Migration
             $table->decimal('quantity_completed', 10, 2)->default(0);
             $table->decimal('quantity_scrapped', 10, 2)->default(0);
             $table->string('unit_of_measure', 20)->default('EA');
-            
+
             // Smart progress tracking
             $table->decimal('smart_progress_percentage', 5, 2)->default(0)->comment('Calculated progress based on work units across hierarchy');
             $table->timestamp('progress_calculated_at')->nullable()->comment('Last time smart progress was calculated');
-            
+
             // Status tracking
-            $table->enum('status', ['draft', 'planned', 'released', 'in_progress', 'on_hold', 'completed', 'cancelled'])->default('draft');
+            $table->enum('status', ['draft', 'planned', 'scheduled', 'released', 'in_progress', 'on_hold', 'completed', 'cancelled'])->default('draft');
             $table->string('hold_reason')->nullable();
             $table->timestamp('hold_at')->nullable();
             $table->integer('priority')->default(50); // 0-100
-            
+
             // Child order tracking
             $table->integer('child_orders_count')->default(0);
             $table->integer('completed_child_orders_count')->default(0);
             $table->boolean('auto_complete_on_children')->default(true);
-            
+
             // Hierarchical dependency fields for progressive flow
             $table->enum('dependency_type', ['none', 'all_children_released', 'children_quantity', 'children_percentage', 'progressive'])->default('none');
             $table->decimal('dependency_minimum_quantity', 10, 2)->nullable();
@@ -44,21 +44,21 @@ return new class extends Migration
             $table->boolean('can_release_before_children')->default(false);
             $table->decimal('cumulative_children_quantity_completed', 10, 2)->default(0);
             $table->decimal('cumulative_children_quantity_required', 10, 2)->default(0);
-            
+
             // Dates
             $table->date('requested_date')->nullable();
             $table->timestamp('planned_start_date')->nullable();
             $table->timestamp('planned_end_date')->nullable();
             $table->timestamp('actual_start_date')->nullable();
             $table->timestamp('actual_end_date')->nullable();
-            
+
             // Source
             $table->string('source_type', 50)->nullable(); // 'manual', 'sales_order', 'forecast'
             $table->string('source_reference', 100)->nullable();
-            
+
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->timestamps();
-            
+
             $table->index(['status', 'priority']);
             $table->index(['planned_start_date', 'planned_end_date']);
             $table->index('item_id');

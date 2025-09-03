@@ -8,8 +8,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { Search, Factory, Users, BarChart3, Clock } from 'lucide-react';
+
+import { Search, Factory } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkCell } from '@/types/production';
 
@@ -56,7 +56,7 @@ export function WorkCellSearchDialog({
         return normalizedWorkCells.filter(workCell => {
             return (
                 (workCell.name?.toLowerCase() || '').includes(query) ||
-                (workCell.code?.toLowerCase() || '').includes(query) ||
+
                 (workCell.description?.toLowerCase() || '').includes(query)
             );
         });
@@ -77,11 +77,7 @@ export function WorkCellSearchDialog({
 
 
 
-    const getUtilizationColor = (percentage: number) => {
-        if (percentage >= 90) return 'text-red-600';
-        if (percentage >= 70) return 'text-yellow-600';
-        return 'text-green-600';
-    };
+
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -161,19 +157,10 @@ export function WorkCellSearchDialog({
                                                             <Factory className="h-4 w-4 text-muted-foreground" />
                                                             <div>
                                                                 <span className="font-medium">{workCell.name}</span>
-                                                                {workCell.code && (
-                                                                    <span className="text-muted-foreground ml-2">({workCell.code})</span>
-                                                                )}
+
                                                             </div>
                                                         </div>
-                                                        {workCell.status && (
-                                                            <Badge variant={
-                                                                workCell.status === 'active' ? "default" :
-                                                                    workCell.status === 'maintenance' ? "outline" : "secondary"
-                                                            }>
-                                                                {workCell.status.charAt(0).toUpperCase() + workCell.status.slice(1)}
-                                                            </Badge>
-                                                        )}
+
                                                     </div>
 
                                                     {workCell.description && (
@@ -184,34 +171,13 @@ export function WorkCellSearchDialog({
 
                                                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                                         {/* Available Hours */}
-                                                        {workCell.available_hours_per_day > 0 && (
-                                                            <div className="flex items-center gap-1">
-                                                                <Clock className="h-3 w-3" />
-                                                                <span>
-                                                                    {workCell.available_hours_per_day}h/day available
-                                                                </span>
-                                                            </div>
-                                                        )}
+
 
                                                         {/* Efficiency */}
-                                                        {workCell.efficiency_percentage > 0 && (
-                                                            <div className="flex items-center gap-1">
-                                                                <BarChart3 className="h-3 w-3" />
-                                                                <span className={getUtilizationColor(workCell.efficiency_percentage)}>
-                                                                    {workCell.efficiency_percentage}% efficiency
-                                                                </span>
-                                                            </div>
-                                                        )}
+
 
                                                         {/* Production Schedules */}
-                                                        {workCell.production_schedules_count !== undefined && workCell.production_schedules_count > 0 && (
-                                                            <div className="flex items-center gap-1">
-                                                                <Users className="h-3 w-3" />
-                                                                <span>
-                                                                    {workCell.production_schedules_count} schedule{workCell.production_schedules_count !== 1 ? 's' : ''}
-                                                                </span>
-                                                            </div>
-                                                        )}
+
                                                     </div>
                                                 </div>
                                             </button>

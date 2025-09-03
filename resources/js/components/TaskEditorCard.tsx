@@ -26,7 +26,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { useForm } from '@inertiajs/react';
 import { ClipboardList, Clock, GripVertical, Plus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { createFormAdapter } from '@/utils/form-adapters';
 
 interface TaskEditorCardProps {
     /** A tarefa inicial sendo editada */
@@ -117,9 +116,7 @@ export default function TaskEditorCard({
     const handleRequiredChange = (required: boolean) => {
         updateTask((task) => TaskOperations.updateRequired(task, required));
     };
-    const handleOptionsChange = (newOptions: string[]) => {
-        updateTask((task) => TaskOperations.updateOptions(task, newOptions));
-    };
+
     const handleAddOption = () => {
         updateTask(TaskOperations.addOption);
     };
@@ -241,34 +238,7 @@ export default function TaskEditorCard({
                                                 <CardContent className="flex items-center space-x-2">
                                                     <div className="flex-1">
                                                         <TextInput
-                                                            form={(() => {
-                                                                const optionFormData = {
-                                                                    ...data,
-                                                                    [`option-${index}`]: value,
-                                                                    options: undefined
-                                                                };
-                                                                return createFormAdapter({
-                                                                    data: optionFormData,
-                                                                    setData: ((field: keyof typeof optionFormData, val: typeof optionFormData[keyof typeof optionFormData]) => {
-                                                                        if (field === `option-${index}`) {
-                                                                            const newOptions = [...options];
-                                                                            newOptions[index] = val as string;
-                                                                            handleOptionsChange(newOptions);
-                                                                        }
-                                                                    }) as typeof setData,
-                                                                    errors,
-                                                                    clearErrors: (...fields: (keyof typeof errors)[]) => {
-                                                                        if (fields.includes(`option-${index}` as keyof typeof errors)) {
-                                                                            // Clear specific option error if exists
-                                                                            const newErrors = { ...errors };
-                                                                            delete newErrors[`option-${index}` as keyof typeof newErrors];
-                                                                            clearErrors(...(Object.keys(newErrors) as (keyof typeof errors)[]));
-                                                                        } else {
-                                                                            clearErrors(...fields);
-                                                                        }
-                                                                    }
-                                                                });
-                                                            })()}
+                                                            form={formAdapter}
                                                             name={`option-${index}`}
                                                             label={`Opção ${index + 1}`}
                                                             placeholder={`Descreva a opção ${index + 1}`}

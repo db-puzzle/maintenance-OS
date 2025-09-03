@@ -20,6 +20,9 @@ export interface HierarchicalViewHeaderProps {
     onToggleImages: (show: boolean) => void;
     showImageToggle?: boolean;
 
+    // Compact mode
+    compact?: boolean;
+
     // Additional actions
     actions?: React.ReactNode;
 
@@ -38,20 +41,28 @@ export function HierarchicalViewHeader({
     showImages,
     onToggleImages,
     showImageToggle = true,
+    compact = false,
     actions,
     className,
 }: HierarchicalViewHeaderProps) {
     return (
-        <div className={cn("pt-4 flex justify-between items-center", className)}>
+        <div className={cn(
+            "flex justify-between items-center",
+            compact ? "py-1" : "pt-4",
+            className
+        )}>
             {/* Title section */}
             <div className="flex flex-wrap items-baseline gap-3">
                 <div className="flex flex-wrap items-baseline">
-                    {subtitle && (
+                    {subtitle && !compact && (
                         <p className="mt-1 ml-2 truncate text-sm text-gray-500">
                             {subtitle}
                         </p>
                     )}
-                    <h3 className="mt-2 ml-2 text-base font-semibold text-gray-900">
+                    <h3 className={cn(
+                        "text-gray-900",
+                        compact ? "text-sm font-medium" : "mt-2 ml-2 text-base font-semibold"
+                    )}>
                         {title}
                     </h3>
                 </div>
@@ -62,8 +73,14 @@ export function HierarchicalViewHeader({
             <div className="flex gap-2">
                 {/* Level controls */}
                 {showLevelControls && maxDepth > 0 && (
-                    <div className="flex items-center gap-1 rounded-md px-2">
-                        <span className="text-sm text-muted-foreground mr-1">Níveis:</span>
+                    <div className={cn(
+                        "flex items-center gap-1 rounded-md",
+                        compact ? "px-1" : "px-2"
+                    )}>
+                        <span className={cn(
+                            "text-muted-foreground mr-1",
+                            compact ? "text-xs" : "text-sm"
+                        )}>Níveis:</span>
                         {Array.from({ length: maxDepth }, (_, i) => i + 1).map((level) => {
                             const isActive = level <= currentLevel;
                             return (
@@ -73,7 +90,8 @@ export function HierarchicalViewHeader({
                                     size="sm"
                                     onClick={() => onLevelChange(level)}
                                     className={cn(
-                                        "h-7 w-7 p-0 text-xs border transition-colors",
+                                        "p-0 border transition-colors",
+                                        compact ? "h-6 w-6 text-xs" : "h-7 w-7 text-xs",
                                         isActive
                                             ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400 dark:bg-primary dark:text-primary-foreground dark:border-primary dark:hover:bg-primary/90'
                                             : 'border hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-accent dark:hover:text-accent-foreground'

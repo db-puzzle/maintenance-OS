@@ -11,6 +11,7 @@ interface StateButtonProps {
     className?: string;
     iconSize?: 'sm' | 'md';
     variant?: 'default' | 'green' | 'red';
+    greyOutWhenDisabled?: boolean;
 }
 const StateButton: React.FC<StateButtonProps> = ({
     icon: Icon,
@@ -21,7 +22,8 @@ const StateButton: React.FC<StateButtonProps> = ({
     disabled = false,
     className,
     iconSize = 'sm',
-    variant = 'default'
+    variant = 'default',
+    greyOutWhenDisabled = true
 }) => {
     const iconClasses = iconSize === 'sm' ? 'h-4 w-4 mt-1.5' : 'h-5 w-5 mt-0.5';
     const getVariantClasses = () => {
@@ -57,7 +59,8 @@ const StateButton: React.FC<StateButtonProps> = ({
             onClick={onClick}
             disabled={disabled}
             className={cn(
-                'grid h-auto w-full grid-cols-[auto_1fr] gap-3 rounded-md border px-3 py-3 text-left transition-[color,box-shadow,border-color,background-color] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50',
+                'grid h-auto w-full grid-cols-[auto_1fr] gap-3 rounded-md border px-3 py-3 text-left transition-[color,box-shadow,border-color,background-color] outline-none disabled:pointer-events-none disabled:cursor-not-allowed',
+                greyOutWhenDisabled && 'disabled:opacity-50',
                 getVariantClasses(),
                 className
             )}

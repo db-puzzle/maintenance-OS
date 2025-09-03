@@ -2,16 +2,16 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Role;
 use App\Models\Permission;
+use App\Models\Role;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class RoleSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     * V2: Create system roles with Administrator as the combined super admin role
+     * V2: Create system roles with Administrator as the combined super admin role.
      */
     public function run(): void
     {
@@ -23,7 +23,7 @@ class RoleSeeder extends Seeder
                     'is_system' => true,
                     'is_administrator' => true,
                     'display_name' => 'Administrator',
-                    'description' => 'Full system access with all permissions'
+                    'description' => 'Full system access with all permissions',
                 ]
             );
 
@@ -37,7 +37,7 @@ class RoleSeeder extends Seeder
                 [
                     'is_system' => true,
                     'display_name' => 'Plant Manager',
-                    'description' => 'Manage all resources within assigned plants'
+                    'description' => 'Manage all resources within assigned plants',
                 ]
             );
 
@@ -60,7 +60,12 @@ class RoleSeeder extends Seeder
                 'work-orders.cancel',
                 // Production permissions
                 'production.orders.create',
+                'production.orders.plan',
+                'production.orders.schedule',
                 'production.orders.release',
+                'production.orders.start',
+                'production.orders.hold',
+                'production.orders.resume',
                 'production.orders.cancel',
                 'production.routes.create',
                 // Parts permissions
@@ -105,6 +110,24 @@ class RoleSeeder extends Seeder
                 'production.items.import',
                 'production.items.export',
                 'production.items.images.manage',
+                // Production Order permissions
+                'production.orders.viewAny',
+                'production.orders.view',
+                'production.orders.create',
+                'production.orders.update',
+                'production.orders.plan',
+                'production.orders.schedule',
+                'production.orders.release',
+                'production.orders.start',
+                'production.orders.hold',
+                'production.orders.resume',
+                'production.orders.cancel',
+                // Production Route permissions
+                'production.routes.viewAny',
+                'production.routes.view',
+                'production.routes.create',
+                'production.routes.update',
+                'production.routes.delete',
             ];
             $plantManager->syncPermissions($plantManagerPermissions);
 
@@ -113,10 +136,10 @@ class RoleSeeder extends Seeder
                 [
                     'is_system' => true,
                     'display_name' => 'Area Manager',
-                    'description' => 'Manage resources within assigned areas'
+                    'description' => 'Manage resources within assigned areas',
                 ]
             );
-            
+
             // Area Manager gets limited permissions by default
             $areaManagerPermissions = [
                 'users.viewAny',
@@ -134,10 +157,10 @@ class RoleSeeder extends Seeder
                 [
                     'is_system' => true,
                     'display_name' => 'Sector Manager',
-                    'description' => 'Manage resources within assigned sectors'
+                    'description' => 'Manage resources within assigned sectors',
                 ]
             );
-            
+
             // Sector Manager gets limited permissions by default
             $sectorManagerPermissions = [
                 'users.viewAny',
@@ -154,10 +177,10 @@ class RoleSeeder extends Seeder
                 [
                     'is_system' => true,
                     'display_name' => 'Maintenance Supervisor',
-                    'description' => 'Execute and supervise maintenance tasks at plant, area, or sector level'
+                    'description' => 'Execute and supervise maintenance tasks at plant, area, or sector level',
                 ]
             );
-            
+
             // Maintenance Supervisor gets basic permissions
             $maintenanceSupervisorPermissions = [
                 'users.update.owned',
@@ -211,6 +234,16 @@ class RoleSeeder extends Seeder
                 'production.items.import',
                 'production.items.export',
                 'production.items.images.manage',
+                // Production Order permissions
+                'production.orders.viewAny',
+                'production.orders.view',
+                'production.orders.start',
+                'production.orders.hold',
+                'production.orders.resume',
+                'production.orders.reportProduction',
+                // Production Route permissions
+                'production.routes.viewAny',
+                'production.routes.view',
             ];
             $maintenanceSupervisor->syncPermissions($maintenanceSupervisorPermissions);
 
@@ -220,10 +253,10 @@ class RoleSeeder extends Seeder
                 [
                     'is_system' => true,
                     'display_name' => 'Planner',
-                    'description' => 'Plan and schedule maintenance work orders'
+                    'description' => 'Plan and schedule maintenance work orders',
                 ]
             );
-            
+
             // Planner permissions
             $plannerPermissions = [
                 'users.update.owned',
@@ -246,6 +279,8 @@ class RoleSeeder extends Seeder
                 // Work Cell permissions
                 'production.work-cells.viewAny',
                 'production.work-cells.view',
+                'production.work-cells.viewDashboard',
+                'production.work-cells.exportData',
                 // Production Item permissions
                 'production.items.viewAny',
                 'production.items.view',
@@ -253,6 +288,18 @@ class RoleSeeder extends Seeder
                 'production.items.update',
                 'production.items.export',
                 'production.items.images.manage',
+                // Production Order permissions - needed for Core Planning UI
+                'production.orders.viewAny',
+                'production.orders.view',
+                'production.orders.update',
+                'production.orders.plan',
+                'production.orders.schedule',
+                // Production Route permissions - needed for Core Planning UI
+                'production.routes.viewAny',
+                'production.routes.view',
+                'production.routes.create',
+                'production.routes.update',
+                'production.routes.createFromTemplate',
             ];
             $planner->syncPermissions($plannerPermissions);
 
@@ -261,10 +308,10 @@ class RoleSeeder extends Seeder
                 [
                     'is_system' => true,
                     'display_name' => 'Technician',
-                    'description' => 'Execute maintenance tasks at plant, area, sector, or individual asset level'
+                    'description' => 'Execute maintenance tasks at plant, area, sector, or individual asset level',
                 ]
             );
-            
+
             // Technician gets minimal permissions
             $technicianPermissions = [
                 'users.update.owned',
@@ -299,10 +346,10 @@ class RoleSeeder extends Seeder
                 [
                     'is_system' => true,
                     'display_name' => 'Validator',
-                    'description' => 'Validate quality of completed work orders'
+                    'description' => 'Validate quality of completed work orders',
                 ]
             );
-            
+
             // Validator permissions
             $validatorPermissions = [
                 'users.update.owned',
@@ -317,10 +364,10 @@ class RoleSeeder extends Seeder
                 [
                     'is_system' => true,
                     'display_name' => 'Viewer',
-                    'description' => 'Read-only access to assigned resources at any level'
+                    'description' => 'Read-only access to assigned resources at any level',
                 ]
             );
-            
+
             // Viewer gets minimal permissions
             $viewerPermissions = [
                 'users.update.owned',

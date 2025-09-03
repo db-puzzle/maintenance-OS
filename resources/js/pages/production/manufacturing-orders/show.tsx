@@ -48,7 +48,12 @@ import StateButton from '@/components/StateButton';
 import type { WorkUnitsBreakdown } from '@/types/production';
 interface Props {
     order: ManufacturingOrder;
+    canPlan?: boolean;
+    canSchedule?: boolean;
     canRelease: boolean;
+    canStart?: boolean;
+    canHold?: boolean;
+    canResume?: boolean;
     canCancel: boolean;
     canCreateRoute: boolean;
     canManageRoutes?: boolean;
@@ -131,7 +136,7 @@ function WorkUnitsBreakdownDisplay({ breakdown, level = 0 }: { breakdown: WorkUn
         </div>
     );
 }
-export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute, canManageRoutes = false, canReportProduction = false, templates = [], workCells = [], stepTypes = {}, forms = [], plants, shifts, manufacturers }: Props) {
+export default function ShowManufacturingOrder({ order, canPlan = false, canSchedule = false, canRelease, canStart = false, canHold = false, canResume = false, canCancel, canCreateRoute, canManageRoutes = false, canReportProduction = false, templates = [], workCells = [], stepTypes = {}, forms = [], plants, shifts, manufacturers }: Props) {
     const { props } = usePage();
     const flash = props.flash as { openRouteBuilder?: string | boolean; fromQrScan?: boolean } | undefined;
     const [generatingQr, setGeneratingQr] = useState(false);
@@ -166,11 +171,14 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             case 'draft':
                 return 'secondary';
             case 'planned':
+            case 'scheduled':
                 return 'outline';
             case 'released':
             case 'in_progress':
             case 'completed':
                 return 'default';
+            case 'on_hold':
+                return 'secondary';
             case 'cancelled':
                 return 'destructive';
             default:
@@ -183,10 +191,14 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 return <FileText className="h-4 w-4" />;
             case 'planned':
                 return <Calendar className="h-4 w-4" />;
+            case 'scheduled':
+                return <Clock className="h-4 w-4" />;
             case 'released':
                 return <Play className="h-4 w-4" />;
             case 'in_progress':
-                return <Clock className="h-4 w-4" />;
+                return <PlayCircle className="h-4 w-4" />;
+            case 'on_hold':
+                return <Ban className="h-4 w-4" />;
             case 'completed':
                 return <CheckCircle className="h-4 w-4" />;
             case 'cancelled':
@@ -206,6 +218,22 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
         { title: 'Manufacturing Orders', href: '/production/orders' },
         { title: order.order_number, href: '' }
     ];
+    const handlePlan = () => {
+        router.post(window.route('production.orders.plan', order.id), {}, {
+            onSuccess: () => {
+                // Success handled by controller
+            },
+        });
+    };
+
+    const handleSchedule = () => {
+        router.post(window.route('production.orders.schedule', order.id), {}, {
+            onSuccess: () => {
+                // Success handled by controller
+            },
+        });
+    };
+
     const handleRelease = () => {
         router.post(window.route('production.orders.release', order.id), {}, {
             onSuccess: () => {
@@ -213,6 +241,34 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             },
         });
     };
+
+    const handleStart = () => {
+        router.post(window.route('production.orders.start', order.id), {}, {
+            onSuccess: () => {
+                // Success handled by controller
+            },
+        });
+    };
+
+    const handleHold = () => {
+        const reason = prompt('Please provide a reason for putting this order on hold (optional):');
+        router.post(window.route('production.orders.hold', order.id), {
+            reason: reason || undefined
+        }, {
+            onSuccess: () => {
+                // Success handled by controller
+            },
+        });
+    };
+
+    const handleResume = () => {
+        router.post(window.route('production.orders.resume', order.id), {}, {
+            onSuccess: () => {
+                // Success handled by controller
+            },
+        });
+    };
+
     const handleCancel = () => {
         if (confirm('Are you sure you want to cancel this order?')) {
             router.post(window.route('production.orders.cancel', order.id), {
@@ -888,7 +944,8 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
         </>
     );
     // Check if order has a route - using the already declared hasRoute variable
-    const shouldShowRelease = ['draft', 'planned'].includes(order.status);
+    const shouldShowRelease = ['draft', 'planned', 'scheduled'].includes(order.status);
+
     // Additional actions for the header
     const headerActions = (
         <TooltipProvider>
@@ -902,26 +959,92 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                     <QrCode className="h-4 w-4 mr-2" />
                     {generatingQr ? 'Gerando...' : 'Gerar QR'}
                 </Button>
-                {shouldShowRelease && (
+
+                {/* Plan button - only for draft orders with routes */}
+                {order.status === 'draft' && canPlan && hasRoute && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span tabIndex={0}>
+                                <Button
+                                    onClick={handlePlan}
+                                    variant="outline"
+                                >
+                                    <Calendar className="h-4 w-4 mr-2" />
+                                    Plan
+                                </Button>
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Move to planned status (requires route with work cells)</p>
+                        </TooltipContent>
+                    </Tooltip>
+                )}
+
+                {/* Schedule button - only for planned orders */}
+                {order.status === 'planned' && canSchedule && (
+                    <Button
+                        onClick={handleSchedule}
+                        variant="outline"
+                    >
+                        <Clock className="h-4 w-4 mr-2" />
+                        Schedule
+                    </Button>
+                )}
+
+                {/* Release button - for draft or scheduled orders */}
+                {shouldShowRelease && canRelease && (
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <span tabIndex={0}>
                                 <Button
                                     onClick={handleRelease}
-                                    disabled={!canRelease || !hasRoute}
+                                    disabled={!canRelease}
                                 >
                                     <Play className="h-4 w-4 mr-2" />
                                     Release
                                 </Button>
                             </span>
                         </TooltipTrigger>
-                        {!hasRoute && (
-                            <TooltipContent>
-                                <p>Configure a manufacturing route before releasing</p>
-                            </TooltipContent>
-                        )}
+                        <TooltipContent>
+                            <p>{order.status === 'draft' ? 'Direct release to production floor' : 'Release scheduled order to production'}</p>
+                        </TooltipContent>
                     </Tooltip>
                 )}
+
+                {/* Start Production button - for released orders */}
+                {order.status === 'released' && canStart && (
+                    <Button
+                        onClick={handleStart}
+                        variant="default"
+                    >
+                        <PlayCircle className="h-4 w-4 mr-2" />
+                        Start Production
+                    </Button>
+                )}
+
+                {/* Hold button - for in progress orders */}
+                {order.status === 'in_progress' && canHold && (
+                    <Button
+                        onClick={handleHold}
+                        variant="outline"
+                    >
+                        <Ban className="h-4 w-4 mr-2" />
+                        Hold
+                    </Button>
+                )}
+
+                {/* Resume button - for on hold orders */}
+                {order.status === 'on_hold' && canResume && (
+                    <Button
+                        onClick={handleResume}
+                        variant="default"
+                    >
+                        <PlayCircle className="h-4 w-4 mr-2" />
+                        Resume
+                    </Button>
+                )}
+
+                {/* Cancel button - available for most states */}
                 {canCancel && (
                     <Button variant="destructive" onClick={handleCancel}>
                         <XCircle className="h-4 w-4 mr-2" />

@@ -143,7 +143,12 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
 
     // Manufacturing Orders
     Route::resource('orders', ManufacturingOrderController::class)->except(['edit']);
+    Route::post('orders/{order}/plan', [ManufacturingOrderController::class, 'plan'])->name('orders.plan');
+    Route::post('orders/{order}/schedule', [ManufacturingOrderController::class, 'schedule'])->name('orders.schedule');
     Route::post('orders/{order}/release', [ManufacturingOrderController::class, 'release'])->name('orders.release');
+    Route::post('orders/{order}/start', [ManufacturingOrderController::class, 'start'])->name('orders.start');
+    Route::post('orders/{order}/hold', [ManufacturingOrderController::class, 'hold'])->name('orders.hold');
+    Route::post('orders/{order}/resume', [ManufacturingOrderController::class, 'resume'])->name('orders.resume');
     Route::post('orders/{order}/cancel', [ManufacturingOrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('orders/{order}/apply-template', [ManufacturingOrderController::class, 'applyTemplate'])->name('orders.apply-template');
     Route::post('orders/{order}/report-production', [ManufacturingOrderController::class, 'reportProduction'])->name('orders.report-production');
@@ -208,7 +213,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('work-cells/{workCell}/export', [WorkCellDashboardController::class, 'export'])->name('work-cells.export');
     Route::get('plants/{plant}/areas', [WorkCellController::class, 'getAreas'])->name('work-cells.get-areas');
     Route::get('areas/{area}/sectors', [WorkCellController::class, 'getSectors'])->name('work-cells.get-sectors');
-    
+
     // Work Cell Parallel Resources
     Route::get('work-cells/{workCell}/parallel-resources', [WorkCellParallelResourceController::class, 'index'])->name('work-cells.parallel-resources.index');
     Route::post('work-cells/{workCell}/parallel-resources', [WorkCellParallelResourceController::class, 'store'])->name('work-cells.parallel-resources.store');

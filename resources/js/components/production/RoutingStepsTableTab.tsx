@@ -119,12 +119,7 @@ export default function RoutingStepsTableTab({
             label: 'Célula de Trabalho',
             render: (value: unknown, row) => {
                 return row.work_cell ? (
-                    <div>
-                        <div className="font-medium">{row.work_cell.code}</div>
-                        <div className="text-sm text-muted-foreground">
-                            {row.work_cell.name}
-                        </div>
-                    </div>
+                    <div className="font-medium">{row.work_cell.name}</div>
                 ) : (
                     <span className="text-muted-foreground">—</span>
                 );

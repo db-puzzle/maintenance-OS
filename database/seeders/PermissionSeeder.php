@@ -630,10 +630,28 @@ class PermissionSeeder extends Seeder
                     'sort_order' => 129
                 ],
                 [
+                    'name' => 'production.orders.schedule',
+                    'display_name' => 'Schedule Manufacturing Orders',
+                    'description' => 'Schedule manufacturing orders for production',
+                    'sort_order' => 130
+                ],
+                [
                     'name' => 'production.orders.start',
                     'display_name' => 'Start Manufacturing Orders',
                     'description' => 'Start production on released manufacturing orders',
-                    'sort_order' => 130
+                    'sort_order' => 131
+                ],
+                [
+                    'name' => 'production.orders.hold',
+                    'display_name' => 'Hold Manufacturing Orders',
+                    'description' => 'Put manufacturing orders on hold',
+                    'sort_order' => 132
+                ],
+                [
+                    'name' => 'production.orders.resume',
+                    'display_name' => 'Resume Manufacturing Orders',
+                    'description' => 'Resume manufacturing orders that were on hold',
+                    'sort_order' => 133
                 ],
                 [
                     'name' => 'production.orders.configure_dependencies',

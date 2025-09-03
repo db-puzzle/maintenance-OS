@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { type BreadcrumbItem } from '@/types';
-import { type WorkCell, type ManufacturingStep, type ProductionSchedule } from '@/types/production';
+import { type WorkCell, type ProductionSchedule } from '@/types/production';
 import { Head, Link, router } from '@inertiajs/react';
-import { Factory, Clock, Gauge, Building2, Infinity as InfinityIcon, CheckCircle2, XCircle, Info, Pencil, Save, X } from 'lucide-react';
+import { Factory, Clock, Building2, Infinity as InfinityIcon, CheckCircle2, XCircle, Info, Pencil, Save, X } from 'lucide-react';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { formatNumber } from '@/utils/number';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -19,7 +24,6 @@ import { ItemSelect } from '@/components/ItemSelect';
 import { useForm } from '@inertiajs/react';
 import { createFormAdapter } from '@/utils/form-adapters';
 import StateButton from '@/components/StateButton';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 interface Props {
     workCell: WorkCell & {
@@ -41,13 +45,6 @@ interface Props {
         symbol?: string;
         uom_type: 'COUNT' | 'MASS' | 'LENGTH' | 'AREA' | 'VOLUME' | 'TIME';
     }[];
-    routingSteps: {
-        data: ManufacturingStep[];
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
-    };
     productionSchedules: {
         data: ProductionSchedule[];
         current_page: number;
@@ -58,10 +55,6 @@ interface Props {
 
     activeTab: string;
     filters: {
-        steps: {
-            sort: string;
-            direction: string;
-        };
         schedules: {
             sort: string;
             direction: string;
@@ -71,19 +64,8 @@ interface Props {
 
 
 
-function StatCard({ label, value, icon: Icon, className }: { label: string; value: string | number | null | undefined; icon: React.ElementType; className?: string }) {
-    return (
-        <div className="flex items-center gap-4 rounded-lg border p-4">
-            <div className={cn("p-2 rounded-lg", className)}>
-                <Icon className="h-5 w-5" />
-            </div>
-            <div>
-                <p className="text-sm text-muted-foreground">{label}</p>
-                <p className="text-2xl font-bold">{value || '—'}</p>
-            </div>
-        </div>
-    );
-}
+
+
 export default function Show({
     workCell,
     plants: _plants,
@@ -92,7 +74,6 @@ export default function Show({
     shifts: _shifts,
     manufacturers: _manufacturers,
     unitsOfMeasure: _unitsOfMeasure = [],
-    routingSteps,
     productionSchedules,
 
     activeTab,
@@ -131,10 +112,10 @@ export default function Show({
         description: workCell.description || '',
         cell_type: workCell.cell_type || 'internal',
         has_finite_capacity: workCell.has_finite_capacity ?? true,
-        default_production_rate_per_hour: workCell.default_production_rate_per_hour?.toString() || '',
+        default_production_rate_per_hour: formatNumber(workCell.default_production_rate_per_hour),
         default_unit_of_measure: workCell.default_unit_of_measure || 'PC',
-        default_setup_time_minutes: workCell.default_setup_time_minutes?.toString() || '0',
-        max_parallel_executions: workCell.max_parallel_executions?.toString() || '1',
+        default_setup_time_minutes: formatNumber(workCell.default_setup_time_minutes) || '0',
+        max_parallel_executions: formatNumber(workCell.max_parallel_executions) || '1',
         shift_id: workCell.shift_id?.toString() || '',
         plant_id: workCell.plant_id?.toString() || '',
         area_id: workCell.area_id?.toString() || '',
@@ -204,7 +185,6 @@ export default function Show({
         put(route('production.work-cells.update', workCell.id), {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success('Célula de trabalho atualizada com sucesso!');
                 setMode('view');
                 router.reload();
             },
@@ -216,15 +196,15 @@ export default function Show({
 
 
 
-    const handleSort = (section: 'steps' | 'schedules', column: string) => {
-        const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
+    const handleSort = (column: string) => {
+        const direction = filters.schedules.sort === column && filters.schedules.direction === 'asc' ? 'desc' : 'asc';
         router.get(
             route('production.work-cells.show', {
                 work_cell: workCell.id,
                 tab: activeTab,
-                [`${section}_sort`]: column,
-                [`${section}_direction`]: direction,
-                [`${section}_page`]: 1,
+                schedules_sort: column,
+                schedules_direction: direction,
+                schedules_page: 1,
             }),
             {},
             { preserveState: true },
@@ -251,14 +231,7 @@ export default function Show({
                 <Clock className="h-4 w-4" />
                 <span>{workCell.has_finite_capacity ? 'Capacidade Finita' : 'Capacidade Infinita'}</span>
             </span>
-            <span className="text-muted-foreground">•</span>
-            <span className="flex items-center gap-1">
-                <Gauge className="h-4 w-4" />
-                {workCell.default_production_rate_per_hour && (
-                    <span>{workCell.default_production_rate_per_hour} {workCell.default_unit_of_measure}/h</span>
-                )}
-            </span>
-            <span className="text-muted-foreground">•</span>
+
 
         </span>
     );
@@ -268,30 +241,6 @@ export default function Show({
             label: 'Overview',
             content: (
                 <div className="space-y-6 py-6">
-                    {/* Statistics Cards */}
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                            <StatCard
-                                label="Taxa de Produção"
-                                value={workCell.default_production_rate_per_hour ? `${workCell.default_production_rate_per_hour} ${workCell.default_unit_of_measure}/h` : '—'}
-                                icon={Gauge}
-                                className="bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
-                            />
-                            <StatCard
-                                label="Tempo de Setup"
-                                value={workCell.default_setup_time_minutes ? `${workCell.default_setup_time_minutes} min` : '—'}
-                                icon={Clock}
-                                className="bg-orange-100 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400"
-                            />
-                            <StatCard
-                                label="Execuções Paralelas"
-                                value={workCell.max_parallel_executions || 1}
-                                icon={Factory}
-                                className="bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400"
-                            />
-                        </div>
-                    </div>
-
                     {/* Basic Information */}
                     <div className="grid grid-cols-3 gap-4">
                         <TextInput
@@ -319,8 +268,6 @@ export default function Show({
                     <div className="space-y-4">
                         <div>
                             <h3 className="text-lg font-semibold mb-2">Tipo de Célula</h3>
-
-
                             <div className="grid grid-cols-2 gap-4">
                                 <StateButton
                                     icon={Building2}
@@ -335,6 +282,7 @@ export default function Show({
                                         }
                                     }}
                                     disabled={isViewMode || processing}
+                                    greyOutWhenDisabled={!isViewMode}
                                 />
                                 <StateButton
                                     icon={Factory}
@@ -351,6 +299,7 @@ export default function Show({
                                         }
                                     }}
                                     disabled={isViewMode || processing}
+                                    greyOutWhenDisabled={!isViewMode}
                                 />
                             </div>
                         </div>
@@ -466,13 +415,9 @@ export default function Show({
                     )}
 
                     {/* Capacity Configuration */}
-                    <Separator />
-                    <div className="space-y-4">
+                    <div className="mt-6 space-y-4">
                         <div>
                             <h3 className="text-lg font-semibold mb-2">Configuração de Capacidade</h3>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Define as limitações de capacidade e taxa de produção da célula.
-                            </p>
 
                             <div className="grid grid-cols-2 gap-4 mb-4">
                                 <StateButton
@@ -491,6 +436,7 @@ export default function Show({
                                         }
                                     }}
                                     disabled={isViewMode || processing}
+                                    greyOutWhenDisabled={!isViewMode}
                                 />
                                 <StateButton
                                     icon={Building2}
@@ -503,6 +449,7 @@ export default function Show({
                                         }
                                     }}
                                     disabled={isViewMode || processing}
+                                    greyOutWhenDisabled={!isViewMode}
                                 />
                             </div>
 
@@ -525,7 +472,7 @@ export default function Show({
                                                 <label className="text-sm font-medium">Taxa de Produção</label>
                                                 <div className="rounded-md border bg-muted/20 p-2 text-sm">
                                                     <span className="font-medium">
-                                                        {workCell.default_production_rate_per_hour || '—'} {workCell.default_unit_of_measure}/hora
+                                                        {workCell.default_production_rate_per_hour ? formatNumber(workCell.default_production_rate_per_hour) : '—'} {workCell.default_unit_of_measure}/hora
                                                     </span>
                                                 </div>
                                             </div>
@@ -533,7 +480,7 @@ export default function Show({
                                                 <label className="text-sm font-medium">Tempo de Setup</label>
                                                 <div className="rounded-md border bg-muted/20 p-2 text-sm">
                                                     <span className="font-medium">
-                                                        {workCell.default_setup_time_minutes || 0} minutos
+                                                        {formatNumber(workCell.default_setup_time_minutes) || '0'} minutos
                                                     </span>
                                                 </div>
                                             </div>
@@ -541,38 +488,51 @@ export default function Show({
                                                 <label className="text-sm font-medium">Execuções Paralelas</label>
                                                 <div className="rounded-md border bg-muted/20 p-2 text-sm">
                                                     <span className="font-medium">
-                                                        {workCell.max_parallel_executions || 1} operações simultâneas
+                                                        {formatNumber(workCell.max_parallel_executions) || '1'} operações simultâneas
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
-                                            <ItemSelect
-                                                label="Turno"
-                                                items={_shifts}
-                                                value={data.shift_id}
-                                                onValueChange={(value) => setData('shift_id', value)}
-                                                placeholder="Selecione um turno"
-                                                error={errors.shift_id}
-                                                required
-                                                canClear
-                                            />
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="flex items-end gap-2">
-                                                    <div className="flex-1">
-                                                        <TextInput
-                                                            form={form}
-                                                            name="default_production_rate_per_hour"
-                                                            label="Taxa Padrão de Produção"
-                                                            placeholder="100"
-                                                            disabled={processing}
-                                                            helperText="Unidades por hora"
-                                                        />
-                                                    </div>
+                                            <div className="grid grid-cols-5 gap-4">
+                                                <div className="grid gap-2">
+                                                    <ItemSelect
+                                                        label="Turno"
+                                                        items={_shifts}
+                                                        value={data.shift_id}
+                                                        onValueChange={(value) => setData('shift_id', value)}
+                                                        placeholder="Selecione um turno"
+                                                        error={errors.shift_id}
+                                                        required
+                                                        canClear
+                                                    />
+                                                    <p className="text-sm text-muted-foreground">Horário de trabalho</p>
                                                 </div>
-                                                <div>
-                                                    <Label htmlFor="default_unit_of_measure">Unidade de Medida</Label>
+                                                <TextInput
+                                                    form={form}
+                                                    name="default_production_rate_per_hour"
+                                                    label="Taxa Padrão de Produção"
+                                                    placeholder="100"
+                                                    disabled={processing}
+                                                    helperText="Unidades por hora"
+                                                />
+                                                <div className="grid gap-2">
+                                                    <div className="flex items-center gap-1">
+                                                        <Label htmlFor="default_unit_of_measure" className="text-sm font-medium">Unidade de Medida</Label>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p className="max-w-xs">
+                                                                    A unidade de medida padrão ({workCell.default_unit_of_measure}) é usada para calcular
+                                                                    a capacidade e utilização da célula. Diferentes produtos podem usar diferentes unidades
+                                                                    de medida, mas serão convertidos para a unidade padrão da célula.
+                                                                </p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </div>
                                                     <Select
                                                         value={data.default_unit_of_measure}
                                                         onValueChange={(value) => setData('default_unit_of_measure', value)}
@@ -602,12 +562,11 @@ export default function Show({
                                                             ))}
                                                         </SelectContent>
                                                     </Select>
+                                                    <p className="text-sm text-muted-foreground">Unidade padrão</p>
                                                     {errors.default_unit_of_measure && (
                                                         <p className="text-sm text-red-600 mt-1">{errors.default_unit_of_measure}</p>
                                                     )}
                                                 </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
                                                 <TextInput
                                                     form={form}
                                                     name="default_setup_time_minutes"
@@ -635,22 +594,11 @@ export default function Show({
                                         </div>
                                     )}
                                 </div>
-
-                                {/* Unit of Measure Information */}
-                                <Alert>
-                                    <Info className="h-4 w-4" />
-                                    <AlertDescription>
-                                        A unidade de medida padrão ({workCell.default_unit_of_measure}) é usada para calcular
-                                        a capacidade e utilização da célula. Diferentes produtos podem usar diferentes unidades
-                                        de medida, mas serão convertidos para a unidade padrão da célula.
-                                    </AlertDescription>
-                                </Alert>
                             </>
                         )}
                     </div>
 
                     {/* Status Configuration */}
-                    <Separator />
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold mb-3">Status da Célula</h3>
 
@@ -667,6 +615,7 @@ export default function Show({
                                 }}
                                 disabled={isViewMode || processing}
                                 variant="green"
+                                greyOutWhenDisabled={!isViewMode}
                             />
                             <StateButton
                                 icon={XCircle}
@@ -680,6 +629,7 @@ export default function Show({
                                 }}
                                 disabled={isViewMode || processing}
                                 variant="red"
+                                greyOutWhenDisabled={!isViewMode}
                             />
                         </div>
 
@@ -729,72 +679,6 @@ export default function Show({
                             </>
                         )}
                     </div>
-                </div>
-            ),
-        },
-        {
-            id: 'etapas',
-            label: 'Etapas de Roteiro',
-            content: (
-                <div className="mt-6 space-y-4">
-                    <EntityDataTable
-                        data={routingSteps.data.map(step => ({ ...step } as Record<string, unknown>))}
-                        columns={[
-                            {
-                                key: 'step_number',
-                                label: 'Etapa',
-                                sortable: true,
-                                width: 'w-[100px]',
-                                render: (value) => <span className="font-medium">#{value as number}</span>,
-                            },
-                            {
-                                key: 'name',
-                                label: 'Nome',
-                                sortable: true,
-                                width: 'w-[300px]',
-                                render: (value) => <span className="font-medium">{value as string}</span>,
-                            },
-                            {
-                                key: 'description',
-                                label: 'Descrição',
-                                sortable: true,
-                                width: 'w-[250px]',
-                                render: (value) => <span className="text-sm">{value as string || '-'}</span>,
-                            },
-                            {
-                                key: 'cycle_time_minutes',
-                                label: 'Tempo de Ciclo',
-                                sortable: true,
-                                width: 'w-[150px]',
-                                render: (value) => <span className="text-sm">{value as number} min</span>,
-                            },
-                            {
-                                key: 'setup_time_minutes',
-                                label: 'Tempo de Setup',
-                                sortable: true,
-                                width: 'w-[100px]',
-                                render: (value) => <span className="text-sm">{value as number || 0} min</span>,
-                            },
-                        ]}
-                        onSort={(columnKey) => handleSort('steps', columnKey)}
-                    />
-                    <EntityPagination
-                        pagination={{
-                            current_page: routingSteps.current_page,
-                            last_page: routingSteps.last_page,
-                            per_page: routingSteps.per_page,
-                            total: routingSteps.total,
-                            from: routingSteps.current_page > 0 ? (routingSteps.current_page - 1) * routingSteps.per_page + 1 : null,
-                            to: routingSteps.current_page > 0 ? Math.min(routingSteps.current_page * routingSteps.per_page, routingSteps.total) : null,
-                        }}
-                        onPageChange={(page) => router.get(route('production.work-cells.show', {
-                            work_cell: workCell.id,
-                            steps_page: page,
-                            tab: 'etapas',
-                            steps_sort: filters.steps.sort,
-                            steps_direction: filters.steps.direction,
-                        }))}
-                    />
                 </div>
             ),
         },
@@ -890,7 +774,7 @@ export default function Show({
                                 },
                             },
                         ]}
-                        onSort={(columnKey) => handleSort('schedules', columnKey)}
+                        onSort={(columnKey) => handleSort(columnKey)}
                     />
                     <EntityPagination
                         pagination={{
