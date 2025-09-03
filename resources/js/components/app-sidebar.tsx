@@ -47,6 +47,10 @@ const gerenciamentoNavItems: NavGroup = {
                     href: '/production/orders',
                 },
                 {
+                    title: 'Turnos',
+                    href: '/asset-hierarchy/shifts',
+                },
+                {
                     title: 'Células de Trabalho',
                     href: '/production/work-cells',
                 },

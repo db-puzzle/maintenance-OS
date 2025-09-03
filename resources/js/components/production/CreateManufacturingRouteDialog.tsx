@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useForm } from '@inertiajs/react';
 import {
-    Package,
     FileText,
     Info,
     Settings,
@@ -10,7 +9,6 @@ import {
     ChevronRight,
     Search,
     Layers,
-    Tags,
     Factory
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -105,7 +103,7 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
 export default function CreateManufacturingRouteDialog({
     open,
     onOpenChange,
-    items = [],
+    items: _items = [],
     orders = [],
     routeTemplates = [],
     itemCategories = [],
@@ -113,20 +111,26 @@ export default function CreateManufacturingRouteDialog({
 }: Props) {
     const [currentStep, setCurrentStep] = useState(1);
     const [routeType, setRouteType] = useState<'production' | 'template'>('production');
-    const [itemSearchQuery, setItemSearchQuery] = useState('');
     const [orderSearchQuery, setOrderSearchQuery] = useState('');
     const [templateSearchQuery, setTemplateSearchQuery] = useState('');
-    const [itemsPage, setItemsPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
     const [ordersPage, setOrdersPage] = useState(1);
-    const [ordersPerPage, setOrdersPerPage] = useState(10);
+    const [ordersPerPage, setOrdersPerPage] = useState(5);
     const [templatesPage, setTemplatesPage] = useState(1);
     const [templatesPerPage, setTemplatesPerPage] = useState(10);
     const [categoriesPage, setCategoriesPage] = useState(1);
-    const [categoriesPerPage, setCategoriesPerPage] = useState(10);
+    const [categoriesPerPage, setCategoriesPerPage] = useState(5);
     const [categorySearchQuery, setCategorySearchQuery] = useState('');
 
-    const { data, setData, post, processing, errors, reset, clearErrors, transform } = useForm({
+    const { data, setData, post, processing, errors, reset, clearErrors, transform } = useForm<{
+        name: string;
+        description: string;
+        is_active: boolean;
+        is_template: boolean;
+        manufacturing_order_id: string;
+        item_id: string;
+        template_source_id: string;
+        item_category_id: string;
+    }>({
         // Common fields
         name: '',
         description: '',
@@ -146,32 +150,46 @@ export default function CreateManufacturingRouteDialog({
 
     // Update is_template when route type changes
     useEffect(() => {
-        setData('is_template', routeType === 'template' ? true : false);
+        setData('is_template', routeType === 'template');
     }, [routeType, setData]);
+
+    // Auto-generate name when reaching the final step
+    useEffect(() => {
+        const isLastStep = (routeType === 'production' && currentStep === 3) ||
+            (routeType === 'template' && currentStep === 2);
+
+        if (isLastStep) {
+            if (routeType === 'production' && data.manufacturing_order_id) {
+                const order = orders.find(o => o.id === parseInt(data.manufacturing_order_id));
+                if (order && order.item) {
+                    setData('name', `Roteiro ${order.order_number} - ${order.item.name}`);
+                }
+            } else if (routeType === 'template' && data.item_category_id) {
+                const category = itemCategories.find(c => c.id === parseInt(data.item_category_id));
+                if (category) {
+                    setData('name', `Template ${category.name}`);
+                }
+            } else if (routeType === 'template' && !data.item_category_id) {
+                // For templates without category
+                setData('name', 'Template Geral');
+            }
+        }
+    }, [currentStep, routeType, data.manufacturing_order_id, data.item_category_id, orders, itemCategories, setData]);
 
     const steps = useMemo(() => {
         if (routeType === 'production') {
             return [
-                { number: 1, title: 'Tipo', icon: <Layers className="h-4 w-4" /> },
-                { number: 2, title: 'Associação', icon: <Package className="h-4 w-4" /> },
-                { number: 3, title: 'Template', icon: <FileText className="h-4 w-4" /> },
-                { number: 4, title: 'Detalhes', icon: <Settings className="h-4 w-4" /> },
+                { number: 1, title: 'Tipo e Ordem', icon: <Layers className="h-4 w-4" /> },
+                { number: 2, title: 'Template', icon: <FileText className="h-4 w-4" /> },
+                { number: 3, title: 'Detalhes', icon: <Settings className="h-4 w-4" /> },
             ];
         } else {
             return [
-                { number: 1, title: 'Tipo', icon: <Layers className="h-4 w-4" /> },
-                { number: 2, title: 'Categoria', icon: <Tags className="h-4 w-4" /> },
-                { number: 3, title: 'Detalhes', icon: <Settings className="h-4 w-4" /> },
+                { number: 1, title: 'Tipo e Categoria', icon: <Layers className="h-4 w-4" /> },
+                { number: 2, title: 'Detalhes', icon: <Settings className="h-4 w-4" /> },
             ];
         }
     }, [routeType]);
-
-    const selectedItem = useMemo(() => {
-        if (data.item_id) {
-            return items.find(i => i.id === parseInt(data.item_id));
-        }
-        return null;
-    }, [data.item_id, items]);
 
     const selectedOrder = useMemo(() => {
         if (data.manufacturing_order_id) {
@@ -180,23 +198,20 @@ export default function CreateManufacturingRouteDialog({
         return null;
     }, [data.manufacturing_order_id, orders]);
 
-    // Filter items based on search query
-    const filteredItems = useMemo(() => {
-        if (!itemSearchQuery.trim()) return items;
+    const selectedItem = useMemo(() => {
+        // Get item from selected order
+        if (selectedOrder?.item) {
+            return selectedOrder.item;
+        }
+        return null;
+    }, [selectedOrder]);
 
-        const query = itemSearchQuery.toLowerCase();
-        return items.filter(item =>
-            item.item_number.toLowerCase().includes(query) ||
-            item.name.toLowerCase().includes(query) ||
-            item.description?.toLowerCase().includes(query) ||
-            item.category?.name?.toLowerCase().includes(query)
-        );
-    }, [items, itemSearchQuery]);
+
 
     // Filter orders based on search query
     const filteredOrders = useMemo(() => {
         const availableOrders = orders.filter(order =>
-            order.status === 'released' && !order.manufacturing_route
+            (order.status === 'draft' || order.status === 'planned') && !order.manufacturing_route
         );
 
         if (!orderSearchQuery.trim()) return availableOrders;
@@ -230,20 +245,6 @@ export default function CreateManufacturingRouteDialog({
     }, [routeTemplates, selectedItem, templateSearchQuery]);
 
     // Paginated data
-    const paginatedItems = useMemo(() => {
-        const start = (itemsPage - 1) * itemsPerPage;
-        const end = start + itemsPerPage;
-        return filteredItems.slice(start, end);
-    }, [filteredItems, itemsPage, itemsPerPage]);
-
-    const itemsPagination = useMemo(() => ({
-        current_page: itemsPage,
-        last_page: Math.ceil(filteredItems.length / itemsPerPage),
-        per_page: itemsPerPage,
-        total: filteredItems.length,
-        from: filteredItems.length > 0 ? (itemsPage - 1) * itemsPerPage + 1 : null,
-        to: filteredItems.length > 0 ? Math.min(itemsPage * itemsPerPage, filteredItems.length) : null,
-    }), [filteredItems, itemsPage, itemsPerPage]);
 
     const paginatedOrders = useMemo(() => {
         const start = (ordersPage - 1) * ordersPerPage;
@@ -303,9 +304,6 @@ export default function CreateManufacturingRouteDialog({
     }), [filteredCategories, categoriesPage, categoriesPerPage]);
 
     // Track selected rows
-    const [selectedItemId, setSelectedItemId] = useState<Set<string | number>>(
-        data.item_id ? new Set([parseInt(data.item_id)]) : new Set()
-    );
     const [selectedOrderId, setSelectedOrderId] = useState<Set<string | number>>(
         data.manufacturing_order_id ? new Set([parseInt(data.manufacturing_order_id)]) : new Set()
     );
@@ -316,42 +314,7 @@ export default function CreateManufacturingRouteDialog({
         data.item_category_id ? new Set([parseInt(data.item_category_id)]) : new Set()
     );
 
-    // Define columns for items table
-    const itemColumns: ColumnConfig<Item>[] = useMemo(() => [
-        {
-            key: 'selection',
-            label: '',
-            width: 'w-[40px]',
-            render: (_value: unknown, item: Item) => (
-                data.item_id === item.id.toString() ? <Check className="h-4 w-4 text-primary" /> : null
-            )
-        },
-        {
-            key: 'item_number',
-            label: 'Número do Item',
-            width: 'w-[120px]',
-            render: (value: unknown) => <span className="font-medium">{String(value || '-')}</span>
-        },
-        {
-            key: 'name',
-            label: 'Nome',
-            width: 'w-[250px]',
-            render: (value: unknown, item: Item) => (
-                <div>
-                    <div>{value as React.ReactNode}</div>
-                    {item.category && (
-                        <div className="text-xs text-muted-foreground">{item.category.name}</div>
-                    )}
-                </div>
-            )
-        },
-        {
-            key: 'unit_of_measure',
-            label: 'UOM',
-            width: 'w-[80px]',
-            render: (value: unknown) => <span>{String(value || 'EA')}</span>
-        }
-    ], [data.item_id]);
+
 
     // Define columns for orders table
     const orderColumns: ColumnConfig<ManufacturingOrder>[] = useMemo(() => [
@@ -499,13 +462,11 @@ export default function CreateManufacturingRouteDialog({
         if (routeType === 'production') {
             switch (step) {
                 case 1:
-                    return true; // Type selection is always valid
+                    // Manufacturing order must be selected for production routes
+                    return !!data.manufacturing_order_id;
                 case 2:
-                    // Either order or item must be selected
-                    return !!data.manufacturing_order_id || !!data.item_id;
-                case 3:
                     return true; // Template selection is optional
-                case 4:
+                case 3:
                     return !!data.name && data.name.trim().length > 0;
                 default:
                     return false;
@@ -514,10 +475,8 @@ export default function CreateManufacturingRouteDialog({
             // Template route
             switch (step) {
                 case 1:
-                    return true; // Type selection is always valid
-                case 2:
                     return true; // Category selection is optional
-                case 3:
+                case 2:
                     return !!data.name && data.name.trim().length > 0;
                 default:
                     return false;
@@ -530,11 +489,9 @@ export default function CreateManufacturingRouteDialog({
             reset();
             setCurrentStep(1);
             setRouteType('production');
-            setItemSearchQuery('');
             setOrderSearchQuery('');
             setTemplateSearchQuery('');
             setCategorySearchQuery('');
-            setItemsPage(1);
             setOrdersPage(1);
             setTemplatesPage(1);
             setCategoriesPage(1);
@@ -543,15 +500,7 @@ export default function CreateManufacturingRouteDialog({
         onOpenChange(open);
     };
 
-    const handleItemSelection = (selectedIds: Set<string | number>) => {
-        setSelectedItemId(selectedIds);
-        const selectedId = Array.from(selectedIds)[0];
-        if (selectedId) {
-            setData('item_id', selectedId.toString());
-        } else {
-            setData('item_id', '');
-        }
-    };
+
 
     const handleOrderSelection = (selectedIds: Set<string | number>) => {
         setSelectedOrderId(selectedIds);
@@ -562,17 +511,14 @@ export default function CreateManufacturingRouteDialog({
                 setData({
                     ...data,
                     manufacturing_order_id: order.id.toString(),
-                    item_id: order.item_id?.toString() || '',
+                    item_id: order.item_id?.toString() || '', // Set item_id from the order
                 });
-                // Also update selected item
-                if (order.item_id) {
-                    setSelectedItemId(new Set([order.item_id]));
-                }
             }
         } else {
             setData({
                 ...data,
                 manufacturing_order_id: '',
+                item_id: '', // Clear item_id when no order is selected
             });
         }
     };
@@ -613,7 +559,7 @@ export default function CreateManufacturingRouteDialog({
 
                 <div className="flex-1 flex flex-col overflow-hidden px-6">
                     <div className="flex-1 overflow-y-auto py-2">
-                        {/* Step 1: Route Type Selection */}
+                        {/* Step 1: Route Type Selection with Order/Category */}
                         {currentStep === 1 && (
                             <div className="space-y-6">
                                 <div>
@@ -639,69 +585,35 @@ export default function CreateManufacturingRouteDialog({
                                 </div>
 
                                 {routeType === 'production' && (
-                                    <Alert>
-                                        <Info className="h-4 w-4" />
-                                        <AlertDescription>
-                                            Um roteiro de produção define as etapas de fabricação para uma ordem específica.
-                                            Você pode associá-lo a uma ordem existente ou criar para um item.
-                                        </AlertDescription>
-                                    </Alert>
-                                )}
+                                    <>
+                                        {/* Order Selection */}
+                                        <div>
+                                            <Label className="text-sm font-medium mb-2 block">
+                                                Ordem de Produção
+                                            </Label>
 
-                                {routeType === 'template' && (
-                                    <Alert>
-                                        <Info className="h-4 w-4" />
-                                        <AlertDescription>
-                                            Um template de roteiro pode ser reutilizado para criar rapidamente roteiros
-                                            para ordens de produção de itens da mesma categoria.
-                                        </AlertDescription>
-                                    </Alert>
-                                )}
-                            </div>
-                        )}
+                                            {/* Search Box */}
+                                            <div className="relative mb-4">
+                                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                                <Input
+                                                    type="text"
+                                                    placeholder="Buscar por número da ordem ou item..."
+                                                    value={orderSearchQuery}
+                                                    onChange={(e) => {
+                                                        setOrderSearchQuery(e.target.value);
+                                                        setOrdersPage(1);
+                                                    }}
+                                                    className="pl-10"
+                                                />
+                                            </div>
 
-                        {/* Step 2 for Production Route: Order/Item Selection */}
-                        {currentStep === 2 && routeType === 'production' && (
-                            <div className="space-y-6">
-                                <div>
-                                    <Label className="text-base font-medium mb-2 block">
-                                        Associar roteiro a:
-                                    </Label>
-                                    <p className="text-sm text-muted-foreground mb-4">
-                                        Você pode criar um roteiro para uma ordem de produção existente ou para um item específico.
-                                    </p>
-                                </div>
-
-                                {/* Order Selection */}
-                                <div>
-                                    <Label className="text-sm font-medium mb-2 block">
-                                        Ordem de Produção (opcional)
-                                    </Label>
-
-                                    {/* Search Box */}
-                                    <div className="relative mb-4">
-                                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                        <Input
-                                            type="text"
-                                            placeholder="Buscar por número da ordem ou item..."
-                                            value={orderSearchQuery}
-                                            onChange={(e) => {
-                                                setOrderSearchQuery(e.target.value);
-                                                setOrdersPage(1);
-                                            }}
-                                            className="pl-10"
-                                        />
-                                    </div>
-
-                                    {/* Orders Table */}
-                                    {filteredOrders.length > 0 ? (
-                                        <>
+                                            {/* Orders Table */}
                                             <div className="mb-4">
                                                 <EntityDataTable
                                                     data={paginatedOrders}
                                                     columns={orderColumns}
                                                     loading={false}
-                                                    emptyMessage="Nenhuma ordem liberada encontrada."
+                                                    emptyMessage="Nenhuma ordem de produção em rascunho ou planejada sem roteiro encontrada."
                                                     maxHeight="200px"
                                                     selectable={true}
                                                     selectedRows={selectedOrderId}
@@ -723,189 +635,106 @@ export default function CreateManufacturingRouteDialog({
 
                                             {/* Pagination */}
                                             {filteredOrders.length > ordersPerPage && (
-                                                <div className="mb-4">
-                                                    <EntityPagination
-                                                        pagination={ordersPagination}
-                                                        onPageChange={setOrdersPage}
-                                                        onPerPageChange={(perPage) => {
-                                                            setOrdersPerPage(perPage);
-                                                            setOrdersPage(1);
-                                                        }}
-                                                    />
-                                                </div>
+                                                <EntityPagination
+                                                    pagination={ordersPagination}
+                                                    onPageChange={setOrdersPage}
+                                                    onPerPageChange={(perPage) => {
+                                                        setOrdersPerPage(perPage);
+                                                        setOrdersPage(1);
+                                                    }}
+                                                />
                                             )}
-                                        </>
-                                    ) : (
-                                        <Alert>
-                                            <Info className="h-4 w-4" />
-                                            <AlertDescription>
-                                                Nenhuma ordem de produção liberada sem roteiro encontrada.
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
-                                </div>
 
-                                <div className="relative">
-                                    <div className="absolute inset-0 flex items-center">
-                                        <span className="w-full border-t" />
-                                    </div>
-                                    <div className="relative flex justify-center text-xs uppercase">
-                                        <span className="bg-background px-2 text-muted-foreground">Ou</span>
-                                    </div>
-                                </div>
-
-                                {/* Item Selection */}
-                                <div>
-                                    <Label className="text-sm font-medium mb-2 block">
-                                        Item (opcional)
-                                    </Label>
-
-                                    {/* Search Box */}
-                                    <div className="relative mb-4">
-                                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                        <Input
-                                            type="text"
-                                            placeholder="Buscar por número, nome ou categoria..."
-                                            value={itemSearchQuery}
-                                            onChange={(e) => {
-                                                setItemSearchQuery(e.target.value);
-                                                setItemsPage(1);
-                                            }}
-                                            className="pl-10"
-                                        />
-                                    </div>
-
-                                    {/* Items Table */}
-                                    <div className="mb-4">
-                                        <EntityDataTable
-                                            data={paginatedItems}
-                                            columns={itemColumns}
-                                            loading={false}
-                                            emptyMessage="Nenhum item encontrado."
-                                            maxHeight="200px"
-                                            selectable={true}
-                                            selectedRows={selectedItemId}
-                                            onSelectionChange={handleItemSelection}
-                                            getRowId={(item) => (item as Item).id}
-                                            onRowClick={(item) => {
-                                                const itemId = (item as Item).id;
-                                                const newSelection = new Set(selectedItemId);
-                                                if (newSelection.has(itemId)) {
-                                                    newSelection.delete(itemId);
-                                                } else {
-                                                    newSelection.clear();
-                                                    newSelection.add(itemId);
-                                                }
-                                                handleItemSelection(newSelection);
-                                            }}
-                                        />
-                                    </div>
-
-                                    {/* Pagination */}
-                                    {filteredItems.length > itemsPerPage && (
-                                        <EntityPagination
-                                            pagination={itemsPagination}
-                                            onPageChange={setItemsPage}
-                                            onPerPageChange={(perPage) => {
-                                                setItemsPerPage(perPage);
-                                                setItemsPage(1);
-                                            }}
-                                        />
-                                    )}
-                                </div>
-
-                                {errors.manufacturing_order_id && (
-                                    <InputError message={errors.manufacturing_order_id} className="mt-2" />
+                                            {errors.manufacturing_order_id && (
+                                                <InputError message={errors.manufacturing_order_id} className="mt-2" />
+                                            )}
+                                        </div>
+                                    </>
                                 )}
-                                {errors.item_id && (
-                                    <InputError message={errors.item_id} className="mt-2" />
+
+                                {routeType === 'template' && (
+                                    <>
+                                        {/* Category Selection */}
+                                        <div>
+                                            <Label className="text-sm font-medium mb-2 block">
+                                                Categoria do Item (opcional)
+                                            </Label>
+
+                                            {/* Search Box */}
+                                            <div className="relative mb-4">
+                                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                                <Input
+                                                    type="text"
+                                                    placeholder="Buscar por nome ou descrição..."
+                                                    value={categorySearchQuery}
+                                                    onChange={(e) => {
+                                                        setCategorySearchQuery(e.target.value);
+                                                        setCategoriesPage(1);
+                                                    }}
+                                                    className="pl-10"
+                                                />
+                                            </div>
+
+                                            {/* Categories Table */}
+                                            <div className="mb-4">
+                                                <EntityDataTable
+                                                    data={paginatedCategories}
+                                                    columns={categoryColumns}
+                                                    loading={false}
+                                                    emptyMessage="Nenhuma categoria encontrada."
+                                                    maxHeight="200px"
+                                                    selectable={true}
+                                                    selectedRows={selectedCategoryId}
+                                                    onSelectionChange={handleCategorySelection}
+                                                    getRowId={(category) => (category as ItemCategory).id}
+                                                    onRowClick={(category) => {
+                                                        const categoryId = (category as ItemCategory).id;
+                                                        const newSelection = new Set(selectedCategoryId);
+                                                        if (newSelection.has(categoryId)) {
+                                                            newSelection.delete(categoryId);
+                                                        } else {
+                                                            newSelection.clear();
+                                                            newSelection.add(categoryId);
+                                                        }
+                                                        handleCategorySelection(newSelection);
+                                                    }}
+                                                />
+                                            </div>
+
+                                            {/* Pagination */}
+                                            {filteredCategories.length > categoriesPerPage && (
+                                                <EntityPagination
+                                                    pagination={categoriesPagination}
+                                                    onPageChange={setCategoriesPage}
+                                                    onPerPageChange={(perPage) => {
+                                                        setCategoriesPerPage(perPage);
+                                                        setCategoriesPage(1);
+                                                    }}
+                                                />
+                                            )}
+
+                                            {data.item_category_id && (
+                                                <Alert>
+                                                    <Info className="h-4 w-4" />
+                                                    <AlertDescription>
+                                                        Este template só poderá ser usado para criar roteiros de itens da categoria selecionada.
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
+
+                                            {errors.item_category_id && (
+                                                <InputError message={errors.item_category_id} className="mt-2" />
+                                            )}
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         )}
 
-                        {/* Step 2 for Template: Category Selection */}
-                        {currentStep === 2 && routeType === 'template' && (
-                            <div className="space-y-6">
-                                <div>
-                                    <Label className="text-base font-medium mb-2 block">
-                                        Categoria do Item (opcional)
-                                    </Label>
-                                    <p className="text-sm text-muted-foreground mb-4">
-                                        Selecione uma categoria para limitar o uso deste template a itens dessa categoria.
-                                        Deixe em branco para permitir uso em qualquer categoria.
-                                    </p>
-                                </div>
 
-                                {/* Search Box */}
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        type="text"
-                                        placeholder="Buscar por nome ou descrição..."
-                                        value={categorySearchQuery}
-                                        onChange={(e) => {
-                                            setCategorySearchQuery(e.target.value);
-                                            setCategoriesPage(1);
-                                        }}
-                                        className="pl-10"
-                                    />
-                                </div>
 
-                                {/* Categories Table */}
-                                <div className="mb-4">
-                                    <EntityDataTable
-                                        data={paginatedCategories}
-                                        columns={categoryColumns}
-                                        loading={false}
-                                        emptyMessage="Nenhuma categoria encontrada."
-                                        maxHeight="350px"
-                                        selectable={true}
-                                        selectedRows={selectedCategoryId}
-                                        onSelectionChange={handleCategorySelection}
-                                        getRowId={(category) => (category as ItemCategory).id}
-                                        onRowClick={(category) => {
-                                            const categoryId = (category as ItemCategory).id;
-                                            const newSelection = new Set(selectedCategoryId);
-                                            if (newSelection.has(categoryId)) {
-                                                newSelection.delete(categoryId);
-                                            } else {
-                                                newSelection.clear();
-                                                newSelection.add(categoryId);
-                                            }
-                                            handleCategorySelection(newSelection);
-                                        }}
-                                    />
-                                </div>
-
-                                {/* Pagination */}
-                                {filteredCategories.length > categoriesPerPage && (
-                                    <EntityPagination
-                                        pagination={categoriesPagination}
-                                        onPageChange={setCategoriesPage}
-                                        onPerPageChange={(perPage) => {
-                                            setCategoriesPerPage(perPage);
-                                            setCategoriesPage(1);
-                                        }}
-                                    />
-                                )}
-
-                                {data.item_category_id && (
-                                    <Alert>
-                                        <Info className="h-4 w-4" />
-                                        <AlertDescription>
-                                            Este template só poderá ser usado para criar roteiros de itens da categoria selecionada.
-                                        </AlertDescription>
-                                    </Alert>
-                                )}
-
-                                {errors.item_category_id && (
-                                    <InputError message={errors.item_category_id} className="mt-2" />
-                                )}
-                            </div>
-                        )}
-
-                        {/* Step 3 for Production Route: Template Selection */}
-                        {currentStep === 3 && routeType === 'production' && (
+                        {/* Step 2 for Production Route: Template Selection */}
+                        {currentStep === 2 && routeType === 'production' && (
                             <div className="space-y-6">
                                 <div>
                                     <Label className="text-base font-medium mb-2 block">
@@ -990,7 +819,7 @@ export default function CreateManufacturingRouteDialog({
                         )}
 
                         {/* Last Step: Route Details */}
-                        {((currentStep === 4 && routeType === 'production') || (currentStep === 3 && routeType === 'template')) && (
+                        {((currentStep === 3 && routeType === 'production') || (currentStep === 2 && routeType === 'template')) && (
                             <ScrollArea className="h-full">
                                 <div className="space-y-6 pr-4">
                                     {/* Nome do Roteiro */}
@@ -1024,7 +853,7 @@ export default function CreateManufacturingRouteDialog({
                                             checked={data.is_active}
                                             onCheckedChange={(checked) => {
                                                 if (typeof checked === 'boolean') {
-                                                    setData('is_active', checked === true);
+                                                    setData('is_active', checked);
                                                 }
                                             }}
                                         />
@@ -1035,21 +864,23 @@ export default function CreateManufacturingRouteDialog({
 
                                     {/* Summary */}
                                     <div className="rounded-lg border p-4 space-y-2">
-                                        <h4 className="font-medium text-sm">Resumo da Configuração</h4>
+                                        <h4 className="font-medium text-sm">Resumo do Roteiro</h4>
 
                                         {routeType === 'production' && (
                                             <>
                                                 {selectedOrder && (
-                                                    <div className="text-sm">
-                                                        <span className="text-muted-foreground">Ordem:</span>{' '}
-                                                        <span className="font-medium">{selectedOrder.order_number}</span>
-                                                    </div>
-                                                )}
-                                                {selectedItem && (
-                                                    <div className="text-sm">
-                                                        <span className="text-muted-foreground">Item:</span>{' '}
-                                                        <span className="font-medium">{selectedItem.item_number} - {selectedItem.name}</span>
-                                                    </div>
+                                                    <>
+                                                        <div className="text-sm">
+                                                            <span className="text-muted-foreground">Ordem:</span>{' '}
+                                                            <span className="font-medium">{selectedOrder.order_number}</span>
+                                                        </div>
+                                                        {selectedOrder.item && (
+                                                            <div className="text-sm">
+                                                                <span className="text-muted-foreground">Item:</span>{' '}
+                                                                <span className="font-medium">{selectedOrder.item.item_number} - {selectedOrder.item.name}</span>
+                                                            </div>
+                                                        )}
+                                                    </>
                                                 )}
                                                 {data.template_source_id && (
                                                     <div className="text-sm">
@@ -1066,16 +897,26 @@ export default function CreateManufacturingRouteDialog({
                                             <>
                                                 <div className="text-sm">
                                                     <span className="text-muted-foreground">Tipo:</span>{' '}
-                                                    <span className="font-medium">Template de Roteiro</span>
+                                                    <span className="font-medium">Template</span>
                                                 </div>
-                                                {data.item_category_id && (
-                                                    <div className="text-sm">
-                                                        <span className="text-muted-foreground">Categoria:</span>{' '}
-                                                        <span className="font-medium">
-                                                            {itemCategories.find(c => c.id === parseInt(data.item_category_id))?.name || '-'}
-                                                        </span>
-                                                    </div>
-                                                )}
+                                                {data.item_category_id && (() => {
+                                                    const category = itemCategories.find(c => c.id === parseInt(data.item_category_id));
+                                                    return (
+                                                        <div className="space-y-1">
+                                                            <div className="text-sm">
+                                                                <span className="text-muted-foreground">Categoria:</span>{' '}
+                                                                <span className="font-medium">{category?.name || '-'}</span>
+                                                            </div>
+                                                            {category?.description && (
+
+                                                                <div className="text-sm">
+                                                                    <span className="text-muted-foreground">Descrição:</span>{' '}
+                                                                    <span className="font-medium">{category?.description || '-'}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </>
                                         )}
                                     </div>

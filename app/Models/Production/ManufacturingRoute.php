@@ -40,7 +40,19 @@ class ManufacturingRoute extends Model
         static::saving(function ($route) {
             // Ensure consistency between is_template and manufacturing_order_id
             if ($route->is_template) {
+                // Templates should not have manufacturing_order_id or direct item_id
                 $route->manufacturing_order_id = null;
+                $route->item_id = null;
+            } else {
+                // Production routes must have manufacturing_order_id
+                if (!$route->manufacturing_order_id) {
+                    throw new \InvalidArgumentException('Production routes must be associated with a manufacturing order.');
+                }
+                
+                // Automatically set item_id from manufacturing order if not already set
+                if (!$route->item_id && $route->manufacturingOrder && $route->manufacturingOrder->item_id) {
+                    $route->item_id = $route->manufacturingOrder->item_id;
+                }
             }
         });
     }

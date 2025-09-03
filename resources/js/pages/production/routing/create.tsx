@@ -93,7 +93,7 @@ export default function CreateRouting({ items, orders }: Props) {
                             <div className="space-y-2">
                                 <ItemSelect
                                     label="Ordem de Produção"
-                                    items={orders.filter(order => order.status === 'released').map(order => ({
+                                    items={orders.filter(order => order.status === 'draft' || order.status === 'planned').map(order => ({
                                         id: order.id,
                                         name: `${order.order_number} - ${order.item?.name || 'Item'}`
                                     }))}
@@ -103,7 +103,7 @@ export default function CreateRouting({ items, orders }: Props) {
                                     error={errors.manufacturing_order_id}
                                 />
                                 <p className="text-sm text-muted-foreground">
-                                    Apenas ordens liberadas podem receber roteiros
+                                    Apenas ordens em rascunho ou planejadas podem receber roteiros
                                 </p>
                             </div>
                             {/* Status Ativo */}

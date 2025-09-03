@@ -1,13 +1,26 @@
+import React, { useState, useEffect } from 'react';
 import { type BreadcrumbItem } from '@/types';
 import { type WorkCell, type ManufacturingStep, type ProductionSchedule } from '@/types/production';
 import { Head, Link, router } from '@inertiajs/react';
-import { Factory, Clock, Calendar, Gauge } from 'lucide-react';
-import WorkCellFormComponent from '@/components/production/WorkCellFormComponent';
+import { Factory, Clock, Gauge, Building2, Infinity as InfinityIcon, CheckCircle2, XCircle, Info, Pencil, Save, X } from 'lucide-react';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
+import { TextInput } from '@/components/TextInput';
+import { ItemSelect } from '@/components/ItemSelect';
+import { useForm } from '@inertiajs/react';
+import { createFormAdapter } from '@/utils/form-adapters';
+import StateButton from '@/components/StateButton';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 interface Props {
     workCell: WorkCell & {
         plant?: { id: number; name: string };
@@ -21,6 +34,13 @@ interface Props {
     sectors: { id: number; name: string }[];
     shifts: { id: number; name: string }[];
     manufacturers: { id: number; name: string }[];
+    unitsOfMeasure?: {
+        id: number;
+        code: string;
+        name: string;
+        symbol?: string;
+        uom_type: 'COUNT' | 'MASS' | 'LENGTH' | 'AREA' | 'VOLUME' | 'TIME';
+    }[];
     routingSteps: {
         data: ManufacturingStep[];
         current_page: number;
@@ -35,7 +55,7 @@ interface Props {
         per_page: number;
         total: number;
     };
-    utilization: number;
+
     activeTab: string;
     filters: {
         steps: {
@@ -48,16 +68,33 @@ interface Props {
         };
     };
 }
+
+
+
+function StatCard({ label, value, icon: Icon, className }: { label: string; value: string | number | null | undefined; icon: React.ElementType; className?: string }) {
+    return (
+        <div className="flex items-center gap-4 rounded-lg border p-4">
+            <div className={cn("p-2 rounded-lg", className)}>
+                <Icon className="h-5 w-5" />
+            </div>
+            <div>
+                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className="text-2xl font-bold">{value || '—'}</p>
+            </div>
+        </div>
+    );
+}
 export default function Show({
     workCell,
-    plants,
-    areas,
-    sectors,
-    shifts,
-    manufacturers,
+    plants: _plants,
+    areas: _areas,
+    sectors: _sectors,
+    shifts: _shifts,
+    manufacturers: _manufacturers,
+    unitsOfMeasure: _unitsOfMeasure = [],
     routingSteps,
     productionSchedules,
-    utilization,
+
     activeTab,
     filters
 }: Props) {
@@ -79,6 +116,106 @@ export default function Show({
             href: '#',
         },
     ];
+
+    // Add state for edit mode
+    const [mode, setMode] = useState<'view' | 'edit'>('view');
+    const isViewMode = mode === 'view';
+
+    // State for dynamic areas and sectors
+    const [areas, setAreas] = useState<{ id: number; name: string }[]>(_areas);
+    const [sectors, setSectors] = useState<{ id: number; name: string }[]>(_sectors);
+
+    // Create form instance
+    const { data, setData, put, processing, errors, clearErrors, reset } = useForm({
+        name: workCell.name || '',
+        description: workCell.description || '',
+        cell_type: workCell.cell_type || 'internal',
+        has_finite_capacity: workCell.has_finite_capacity ?? true,
+        default_production_rate_per_hour: workCell.default_production_rate_per_hour?.toString() || '',
+        default_unit_of_measure: workCell.default_unit_of_measure || 'PC',
+        default_setup_time_minutes: workCell.default_setup_time_minutes?.toString() || '0',
+        max_parallel_executions: workCell.max_parallel_executions?.toString() || '1',
+        shift_id: workCell.shift_id?.toString() || '',
+        plant_id: workCell.plant_id?.toString() || '',
+        area_id: workCell.area_id?.toString() || '',
+        sector_id: workCell.sector_id?.toString() || '',
+        manufacturer_id: workCell.manufacturer_id?.toString() || '',
+        is_active: workCell.is_active ?? true,
+    });
+
+    // Create form adapter for TextInput components
+    const form = createFormAdapter({
+        data: data,
+        setData: setData,
+        errors: errors,
+        clearErrors: clearErrors
+    });
+
+    // Group units of measure by type
+    const uomByType = React.useMemo(() => {
+        const grouped: Record<string, typeof _unitsOfMeasure> = {};
+        _unitsOfMeasure.forEach(uom => {
+            if (!grouped[uom.uom_type]) {
+                grouped[uom.uom_type] = [];
+            }
+            grouped[uom.uom_type].push(uom);
+        });
+        return grouped;
+    }, [_unitsOfMeasure]);
+
+    // Fetch areas when plant changes in edit mode
+    useEffect(() => {
+        if (data.plant_id && mode === 'edit') {
+            fetch(route('production.work-cells.get-areas', { plant: data.plant_id }))
+                .then(response => response.json())
+                .then(fetchedAreas => setAreas(fetchedAreas))
+                .catch(error => console.error('Error fetching areas:', error));
+        } else if (!data.plant_id) {
+            setAreas([]);
+            setSectors([]);
+        }
+    }, [data.plant_id, mode]);
+
+    // Fetch sectors when area changes in edit mode
+    useEffect(() => {
+        if (data.area_id && mode === 'edit') {
+            fetch(route('production.work-cells.get-sectors', { area: data.area_id }))
+                .then(response => response.json())
+                .then(fetchedSectors => setSectors(fetchedSectors))
+                .catch(error => console.error('Error fetching sectors:', error));
+        } else if (!data.area_id) {
+            setSectors([]);
+        }
+    }, [data.area_id, mode]);
+
+    const handleEdit = () => {
+        setMode('edit');
+    };
+
+    const handleCancel = () => {
+        reset();
+        setMode('view');
+        // Reset areas and sectors to original values
+        setAreas(_areas);
+        setSectors(_sectors);
+    };
+
+    const handleSave = () => {
+        put(route('production.work-cells.update', workCell.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Célula de trabalho atualizada com sucesso!');
+                setMode('view');
+                router.reload();
+            },
+            onError: () => {
+                toast.error('Erro ao atualizar célula de trabalho');
+            },
+        });
+    };
+
+
+
     const handleSort = (section: 'steps' | 'schedules', column: string) => {
         const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
         router.get(
@@ -122,28 +259,476 @@ export default function Show({
                 )}
             </span>
             <span className="text-muted-foreground">•</span>
-            <span className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                <span>{utilization}% utilização</span>
-            </span>
+
         </span>
     );
     const tabs = [
         {
-            id: 'informacoes',
-            label: 'Informações Gerais',
+            id: 'overview',
+            label: 'Overview',
             content: (
-                <div className="py-8">
-                    <WorkCellFormComponent
-                        workCell={workCell}
-                        plants={plants}
-                        areas={areas}
-                        sectors={sectors}
-                        shifts={shifts}
-                        manufacturers={manufacturers}
-                        initialMode="view"
-                        onSuccess={() => router.reload()}
-                    />
+                <div className="space-y-6 py-6">
+                    {/* Statistics Cards */}
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <StatCard
+                                label="Taxa de Produção"
+                                value={workCell.default_production_rate_per_hour ? `${workCell.default_production_rate_per_hour} ${workCell.default_unit_of_measure}/h` : '—'}
+                                icon={Gauge}
+                                className="bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                            />
+                            <StatCard
+                                label="Tempo de Setup"
+                                value={workCell.default_setup_time_minutes ? `${workCell.default_setup_time_minutes} min` : '—'}
+                                icon={Clock}
+                                className="bg-orange-100 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400"
+                            />
+                            <StatCard
+                                label="Execuções Paralelas"
+                                value={workCell.max_parallel_executions || 1}
+                                icon={Factory}
+                                className="bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Basic Information */}
+                    <div className="grid grid-cols-3 gap-4">
+                        <TextInput
+                            form={form}
+                            name="name"
+                            label="Nome da Célula"
+                            placeholder="Nome da célula de trabalho"
+                            view={isViewMode}
+                            required
+                            disabled={processing}
+                        />
+                        <div className="col-span-2">
+                            <TextInput
+                                form={form}
+                                name="description"
+                                label="Descrição"
+                                placeholder="Sem descrição"
+                                view={isViewMode}
+                                disabled={processing}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Cell Type Configuration */}
+                    <div className="space-y-4">
+                        <div>
+                            <h3 className="text-lg font-semibold mb-2">Tipo de Célula</h3>
+
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <StateButton
+                                    icon={Building2}
+                                    title="Célula Interna"
+                                    description="Célula de trabalho operada internamente pela empresa"
+                                    selected={isViewMode ? workCell.cell_type === 'internal' : data.cell_type === 'internal'}
+                                    onClick={() => {
+                                        if (!isViewMode) {
+                                            setData('cell_type', 'internal');
+                                            // Clear manufacturer when switching to internal
+                                            setData('manufacturer_id', '');
+                                        }
+                                    }}
+                                    disabled={isViewMode || processing}
+                                />
+                                <StateButton
+                                    icon={Factory}
+                                    title="Célula Externa"
+                                    description="Célula de trabalho operada por um fornecedor externo"
+                                    selected={isViewMode ? workCell.cell_type === 'external' : data.cell_type === 'external'}
+                                    onClick={() => {
+                                        if (!isViewMode) {
+                                            setData('cell_type', 'external');
+                                            // Clear location fields when switching to external
+                                            setData('plant_id', '');
+                                            setData('area_id', '');
+                                            setData('sector_id', '');
+                                        }
+                                    }}
+                                    disabled={isViewMode || processing}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Location Information (for internal cells) */}
+                    {(isViewMode ? workCell.cell_type === 'internal' : data.cell_type === 'internal') && (
+                        <>
+                            <div className="space-y-4">
+                                {isViewMode ? (
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="grid gap-2">
+                                            <label className="text-sm font-medium">Planta</label>
+                                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                                {workCell.plant ? (
+                                                    <span className="font-medium">{workCell.plant.name}</span>
+                                                ) : '—'}
+                                            </div>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <label className="text-sm font-medium">Área</label>
+                                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                                {workCell.area ? (
+                                                    <span className="font-medium">{workCell.area.name}</span>
+                                                ) : '—'}
+                                            </div>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <label className="text-sm font-medium">Setor</label>
+                                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                                {workCell.sector ? (
+                                                    <span className="font-medium">{workCell.sector.name}</span>
+                                                ) : '—'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <ItemSelect
+                                            label="Planta"
+                                            items={_plants}
+                                            value={data.plant_id}
+                                            onValueChange={(value) => {
+                                                setData('plant_id', value);
+                                                // Clear dependent fields
+                                                setData('area_id', '');
+                                                setData('sector_id', '');
+                                            }}
+                                            placeholder="Selecione uma planta"
+                                            error={errors.plant_id}
+                                            canClear
+                                        />
+                                        <ItemSelect
+                                            label="Área"
+                                            items={areas}
+                                            value={data.area_id}
+                                            onValueChange={(value) => {
+                                                setData('area_id', value);
+                                                // Clear dependent field
+                                                setData('sector_id', '');
+                                            }}
+                                            placeholder={data.plant_id ? "Selecione uma área" : "Selecione uma planta primeiro"}
+                                            error={errors.area_id}
+                                            canClear
+                                            disabled={!data.plant_id}
+                                        />
+                                        <ItemSelect
+                                            label="Setor"
+                                            items={sectors}
+                                            value={data.sector_id}
+                                            onValueChange={(value) => setData('sector_id', value)}
+                                            placeholder={data.area_id ? "Selecione um setor" : "Selecione uma área primeiro"}
+                                            error={errors.sector_id}
+                                            canClear
+                                            disabled={!data.area_id}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {/* Manufacturer Information (for external cells) */}
+                    {(isViewMode ? workCell.cell_type === 'external' : data.cell_type === 'external') && (
+                        <>
+                            <div className="space-y-4">
+                                {isViewMode ? (
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="grid gap-2">
+                                            <label className="text-sm font-medium">Nome do Fabricante</label>
+                                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                                {workCell.manufacturer ? (
+                                                    <span className="font-medium">{workCell.manufacturer.name}</span>
+                                                ) : '—'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <ItemSelect
+                                            label="Fabricante"
+                                            items={_manufacturers}
+                                            value={data.manufacturer_id}
+                                            onValueChange={(value) => setData('manufacturer_id', value)}
+                                            placeholder="Selecione um fabricante"
+                                            error={errors.manufacturer_id}
+                                            required
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {/* Capacity Configuration */}
+                    <Separator />
+                    <div className="space-y-4">
+                        <div>
+                            <h3 className="text-lg font-semibold mb-2">Configuração de Capacidade</h3>
+                            <p className="text-sm text-muted-foreground mb-4">
+                                Define as limitações de capacidade e taxa de produção da célula.
+                            </p>
+
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <StateButton
+                                    icon={InfinityIcon}
+                                    title="Capacidade Infinita"
+                                    description="A célula tem capacidade ilimitada (ex: operações terceirizadas)"
+                                    selected={isViewMode ? !workCell.has_finite_capacity : !data.has_finite_capacity}
+                                    onClick={() => {
+                                        if (!isViewMode) {
+                                            setData('has_finite_capacity', false);
+                                            // Clear finite capacity fields
+                                            setData('shift_id', '');
+                                            setData('default_production_rate_per_hour', '');
+                                            setData('default_setup_time_minutes', '0');
+                                            setData('max_parallel_executions', '1');
+                                        }
+                                    }}
+                                    disabled={isViewMode || processing}
+                                />
+                                <StateButton
+                                    icon={Building2}
+                                    title="Capacidade Finita"
+                                    description="A célula tem limitações de capacidade baseadas em turnos e taxas de produção"
+                                    selected={isViewMode ? workCell.has_finite_capacity : data.has_finite_capacity}
+                                    onClick={() => {
+                                        if (!isViewMode) {
+                                            setData('has_finite_capacity', true);
+                                        }
+                                    }}
+                                    disabled={isViewMode || processing}
+                                />
+                            </div>
+
+                        </div>
+
+                        {(isViewMode ? workCell.has_finite_capacity : data.has_finite_capacity) && (
+                            <>
+                                <div className="space-y-4">
+                                    {isViewMode ? (
+                                        <div className="grid grid-cols-4 gap-4">
+                                            <div className="grid gap-2">
+                                                <label className="text-sm font-medium">Turno</label>
+                                                <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                                    {workCell.shift ? (
+                                                        <span className="font-medium">{workCell.shift.name}</span>
+                                                    ) : '—'}
+                                                </div>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <label className="text-sm font-medium">Taxa de Produção</label>
+                                                <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                                    <span className="font-medium">
+                                                        {workCell.default_production_rate_per_hour || '—'} {workCell.default_unit_of_measure}/hora
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <label className="text-sm font-medium">Tempo de Setup</label>
+                                                <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                                    <span className="font-medium">
+                                                        {workCell.default_setup_time_minutes || 0} minutos
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <label className="text-sm font-medium">Execuções Paralelas</label>
+                                                <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                                    <span className="font-medium">
+                                                        {workCell.max_parallel_executions || 1} operações simultâneas
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <ItemSelect
+                                                label="Turno"
+                                                items={_shifts}
+                                                value={data.shift_id}
+                                                onValueChange={(value) => setData('shift_id', value)}
+                                                placeholder="Selecione um turno"
+                                                error={errors.shift_id}
+                                                required
+                                                canClear
+                                            />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="flex items-end gap-2">
+                                                    <div className="flex-1">
+                                                        <TextInput
+                                                            form={form}
+                                                            name="default_production_rate_per_hour"
+                                                            label="Taxa Padrão de Produção"
+                                                            placeholder="100"
+                                                            disabled={processing}
+                                                            helperText="Unidades por hora"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor="default_unit_of_measure">Unidade de Medida</Label>
+                                                    <Select
+                                                        value={data.default_unit_of_measure}
+                                                        onValueChange={(value) => setData('default_unit_of_measure', value)}
+                                                        disabled={processing}
+                                                    >
+                                                        <SelectTrigger className="w-full">
+                                                            <SelectValue placeholder="Selecione uma unidade" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {Object.entries(uomByType).map(([type, units]) => (
+                                                                <SelectGroup key={type}>
+                                                                    <SelectLabel>
+                                                                        {type === 'COUNT' ? 'Contagem' :
+                                                                            type === 'MASS' ? 'Massa' :
+                                                                                type === 'LENGTH' ? 'Comprimento' :
+                                                                                    type === 'AREA' ? 'Área' :
+                                                                                        type === 'VOLUME' ? 'Volume' :
+                                                                                            type === 'TIME' ? 'Tempo' : type}
+                                                                    </SelectLabel>
+                                                                    {units.map((uom) => (
+                                                                        <SelectItem key={uom.id} value={uom.code}>
+                                                                            {uom.code} - {uom.name}
+                                                                            {uom.symbol && ` (${uom.symbol})`}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectGroup>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    {errors.default_unit_of_measure && (
+                                                        <p className="text-sm text-red-600 mt-1">{errors.default_unit_of_measure}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <TextInput
+                                                    form={form}
+                                                    name="default_setup_time_minutes"
+                                                    label="Tempo Padrão de Setup"
+                                                    placeholder="30"
+                                                    type="number"
+                                                    min="0"
+                                                    max="9999"
+                                                    disabled={processing}
+                                                    helperText="Tempo em minutos"
+                                                />
+                                                <TextInput
+                                                    form={form}
+                                                    name="max_parallel_executions"
+                                                    label="Execuções Paralelas Máximas"
+                                                    placeholder="1"
+                                                    type="number"
+                                                    min="1"
+                                                    max="999"
+                                                    required
+                                                    disabled={processing}
+                                                    helperText="Operações simultâneas"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Unit of Measure Information */}
+                                <Alert>
+                                    <Info className="h-4 w-4" />
+                                    <AlertDescription>
+                                        A unidade de medida padrão ({workCell.default_unit_of_measure}) é usada para calcular
+                                        a capacidade e utilização da célula. Diferentes produtos podem usar diferentes unidades
+                                        de medida, mas serão convertidos para a unidade padrão da célula.
+                                    </AlertDescription>
+                                </Alert>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Status Configuration */}
+                    <Separator />
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold mb-3">Status da Célula</h3>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <StateButton
+                                icon={CheckCircle2}
+                                title="Ativa"
+                                description="Célula de trabalho está ativa e disponível para uso"
+                                selected={isViewMode ? workCell.is_active : data.is_active}
+                                onClick={() => {
+                                    if (!isViewMode) {
+                                        setData('is_active', true);
+                                    }
+                                }}
+                                disabled={isViewMode || processing}
+                                variant="green"
+                            />
+                            <StateButton
+                                icon={XCircle}
+                                title="Inativa"
+                                description="Célula de trabalho está inativa e não disponível para uso"
+                                selected={isViewMode ? !workCell.is_active : !data.is_active}
+                                onClick={() => {
+                                    if (!isViewMode) {
+                                        setData('is_active', false);
+                                    }
+                                }}
+                                disabled={isViewMode || processing}
+                                variant="red"
+                            />
+                        </div>
+
+                        {(isViewMode ? !workCell.is_active : !data.is_active) && (
+                            <Alert variant="destructive" className="mt-4">
+                                <XCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                    Esta célula está inativa e não pode ser usada em novos roteiros ou agendamentos.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center justify-end gap-2 pt-4">
+                        {isViewMode ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleEdit}
+                            >
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                            </Button>
+                        ) : (
+                            <>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleCancel}
+                                    disabled={processing}
+                                >
+                                    <X className="mr-2 h-4 w-4" />
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={handleSave}
+                                    disabled={processing}
+                                >
+                                    <Save className="mr-2 h-4 w-4" />
+                                    {processing ? 'Salvando...' : 'Salvar'}
+                                </Button>
+                            </>
+                        )}
+                    </div>
                 </div>
             ),
         },
@@ -334,8 +919,8 @@ export default function Show({
             <ShowLayout
                 title={workCell.name}
                 subtitle={subtitle}
-                editRoute={route('production.work-cells.edit', workCell.id)}
                 tabs={tabs}
+                editRoute=""
             />
         </AppLayout>
     );

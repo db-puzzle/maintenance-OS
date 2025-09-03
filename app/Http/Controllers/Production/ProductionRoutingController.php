@@ -54,7 +54,7 @@ class ProductionRoutingController extends Controller
             // Data for create dialog
             'items' => Item::where('is_active', true)->orderBy('item_number')->get(),
             'orders' => ManufacturingOrder::with('item')
-                ->whereIn('status', ['released'])
+                ->whereIn('status', ['draft', 'planned'])
                 ->whereDoesntHave('manufacturingRoute')
                 ->orderBy('order_number')
                 ->get(),
@@ -78,7 +78,7 @@ class ProductionRoutingController extends Controller
             'order' => $order,
             'items' => Item::where('is_active', true)->orderBy('item_number')->get(),
             'orders' => ManufacturingOrder::with('item')
-                ->whereIn('status', ['released'])
+                ->whereIn('status', ['draft', 'planned'])
                 ->whereDoesntHave('manufacturingRoute')
                 ->orderBy('order_number')
                 ->get(),
@@ -96,7 +96,6 @@ class ProductionRoutingController extends Controller
 
         $validated = $request->validate([
             'manufacturing_order_id' => 'nullable|exists:manufacturing_orders,id',
-            'item_id' => 'nullable|exists:items,id',
             'template_source_id' => 'nullable|exists:manufacturing_routes,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -104,14 +103,39 @@ class ProductionRoutingController extends Controller
             'item_category_id' => 'nullable|exists:item_categories,id',
         ]);
 
+        // Remove item_id if sent from frontend (backward compatibility)
+        unset($validated['item_id']);
+
         // Additional validation logic
-        if (empty($validated['is_template']) || !$validated['is_template']) {
-            // For production routes, either manufacturing_order_id or item_id is required
-            if (empty($validated['manufacturing_order_id']) && empty($validated['item_id'])) {
-                return back()->withErrors(['item_id' => 'Either a manufacturing order or an item must be selected.']);
+        if (empty($validated['is_template']) || ! $validated['is_template']) {
+            // For production routes, manufacturing_order_id is required
+            if (empty($validated['manufacturing_order_id'])) {
+                return back()->withErrors(['manufacturing_order_id' => 'A manufacturing order must be selected for production routes.']);
+            }
+
+            // Get item_id from the manufacturing order
+            $order = ManufacturingOrder::find($validated['manufacturing_order_id']);
+            if (! $order) {
+                return back()->withErrors(['manufacturing_order_id' => 'Manufacturing order not found.']);
+            }
+
+            // Validate that the order is in draft or planned status
+            if (! in_array($order->status, ['draft', 'planned'])) {
+                return back()->withErrors(['manufacturing_order_id' => 'Routes can only be created for orders in draft or planned status.']);
+            }
+
+            // Check if order already has a route
+            if ($order->manufacturingRoute()->exists()) {
+                return back()->withErrors(['manufacturing_order_id' => 'This order already has a manufacturing route.']);
+            }
+
+            if ($order->item_id) {
+                $validated['item_id'] = $order->item_id;
+            } else {
+                $validated['item_id'] = null;
             }
         } else {
-            // For templates, item_id should be null
+            // For templates, ensure no manufacturing_order_id or item_id
             $validated['item_id'] = null;
             $validated['manufacturing_order_id'] = null;
         }
@@ -129,6 +153,7 @@ class ProductionRoutingController extends Controller
                     $routing->createFromTemplate($template);
                 }
             }
+
             return $routing;
         });
 

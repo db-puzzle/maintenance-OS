@@ -161,10 +161,6 @@ class WorkCellController extends BaseSearchController
         // Temporary empty collection until ProductionSchedule model is created
         $productionSchedules = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 
-        // Calculate utilization for today
-        $today = now();
-        $utilization = $workCell->getUtilizationOnDate($today);
-
         // Get all plants for editing
         $plants = Plant::orderBy('name')->get(['id', 'name']);
         $shifts = Shift::orderBy('name')->get(['id', 'name']);
@@ -188,7 +184,6 @@ class WorkCellController extends BaseSearchController
             'workCell' => $workCell,
             'routingSteps' => $routingSteps,
             'productionSchedules' => $productionSchedules,
-            'utilization' => $utilization,
             'plants' => $plants,
             'areas' => $areas,
             'sectors' => $sectors,

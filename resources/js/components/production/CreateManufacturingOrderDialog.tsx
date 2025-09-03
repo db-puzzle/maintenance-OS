@@ -938,16 +938,6 @@ export default function CreateManufacturingOrderDialog({
                         {currentStep === 5 && data.order_type === 'bom' && (
                             <ScrollArea className="h-full">
                                 <div className="space-y-6 pr-4">
-                                    {/* Add inheritance info alert */}
-                                    <Alert>
-                                        <Info className="h-4 w-4" />
-                                        <AlertDescription>
-                                            A configuração de liberação selecionada será replicada automaticamente
-                                            para todas as ordens filhas. Você poderá ajustar individualmente
-                                            durante o planejamento, antes da liberação das ordens.
-                                        </AlertDescription>
-                                    </Alert>
-
                                     <div>
                                         <h3 className="font-medium mb-2">Liberação da Ordem-Pai</h3>
                                         <p className="text-sm text-muted-foreground mb-6">
@@ -971,6 +961,17 @@ export default function CreateManufacturingOrderDialog({
                                             />
                                         </div>
                                     </div>
+
+                                    {/* Add inheritance info alert */}
+                                    <Alert>
+                                        <Info className="h-4 w-4" />
+                                        <AlertDescription>
+                                            A configuração de liberação selecionada será replicada automaticamente
+                                            para todas as ordens filhas. Você poderá ajustar individualmente
+                                            durante o planejamento, antes da liberação das ordens.
+                                        </AlertDescription>
+                                    </Alert>
+
                                 </div>
                             </ScrollArea>
                         )}
@@ -979,17 +980,6 @@ export default function CreateManufacturingOrderDialog({
                         {currentStep === 6 && data.order_type === 'bom' && (
                             <ScrollArea className="h-full">
                                 <div className="space-y-6 pr-4">
-                                    {/* Add inheritance info alert */}
-                                    <Alert>
-                                        <Info className="h-4 w-4" />
-                                        <AlertDescription>
-                                            As dependências de produção selecionadas serão aplicadas a todas as
-                                            ordens filhas. Para dependências baseadas em quantidade, os valores
-                                            serão ajustados proporcionalmente. Ajustes individuais podem ser
-                                            feitos durante o planejamento.
-                                        </AlertDescription>
-                                    </Alert>
-
                                     <div>
                                         <h3 className="font-medium mb-2">Dependências para Início da Produção</h3>
                                         <p className="text-sm text-muted-foreground mb-6">
@@ -1096,6 +1086,19 @@ export default function CreateManufacturingOrderDialog({
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Add inheritance info alert */}
+                                    <Alert>
+                                        <Info className="h-4 w-4" />
+                                        <AlertDescription>
+                                            As dependências de produção selecionadas serão aplicadas a todas as
+                                            ordens filhas. Para dependências baseadas em quantidade, os valores
+                                            serão ajustados proporcionalmente. Ajustes individuais podem ser
+                                            feitos durante o planejamento.
+                                        </AlertDescription>
+                                    </Alert>
+
+
                                 </div>
                             </ScrollArea>
                         )}
