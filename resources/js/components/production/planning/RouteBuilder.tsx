@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { router, useForm } from '@inertiajs/react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,22 +15,16 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-    Save,
     FileText,
-    Clock,
-    CheckCircle2,
-    AlertCircle,
-    Plus,
-    ZoomIn,
-    ZoomOut,
-    Maximize,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import CreateWorkCellSheet from '@/components/production/CreateWorkCellSheet';
-import { ManufacturingOrder, WorkCell } from '@/types';
 import RouteBuilderCanvas from '@/components/production/RouteBuilderCanvas';
 import StepPropertiesPanel from '@/components/production/StepPropertiesPanel';
+import { ManufacturingStep, WorkCell, ManufacturingOrder } from '@/types/production';
+
+// ExtendedManufacturingStep type is defined in StepPropertiesPanel
 
 interface RouteStep {
     id: string | number;
@@ -44,13 +36,9 @@ interface RouteStep {
     cycle_time_minutes?: number;
     step_type: 'standard' | 'quality_check' | 'rework';
     is_required: boolean;
-}
-
-interface RouteTemplate {
-    id: number;
-    name: string;
-    description?: string;
-    steps: RouteStep[];
+    quality_check_mode?: 'every_part' | 'entire_lot' | 'sampling';
+    sampling_size?: number;
+    form_id?: number;
 }
 
 interface RouteBuilderProps {
@@ -58,6 +46,9 @@ interface RouteBuilderProps {
     workCells: WorkCell[];
     onDirtyChange: (isDirty: boolean) => void;
     onSave?: () => void;
+    onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
+    onLastSavedAtChange?: (date: Date | null) => void;
+    isSaving?: boolean;
     permissions: {
         canEditRoute: boolean;
         canSaveAsTemplate: boolean;
@@ -70,6 +61,9 @@ export default function RouteBuilder({
     workCells,
     onDirtyChange,
     onSave,
+    onSaveStatusChange,
+    onLastSavedAtChange,
+    isSaving = false,
     permissions,
 }: RouteBuilderProps) {
     const [steps, setSteps] = useState<RouteStep[]>([]);
@@ -78,10 +72,13 @@ export default function RouteBuilder({
     const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
     const [templateName, setTemplateName] = useState('');
     const [templateDescription, setTemplateDescription] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [draggedStep, setDraggedStep] = useState<RouteStep | null>(null);
-    const [zoom, setZoom] = useState(100);
+
+    // Auto-save state
+    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const previousStepsRef = useRef<RouteStep[]>([]);
+    const stepsRef = useRef<RouteStep[]>(steps);
 
     // Form for editing step details
     const stepForm = useForm<{
@@ -110,45 +107,77 @@ export default function RouteBuilder({
         form_id: '',
     });
 
-    // Load existing route
+    // Track selected step sequence for maintaining selection after updates
+    const selectedStepSequenceRef = useRef<number | null>(null);
+
+    // Update selectedStepSequenceRef when selectedStep changes
     useEffect(() => {
-        if (manufacturingOrder.manufacturingRoute) {
-            const routeSteps: RouteStep[] = (manufacturingOrder.manufacturingRoute.steps || []).map((step, index) => ({
+        selectedStepSequenceRef.current = selectedStep?.sequence || null;
+    }, [selectedStep]);
+
+
+    // Load existing route - only on initial mount
+    useEffect(() => {
+        if (manufacturingOrder.manufacturing_route && manufacturingOrder.manufacturing_route.steps) {
+            const routeSteps: RouteStep[] = manufacturingOrder.manufacturing_route.steps.map((step: ManufacturingStep, index: number) => ({
                 id: step.id?.toString() || `existing-${index}`,
-                sequence: step.sequence || index + 1,
+                sequence: step.step_number || index + 1,
                 name: step.name,
-                description: step.description,
-                work_cell_id: step.work_cell_id,
-                setup_time_minutes: step.setup_time_minutes,
-                cycle_time_minutes: step.cycle_time_minutes,
+                description: step.description || '',
+                work_cell_id: step.work_cell_id ?? null,
+                setup_time_minutes: step.setup_time_minutes || 0,
+                cycle_time_minutes: step.cycle_time_minutes || 0,
                 step_type: step.step_type || 'standard',
-                is_required: step.is_required ?? true,
+                is_required: true,
+                quality_check_mode: step.quality_check_mode,
+                sampling_size: step.sampling_size,
+                form_id: step.form_id,
             }));
             setSteps(routeSteps);
+            // Initialize previousStepsRef to prevent auto-save on initial load
+            previousStepsRef.current = routeSteps;
+        } else {
+            // Initialize previousStepsRef for new routes
+            previousStepsRef.current = [];
         }
-    }, [manufacturingOrder]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Empty dependency array - only run on mount
 
     // Track dirty state
     useEffect(() => {
-        const hasChanges = JSON.stringify(steps) !== JSON.stringify(manufacturingOrder.manufacturingRoute?.steps || []);
+        const hasChanges = JSON.stringify(steps) !== JSON.stringify(manufacturingOrder.manufacturing_route?.steps || []);
         onDirtyChange(hasChanges);
-    }, [steps, manufacturingOrder.manufacturingRoute?.steps, onDirtyChange]);
+    }, [steps, manufacturingOrder.manufacturing_route?.steps, onDirtyChange]);
 
-    // Calculate route statistics
-    const routeStats = useMemo(() => {
-        const configuredSteps = steps.filter(s => s.work_cell_id).length;
-        const totalSetupTime = steps.reduce((sum, s) => sum + (s.setup_time_minutes || 0), 0);
-        const totalCycleTime = steps.reduce((sum, s) => sum + (s.cycle_time_minutes || 0), 0);
+    // Ensure selectedStep exists in steps array
+    useEffect(() => {
+        if (selectedStep && !steps.find(s => String(s.id) === String(selectedStep.id))) {
+            // Only clear if the step truly doesn't exist (not just a reference change)
+            setSelectedStep(null);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [steps.length, selectedStep?.id]); // Only check when the number of steps changes or selected step ID changes
 
-        return {
-            totalSteps: steps.length,
-            configuredSteps,
-            totalSetupTime,
-            totalCycleTime,
-            totalTime: totalSetupTime + totalCycleTime,
-            isComplete: configuredSteps === steps.length && steps.length > 0,
-        };
-    }, [steps]);
+    // Update form data when selected step changes
+    useEffect(() => {
+        if (selectedStep) {
+            stepForm.setData({
+                name: selectedStep.name || '',
+                description: selectedStep.description || '',
+                step_type: selectedStep.step_type || 'standard',
+                work_cell_id: selectedStep.work_cell_id?.toString() || '',
+                setup_time_minutes: selectedStep.setup_time_minutes || 0,
+                cycle_time_minutes: selectedStep.cycle_time_minutes || 0,
+                depends_on_step_id: selectedStep.sequence > 1 ? steps[selectedStep.sequence - 2]?.id?.toString() : '',
+                can_start_when_dependency: 'completed',
+                quality_check_mode: selectedStep.quality_check_mode || 'every_part',
+                sampling_size: selectedStep.sampling_size || 0,
+                form_id: selectedStep.form_id?.toString() || '',
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedStep?.id]); // Only re-run when selected step ID changes
+
 
     // Add new step
     const handleAddStep = useCallback(() => {
@@ -160,9 +189,9 @@ export default function RouteBuilder({
             step_type: 'standard',
             is_required: true,
         };
-        setSteps([...steps, newStep]);
+        setSteps(prevSteps => [...prevSteps, newStep]);
         setSelectedStep(newStep);
-    }, [steps]);
+    }, [steps.length]);
 
     // Delete step
     const handleDeleteStep = useCallback((index: number) => {
@@ -179,15 +208,28 @@ export default function RouteBuilder({
         }
     }, [steps, selectedStep]);
 
-    // Save route
-    const handleSaveRoute = async () => {
-        setIsSaving(true);
+    // Track the active element to restore focus after save
+    const focusedElementRef = useRef<HTMLElement | null>(null);
+
+    // Auto-save route function - using useRef to capture current steps
+    const saveRoute = useCallback(async () => {
+        // Store current active element before save
+        focusedElementRef.current = document.activeElement as HTMLElement;
+
+        if (!permissions.canEditRoute) {
+            return;
+        }
+
+        onSaveStatusChange?.('saving');
+
+        // Use stepsRef to get the latest steps value
+        const stepsAtSaveTime = [...stepsRef.current];
 
         try {
             await router.post(
-                route('production.planning.orders.save-route', manufacturingOrder.id),
+                window.route('production.planning.orders.save-route', manufacturingOrder.id),
                 {
-                    steps: steps.map(step => ({
+                    steps: stepsAtSaveTime.map(step => ({
                         sequence: step.sequence,
                         name: step.name,
                         description: step.description,
@@ -197,25 +239,92 @@ export default function RouteBuilder({
                         step_type: step.step_type,
                         is_required: step.is_required,
                     })),
+                    is_autosave: true, // Add flag to indicate this is an auto-save
                 },
                 {
+                    preserveScroll: true,
+                    preserveState: true,
+                    only: [], // Don't reload any data to preserve focus
+                    replace: false, // Don't replace browser history
                     onSuccess: () => {
-                        toast.success('Route saved successfully');
+                        // Update previousStepsRef to mark data as saved
+                        previousStepsRef.current = stepsAtSaveTime;
+
+                        onSaveStatusChange?.('saved');
+                        onLastSavedAtChange?.(new Date());
+
                         if (onSave) onSave();
+
+                        // Focus should be maintained automatically since we're not reloading any data
+                        // But check just in case
+                        const activeElementAfter = document.activeElement;
+
+                        if (focusedElementRef.current && focusedElementRef.current !== activeElementAfter && document.contains(focusedElementRef.current)) {
+                            focusedElementRef.current.focus();
+                        }
+
+                        // Reset to idle after 2 seconds
+                        setTimeout(() => {
+                            onSaveStatusChange?.('idle');
+                        }, 2000);
                     },
                     onError: () => {
-                        toast.error('Failed to save route');
-                    },
-                    onFinish: () => {
-                        setIsSaving(false);
+                        onSaveStatusChange?.('error');
+
+                        // Reset to idle after 3 seconds
+                        setTimeout(() => {
+                            onSaveStatusChange?.('idle');
+                        }, 3000);
                     },
                 }
             );
-        } catch (error) {
-            console.error('Error saving route:', error);
-            setIsSaving(false);
+        } catch {
+            onSaveStatusChange?.('error');
+            setTimeout(() => {
+                onSaveStatusChange?.('idle');
+            }, 3000);
         }
-    };
+    }, [permissions.canEditRoute, manufacturingOrder.id, onSave, onSaveStatusChange, onLastSavedAtChange]);
+
+    // Keep stepsRef updated
+    useEffect(() => {
+        stepsRef.current = steps;
+    }, [steps]);
+
+    // Debounced auto-save effect
+    useEffect(() => {
+        // Skip if user doesn't have permission
+        if (!permissions.canEditRoute) {
+            return;
+        }
+
+        // Check if steps have actually changed
+        const currentStepsStr = JSON.stringify(steps);
+        const previousStepsStr = JSON.stringify(previousStepsRef.current);
+        const hasChanges = currentStepsStr !== previousStepsStr;
+
+        if (!hasChanges || steps.length === 0) {
+            return;
+        }
+
+        // Clear existing timeout
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+
+        // Set new timeout for auto-save (1.5 seconds after last change)
+        saveTimeoutRef.current = setTimeout(() => {
+            saveRoute();
+        }, 1500);
+
+        // Cleanup timeout on unmount or when dependencies change
+        return () => {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [steps, permissions.canEditRoute]); // Remove saveRoute from dependencies
 
     // Save as template
     const handleSaveAsTemplate = async () => {
@@ -224,11 +333,9 @@ export default function RouteBuilder({
             return;
         }
 
-        setIsSaving(true);
-
         try {
             await router.post(
-                route('production.planning.routes.save-as-template'),
+                window.route('production.planning.routes.save-as-template'),
                 {
                     name: templateName,
                     description: templateDescription,
@@ -254,25 +361,30 @@ export default function RouteBuilder({
                     onError: () => {
                         toast.error('Failed to save template');
                     },
-                    onFinish: () => {
-                        setIsSaving(false);
-                    },
                 }
             );
-        } catch (error) {
-            console.error('Error saving template:', error);
-            setIsSaving(false);
+        } catch {
+            toast.error('Failed to save template');
         }
     };
 
     // Convert steps to canvas format
     const canvasSteps = useMemo(() => steps.map(step => ({
-        id: step.id.toString(),
+        id: typeof step.id === 'string' && step.id.startsWith('temp-') ? step.id : Number(step.id),
         step_number: step.sequence,
         name: step.name,
-        depends_on_step_id: step.sequence > 1 ? steps[step.sequence - 2]?.id?.toString() : undefined,
+        depends_on_step_id: step.sequence > 1 ? (() => {
+            const prevStep = steps[step.sequence - 2];
+            if (!prevStep) return undefined;
+            const prevId = prevStep.id;
+            if (typeof prevId === 'string' && prevId.startsWith('temp-')) {
+                return prevId;
+            }
+            return Number(prevId);
+        })() : undefined,
         can_start_when_dependency: 'completed' as const,
         work_cell: step.work_cell_id ? workCells.find(wc => wc.id === step.work_cell_id) : undefined,
+        work_cell_id: step.work_cell_id,
         setup_time_minutes: step.setup_time_minutes || 0,
         cycle_time_minutes: step.cycle_time_minutes || 0,
         is_quality_check: step.step_type === 'quality_check',
@@ -281,66 +393,45 @@ export default function RouteBuilder({
         is_required: step.is_required,
         step_type: step.step_type,
         status: 'pending' as const,
-    })), [steps, workCells]);
+        description: step.description,
+        quality_check_mode: step.quality_check_mode,
+        sampling_size: step.sampling_size,
+        form_id: step.form_id,
+        manufacturing_route_id: manufacturingOrder.manufacturing_route?.id || 0,
+        manufacturing_route: manufacturingOrder.manufacturing_route || {
+            id: 0,
+            name: '',
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        },
+        // Using 'any' to avoid type conflicts between different ExtendedManufacturingStep definitions
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    })) as any[], [steps, workCells, manufacturingOrder.manufacturing_route]);
 
     // Convert selected step to canvas format
     const canvasSelectedStep = useMemo(() => {
         if (!selectedStep) return null;
-        return canvasSteps.find(s => s.id === selectedStep.id.toString()) || null;
+        const found = canvasSteps.find(s => String(s.id) === String(selectedStep.id));
+        return found || null;
     }, [selectedStep, canvasSteps]);
 
     return (
         <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="flex-shrink-0 bg-white border-b px-6 py-4">
+            <div className="flex-shrink-0 bg-white border-b px-6 py-2">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div>
-                            <h3 className="text-lg font-medium">Route Configuration</h3>
-                            <p className="text-sm text-muted-foreground">
-                                {manufacturingOrder.item_number} - {manufacturingOrder.item?.name}
-                            </p>
+                        <div className="flex items-center gap-3">
+                            <h3 className="text-sm font-medium">
+                                {manufacturingOrder.item?.item_number} - {manufacturingOrder.item?.name}
+                            </h3>
                         </div>
-                        <Badge
-                            variant={routeStats.isComplete ? "default" : "secondary"}
-                            className={routeStats.isComplete ? "bg-green-100 text-green-800" : ""}
-                        >
-                            {routeStats.configuredSteps}/{routeStats.totalSteps} steps configured
-                        </Badge>
-                        <Badge variant="outline">
-                            <Clock className="h-3 w-3 mr-1" />
-                            Total time: {routeStats.totalTime} min
-                        </Badge>
                     </div>
                     <div className="flex items-center gap-2">
-                        {/* Zoom Controls */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setZoom(Math.max(50, zoom - 10))}
-                        >
-                            <ZoomOut className="h-4 w-4" />
-                        </Button>
-                        <span className="text-sm text-muted-foreground w-12 text-center">
-                            {zoom}%
-                        </span>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setZoom(Math.min(150, zoom + 10))}
-                        >
-                            <ZoomIn className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setZoom(100)}
-                        >
-                            <Maximize className="h-4 w-4" />
-                        </Button>
 
-                        <div className="ml-4 flex gap-2">
-                            {permissions.canSaveAsTemplate && (
+                        <div className="ml-4 flex items-center gap-4">
+                            {permissions.canEditRoute && (
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -351,33 +442,11 @@ export default function RouteBuilder({
                                     Save as Template
                                 </Button>
                             )}
-                            {permissions.canEditRoute && (
-                                <Button
-                                    size="sm"
-                                    onClick={handleSaveRoute}
-                                    disabled={isSaving}
-                                >
-                                    <Save className="h-4 w-4 mr-2" />
-                                    {isSaving ? 'Saving...' : 'Save Route'}
-                                </Button>
-                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* Route Status */}
-                <div className="flex items-center gap-4 mt-4">
-                    <Badge
-                        variant={routeStats.isComplete ? "default" : "secondary"}
-                        className={cn(
-                            "gap-1",
-                            routeStats.isComplete ? "bg-green-100 text-green-800" : ""
-                        )}
-                    >
-                        {routeStats.isComplete ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
-                        {routeStats.isComplete ? "Ready" : "In Progress"}
-                    </Badge>
-                </div>
+
             </div>
 
             {/* Main Content - Canvas and Properties Panel */}
@@ -390,11 +459,11 @@ export default function RouteBuilder({
                     <RouteBuilderCanvas
                         steps={canvasSteps}
                         selectedStep={canvasSelectedStep}
-                        zoom={zoom}
+                        zoom={100}
                         can={{ manage_steps: permissions.canEditRoute }}
                         onStepSelect={(step) => {
                             if (step) {
-                                const routeStep = steps.find(s => s.id.toString() === step.id);
+                                const routeStep = steps.find(s => String(s.id) === String(step.id));
                                 setSelectedStep(routeStep || null);
                             } else {
                                 setSelectedStep(null);
@@ -406,27 +475,30 @@ export default function RouteBuilder({
                                 id: step.id,
                                 sequence: index + 1,
                                 name: step.name,
-                                description: step.instructions,
+                                description: step.description || '',
                                 work_cell_id: step.work_cell?.id || null,
                                 setup_time_minutes: step.setup_time_minutes,
                                 cycle_time_minutes: step.cycle_time_minutes,
                                 step_type: step.step_type || 'standard',
-                                is_required: step.is_required ?? true,
+                                is_required: true,
+                                quality_check_mode: step.quality_check_mode,
+                                sampling_size: step.sampling_size,
+                                form_id: step.form_id,
                             }));
                             setSteps(newSteps);
                         }}
                         onStepDelete={(step) => {
-                            const index = steps.findIndex(s => s.id.toString() === step.id);
+                            const index = steps.findIndex(s => String(s.id) === String(step.id));
                             if (index >= 0) {
                                 handleDeleteStep(index);
                             }
                         }}
                         isDragging={isDragging}
                         onDragStart={setIsDragging}
-                        draggedStep={draggedStep ? canvasSteps.find(s => s.id === draggedStep.id.toString()) || null : null}
+                        draggedStep={draggedStep ? canvasSteps.find(s => String(s.id) === String(draggedStep.id)) || null : null}
                         onDraggedStepChange={(step) => {
                             if (step) {
-                                const routeStep = steps.find(s => s.id.toString() === step.id);
+                                const routeStep = steps.find(s => String(s.id) === String(step.id));
                                 setDraggedStep(routeStep || null);
                             } else {
                                 setDraggedStep(null);
@@ -450,30 +522,48 @@ export default function RouteBuilder({
                         }}
                         workCells={workCells}
                         forms={[]}
-                        routing={{
-                            id: manufacturingOrder.manufacturingRoute?.id || 0,
-                            name: manufacturingOrder.manufacturingRoute?.name || '',
+                        routing={manufacturingOrder.manufacturing_route || {
+                            id: 0,
+                            name: '',
+                            is_active: true,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString(),
                         }}
                         plants={[]}
                         shifts={[]}
                         manufacturers={[]}
                         isSaving={isSaving}
                         onLocalStepUpdate={(stepId, updates) => {
-                            const index = steps.findIndex(s => s.id.toString() === stepId.toString());
+                            // Try to find by exact ID match first
+                            let index = steps.findIndex(s => String(s.id) === String(stepId));
+
+                            // If not found and stepId is a temp ID, try to match by sequence
+                            if (index < 0 && String(stepId).startsWith('temp-') && selectedStep) {
+                                index = steps.findIndex(s => s.sequence === selectedStep.sequence);
+                            }
+
                             if (index >= 0) {
                                 const newSteps = [...steps];
-                                newSteps[index] = {
+                                const updatedStep: RouteStep = {
                                     ...steps[index],
-                                    name: updates.name || steps[index].name,
-                                    description: updates.instructions || steps[index].description,
-                                    work_cell_id: updates.work_cell?.id || steps[index].work_cell_id,
-                                    setup_time_minutes: updates.setup_time_minutes ?? steps[index].setup_time_minutes,
-                                    cycle_time_minutes: updates.cycle_time_minutes ?? steps[index].cycle_time_minutes,
-                                    is_required: updates.is_required ?? steps[index].is_required,
-                                    step_type: updates.step_type || steps[index].step_type,
+                                    // Use Object.prototype.hasOwnProperty.call to properly handle undefined values
+                                    name: Object.prototype.hasOwnProperty.call(updates, 'name') ? updates.name || '' : steps[index].name,
+                                    description: Object.prototype.hasOwnProperty.call(updates, 'description') ? updates.description || '' : steps[index].description,
+                                    work_cell_id: Object.prototype.hasOwnProperty.call(updates, 'work_cell_id') ? (updates.work_cell_id ?? null) : steps[index].work_cell_id,
+                                    setup_time_minutes: Object.prototype.hasOwnProperty.call(updates, 'setup_time_minutes') ? updates.setup_time_minutes || 0 : steps[index].setup_time_minutes,
+                                    cycle_time_minutes: Object.prototype.hasOwnProperty.call(updates, 'cycle_time_minutes') ? updates.cycle_time_minutes || 0 : steps[index].cycle_time_minutes,
+                                    is_required: steps[index].is_required,
+                                    step_type: Object.prototype.hasOwnProperty.call(updates, 'step_type') ? (updates.step_type || 'standard') : steps[index].step_type,
+                                    quality_check_mode: Object.prototype.hasOwnProperty.call(updates, 'quality_check_mode') ? updates.quality_check_mode : steps[index].quality_check_mode,
+                                    sampling_size: Object.prototype.hasOwnProperty.call(updates, 'sampling_size') ? updates.sampling_size : steps[index].sampling_size,
+                                    form_id: Object.prototype.hasOwnProperty.call(updates, 'form_id') ? updates.form_id : steps[index].form_id,
                                 };
+                                newSteps[index] = updatedStep;
                                 setSteps(newSteps);
-                                setSelectedStep(newSteps[index]);
+                                // Update selectedStep only if it's the one being edited
+                                if (selectedStep && String(selectedStep.id) === String(stepId)) {
+                                    setSelectedStep(updatedStep);
+                                }
                             }
                         }}
                         isOpen={!!selectedStep}

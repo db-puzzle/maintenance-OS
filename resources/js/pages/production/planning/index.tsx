@@ -1,7 +1,10 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Head, router } from '@inertiajs/react';
 import {
-    FileText
+    FileText,
+    AlertCircle,
+    Loader2,
+    Check,
 } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
@@ -24,7 +27,8 @@ import RouteBuilder from '@/components/production/planning/RouteBuilder';
 // import BulkOperationsPanel from '@/components/production/planning/BulkOperationsPanel';
 // import TemplateLibraryPanel from '@/components/production/planning/TemplateLibraryPanel';
 import { toast } from 'sonner';
-import { PageProps, ManufacturingOrder, BreadcrumbItem } from '@/types';
+import { PageProps, BreadcrumbItem } from '@/types';
+import { ManufacturingOrder, WorkCell } from '@/types/production';
 import { ManufacturingOrderTreeNode } from '@/components/production/ManufacturingOrderHierarchicalView';
 
 type DetailViewMode = 'route' | 'work-cell' | 'bulk' | 'template';
@@ -56,16 +60,6 @@ interface RouteTemplate {
     item_types?: string[];
 }
 
-interface WorkCell {
-    id: number;
-    name: string;
-    code?: string;
-    description?: string;
-    type?: string;
-    capacity?: number;
-    is_active: boolean;
-    utilization?: number;
-}
 
 interface PlanningPageProps extends PageProps {
     manufacturingOrders: ManufacturingOrder[];
@@ -114,6 +108,10 @@ export default function PlanningPage({
     const [detailViewMode, setDetailViewMode] = useState<DetailViewMode>('route');
     const [searchQuery, setSearchQuery] = useState('');
     const [showThumbnails] = useState(true);
+
+    // Save status state for RouteBuilder
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
     // Handle MO selection
     const handleMOSelect = useCallback((moId: number, multiSelect: boolean = false) => {
@@ -195,12 +193,12 @@ export default function PlanningPage({
                     >
                         <div className="h-full flex flex-col">
                             {/* Search and Filter Bar */}
-                            <div className="p-4 border-b space-y-2">
+                            <div className="px-4 py-2 border-b">
                                 <Input
                                     placeholder="Search manufacturing orders..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full"
+                                    className="w-full h-8 text-sm"
                                 />
                             </div>
 
@@ -228,25 +226,46 @@ export default function PlanningPage({
                             {/* Global Actions Toolbar */}
                             <div className="border-b bg-background">
                                 <div className="flex items-center justify-between px-4 py-2">
+                                    <div className="flex items-center space-x-4">
+                                        {/* Save status indicator on the left */}
+                                        {detailViewMode === 'route' && activeMODetails && permissions.canEditRoute && (
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="text-sm font-medium">
+                                                        {activeMODetails.item?.item_number} - {activeMODetails.item?.name}
+                                                    </h3>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    {saveStatus === 'saving' && (
+                                                        <>
+                                                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                                            <span className="text-muted-foreground">Saving...</span>
+                                                        </>
+                                                    )}
+                                                    {saveStatus === 'saved' && (
+                                                        <>
+                                                            <Check className="h-4 w-4 text-green-600" />
+                                                            <span className="text-green-600">Saved</span>
+                                                        </>
+                                                    )}
+                                                    {saveStatus === 'error' && (
+                                                        <>
+                                                            <AlertCircle className="h-4 w-4 text-red-600" />
+                                                            <span className="text-red-600">Save failed</span>
+                                                        </>
+                                                    )}
+                                                    {lastSavedAt && saveStatus === 'idle' && (
+                                                        <span className="text-muted-foreground">
+                                                            Last saved {lastSavedAt.toLocaleTimeString()}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <div className="flex items-center space-x-2">
                                         <TooltipProvider>
-                                            {permissions.canPlanOrder && (
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={handleMarkAsPlanned}
-                                                            disabled={selectedMOs.size === 0}
-                                                        >
-                                                            Mark as Planned
-                                                        </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>Transition selected orders to Planned state</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            )}
 
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
@@ -263,6 +282,25 @@ export default function PlanningPage({
                                                     <p>Open template library (Ctrl+T)</p>
                                                 </TooltipContent>
                                             </Tooltip>
+
+                                            {permissions.canPlanOrder && (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="default"
+                                                            size="sm"
+                                                            onClick={handleMarkAsPlanned}
+                                                            disabled={selectedMOs.size === 0}
+                                                        >
+                                                            Marcar Planejada
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Transicione essa ordem para o estado Planejado</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
+
                                         </TooltipProvider>
                                     </div>
                                 </div>
@@ -276,6 +314,9 @@ export default function PlanningPage({
                                         workCells={workCells}
                                         permissions={permissions}
                                         onDirtyChange={() => { }}
+                                        onSaveStatusChange={setSaveStatus}
+                                        onLastSavedAtChange={setLastSavedAt}
+                                        isSaving={saveStatus === 'saving'}
                                     />
                                 )}
                                 {detailViewMode === 'work-cell' && (

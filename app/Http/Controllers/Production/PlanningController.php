@@ -68,7 +68,7 @@ class PlanningController extends Controller
         }
 
         $orders = $query->orderBy('order_number')->get();
-        
+
         // Load all nested children recursively
         $orders->each(function ($order) {
             $this->loadAllChildren($order);
@@ -79,7 +79,7 @@ class PlanningController extends Controller
             // When a specific MO is selected, build hierarchy starting from that MO
             $selectedMOId = $request->input('selectedMO');
             $hierarchicalOrders = [];
-            
+
             // Find the main MO and build its hierarchy
             $mainOrder = $orders->firstWhere('id', $selectedMOId);
             if ($mainOrder) {
@@ -175,7 +175,7 @@ class PlanningController extends Controller
             'steps.*.work_cell_id' => 'nullable|exists:work_cells,id',
             'steps.*.setup_time_minutes' => 'nullable|integer|min:0',
             'steps.*.cycle_time_minutes' => 'nullable|integer|min:0',
-            'steps.*.step_type' => 'required|in:manual,automated,quality,transport',
+            'steps.*.step_type' => 'required|in:standard,quality_check,rework',
             'steps.*.is_required' => 'boolean',
         ]);
 
@@ -200,6 +200,11 @@ class PlanningController extends Controller
                 $order->save();
             }
         });
+
+        // Check if this is an auto-save request (no flash message)
+        if ($request->boolean('is_autosave', false)) {
+            return back();
+        }
 
         return back()->with('success', 'Route configuration saved successfully.');
     }
@@ -447,7 +452,7 @@ class PlanningController extends Controller
             'children.manufacturingRoute.steps',
             'children.manufacturingRoute.steps.workCell',
         ]);
-        
+
         if ($order->children->isNotEmpty()) {
             $order->children->each(function ($child) {
                 $this->loadAllChildren($child);
@@ -461,16 +466,16 @@ class PlanningController extends Controller
     private function getAllDescendantIds($parentId)
     {
         $descendantIds = [];
-        
+
         // Get direct children
         $directChildren = ManufacturingOrder::where('parent_id', $parentId)->pluck('id')->toArray();
-        
+
         foreach ($directChildren as $childId) {
             $descendantIds[] = $childId;
             // Recursively get descendants of this child
             $descendantIds = array_merge($descendantIds, $this->getAllDescendantIds($childId));
         }
-        
+
         return $descendantIds;
     }
 
