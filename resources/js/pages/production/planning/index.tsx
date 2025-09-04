@@ -1,22 +1,12 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Head, router } from '@inertiajs/react';
 import {
-    Save,
-    Check,
-    Undo2,
-    Redo2,
-    FileText,
-    Download,
-    HelpCircle,
-    TreePine,
-    List,
-    Factory
+    FileText
 } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Tooltip,
     TooltipContent,
@@ -26,13 +16,13 @@ import {
 import { cn } from '@/lib/utils';
 import ManufacturingOrderHierarchicalView from '@/components/production/ManufacturingOrderHierarchicalView';
 import RouteBuilder from '@/components/production/planning/RouteBuilder';
-import WorkCellManager from '@/components/production/planning/WorkCellManager';
-import BulkOperationsPanel from '@/components/production/planning/BulkOperationsPanel';
-import TemplateLibraryPanel from '@/components/production/planning/TemplateLibraryPanel';
+// import WorkCellManager from '@/components/production/planning/WorkCellManager';
+// import BulkOperationsPanel from '@/components/production/planning/BulkOperationsPanel';
+// import TemplateLibraryPanel from '@/components/production/planning/TemplateLibraryPanel';
 import { toast } from 'sonner';
 import { PageProps, ManufacturingOrder, BreadcrumbItem } from '@/types';
+import { ManufacturingOrderTreeNode } from '@/components/production/ManufacturingOrderHierarchicalView';
 
-type ViewMode = 'tree' | 'list' | 'work-cell';
 type DetailViewMode = 'route' | 'work-cell' | 'bulk' | 'template';
 
 interface RouteTemplate {
@@ -40,7 +30,15 @@ interface RouteTemplate {
     name: string;
     description?: string;
     category: string;
-    steps: any[];
+    steps: Array<{
+        id: number;
+        sequence: number;
+        name: string;
+        work_cell_id?: number | null;
+        is_required?: boolean;
+        setup_time_minutes?: number;
+        cycle_time_minutes?: number;
+    }>;
     usage_count: number;
     last_used_at?: string;
     rating: number;
@@ -78,6 +76,7 @@ interface PlanningPageProps extends PageProps {
         canCreateWorkCell: boolean;
         canViewWorkCells: boolean;
         canApplyTemplates: boolean;
+        canSaveAsTemplate: boolean;
     };
 }
 
@@ -108,13 +107,11 @@ export default function PlanningPage({
     // State management
     const [selectedMOs, setSelectedMOs] = useState<Set<number>>(new Set(selectedMO ? [selectedMO] : []));
     const [activeMO, setActiveMO] = useState<number | null>(selectedMO || null);
-    const [viewMode, setViewMode] = useState<ViewMode>('tree');
     const [detailViewMode, setDetailViewMode] = useState<DetailViewMode>('route');
     const [leftPanelWidth, setLeftPanelWidth] = useState(35); // percentage
     const [isResizing, setIsResizing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [showThumbnails, setShowThumbnails] = useState(true);
-    const [isDirty, setIsDirty] = useState(false);
+    const [showThumbnails] = useState(true);
 
     // Handle resizing
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -168,18 +165,7 @@ export default function PlanningPage({
         }
     }, [selectedMOs]);
 
-    // Handle save actions
-    const handleSaveAll = useCallback(() => {
-        // TODO: Implement save all functionality
-        toast.success('All planning changes have been saved successfully.');
-        setIsDirty(false);
-    }, []);
 
-    // Handle validation
-    const handleValidate = useCallback(() => {
-        // TODO: Implement validation
-        toast.success('All manufacturing orders passed validation.');
-    }, []);
 
     // Handle marking as planned
     const handleMarkAsPlanned = useCallback(() => {
@@ -212,128 +198,6 @@ export default function PlanningPage({
             <Head title="Planejar" />
 
             <div className="h-screen flex flex-col">
-                {/* Header Bar */}
-                <div className="border-b bg-background">
-                    <div className="flex items-center justify-between px-4 py-2">
-                        {/* Global Actions Toolbar */}
-                        <div className="flex items-center space-x-2">
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={handleSaveAll}
-                                            disabled={!isDirty}
-                                        >
-                                            <Save className="h-4 w-4 mr-2" />
-                                            Save All
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Save all changes (Ctrl+S)</p>
-                                    </TooltipContent>
-                                </Tooltip>
-
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={handleValidate}
-                                        >
-                                            <Check className="h-4 w-4 mr-2" />
-                                            Validate
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Validate all selected orders</p>
-                                    </TooltipContent>
-                                </Tooltip>
-
-                                {permissions.canPlanOrder && (
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={handleMarkAsPlanned}
-                                                disabled={selectedMOs.size === 0}
-                                            >
-                                                Mark as Planned
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Transition selected orders to Planned state</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                )}
-
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setDetailViewMode('template')}
-                                        >
-                                            <FileText className="h-4 w-4 mr-2" />
-                                            Templates
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Open template library (Ctrl+T)</p>
-                                    </TooltipContent>
-                                </Tooltip>
-
-                                <div className="flex items-center border-l pl-2 ml-2">
-                                    <Button variant="ghost" size="sm" disabled>
-                                        <Undo2 className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="sm" disabled>
-                                        <Redo2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-
-                                <div className="flex items-center border-l pl-2 ml-2">
-                                    <span className="text-sm text-muted-foreground mr-2">View:</span>
-                                    <Select value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-                                        <SelectTrigger className="w-[120px] h-8">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="tree">
-                                                <div className="flex items-center">
-                                                    <TreePine className="h-4 w-4 mr-2" />
-                                                    Tree
-                                                </div>
-                                            </SelectItem>
-                                            <SelectItem value="list">
-                                                <div className="flex items-center">
-                                                    <List className="h-4 w-4 mr-2" />
-                                                    List
-                                                </div>
-                                            </SelectItem>
-                                            <SelectItem value="work-cell">
-                                                <div className="flex items-center">
-                                                    <Factory className="h-4 w-4 mr-2" />
-                                                    Work Cell
-                                                </div>
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <Button variant="ghost" size="sm">
-                                    <Download className="h-4 w-4" />
-                                </Button>
-
-                                <Button variant="ghost" size="sm">
-                                    <HelpCircle className="h-4 w-4" />
-                                </Button>
-                            </TooltipProvider>
-                        </div>
-                    </div>
-                </div>
 
                 {/* Main Content Area */}
                 <div id="planning-container" className="flex-1 flex overflow-hidden">
@@ -354,23 +218,15 @@ export default function PlanningPage({
 
                         {/* MO Tree View */}
                         <div className="flex-1 overflow-auto p-4">
-                            {viewMode === 'tree' && (
-                                <ManufacturingOrderHierarchicalView
-                                    orders={manufacturingOrders as any}
-                                    onOrderSelect={handleMOSelect}
-                                    selectedOrders={selectedMOs}
-                                    showThumbnails={showThumbnails}
-                                    searchQuery={searchQuery}
-                                    enhancedMode="planning"
-                                    compactMode={true}
-                                />
-                            )}
-                            {viewMode === 'list' && (
-                                <div>List view - To be implemented</div>
-                            )}
-                            {viewMode === 'work-cell' && (
-                                <div>Work cell view - To be implemented</div>
-                            )}
+                            <ManufacturingOrderHierarchicalView
+                                orders={manufacturingOrders as ManufacturingOrderTreeNode[]}
+                                onOrderSelect={handleMOSelect}
+                                selectedOrders={selectedMOs}
+                                showThumbnails={showThumbnails}
+                                searchQuery={searchQuery}
+                                enhancedMode="planning"
+                                compactMode={true}
+                            />
                         </div>
                     </div>
 
@@ -384,43 +240,93 @@ export default function PlanningPage({
                     />
 
                     {/* Right Panel - Detail/Action Panel */}
-                    <div className="flex-1 overflow-hidden">
-                        {detailViewMode === 'route' && activeMODetails && (
-                            <RouteBuilder
-                                manufacturingOrder={activeMODetails}
-                                workCells={workCells}
-                                templates={routeTemplates}
-                                permissions={permissions}
-                                onDirtyChange={setIsDirty}
-                            />
-                        )}
-                        {detailViewMode === 'work-cell' && (
-                            <WorkCellManager
-                                workCells={workCells}
-                                permissions={permissions}
-                            />
-                        )}
-                        {detailViewMode === 'bulk' && (
-                            <BulkOperationsPanel
-                                selectedMOs={Array.from(selectedMOs)}
-                                templates={routeTemplates}
-                                permissions={permissions}
-                            />
-                        )}
-                        {detailViewMode === 'template' && (
-                            <TemplateLibraryPanel
-                                templates={routeTemplates}
-                                permissions={permissions}
-                                onApplyTemplate={(_templateId: number) => {
-                                    // TODO: Apply template to selected MOs
-                                }}
-                            />
-                        )}
-                        {!activeMODetails && detailViewMode === 'route' && (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">
-                                Select a manufacturing order to view its route configuration
+                    <div className="flex-1 overflow-hidden flex flex-col">
+                        {/* Global Actions Toolbar */}
+                        <div className="border-b bg-background">
+                            <div className="flex items-center justify-between px-4 py-2">
+                                <div className="flex items-center space-x-2">
+                                    <TooltipProvider>
+                                        {permissions.canPlanOrder && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={handleMarkAsPlanned}
+                                                        disabled={selectedMOs.size === 0}
+                                                    >
+                                                        Mark as Planned
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Transition selected orders to Planned state</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        )}
+
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setDetailViewMode('template')}
+                                                >
+                                                    <FileText className="h-4 w-4 mr-2" />
+                                                    Templates
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Open template library (Ctrl+T)</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
                             </div>
-                        )}
+                        </div>
+
+                        {/* Content Area */}
+                        <div className="flex-1 overflow-hidden">
+                            {detailViewMode === 'route' && activeMODetails && (
+                                <RouteBuilder
+                                    manufacturingOrder={activeMODetails}
+                                    workCells={workCells}
+                                    permissions={permissions}
+                                    onDirtyChange={() => { }}
+                                />
+                            )}
+                            {detailViewMode === 'work-cell' && (
+                                <div className="p-4">
+                                    <h2 className="text-lg font-semibold mb-4">Work Cell Manager</h2>
+                                    <p className="text-muted-foreground">Work cell management interface - To be implemented</p>
+                                    <div className="mt-4">
+                                        <p className="text-sm">Available work cells: {workCells.length}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {detailViewMode === 'bulk' && (
+                                <div className="p-4">
+                                    <h2 className="text-lg font-semibold mb-4">Bulk Operations</h2>
+                                    <p className="text-muted-foreground">Perform operations on {Array.from(selectedMOs).length} selected orders</p>
+                                    <div className="mt-4">
+                                        <p className="text-sm">Available templates: {routeTemplates.length}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {detailViewMode === 'template' && (
+                                <div className="p-4">
+                                    <h2 className="text-lg font-semibold mb-4">Template Library</h2>
+                                    <p className="text-muted-foreground">Browse and apply route templates</p>
+                                    <div className="mt-4">
+                                        <p className="text-sm">Available templates: {routeTemplates.length}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {!activeMODetails && detailViewMode === 'route' && (
+                                <div className="flex items-center justify-center h-full text-muted-foreground">
+                                    Select a manufacturing order to view its route configuration
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
