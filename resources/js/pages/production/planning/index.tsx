@@ -13,7 +13,11 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
+import {
+    ResizableHandle,
+    ResizablePanel,
+    ResizablePanelGroup,
+} from '@/components/ui/resizable';
 import ManufacturingOrderHierarchicalView from '@/components/production/ManufacturingOrderHierarchicalView';
 import RouteBuilder from '@/components/production/planning/RouteBuilder';
 // import WorkCellManager from '@/components/production/planning/WorkCellManager';
@@ -108,45 +112,8 @@ export default function PlanningPage({
     const [selectedMOs, setSelectedMOs] = useState<Set<number>>(new Set(selectedMO ? [selectedMO] : []));
     const [activeMO, setActiveMO] = useState<number | null>(selectedMO || null);
     const [detailViewMode, setDetailViewMode] = useState<DetailViewMode>('route');
-    const [leftPanelWidth, setLeftPanelWidth] = useState(35); // percentage
-    const [isResizing, setIsResizing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [showThumbnails] = useState(true);
-
-    // Handle resizing
-    const handleMouseDown = useCallback((e: React.MouseEvent) => {
-        e.preventDefault();
-        setIsResizing(true);
-    }, []);
-
-    const handleMouseMove = useCallback((e: MouseEvent) => {
-        if (!isResizing) return;
-
-        const container = document.getElementById('planning-container');
-        if (!container) return;
-
-        const containerRect = container.getBoundingClientRect();
-        const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
-
-        // Constrain between 25% and 50%
-        setLeftPanelWidth(Math.max(25, Math.min(50, newWidth)));
-    }, [isResizing]);
-
-    const handleMouseUp = useCallback(() => {
-        setIsResizing(false);
-    }, []);
-
-    // Add mouse event listeners
-    React.useEffect(() => {
-        if (isResizing) {
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-            return () => {
-                document.removeEventListener('mousemove', handleMouseMove);
-                document.removeEventListener('mouseup', handleMouseUp);
-            };
-        }
-    }, [isResizing, handleMouseMove, handleMouseUp]);
 
     // Handle MO selection
     const handleMOSelect = useCallback((moId: number, multiSelect: boolean = false) => {
@@ -200,135 +167,138 @@ export default function PlanningPage({
             <div className="h-screen flex flex-col">
 
                 {/* Main Content Area */}
-                <div id="planning-container" className="flex-1 flex overflow-hidden">
+                <ResizablePanelGroup
+                    direction="horizontal"
+                    className="flex-1"
+                >
                     {/* Left Panel - MO Tree */}
-                    <div
-                        className="border-r bg-muted/10 overflow-hidden flex flex-col"
-                        style={{ width: `${leftPanelWidth}%`, minWidth: '350px' }}
+                    <ResizablePanel
+                        defaultSize={35}
+                        minSize={25}
+                        maxSize={50}
+                        className="bg-muted/10"
                     >
-                        {/* Search and Filter Bar */}
-                        <div className="p-4 border-b space-y-2">
-                            <Input
-                                placeholder="Search manufacturing orders..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full"
-                            />
-                        </div>
+                        <div className="h-full flex flex-col">
+                            {/* Search and Filter Bar */}
+                            <div className="p-4 border-b space-y-2">
+                                <Input
+                                    placeholder="Search manufacturing orders..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full"
+                                />
+                            </div>
 
-                        {/* MO Tree View */}
-                        <div className="flex-1 overflow-auto p-4">
-                            <ManufacturingOrderHierarchicalView
-                                orders={manufacturingOrders as ManufacturingOrderTreeNode[]}
-                                onOrderSelect={handleMOSelect}
-                                selectedOrders={selectedMOs}
-                                showThumbnails={showThumbnails}
-                                searchQuery={searchQuery}
-                                enhancedMode="planning"
-                                compactMode={true}
-                            />
+                            {/* MO Tree View */}
+                            <div className="flex-1 overflow-auto p-4">
+                                <ManufacturingOrderHierarchicalView
+                                    orders={manufacturingOrders as ManufacturingOrderTreeNode[]}
+                                    onOrderSelect={handleMOSelect}
+                                    selectedOrders={selectedMOs}
+                                    showThumbnails={showThumbnails}
+                                    searchQuery={searchQuery}
+                                    enhancedMode="planning"
+                                    compactMode={true}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    </ResizablePanel>
 
                     {/* Resize Handle */}
-                    <div
-                        className={cn(
-                            "w-1 hover:w-2 bg-border hover:bg-primary/20 cursor-col-resize transition-all",
-                            isResizing && "bg-primary/30"
-                        )}
-                        onMouseDown={handleMouseDown}
-                    />
+                    <ResizableHandle withHandle />
 
                     {/* Right Panel - Detail/Action Panel */}
-                    <div className="flex-1 overflow-hidden flex flex-col">
-                        {/* Global Actions Toolbar */}
-                        <div className="border-b bg-background">
-                            <div className="flex items-center justify-between px-4 py-2">
-                                <div className="flex items-center space-x-2">
-                                    <TooltipProvider>
-                                        {permissions.canPlanOrder && (
+                    <ResizablePanel defaultSize={65}>
+                        <div className="h-full flex flex-col">
+                            {/* Global Actions Toolbar */}
+                            <div className="border-b bg-background">
+                                <div className="flex items-center justify-between px-4 py-2">
+                                    <div className="flex items-center space-x-2">
+                                        <TooltipProvider>
+                                            {permissions.canPlanOrder && (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={handleMarkAsPlanned}
+                                                            disabled={selectedMOs.size === 0}
+                                                        >
+                                                            Mark as Planned
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Transition selected orders to Planned state</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
+
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        onClick={handleMarkAsPlanned}
-                                                        disabled={selectedMOs.size === 0}
+                                                        onClick={() => setDetailViewMode('template')}
                                                     >
-                                                        Mark as Planned
+                                                        <FileText className="h-4 w-4 mr-2" />
+                                                        Templates
                                                     </Button>
                                                 </TooltipTrigger>
                                                 <TooltipContent>
-                                                    <p>Transition selected orders to Planned state</p>
+                                                    <p>Open template library (Ctrl+T)</p>
                                                 </TooltipContent>
                                             </Tooltip>
-                                        )}
-
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => setDetailViewMode('template')}
-                                                >
-                                                    <FileText className="h-4 w-4 mr-2" />
-                                                    Templates
-                                                </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>Open template library (Ctrl+T)</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
+                                        </TooltipProvider>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Content Area */}
-                        <div className="flex-1 overflow-hidden">
-                            {detailViewMode === 'route' && activeMODetails && (
-                                <RouteBuilder
-                                    manufacturingOrder={activeMODetails}
-                                    workCells={workCells}
-                                    permissions={permissions}
-                                    onDirtyChange={() => { }}
-                                />
-                            )}
-                            {detailViewMode === 'work-cell' && (
-                                <div className="p-4">
-                                    <h2 className="text-lg font-semibold mb-4">Work Cell Manager</h2>
-                                    <p className="text-muted-foreground">Work cell management interface - To be implemented</p>
-                                    <div className="mt-4">
-                                        <p className="text-sm">Available work cells: {workCells.length}</p>
+                            {/* Content Area */}
+                            <div className="flex-1 overflow-hidden">
+                                {detailViewMode === 'route' && activeMODetails && (
+                                    <RouteBuilder
+                                        manufacturingOrder={activeMODetails}
+                                        workCells={workCells}
+                                        permissions={permissions}
+                                        onDirtyChange={() => { }}
+                                    />
+                                )}
+                                {detailViewMode === 'work-cell' && (
+                                    <div className="p-4">
+                                        <h2 className="text-lg font-semibold mb-4">Work Cell Manager</h2>
+                                        <p className="text-muted-foreground">Work cell management interface - To be implemented</p>
+                                        <div className="mt-4">
+                                            <p className="text-sm">Available work cells: {workCells.length}</p>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                            {detailViewMode === 'bulk' && (
-                                <div className="p-4">
-                                    <h2 className="text-lg font-semibold mb-4">Bulk Operations</h2>
-                                    <p className="text-muted-foreground">Perform operations on {Array.from(selectedMOs).length} selected orders</p>
-                                    <div className="mt-4">
-                                        <p className="text-sm">Available templates: {routeTemplates.length}</p>
+                                )}
+                                {detailViewMode === 'bulk' && (
+                                    <div className="p-4">
+                                        <h2 className="text-lg font-semibold mb-4">Bulk Operations</h2>
+                                        <p className="text-muted-foreground">Perform operations on {Array.from(selectedMOs).length} selected orders</p>
+                                        <div className="mt-4">
+                                            <p className="text-sm">Available templates: {routeTemplates.length}</p>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                            {detailViewMode === 'template' && (
-                                <div className="p-4">
-                                    <h2 className="text-lg font-semibold mb-4">Template Library</h2>
-                                    <p className="text-muted-foreground">Browse and apply route templates</p>
-                                    <div className="mt-4">
-                                        <p className="text-sm">Available templates: {routeTemplates.length}</p>
+                                )}
+                                {detailViewMode === 'template' && (
+                                    <div className="p-4">
+                                        <h2 className="text-lg font-semibold mb-4">Template Library</h2>
+                                        <p className="text-muted-foreground">Browse and apply route templates</p>
+                                        <div className="mt-4">
+                                            <p className="text-sm">Available templates: {routeTemplates.length}</p>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                            {!activeMODetails && detailViewMode === 'route' && (
-                                <div className="flex items-center justify-center h-full text-muted-foreground">
-                                    Select a manufacturing order to view its route configuration
-                                </div>
-                            )}
+                                )}
+                                {!activeMODetails && detailViewMode === 'route' && (
+                                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                                        Select a manufacturing order to view its route configuration
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </ResizablePanel>
+                </ResizablePanelGroup>
             </div>
         </AppLayout>
     );
