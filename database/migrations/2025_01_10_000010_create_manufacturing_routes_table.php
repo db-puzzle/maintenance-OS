@@ -21,6 +21,10 @@ return new class extends Migration
             $table->string('name', 255);
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->integer('version')->default(1);
+            $table->boolean('is_latest_for_category')->default(false);
+            $table->foreignId('created_from_route_id')->nullable()->constrained('manufacturing_routes');
+            $table->json('template_metadata')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->timestamps();
 
@@ -29,6 +33,9 @@ return new class extends Migration
             $table->index(['is_template', 'is_active']);
             $table->index('item_category_id');
             $table->index('template_source_id');
+            $table->index('created_from_route_id');
+            $table->index(['item_category_id', 'is_latest_for_category', 'version'], 'idx_route_templates_latest')
+                ->where('is_template', '=', true);
 
             // Constraints:
             // - Production routes (is_template=false): must have manufacturing_order_id, item_id is auto-populated from order

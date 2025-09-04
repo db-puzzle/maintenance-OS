@@ -289,6 +289,9 @@ class ManufacturingOrder extends Model
             // Create manufacturing order for this BOM item
             $childOrder = ManufacturingOrder::create($childOrderData);
 
+            // Ensure child order has a route
+            $this->ensureChildOrderHasRoute($childOrder, $bomItem);
+
             // Check if this item has its own separate BOM
             $primaryBom = $bomItem->item->primaryBom;
             if ($primaryBom) {
@@ -308,6 +311,50 @@ class ManufacturingOrder extends Model
 
             // Update child order counts for the newly created order
             $childOrder->updateChildOrderCounts();
+        }
+    }
+
+    /**
+     * Ensure child order has a route.
+     */
+    protected function ensureChildOrderHasRoute(ManufacturingOrder $childOrder, BomItem $bomItem): void
+    {
+        // Load the item with its category
+        $childOrder->load('item.category');
+
+        // Try to find a template for the item
+        $template = null;
+        if ($childOrder->item && $childOrder->item->item_category_id) {
+            $template = ManufacturingRoute::templates()
+                ->where('item_category_id', $childOrder->item->item_category_id)
+                ->where('is_latest_for_category', true)
+                ->where('is_active', true)
+                ->first();
+        }
+
+        if ($template) {
+            // Create route from template
+            $route = $childOrder->manufacturingRoute()->create([
+                'item_id' => $childOrder->item_id,
+                'template_source_id' => $template->id,
+                'name' => $template->name,
+                'description' => $template->description,
+                'is_active' => true,
+                'is_template' => false,
+                'created_by' => $childOrder->created_by,
+            ]);
+
+            $route->createFromTemplate($template);
+        } else {
+            // Create empty route
+            $childOrder->manufacturingRoute()->create([
+                'item_id' => $childOrder->item_id,
+                'name' => "Route for {$childOrder->order_number}",
+                'description' => 'Empty route - add steps or execute without steps',
+                'is_active' => true,
+                'is_template' => false,
+                'created_by' => $childOrder->created_by,
+            ]);
         }
     }
 

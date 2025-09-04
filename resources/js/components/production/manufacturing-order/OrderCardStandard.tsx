@@ -26,16 +26,12 @@ interface OrderCardStandardProps {
     enhancedMode: 'standard' | 'planning';
     onOrderClick?: (order: ManufacturingOrderTreeNode) => void;
     onOrderSelect?: (orderId: number, multiSelect: boolean) => void;
-    canManageRoute: boolean;
     permissions: {
         canRelease: boolean;
         canCancel: boolean;
         canUpdate: boolean;
         canDelete: boolean;
     };
-    onApplyTemplate: (order: ManufacturingOrderTreeNode) => void;
-    onCreateCustomRoute: (order: ManufacturingOrderTreeNode) => void;
-    onRemoveRoute: (order: ManufacturingOrderTreeNode) => void;
     onReleaseOrder: (order: ManufacturingOrderTreeNode) => void;
     onCancelOrder: (order: ManufacturingOrderTreeNode) => void;
 }
@@ -47,11 +43,7 @@ export function OrderCardStandard({
     enhancedMode,
     onOrderClick,
     onOrderSelect,
-    canManageRoute,
     permissions,
-    onApplyTemplate,
-    onCreateCustomRoute,
-    onRemoveRoute,
     onReleaseOrder,
     onCancelOrder,
 }: OrderCardStandardProps) {
@@ -67,7 +59,7 @@ export function OrderCardStandard({
         }
     };
 
-    const hasAnyPermission = canManageRoute || permissions.canRelease ||
+    const hasAnyPermission = permissions.canRelease ||
         permissions.canCancel || permissions.canUpdate || permissions.canDelete;
 
     return (
@@ -75,8 +67,8 @@ export function OrderCardStandard({
             className={cn(
                 "w-full p-3 border rounded-lg transition-all hover:bg-muted/50",
                 onOrderClick && "cursor-pointer",
-                isSelected && "ring-2 ring-primary bg-primary/5",
-                enhancedMode === 'planning' && isSelected && "border-primary"
+                isSelected && "border-ring ring-ring/10 ring-[2px]",
+                enhancedMode === 'planning' && isSelected && "border-ring ring-ring/10 ring-[2px]"
             )}
             onClick={handleClick}
         >
@@ -194,11 +186,7 @@ export function OrderCardStandard({
                     {hasAnyPermission ? (
                         <OrderCardActions
                             order={order}
-                            canManageRoute={canManageRoute}
                             permissions={permissions}
-                            onApplyTemplate={onApplyTemplate}
-                            onCreateCustomRoute={onCreateCustomRoute}
-                            onRemoveRoute={onRemoveRoute}
                             onReleaseOrder={onReleaseOrder}
                             onCancelOrder={onCancelOrder}
                         />

@@ -22,12 +22,18 @@ class ManufacturingRoute extends Model
         'is_active',
         'is_template',
         'item_category_id',
+        'version',
+        'is_latest_for_category',
+        'created_from_route_id',
+        'template_metadata',
         'created_by',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'is_template' => 'boolean',
+        'is_latest_for_category' => 'boolean',
+        'template_metadata' => 'array',
     ];
 
     /**
@@ -45,12 +51,12 @@ class ManufacturingRoute extends Model
                 $route->item_id = null;
             } else {
                 // Production routes must have manufacturing_order_id
-                if (!$route->manufacturing_order_id) {
+                if (! $route->manufacturing_order_id) {
                     throw new \InvalidArgumentException('Production routes must be associated with a manufacturing order.');
                 }
-                
+
                 // Automatically set item_id from manufacturing order if not already set
-                if (!$route->item_id && $route->manufacturingOrder && $route->manufacturingOrder->item_id) {
+                if (! $route->item_id && $route->manufacturingOrder && $route->manufacturingOrder->item_id) {
                     $route->item_id = $route->manufacturingOrder->item_id;
                 }
             }
@@ -75,6 +81,7 @@ class ManufacturingRoute extends Model
 
     /**
      * Get the route template used (deprecated).
+     *
      * @deprecated This relationship is no longer used. Use templateSource() instead.
      */
     public function routeTemplate(): BelongsTo
@@ -99,6 +106,22 @@ class ManufacturingRoute extends Model
     public function derivedRoutes(): HasMany
     {
         return $this->hasMany(ManufacturingRoute::class, 'template_source_id');
+    }
+
+    /**
+     * Get the route this was created from.
+     */
+    public function createdFromRoute(): BelongsTo
+    {
+        return $this->belongsTo(ManufacturingRoute::class, 'created_from_route_id');
+    }
+
+    /**
+     * Get routes created from this route as templates.
+     */
+    public function templatesCreatedFromThis(): HasMany
+    {
+        return $this->hasMany(ManufacturingRoute::class, 'created_from_route_id');
     }
 
     /**

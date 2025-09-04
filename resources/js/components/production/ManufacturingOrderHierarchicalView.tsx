@@ -2,10 +2,8 @@ import React, { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     Package,
-    Route,
     MoreVertical,
     Trash2,
-    Settings,
     Play,
     XCircle,
     Eye,
@@ -13,6 +11,7 @@ import {
     AlertCircle,
     Clock,
     FileText,
+    Route,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -67,7 +66,6 @@ interface ManufacturingOrderHierarchicalViewProps {
     onOrderSelect?: (orderId: number, multiSelect: boolean) => void;
     selectedOrders?: Set<number>;
     routeTemplates?: RouteTemplate[];
-    canManageRoutes?: boolean;
     showThumbnails?: boolean;
     searchQuery?: string;
     enhancedMode?: 'standard' | 'planning';
@@ -81,7 +79,6 @@ export default function ManufacturingOrderHierarchicalView({
     onOrderSelect,
     selectedOrders = new Set(),
     routeTemplates = [],
-    canManageRoutes = false,
     showThumbnails: externalShowThumbnails,
     searchQuery: _searchQuery = '',
     enhancedMode = 'standard',
@@ -115,11 +112,6 @@ export default function ManufacturingOrderHierarchicalView({
     const canDeleteOrders = userPermissions.includes('production.orders.delete');
 
     // Handlers
-    const handleApplyTemplate = (order: ManufacturingOrderTreeNode) => {
-        setSelectedOrderForRoute(order);
-        setTemplateDialogOpen(true);
-    };
-
     const handleTemplateSelect = (templateId: number) => {
         if (!selectedOrderForRoute) return;
 
@@ -136,26 +128,6 @@ export default function ManufacturingOrderHierarchicalView({
                 toast.error('Erro ao aplicar template de rota');
             }
         });
-    };
-
-    const handleCreateCustomRoute = (order: ManufacturingOrderTreeNode) => {
-        router.visit(route('production.orders.show', order.id) + '?openRouteBuilder=1');
-    };
-
-    const handleRemoveRoute = (order: ManufacturingOrderTreeNode) => {
-        if (!order.manufacturing_route) return;
-
-        if (confirm('Tem certeza que deseja remover a rota desta ordem de manufatura?')) {
-            router.delete(route('production.routing.destroy', order.manufacturing_route.id), {
-                preserveScroll: true,
-                onSuccess: () => {
-                    toast.success('Rota removida com sucesso');
-                },
-                onError: () => {
-                    toast.error('Erro ao remover rota');
-                }
-            });
-        }
     };
 
     const handleReleaseOrder = (order: ManufacturingOrderTreeNode) => {
@@ -271,7 +243,6 @@ export default function ManufacturingOrderHierarchicalView({
 
     // Custom node renderer
     const renderOrderNode = (node: ManufacturingOrderTreeNode, _props: NodeRenderProps) => {
-        const canManageNodeRoute = canManageRoutes && ['draft', 'planned'].includes(node.status);
         const isSelected = selectedOrders.has(node.id);
         const routeStatus = getRouteStatus(node);
         const routeCompleteness = getRouteCompleteness(node);
@@ -287,16 +258,12 @@ export default function ManufacturingOrderHierarchicalView({
                     showThumbnails={showImages}
                     onOrderClick={onOrderClick}
                     onOrderSelect={onOrderSelect}
-                    canManageRoute={canManageNodeRoute}
                     permissions={{
                         canRelease: canReleaseOrders,
                         canCancel: canCancelOrders,
                         canUpdate: canUpdateOrders,
                         canDelete: canDeleteOrders,
                     }}
-                    onApplyTemplate={handleApplyTemplate}
-                    onCreateCustomRoute={handleCreateCustomRoute}
-                    onRemoveRoute={handleRemoveRoute}
                     onReleaseOrder={handleReleaseOrder}
                     onCancelOrder={handleCancelOrder}
                 />
@@ -309,8 +276,8 @@ export default function ManufacturingOrderHierarchicalView({
                 className={cn(
                     "w-full p-3 border rounded-lg transition-all hover:bg-muted/50",
                     onOrderClick && "cursor-pointer",
-                    isSelected && "ring-2 ring-primary bg-primary/5",
-                    enhancedMode === 'planning' && selectedOrders.has(node.id) && "border-primary"
+                    isSelected && "border-ring ring-ring/10 ring-[2px]",
+                    enhancedMode === 'planning' && selectedOrders.has(node.id) && "border-ring ring-ring/10 ring-[2px]"
                 )}
                 onClick={(e) => {
                     if (onOrderSelect && enhancedMode === 'planning') {
@@ -432,7 +399,7 @@ export default function ManufacturingOrderHierarchicalView({
 
                     {/* Actions */}
                     <div className={cn("flex items-center justify-center", !showImages && "col-span-1")}>
-                        {canManageNodeRoute || canReleaseOrders || canCancelOrders || canUpdateOrders || canDeleteOrders ? (
+                        {canReleaseOrders || canCancelOrders || canUpdateOrders || canDeleteOrders ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
@@ -452,40 +419,6 @@ export default function ManufacturingOrderHierarchicalView({
                                             Ver Detalhes
                                         </Link>
                                     </DropdownMenuItem>
-
-                                    {/* Route Management Section */}
-                                    {canManageNodeRoute && (
-                                        <>
-                                            <DropdownMenuSeparator />
-                                            {!node.manufacturing_route && (
-                                                <>
-                                                    <DropdownMenuItem onClick={() => handleApplyTemplate(node)}>
-                                                        <Route className="h-4 w-4 mr-2" />
-                                                        Aplicar Template
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleCreateCustomRoute(node)}>
-                                                        <Settings className="h-4 w-4 mr-2" />
-                                                        Criar Rota Customizada
-                                                    </DropdownMenuItem>
-                                                </>
-                                            )}
-                                            {node.manufacturing_route && (
-                                                <>
-                                                    <DropdownMenuItem onClick={() => handleCreateCustomRoute(node)}>
-                                                        <Settings className="h-4 w-4 mr-2" />
-                                                        Editar Rota
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        className="text-destructive"
-                                                        onClick={() => handleRemoveRoute(node)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4 mr-2" />
-                                                        Remover Rota
-                                                    </DropdownMenuItem>
-                                                </>
-                                            )}
-                                        </>
-                                    )}
 
                                     {/* Status Change Actions */}
                                     {(canReleaseOrders || canCancelOrders || canDeleteOrders) && (

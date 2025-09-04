@@ -3,18 +3,15 @@ import { Link, router } from '@inertiajs/react';
 import {
     MoreVertical,
     Trash2,
-    Settings,
     Play,
     XCircle,
     Eye,
-    Route,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
@@ -26,16 +23,12 @@ declare const route: (name: string, params?: string | number | Record<string, st
 
 interface OrderCardActionsProps {
     order: ManufacturingOrderTreeNode;
-    canManageRoute: boolean;
     permissions: {
         canRelease: boolean;
         canCancel: boolean;
         canUpdate: boolean;
         canDelete: boolean;
     };
-    onApplyTemplate: (order: ManufacturingOrderTreeNode) => void;
-    onCreateCustomRoute: (order: ManufacturingOrderTreeNode) => void;
-    onRemoveRoute: (order: ManufacturingOrderTreeNode) => void;
     onReleaseOrder: (order: ManufacturingOrderTreeNode) => void;
     onCancelOrder: (order: ManufacturingOrderTreeNode) => void;
     className?: string;
@@ -44,17 +37,13 @@ interface OrderCardActionsProps {
 
 export function OrderCardActions({
     order,
-    canManageRoute,
     permissions,
-    onApplyTemplate,
-    onCreateCustomRoute,
-    onRemoveRoute,
     onReleaseOrder,
     onCancelOrder,
     className,
     size = 'default'
 }: OrderCardActionsProps) {
-    const hasAnyPermission = canManageRoute || permissions.canRelease ||
+    const hasAnyPermission = permissions.canRelease ||
         permissions.canCancel || permissions.canUpdate || permissions.canDelete;
 
     if (!hasAnyPermission) {
@@ -91,44 +80,9 @@ export function OrderCardActions({
                     </Link>
                 </DropdownMenuItem>
 
-                {/* Route Management Section */}
-                {canManageRoute && (
-                    <>
-                        <DropdownMenuSeparator />
-                        {!order.manufacturing_route && (
-                            <>
-                                <DropdownMenuItem onClick={() => onApplyTemplate(order)}>
-                                    <Route className="h-4 w-4 mr-2" />
-                                    Aplicar Template
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onCreateCustomRoute(order)}>
-                                    <Settings className="h-4 w-4 mr-2" />
-                                    Criar Rota Customizada
-                                </DropdownMenuItem>
-                            </>
-                        )}
-                        {order.manufacturing_route && (
-                            <>
-                                <DropdownMenuItem onClick={() => onCreateCustomRoute(order)}>
-                                    <Settings className="h-4 w-4 mr-2" />
-                                    Editar Rota
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    className="text-destructive"
-                                    onClick={() => onRemoveRoute(order)}
-                                >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Remover Rota
-                                </DropdownMenuItem>
-                            </>
-                        )}
-                    </>
-                )}
-
                 {/* Status Change Actions */}
                 {(permissions.canRelease || permissions.canCancel || permissions.canDelete) && (
                     <>
-                        <DropdownMenuSeparator />
                         {permissions.canRelease && canBeReleased(order) && (
                             <DropdownMenuItem onClick={() => onReleaseOrder(order)}>
                                 <Play className="h-4 w-4 mr-2" />

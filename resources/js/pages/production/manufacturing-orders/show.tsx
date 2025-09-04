@@ -16,7 +16,8 @@ import {
     TrendingUp,
     Percent,
     Check,
-    Info
+    Info,
+    Save,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +41,8 @@ import { useForm } from '@inertiajs/react';
 import ManufacturingOrderHierarchicalView, { ManufacturingOrderTreeNode } from '@/components/production/ManufacturingOrderHierarchicalView';
 import ManufacturingOrderRouteTab from '@/components/production/ManufacturingOrderRouteTab';
 import { ReportProductionDialog } from '@/components/production/ReportProductionDialog';
+import { SaveAsTemplateDialog } from '@/components/production/templates/SaveAsTemplateDialog';
+import { DirectExecution } from '@/components/production/templates/DirectExecution';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { createFormAdapter } from '@/utils/form-adapters';
@@ -141,6 +144,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
     const flash = props.flash as { openRouteBuilder?: string | boolean; fromQrScan?: boolean } | undefined;
     const [generatingQr, setGeneratingQr] = useState(false);
     const [reportProductionOpen, setReportProductionOpen] = useState(false);
+    const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false);
     // Check URL params - passed from backend
     const openRouteBuilderParam = props.openRouteBuilder || null;
     // Create a form instance for view-only display
@@ -875,18 +879,50 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
             label: 'Routes & Steps',
             fullWidth: true,
             content: (
-                <ManufacturingOrderRouteTab
-                    order={order}
-                    canCreateRoute={canCreateRoute}
-                    templates={templates}
-                    workCells={workCells}
-                    stepTypes={stepTypes}
-                    forms={forms}
-                    plants={plants}
-                    shifts={shifts}
-                    manufacturers={manufacturers}
-                    openRouteBuilder={openRouteBuilderParam as string | null | undefined}
-                />
+                <div className="space-y-4">
+                    {/* Route header with actions */}
+                    {order.manufacturing_route && order.manufacturing_route.steps?.length > 0 && (
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h3 className="text-lg font-semibold">{order.manufacturing_route.name}</h3>
+                                {order.manufacturing_route.description && (
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        {order.manufacturing_route.description}
+                                    </p>
+                                )}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSaveAsTemplateOpen(true)}
+                            >
+                                <Save className="h-4 w-4 mr-2" />
+                                Save as Template
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Direct execution for routes without steps */}
+                    {order.has_route && (!order.manufacturing_route?.steps || order.manufacturing_route.steps.length === 0) && (
+                        <DirectExecution order={order} />
+                    )}
+
+                    {/* Normal route tab for routes with steps */}
+                    {(!order.has_route || (order.manufacturing_route?.steps && order.manufacturing_route.steps.length > 0)) && (
+                        <ManufacturingOrderRouteTab
+                            order={order}
+                            canCreateRoute={canCreateRoute}
+                            templates={templates}
+                            workCells={workCells}
+                            stepTypes={stepTypes}
+                            forms={forms}
+                            plants={plants}
+                            shifts={shifts}
+                            manufacturers={manufacturers}
+                            openRouteBuilder={openRouteBuilderParam as string | null | undefined}
+                        />
+                    )}
+                </div>
             )
         },
         {
@@ -1074,6 +1110,14 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                 open={reportProductionOpen}
                 onOpenChange={setReportProductionOpen}
             />
+
+            {order.manufacturing_route && (
+                <SaveAsTemplateDialog
+                    route={order.manufacturing_route}
+                    open={saveAsTemplateOpen}
+                    onOpenChange={setSaveAsTemplateOpen}
+                />
+            )}
         </>
     );
 } 

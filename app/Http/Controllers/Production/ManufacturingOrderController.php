@@ -126,9 +126,33 @@ class ManufacturingOrderController extends BaseSearchController
     {
         $this->authorize('create', ManufacturingOrder::class);
 
-        $routeTemplates = \App\Models\Production\ManufacturingRoute::templates()
-            ->active()
-            ->with('steps')
+        $item = null;
+        $itemId = $request->get('item_id');
+
+        if ($itemId) {
+            $item = \App\Models\Production\Item::with('category')->findOrFail($itemId);
+        }
+
+        // Get available templates
+        $templates = collect();
+        $recommendedTemplate = null;
+
+        if ($item && $item->item_category_id) {
+            $templates = \App\Models\Production\ManufacturingRoute::templates()
+                ->where('item_category_id', $item->item_category_id)
+                ->where('is_active', true)
+                ->orderBy('is_latest_for_category', 'desc')
+                ->orderBy('version', 'desc')
+                ->get();
+
+            $recommendedTemplate = $templates->firstWhere('is_latest_for_category', true);
+        }
+
+        // Get all templates for manual selection
+        $allTemplates = \App\Models\Production\ManufacturingRoute::templates()
+            ->where('is_active', true)
+            ->with('itemCategory')
+            ->orderBy('name')
             ->get();
 
         $items = \App\Models\Production\Item::where('can_be_manufactured', true)
@@ -143,11 +167,20 @@ class ManufacturingOrderController extends BaseSearchController
             ->orderBy('bom_number')
             ->get();
 
+        $categories = \App\Models\Production\ItemCategory::active()
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('production/manufacturing-orders/create', [
-            'routeTemplates' => $routeTemplates,
+            'item' => $item,
+            'templates' => $templates,
+            'recommendedTemplate' => $recommendedTemplate,
+            'allTemplates' => $allTemplates,
+            'hasMultipleTemplates' => $templates->count() > 1,
             'sourceTypes' => ManufacturingOrder::SOURCE_TYPES,
             'items' => $items,
             'billsOfMaterial' => $billsOfMaterial,
+            'categories' => $categories,
             'selectedBomId' => $request->get('bom_id'),
         ]);
     }
@@ -169,7 +202,9 @@ class ManufacturingOrderController extends BaseSearchController
             'requested_date' => 'nullable|date',
             'source_type' => 'nullable|in:manual,sales_order,forecast',
             'source_reference' => 'nullable|required_if:source_type,sales_order,forecast|string|max:100',
-            'route_template_id' => 'nullable|exists:route_templates,id',
+            'template_source_id' => 'nullable|exists:manufacturing_routes,id',
+            'auto_select_template' => 'nullable|boolean',
+            'create_empty_route' => 'nullable|boolean',
             'auto_complete_on_children' => 'nullable|boolean',
             'route_creation_mode' => 'nullable|in:manual,template,auto',
         ]);

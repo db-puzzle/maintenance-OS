@@ -3,12 +3,13 @@
 namespace App\Services\Production;
 
 use App\Models\Production\BillOfMaterial;
+use App\Models\Production\Item;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingOrderDependency;
 use App\Models\Production\ManufacturingOrderFlow;
+use App\Models\Production\ManufacturingRoute;
 use App\Models\Production\ManufacturingStep;
 use App\Models\Production\ManufacturingStepExecution;
-// RouteTemplate is deprecated - using unified ManufacturingRoute model
 use Illuminate\Support\Facades\DB;
 
 class ManufacturingOrderService
@@ -31,13 +32,10 @@ class ManufacturingOrderService
                 $order->createChildOrders();
             }
 
-            // Create route if template specified
-            if (isset($data['route_template_id']) || isset($data['template_source_id'])) {
-                $templateId = $data['template_source_id'] ?? $data['route_template_id'];
-                $this->createRouteFromTemplate($order, $templateId);
-            }
+            // ALWAYS create a route
+            $this->ensureOrderHasRoute($order, $data);
 
-            return $order->fresh(['item', 'billOfMaterial', 'children']);
+            return $order->fresh(['item', 'billOfMaterial', 'children', 'manufacturingRoute']);
         });
     }
 
@@ -69,7 +67,10 @@ class ManufacturingOrderService
             // Create child orders for components
             $order->createChildOrders();
 
-            return $order->fresh(['item', 'billOfMaterial', 'children']);
+            // ALWAYS create a route
+            $this->ensureOrderHasRoute($order, $data);
+
+            return $order->fresh(['item', 'billOfMaterial', 'children', 'manufacturingRoute']);
         });
     }
 
@@ -134,6 +135,101 @@ class ManufacturingOrderService
         ]);
 
         $route->createFromTemplate($template);
+    }
+
+    /**
+     * Ensure order has a route, creating one if necessary.
+     */
+    protected function ensureOrderHasRoute(ManufacturingOrder $order, array $data): void
+    {
+        // If route already exists (shouldn't happen on create), return
+        if ($order->manufacturingRoute()->exists()) {
+            return;
+        }
+
+        // Priority 1: Explicit template specified
+        if (isset($data['template_source_id'])) {
+            $this->createRouteFromTemplate($order, $data['template_source_id']);
+
+            return;
+        }
+
+        // Priority 2: Auto-select template based on item type
+        if ($order->item && $order->item->item_category_id) {
+            $template = $this->findBestTemplateForItem($order->item);
+            if ($template) {
+                // Check if multiple templates exist for category
+                $templateCount = $this->getTemplateCountForCategory($order->item->item_category_id);
+
+                if ($templateCount > 1 && ! isset($data['auto_select_template'])) {
+                    // Create empty route and mark for user selection
+                    $this->createEmptyRoute($order, [
+                        'requires_template_selection' => true,
+                        'available_templates' => $templateCount,
+                    ]);
+                } else {
+                    $this->createRouteFromTemplate($order, $template->id);
+                }
+
+                return;
+            }
+        }
+
+        // Priority 3: Create empty route
+        $this->createEmptyRoute($order);
+    }
+
+    /**
+     * Find the best template for an item.
+     */
+    protected function findBestTemplateForItem(Item $item): ?ManufacturingRoute
+    {
+        // First, try exact category match with latest version
+        $template = ManufacturingRoute::templates()
+            ->where('item_category_id', $item->item_category_id)
+            ->where('is_latest_for_category', true)
+            ->where('is_active', true)
+            ->first();
+
+        if ($template) {
+            return $template;
+        }
+
+        // Second, try any template for the category
+        return ManufacturingRoute::templates()
+            ->where('item_category_id', $item->item_category_id)
+            ->where('is_active', true)
+            ->orderBy('version', 'desc')
+            ->first();
+    }
+
+    /**
+     * Get count of available templates for a category.
+     */
+    protected function getTemplateCountForCategory(int $categoryId): int
+    {
+        return ManufacturingRoute::templates()
+            ->where('item_category_id', $categoryId)
+            ->where('is_active', true)
+            ->count();
+    }
+
+    /**
+     * Create an empty route for the order.
+     */
+    protected function createEmptyRoute(ManufacturingOrder $order, array $metadata = []): ManufacturingRoute
+    {
+        return $order->manufacturingRoute()->create([
+            'item_id' => $order->item_id,
+            'name' => "Route for {$order->order_number}",
+            'description' => $metadata['requires_template_selection'] ?? false
+                ? 'Template selection required'
+                : 'Empty route - add steps or execute without steps',
+            'is_active' => true,
+            'is_template' => false,
+            'created_by' => auth()->id(),
+            'template_metadata' => $metadata ? $metadata : null,
+        ]);
     }
 
     /**

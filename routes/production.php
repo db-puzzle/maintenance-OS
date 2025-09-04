@@ -33,10 +33,12 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
         Route::get('/{template}/edit', [RouteTemplateController::class, 'edit'])->name('edit');
         Route::put('/{template}', [RouteTemplateController::class, 'update'])->name('update');
         Route::delete('/{template}', [RouteTemplateController::class, 'destroy'])->name('destroy');
-        Route::post('/{template}/duplicate', [RouteTemplateController::class, 'duplicate'])->name('duplicate');
-        Route::post('/{template}/toggle-active', [RouteTemplateController::class, 'toggleActive'])->name('toggle-active');
-        Route::put('/{template}/steps', [RouteTemplateController::class, 'updateSteps'])->name('update-steps');
+        Route::post('/{template}/copy-to-order', [RouteTemplateController::class, 'copyToOrder'])->name('copy-to-order');
+        Route::get('/select', [RouteTemplateController::class, 'select'])->name('select');
     });
+
+    // Route Template from Production Route
+    Route::post('routes/{route}/save-as-template', [RouteTemplateController::class, 'saveAsTemplate'])->name('routes.save-as-template');
 
     // QR scan deep-links (mobile/browser)
     Route::get('items/{item_number}/qr', [QrCodeController::class, 'handleItemScan'])->name('items.qr');

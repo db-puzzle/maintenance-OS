@@ -153,12 +153,27 @@ export default function PlanningPage({
         });
     }, [selectedMOs]);
 
+    // Helper function to find MO in nested structure
+    const findMOInHierarchy = useCallback((orders: ManufacturingOrder[], targetId: number): ManufacturingOrder | null => {
+        for (const order of orders) {
+            if (order.id === targetId) {
+                return order;
+            }
+            if (order.children && order.children.length > 0) {
+                const found = findMOInHierarchy(order.children, targetId);
+                if (found) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }, []);
+
     // Active MO details
     const activeMODetails = useMemo(() => {
         if (!activeMO) return null;
-        // TODO: Find the MO in the nested structure
-        return manufacturingOrders.find(mo => mo.id === activeMO);
-    }, [activeMO, manufacturingOrders]);
+        return findMOInHierarchy(manufacturingOrders, activeMO);
+    }, [activeMO, manufacturingOrders, findMOInHierarchy]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
