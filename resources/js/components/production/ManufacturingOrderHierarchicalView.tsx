@@ -388,7 +388,7 @@ export default function ManufacturingOrderHierarchicalView({
                         {enhancedMode === 'planning' ? (
                             <Badge
                                 variant={node.status === 'planned' ? 'default' : node.status === 'draft' ? 'secondary' : 'default'}
-                                className={cn("text-xs", node.status === 'planned' && "bg-green-100 text-green-800")}
+                                className={cn("text-xs", node.status === 'planned' && "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400")}
                             >
                                 {node.status.toUpperCase()}
                             </Badge>
@@ -517,13 +517,13 @@ export default function ManufacturingOrderHierarchicalView({
 
     // Header columns
     const headerColumns = compactMode ? (
-        <div className="bg-muted/50 p-2 rounded-md font-semibold text-xs mb-2 flex justify-between items-center">
+        <div className="bg-muted/50 dark:bg-muted/20 p-2 rounded-md font-semibold text-xs mb-2 flex justify-between items-center">
             <div>Manufacturing Orders</div>
             <div className="text-muted-foreground">Route / Status</div>
         </div>
     ) : (
         <div className={cn(
-            "bg-muted/50 p-3 rounded-lg grid gap-2 font-semibold text-sm mb-2",
+            "bg-muted/50 dark:bg-muted/20 p-3 rounded-lg grid gap-2 font-semibold text-sm mb-2",
             showImages ? "grid-cols-[60px_3fr_3fr_1fr_1fr_2fr_1fr_1fr]" : "grid-cols-12"
         )}>
             {showImages && <div className="text-center">Imagem</div>}

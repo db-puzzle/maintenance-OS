@@ -1,23 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { router, useForm } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-    FileText,
-} from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import CreateWorkCellSheet from '@/components/production/CreateWorkCellSheet';
 import RouteBuilderCanvas from '@/components/production/RouteBuilderCanvas';
@@ -26,7 +8,7 @@ import { ManufacturingStep, WorkCell, ManufacturingOrder } from '@/types/product
 
 // ExtendedManufacturingStep type is defined in StepPropertiesPanel
 
-interface RouteStep {
+export interface RouteStep {
     id: string | number;
     sequence: number;
     name: string;
@@ -49,6 +31,7 @@ interface RouteBuilderProps {
     onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
     onLastSavedAtChange?: (date: Date | null) => void;
     isSaving?: boolean;
+    onSaveAsTemplate?: (steps: RouteStep[]) => void;
     permissions: {
         canEditRoute: boolean;
         canSaveAsTemplate: boolean;
@@ -64,14 +47,12 @@ export default function RouteBuilder({
     onSaveStatusChange,
     onLastSavedAtChange,
     isSaving = false,
+    onSaveAsTemplate,
     permissions,
 }: RouteBuilderProps) {
     const [steps, setSteps] = useState<RouteStep[]>([]);
     const [selectedStep, setSelectedStep] = useState<RouteStep | null>(null);
     const [showCreateWorkCell, setShowCreateWorkCell] = useState(false);
-    const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
-    const [templateName, setTemplateName] = useState('');
-    const [templateDescription, setTemplateDescription] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const [draggedStep, setDraggedStep] = useState<RouteStep | null>(null);
 
@@ -109,39 +90,51 @@ export default function RouteBuilder({
 
     // Track selected step sequence for maintaining selection after updates
     const selectedStepSequenceRef = useRef<number | null>(null);
+    const selectedStepIdRef = useRef<string | number | null>(null);
 
     // Update selectedStepSequenceRef when selectedStep changes
     useEffect(() => {
         selectedStepSequenceRef.current = selectedStep?.sequence || null;
+        selectedStepIdRef.current = selectedStep?.id || null;
     }, [selectedStep]);
 
 
-    // Load existing route - only on initial mount
+    // Load existing route when manufacturing order changes
+    const previousMOIdRef = useRef<number | null>(null);
+
     useEffect(() => {
-        if (manufacturingOrder.manufacturing_route && manufacturingOrder.manufacturing_route.steps) {
-            const routeSteps: RouteStep[] = manufacturingOrder.manufacturing_route.steps.map((step: ManufacturingStep, index: number) => ({
-                id: step.id?.toString() || `existing-${index}`,
-                sequence: step.step_number || index + 1,
-                name: step.name,
-                description: step.description || '',
-                work_cell_id: step.work_cell_id ?? null,
-                setup_time_minutes: step.setup_time_minutes || 0,
-                cycle_time_minutes: step.cycle_time_minutes || 0,
-                step_type: step.step_type || 'standard',
-                is_required: true,
-                quality_check_mode: step.quality_check_mode,
-                sampling_size: step.sampling_size,
-                form_id: step.form_id,
-            }));
-            setSteps(routeSteps);
-            // Initialize previousStepsRef to prevent auto-save on initial load
-            previousStepsRef.current = routeSteps;
-        } else {
-            // Initialize previousStepsRef for new routes
-            previousStepsRef.current = [];
+        // Only load route if MO actually changed
+        if (previousMOIdRef.current !== manufacturingOrder.id) {
+            previousMOIdRef.current = manufacturingOrder.id;
+
+            if (manufacturingOrder.manufacturing_route && manufacturingOrder.manufacturing_route.steps) {
+                const routeSteps: RouteStep[] = manufacturingOrder.manufacturing_route.steps.map((step: ManufacturingStep, index: number) => ({
+                    id: step.id?.toString() || `existing-${index}`,
+                    sequence: step.step_number || index + 1,
+                    name: step.name,
+                    description: step.description || '',
+                    work_cell_id: step.work_cell_id ?? null,
+                    setup_time_minutes: step.setup_time_minutes || 0,
+                    cycle_time_minutes: step.cycle_time_minutes || 0,
+                    step_type: step.step_type || 'standard',
+                    is_required: true,
+                    quality_check_mode: step.quality_check_mode,
+                    sampling_size: step.sampling_size,
+                    form_id: step.form_id,
+                }));
+                setSteps(routeSteps);
+                // Initialize previousStepsRef to prevent auto-save on initial load
+                previousStepsRef.current = routeSteps;
+            } else {
+                // Clear steps and initialize previousStepsRef for new routes
+                setSteps([]);
+                previousStepsRef.current = [];
+            }
+            // Clear selected step when changing manufacturing orders
+            setSelectedStep(null);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Empty dependency array - only run on mount
+        // Skip reload if same MO to preserve selection
+    }, [manufacturingOrder.id, manufacturingOrder.manufacturing_route]); // Re-run when manufacturing order changes
 
     // Track dirty state
     useEffect(() => {
@@ -255,6 +248,14 @@ export default function RouteBuilder({
 
                         if (onSave) onSave();
 
+                        // Restore selected step if it was cleared during save
+                        if (selectedStepIdRef.current && !selectedStep) {
+                            const stepToReselect = steps.find(s => String(s.id) === String(selectedStepIdRef.current));
+                            if (stepToReselect) {
+                                setSelectedStep(stepToReselect);
+                            }
+                        }
+
                         // Focus should be maintained automatically since we're not reloading any data
                         // But check just in case
                         const activeElementAfter = document.activeElement;
@@ -274,7 +275,7 @@ export default function RouteBuilder({
                         // Reset to idle after 3 seconds
                         setTimeout(() => {
                             onSaveStatusChange?.('idle');
-                        }, 3000);
+                        }, 1500);
                     },
                 }
             );
@@ -282,9 +283,9 @@ export default function RouteBuilder({
             onSaveStatusChange?.('error');
             setTimeout(() => {
                 onSaveStatusChange?.('idle');
-            }, 3000);
+            }, 1500);
         }
-    }, [permissions.canEditRoute, manufacturingOrder.id, onSave, onSaveStatusChange, onLastSavedAtChange]);
+    }, [permissions.canEditRoute, manufacturingOrder.id, onSave, onSaveStatusChange, onLastSavedAtChange, selectedStep, steps]);
 
     // Keep stepsRef updated
     useEffect(() => {
@@ -312,10 +313,29 @@ export default function RouteBuilder({
             clearTimeout(saveTimeoutRef.current);
         }
 
-        // Set new timeout for auto-save (1.5 seconds after last change)
+        // Set new timeout for auto-save (3 seconds after last change to avoid interrupting editing)
         saveTimeoutRef.current = setTimeout(() => {
-            saveRoute();
-        }, 1500);
+            // Only save if no step is currently being edited (no active input/textarea focus)
+            const activeElement = document.activeElement;
+            const isEditingInput = activeElement && (
+                activeElement.tagName === 'INPUT' ||
+                activeElement.tagName === 'TEXTAREA' ||
+                activeElement.tagName === 'SELECT' ||
+                activeElement.closest('[role="combobox"]') // For custom select components
+            );
+
+            if (!isEditingInput) {
+                saveRoute();
+            } else {
+                // If user is still editing, postpone the save
+                if (saveTimeoutRef.current) {
+                    clearTimeout(saveTimeoutRef.current);
+                }
+                saveTimeoutRef.current = setTimeout(() => {
+                    saveRoute();
+                }, 1500); // Try again in 3 seconds
+            }
+        }, 1500); // Increased from 1.5 to 3 seconds
 
         // Cleanup timeout on unmount or when dependencies change
         return () => {
@@ -326,47 +346,13 @@ export default function RouteBuilder({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [steps, permissions.canEditRoute]); // Remove saveRoute from dependencies
 
-    // Save as template
-    const handleSaveAsTemplate = async () => {
-        if (!templateName) {
-            toast.error('Please enter a template name');
-            return;
+    // Expose steps to parent when save as template is requested
+    useEffect(() => {
+        if (onSaveAsTemplate) {
+            // Make steps available to parent component
+            onSaveAsTemplate(steps);
         }
-
-        try {
-            await router.post(
-                window.route('production.planning.routes.save-as-template'),
-                {
-                    name: templateName,
-                    description: templateDescription,
-                    manufacturing_order_id: manufacturingOrder.id,
-                    steps: steps.map(step => ({
-                        sequence: step.sequence,
-                        name: step.name,
-                        description: step.description,
-                        work_cell_id: step.work_cell_id,
-                        setup_time_minutes: step.setup_time_minutes || 0,
-                        cycle_time_minutes: step.cycle_time_minutes || 0,
-                        step_type: step.step_type,
-                        is_required: step.is_required,
-                    })),
-                },
-                {
-                    onSuccess: () => {
-                        toast.success('Template saved successfully');
-                        setShowSaveAsTemplate(false);
-                        setTemplateName('');
-                        setTemplateDescription('');
-                    },
-                    onError: () => {
-                        toast.error('Failed to save template');
-                    },
-                }
-            );
-        } catch {
-            toast.error('Failed to save template');
-        }
-    };
+    }, [steps, onSaveAsTemplate]);
 
     // Convert steps to canvas format
     const canvasSteps = useMemo(() => steps.map(step => ({
@@ -418,36 +404,6 @@ export default function RouteBuilder({
 
     return (
         <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="flex-shrink-0 bg-white border-b px-6 py-2">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-3">
-                            <h3 className="text-sm font-medium">
-                                {manufacturingOrder.item?.item_number} - {manufacturingOrder.item?.name}
-                            </h3>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-
-                        <div className="ml-4 flex items-center gap-4">
-                            {permissions.canEditRoute && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setShowSaveAsTemplate(true)}
-                                    disabled={steps.length === 0}
-                                >
-                                    <FileText className="h-4 w-4 mr-2" />
-                                    Save as Template
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-
-            </div>
 
             {/* Main Content - Canvas and Properties Panel */}
             <div className="flex-1 flex overflow-hidden relative">
@@ -583,46 +539,6 @@ export default function RouteBuilder({
                 />
             )}
 
-            {/* Save as Template Dialog */}
-            <AlertDialog open={showSaveAsTemplate} onOpenChange={setShowSaveAsTemplate}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Save Route as Template</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Create a reusable template from this route configuration.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div>
-                            <Label htmlFor="template-name">Template Name</Label>
-                            <Input
-                                id="template-name"
-                                value={templateName}
-                                onChange={(e) => setTemplateName(e.target.value)}
-                                placeholder="e.g., Standard Assembly Route"
-                                className="mt-1"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="template-description">Description (Optional)</Label>
-                            <Textarea
-                                id="template-description"
-                                value={templateDescription}
-                                onChange={(e) => setTemplateDescription(e.target.value)}
-                                placeholder="Describe when to use this template..."
-                                className="mt-1"
-                                rows={3}
-                            />
-                        </div>
-                    </div>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleSaveAsTemplate}>
-                            Save Template
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </div>
     );
 }

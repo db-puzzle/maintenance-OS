@@ -194,11 +194,9 @@ class PlanningController extends Controller
                 $route->steps()->create($stepData);
             }
 
-            // Update order status if needed
-            if ($order->status === 'draft' && $route->steps()->count() > 0) {
-                $order->status = 'planned';
-                $order->save();
-            }
+            // Note: Status transition from 'draft' to 'planned' should only happen
+            // via explicit user action using the "Marcar Planejada" button,
+            // not automatically when saving route steps
         });
 
         // Check if this is an auto-save request (no flash message)

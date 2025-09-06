@@ -25,22 +25,22 @@ class ProductionRoutingController extends Controller
     {
         $this->authorize('viewAny', ManufacturingRoute::class);
 
-        $routings = ManufacturingRoute::query()
+        $routings = ManufacturingRoute::templates()
             ->when($request->input('search'), function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('description', 'like', "%{$search}%")
-                        ->orWhereHas('item', function ($query) use ($search) {
-                            $query->where('item_number', 'like', "%{$search}%")
-                                ->orWhere('name', 'like', "%{$search}%");
+                        ->orWhereHas('itemCategory', function ($query) use ($search) {
+                            $query->where('name', 'like', "%{$search}%");
                         });
                 });
             })
             ->when($request->filled('is_active'), function ($query) use ($request) {
                 $query->where('is_active', $request->boolean('is_active'));
             })
-            ->with(['item', 'manufacturingOrder', 'createdBy', 'templateSource'])
+            ->with(['itemCategory', 'createdBy'])
             ->withCount('steps')
+            ->withCount('derivedRoutes as usage_count')
             ->orderBy('id', 'desc')
             ->paginate($request->input('per_page', 10))
             ->withQueryString();

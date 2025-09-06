@@ -355,8 +355,16 @@ export interface ManufacturingRoute {
     is_template?: boolean;
     item_category_id?: number | null;
     item_category?: ItemCategory;
+    version?: number;
+    is_latest_for_category?: boolean;
+    template_metadata?: {
+        tags?: string[];
+        [key: string]: any;
+    };
     steps?: ManufacturingStep[];
     steps_count?: number;
+    usage_count?: number;
+    derived_routes_count?: number;
     current_active_step?: ManufacturingStep;
     created_by?: number;
     created_by_user?: User;

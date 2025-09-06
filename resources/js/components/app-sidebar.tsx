@@ -47,6 +47,10 @@ const gerenciamentoNavItems: NavGroup = {
                     href: '/production/orders',
                 },
                 {
+                    title: 'Planejar',
+                    href: '/production/planning',
+                },
+                {
                     title: 'Turnos',
                     href: '/asset-hierarchy/shifts',
                 },
@@ -61,10 +65,6 @@ const gerenciamentoNavItems: NavGroup = {
                 {
                     title: 'Programação',
                     href: '/production/schedules',
-                },
-                {
-                    title: 'Planejar',
-                    href: '/production/planning',
                 },
             ],
         },

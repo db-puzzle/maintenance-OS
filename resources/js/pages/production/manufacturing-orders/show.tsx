@@ -223,11 +223,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
         { title: order.order_number, href: '' }
     ];
     const handlePlan = () => {
-        router.post(window.route('production.orders.plan', order.id), {}, {
-            onSuccess: () => {
-                // Success handled by controller
-            },
-        });
+        router.visit(window.route('production.planning.index', { selectedMO: order.id }));
     };
 
     const handleSchedule = () => {

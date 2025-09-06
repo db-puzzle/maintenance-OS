@@ -6,6 +6,18 @@ import {
     Loader2,
     Check,
 } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 
@@ -22,7 +34,7 @@ import {
     ResizablePanelGroup,
 } from '@/components/ui/resizable';
 import ManufacturingOrderHierarchicalView from '@/components/production/ManufacturingOrderHierarchicalView';
-import RouteBuilder from '@/components/production/planning/RouteBuilder';
+import RouteBuilder, { type RouteStep } from '@/components/production/planning/RouteBuilder';
 // import WorkCellManager from '@/components/production/planning/WorkCellManager';
 // import BulkOperationsPanel from '@/components/production/planning/BulkOperationsPanel';
 // import TemplateLibraryPanel from '@/components/production/planning/TemplateLibraryPanel';
@@ -30,6 +42,7 @@ import { toast } from 'sonner';
 import { PageProps, BreadcrumbItem } from '@/types';
 import { ManufacturingOrder, WorkCell } from '@/types/production';
 import { ManufacturingOrderTreeNode } from '@/components/production/ManufacturingOrderHierarchicalView';
+import { cn } from '@/lib/utils';
 
 type DetailViewMode = 'route' | 'work-cell' | 'bulk' | 'template';
 
@@ -108,10 +121,17 @@ export default function PlanningPage({
     const [detailViewMode, setDetailViewMode] = useState<DetailViewMode>('route');
     const [searchQuery, setSearchQuery] = useState('');
     const [showThumbnails] = useState(true);
+    const [isCompressed, setIsCompressed] = useState(false);
 
     // Save status state for RouteBuilder
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
+    // Save as template state
+    const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
+    const [templateName, setTemplateName] = useState('');
+    const [templateDescription, setTemplateDescription] = useState('');
+    const [currentRouteSteps, setCurrentRouteSteps] = useState<RouteStep[]>([]);
 
     // Handle MO selection
     const handleMOSelect = useCallback((moId: number, multiSelect: boolean = false) => {
@@ -130,26 +150,51 @@ export default function PlanningPage({
         }
     }, [selectedMOs]);
 
-
-
-    // Handle marking as planned
-    const handleMarkAsPlanned = useCallback(() => {
-        if (selectedMOs.size === 0) {
-            toast.error('Please select manufacturing orders to mark as planned.');
+    // Save as template handler
+    const handleSaveAsTemplate = async () => {
+        if (!templateName) {
+            toast.error('Please enter a template name');
             return;
         }
 
-        // TODO: Implement marking as planned
-        router.post(route('production.orders.bulk-transition'), {
-            orderIds: Array.from(selectedMOs),
-            targetState: 'planned',
-        }, {
-            onSuccess: () => {
-                toast.success(`${selectedMOs.size} manufacturing orders have been marked as planned.`);
-                setSelectedMOs(new Set());
-            },
-        });
-    }, [selectedMOs]);
+        if (!activeMODetails || currentRouteSteps.length === 0) {
+            toast.error('No route steps to save as template');
+            return;
+        }
+
+        try {
+            await router.post(
+                route('production.planning.routes.save-as-template'),
+                {
+                    name: templateName,
+                    description: templateDescription,
+                    manufacturing_order_id: activeMODetails.id,
+                    steps: currentRouteSteps.map(step => ({
+                        sequence: step.sequence,
+                        name: step.name,
+                        description: step.description,
+                        work_cell_id: step.work_cell_id,
+                        setup_time_minutes: step.setup_time_minutes || 0,
+                        cycle_time_minutes: step.cycle_time_minutes || 0,
+                        step_type: step.step_type,
+                        is_required: step.is_required,
+                    })),
+                },
+                {
+                    onSuccess: () => {
+                        setShowSaveAsTemplate(false);
+                        setTemplateName('');
+                        setTemplateDescription('');
+                    },
+                    onError: () => {
+                        toast.error('Failed to save template');
+                    },
+                }
+            );
+        } catch {
+            toast.error('Failed to save template');
+        }
+    };
 
     // Helper function to find MO in nested structure
     const findMOInHierarchy = useCallback((orders: ManufacturingOrder[], targetId: number): ManufacturingOrder | null => {
@@ -173,27 +218,60 @@ export default function PlanningPage({
         return findMOInHierarchy(manufacturingOrders, activeMO);
     }, [activeMO, manufacturingOrders, findMOInHierarchy]);
 
+    // Handle marking as planned/draft
+    const handleToggleStatus = useCallback(() => {
+        if (selectedMOs.size === 0) {
+            toast.error('Please select manufacturing orders to change status.');
+            return;
+        }
+
+        // Determine target state based on current active MO status
+        const targetState = activeMODetails?.status === 'planned' ? 'draft' : 'planned';
+        const actionText = targetState === 'planned' ? 'marked as planned' : 'reverted to draft';
+
+        router.post(route('production.planning.orders.bulk-transition'), {
+            orderIds: Array.from(selectedMOs),
+            targetState: targetState,
+        }, {
+            onSuccess: () => {
+                toast.success(`${selectedMOs.size} manufacturing order${selectedMOs.size > 1 ? 's have' : ' has'} been ${actionText}.`);
+                // Keep the selection active - don't clear it
+                // setSelectedMOs(new Set());
+            },
+            preserveState: true,
+            preserveScroll: true,
+        });
+    }, [selectedMOs, activeMODetails]);
+
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout
+            breadcrumbs={breadcrumbs}
+            enableCompressedMode={true}
+            defaultCompressed={isCompressed}
+            onCompressedChange={setIsCompressed}
+        >
             <Head title="Planejar" />
 
-            <div className="h-screen flex flex-col">
+            <div className={cn(
+                "flex flex-col transition-all duration-200",
+                isCompressed ? "h-[calc(100vh-3rem)]" : "h-screen"
+            )}>
 
                 {/* Main Content Area */}
                 <ResizablePanelGroup
                     direction="horizontal"
-                    className="flex-1"
+                    className="flex-1 bg-background"
                 >
                     {/* Left Panel - MO Tree */}
                     <ResizablePanel
                         defaultSize={35}
                         minSize={25}
                         maxSize={50}
-                        className="bg-muted/10"
+                        className="bg-muted/20 dark:bg-muted/10"
                     >
                         <div className="h-full flex flex-col">
                             {/* Search and Filter Bar */}
-                            <div className="px-4 py-2 border-b">
+                            <div className="px-4 py-2 border-b bg-background/50 dark:bg-background/30">
                                 <Input
                                     placeholder="Search manufacturing orders..."
                                     value={searchQuery}
@@ -203,7 +281,7 @@ export default function PlanningPage({
                             </div>
 
                             {/* MO Tree View */}
-                            <div className="flex-1 overflow-auto p-4">
+                            <div className="flex-1 overflow-auto p-4 bg-background/30 dark:bg-background/10">
                                 <ManufacturingOrderHierarchicalView
                                     orders={manufacturingOrders as ManufacturingOrderTreeNode[]}
                                     onOrderSelect={handleMOSelect}
@@ -222,9 +300,9 @@ export default function PlanningPage({
 
                     {/* Right Panel - Detail/Action Panel */}
                     <ResizablePanel defaultSize={65}>
-                        <div className="h-full flex flex-col">
+                        <div className="h-full flex flex-col bg-background">
                             {/* Global Actions Toolbar */}
-                            <div className="border-b bg-background">
+                            <div className="border-b bg-card dark:bg-card/95">
                                 <div className="flex items-center justify-between px-4 py-2">
                                     <div className="flex items-center space-x-4">
                                         {/* Save status indicator on the left */}
@@ -283,20 +361,43 @@ export default function PlanningPage({
                                                 </TooltipContent>
                                             </Tooltip>
 
+                                            {permissions.canPlanOrder && detailViewMode === 'route' && activeMODetails && (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => setShowSaveAsTemplate(true)}
+                                                            disabled={currentRouteSteps.length === 0}
+                                                        >
+                                                            <FileText className="h-4 w-4 mr-2" />
+                                                            Salvar como Template
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Salve a rota atual como um template reutilizável</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
+
                                             {permissions.canPlanOrder && (
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
                                                         <Button
                                                             variant="default"
                                                             size="sm"
-                                                            onClick={handleMarkAsPlanned}
+                                                            onClick={handleToggleStatus}
                                                             disabled={selectedMOs.size === 0}
                                                         >
-                                                            Marcar Planejada
+                                                            {activeMODetails?.status === 'planned' ? 'Marcar Draft' : 'Marcar Planejada'}
                                                         </Button>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                        <p>Transicione essa ordem para o estado Planejado</p>
+                                                        <p>
+                                                            {activeMODetails?.status === 'planned'
+                                                                ? 'Reverter essa ordem para o estado Draft'
+                                                                : 'Transicionar essa ordem para o estado Planejado'}
+                                                        </p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             )}
@@ -317,6 +418,7 @@ export default function PlanningPage({
                                         onSaveStatusChange={setSaveStatus}
                                         onLastSavedAtChange={setLastSavedAt}
                                         isSaving={saveStatus === 'saving'}
+                                        onSaveAsTemplate={setCurrentRouteSteps}
                                     />
                                 )}
                                 {detailViewMode === 'work-cell' && (
@@ -347,7 +449,7 @@ export default function PlanningPage({
                                     </div>
                                 )}
                                 {!activeMODetails && detailViewMode === 'route' && (
-                                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                                    <div className="flex items-center justify-center h-full text-muted-foreground bg-muted/10 dark:bg-muted/5">
                                         Select a manufacturing order to view its route configuration
                                     </div>
                                 )}
@@ -356,6 +458,47 @@ export default function PlanningPage({
                     </ResizablePanel>
                 </ResizablePanelGroup>
             </div>
+
+            {/* Save as Template Dialog */}
+            <AlertDialog open={showSaveAsTemplate} onOpenChange={setShowSaveAsTemplate}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Save Route as Template</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Create a reusable template from this route configuration.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div>
+                            <Label htmlFor="template-name">Template Name</Label>
+                            <Input
+                                id="template-name"
+                                value={templateName}
+                                onChange={(e) => setTemplateName(e.target.value)}
+                                placeholder="e.g., Standard Assembly Route"
+                                className="mt-1"
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="template-description">Description (Optional)</Label>
+                            <Textarea
+                                id="template-description"
+                                value={templateDescription}
+                                onChange={(e) => setTemplateDescription(e.target.value)}
+                                placeholder="Describe when to use this template..."
+                                className="mt-1"
+                                rows={3}
+                            />
+                        </div>
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleSaveAsTemplate}>
+                            Save Template
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </AppLayout>
     );
 }

@@ -111,7 +111,6 @@ export function BaseEntitySheet<TFormData extends FormDataType>({
         e.preventDefault();
         // Add stay parameter to data before submission
         const submitData = { ...data, stay: true };
-        const successMessage = isEditMode ? `${formConfig.entityName} atualizado com sucesso!` : `${formConfig.entityName} criado com sucesso!`;
         const errorMessage = isEditMode
             ? `Erro ao atualizar ${formConfig.entityName.toLowerCase()}`
             : `Erro ao criar ${formConfig.entityName.toLowerCase()}`;
@@ -122,7 +121,7 @@ export function BaseEntitySheet<TFormData extends FormDataType>({
             put(route(formConfig.updateRoute, routeParams), {
                 ...submitData,
                 onSuccess: () => {
-                    toast.success(successMessage);
+                    // Success message is handled by flash messages in AppLayout
                     reset();
                     setSheetOpen(false);
                     onSuccess?.();
@@ -139,7 +138,7 @@ export function BaseEntitySheet<TFormData extends FormDataType>({
             post(route(formConfig.createRoute), {
                 ...submitData,
                 onSuccess: () => {
-                    toast.success(successMessage);
+                    // Success message is handled by flash messages in AppLayout
                     reset();
                     setSheetOpen(false);
                     onSuccess?.();

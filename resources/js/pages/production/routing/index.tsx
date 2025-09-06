@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
@@ -33,7 +33,7 @@ interface Props {
     itemCategories?: ItemCategory[];
     workCells?: WorkCell[];
 }
-export default function RoutingIndex({
+export default function RoutingTemplatesIndex({
     routings,
     filters,
     can,
@@ -69,13 +69,13 @@ export default function RoutingIndex({
         );
     };
     const handleDelete = (routing: Routing) => {
-        if (confirm(`Tem certeza que deseja excluir o roteiro ${routing.name}?`)) {
+        if (confirm(`Tem certeza que deseja excluir o modelo de roteiro ${routing.name}?`)) {
             router.delete(window.route('production.routing.destroy', routing.id), {
                 onSuccess: () => {
-                    toast.success('Roteiro excluído com sucesso');
+                    toast.success('Modelo de roteiro excluído com sucesso');
                 },
                 onError: () => {
-                    toast.error('Erro ao excluir roteiro');
+                    toast.error('Erro ao excluir modelo de roteiro');
                 }
             });
         }
@@ -100,37 +100,46 @@ export default function RoutingIndex({
             }
         },
         {
-            key: 'manufacturing_order',
-            label: 'Ordem de Produção',
+            key: 'item_category',
+            label: 'Categoria de Item',
             sortable: true,
             width: 'w-[200px]',
             render: (value: unknown, row) => {
-                return row.manufacturing_order ? (
-                    <Link
-                        href={window.window.route('production.orders.show', row.manufacturing_order.id)}
-                        className="text-primary hover:underline"
-                    >
-                        {row.manufacturing_order.order_number}
-                    </Link>
-                ) : '-';
+                return row.item_category ? (
+                    <div className="font-medium">{row.item_category.name}</div>
+                ) : 'Todos os itens';
             }
         },
         {
-            key: 'item',
-            label: 'Item',
+            key: 'version',
+            label: 'Versão',
             sortable: true,
-            width: 'w-[250px]',
+            width: 'w-[100px]',
             render: (value: unknown, row) => {
-                return row.item ? (
-                    <div>
-                        <div className="font-medium">{row.item.item_number}</div>
-                        <div className="text-muted-foreground text-sm">
-                            {row.item.name?.length > 40
-                                ? `${row.item.name.substring(0, 40)}...`
-                                : row.item.name || '-'}
-                        </div>
+                return (
+                    <div className="flex items-center gap-2">
+                        <span>v{row.version || 1}</span>
+                        {row.is_latest_for_category && (
+                            <span className="text-xs text-green-600 font-medium">Mais recente</span>
+                        )}
                     </div>
-                ) : '-';
+                );
+            }
+        },
+        {
+            key: 'usage_count',
+            label: 'Uso',
+            sortable: true,
+            width: 'w-[100px]',
+            render: (value: unknown) => {
+                const count = value as number || 0;
+                return (
+                    <div className="text-center">
+                        <span className={count > 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
+                            {count} {count === 1 ? 'vez' : 'vezes'}
+                        </span>
+                    </div>
+                );
             }
         },
         {
@@ -167,20 +176,20 @@ export default function RoutingIndex({
     ];
     const breadcrumbs = [
         { title: 'Produção', href: '/production' },
-        { title: 'Roteiros', href: '' }
+        { title: 'Modelos de Roteiros', href: '' }
     ];
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Roteiros de Produção" />
+            <Head title="Modelos de Roteiros" />
             <ListLayout
-                title="Roteiros de Produção"
-                description="Gerencie os roteiros de fabricação e processos"
-                searchPlaceholder="Buscar por número, nome ou item..."
+                title="Modelos de Roteiros"
+                description="Gerencie os modelos de roteiros para uso em ordens de produção"
+                searchPlaceholder="Buscar por nome, descrição ou categoria..."
                 searchValue={searchValue}
                 onSearchChange={handleSearchChange}
                 createRoute={can.create ? '#' : undefined}
                 onCreateClick={can.create ? () => setCreateDialogOpen(true) : undefined}
-                createButtonText="Novo Roteiro"
+                createButtonText="Novo Modelo"
             >
                 <div className="space-y-4">
                     <EntityDataTable

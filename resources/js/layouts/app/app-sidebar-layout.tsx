@@ -6,10 +6,25 @@ import TimezoneDetector from '@/components/TimezoneDetector';
 import { Toaster } from '@/components/ui/sonner';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
-import { type PropsWithChildren, useEffect } from 'react';
+import { type PropsWithChildren, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-export default function AppSidebarLayout({ children, breadcrumbs = [] }: PropsWithChildren<{ breadcrumbs?: BreadcrumbItem[] }>) {
+
+interface AppSidebarLayoutProps {
+    breadcrumbs?: BreadcrumbItem[];
+    enableCompressedMode?: boolean;
+    defaultCompressed?: boolean;
+    onCompressedChange?: (compressed: boolean) => void;
+}
+
+export default function AppSidebarLayout({
+    children,
+    breadcrumbs = [],
+    enableCompressedMode = false,
+    defaultCompressed = false,
+    onCompressedChange
+}: PropsWithChildren<AppSidebarLayoutProps>) {
     const { auth, flash } = usePage<SharedData>().props;
+    const [isCompressed, setIsCompressed] = useState(defaultCompressed);
 
     // Handle flash messages
     useEffect(() => {
@@ -27,11 +42,21 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: PropsWi
         }
     }, [flash]);
 
+    const handleCompressedChange = (compressed: boolean) => {
+        setIsCompressed(compressed);
+        onCompressedChange?.(compressed);
+    };
+
     return (
         <AppShell variant="sidebar">
             <AppSidebar />
             <AppContent variant="sidebar">
-                <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                <AppSidebarHeader
+                    breadcrumbs={breadcrumbs}
+                    enableCompressedMode={enableCompressedMode}
+                    isCompressed={isCompressed}
+                    onCompressedChange={handleCompressedChange}
+                />
                 {children}
             </AppContent>
             {auth?.user && <TimezoneDetector currentTimezone={(auth.user.timezone as string) || 'UTC'} userId={auth.user.id} />}
