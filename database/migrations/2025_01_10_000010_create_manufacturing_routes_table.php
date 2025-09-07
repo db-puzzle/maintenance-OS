@@ -17,13 +17,13 @@ return new class extends Migration
             $table->foreignId('item_id')->nullable()->constrained('items')->comment('Reference to item - populated from order for production routes, null for templates');
             $table->boolean('is_template')->default(false);
             $table->foreignId('item_category_id')->nullable()->constrained('item_categories')->comment('For templates: restricts usage to items of this category');
-            $table->foreignId('template_source_id')->nullable()->constrained('manufacturing_routes');
+            $table->unsignedBigInteger('template_source_id')->nullable()->comment('Soft reference to template used - no FK constraint to allow template deletion');
             $table->string('name', 255);
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->integer('version')->default(1);
             $table->boolean('is_latest_for_category')->default(false);
-            $table->foreignId('created_from_route_id')->nullable()->constrained('manufacturing_routes');
+            $table->unsignedBigInteger('created_from_route_id')->nullable()->comment('Soft reference to source route - no FK constraint to allow route deletion');
             $table->json('template_metadata')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->timestamps();

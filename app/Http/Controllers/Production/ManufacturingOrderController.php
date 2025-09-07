@@ -580,36 +580,73 @@ class ManufacturingOrderController extends BaseSearchController
     {
         $this->authorize('update', $order);
 
-        if ($order->manufacturingRoute) {
-            return back()->with('error', 'This order already has a route. Please remove it first.');
-        }
-
         if (! in_array($order->status, ['draft', 'planned', 'scheduled'])) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Route templates can only be applied to draft, planned, or scheduled orders.',
+                ], 422);
+            }
+
             return back()->with('error', 'Route templates can only be applied to draft, planned, or scheduled orders.');
         }
 
         $validated = $request->validate([
             'template_id' => 'required|exists:manufacturing_routes,id',
+            'overwrite' => 'sometimes|boolean',
         ]);
 
-        $template = ManufacturingRoute::templates()->findOrFail($validated['template_id']);
+        // Check if route exists and overwrite is not confirmed
+        if ($order->manufacturingRoute && ! ($validated['overwrite'] ?? false)) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'requires_confirmation' => true,
+                    'message' => 'This order already has a route. Do you want to overwrite it?',
+                ], 409);
+            }
 
-        // Create route from template
-        $route = $order->manufacturingRoute()->create([
-            'item_id' => $order->item_id,
-            'template_source_id' => $template->id,
-            'name' => $template->name,
-            'description' => $template->description,
-            'is_active' => true,
-            'is_template' => false,
-            'created_by' => auth()->id(),
-        ]);
+            return back()->with('error', 'This order already has a route. Please remove it first.');
+        }
+
+        $template = ManufacturingRoute::templates()->with('steps')->findOrFail($validated['template_id']);
+
+        // If route exists and we're overwriting, delete existing steps first
+        if ($order->manufacturingRoute && ($validated['overwrite'] ?? false)) {
+            // Delete existing steps
+            $order->manufacturingRoute->steps()->delete();
+
+            // Update existing route with template information
+            $order->manufacturingRoute->update([
+                'template_source_id' => $template->id,
+                'name' => $template->name,
+                'description' => $template->description,
+            ]);
+
+            $route = $order->manufacturingRoute;
+        } else {
+            // Create new route from template
+            $route = $order->manufacturingRoute()->create([
+                'item_id' => $order->item_id,
+                'template_source_id' => $template->id,
+                'name' => $template->name,
+                'description' => $template->description,
+                'is_active' => true,
+                'is_template' => false,
+                'created_by' => auth()->id(),
+            ]);
+        }
 
         // Create steps from template
         $route->createFromTemplate($template);
 
         // Force reload the order data to ensure route is loaded
         $order->load('manufacturingRoute.steps');
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Route template applied successfully.',
+                'redirect' => route('production.orders.show', ['order' => $order->id, 'openRouteBuilder' => 1]),
+            ]);
+        }
 
         return redirect()->route('production.orders.show', ['order' => $order->id, 'openRouteBuilder' => 1])
             ->with('success', 'Route template applied successfully.');

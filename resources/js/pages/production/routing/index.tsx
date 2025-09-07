@@ -176,13 +176,13 @@ export default function RoutingTemplatesIndex({
     ];
     const breadcrumbs = [
         { title: 'Produção', href: '/production' },
-        { title: 'Modelos de Roteiros', href: '' }
+        { title: 'Templates de Rotas de Produção', href: '' }
     ];
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Modelos de Roteiros" />
+            <Head title="Templates de Rotas de Produção" />
             <ListLayout
-                title="Modelos de Roteiros"
+                title="Templates de Rotas de Produção"
                 description="Gerencie os modelos de roteiros para uso em ordens de produção"
                 searchPlaceholder="Buscar por nome, descrição ou categoria..."
                 searchValue={searchValue}

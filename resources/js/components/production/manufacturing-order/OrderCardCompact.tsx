@@ -16,7 +16,6 @@ import { formatNumber } from '@/utils/number';
 import { ManufacturingOrderTreeNode } from './types';
 import { RouteStatusIndicator } from './RouteStatusIndicator';
 import { OrderCardActions } from './OrderCardActions';
-import { getRouteStatus, getRouteCompleteness } from './utils';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { ImageWithBlurEffect } from '@/components/production/ImageWithBlurEffect';
 
@@ -48,8 +47,6 @@ export function OrderCardCompact({
     onReleaseOrder,
     onCancelOrder,
 }: OrderCardCompactProps) {
-    const routeStatus = getRouteStatus(order);
-    const routeCompleteness = getRouteCompleteness(order);
 
     const handleClick = (e: React.MouseEvent) => {
         if (onOrderSelect && enhancedMode === 'planning') {
@@ -147,12 +144,10 @@ export function OrderCardCompact({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <div className="flex items-center gap-1">
-                                    <RouteStatusIndicator status={routeStatus} />
-                                    {order.manufacturing_route && (
-                                        <span className="text-xs text-muted-foreground select-none">
-                                            {routeCompleteness.configured}/{routeCompleteness.required}
-                                        </span>
-                                    )}
+                                    <RouteStatusIndicator />
+                                    <span className="text-xs text-muted-foreground select-none">
+                                        {order.manufacturing_route?.steps?.length || 0}
+                                    </span>
                                 </div>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -162,8 +157,7 @@ export function OrderCardCompact({
                                     </div>
                                     {order.manufacturing_route && (
                                         <div className="mt-1">
-                                            {routeCompleteness.configured} of {routeCompleteness.required} steps configured
-                                            {routeCompleteness.percentage === 100 && " ✓"}
+                                            {order.manufacturing_route.steps?.length || 0} step{(order.manufacturing_route.steps?.length || 0) !== 1 ? 's' : ''} in route
                                         </div>
                                     )}
                                 </div>

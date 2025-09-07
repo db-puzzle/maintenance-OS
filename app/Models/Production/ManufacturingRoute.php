@@ -94,6 +94,10 @@ class ManufacturingRoute extends Model
 
     /**
      * Get the template source (new unified approach).
+     *
+     * NOTE: This is a soft reference without foreign key constraint.
+     * Templates can be deleted even if production routes reference them.
+     * The template_source_id serves as historical tracking only.
      */
     public function templateSource(): BelongsTo
     {
@@ -102,6 +106,9 @@ class ManufacturingRoute extends Model
 
     /**
      * Get routes derived from this template.
+     *
+     * NOTE: This is a soft reference. Deleting a template will NOT
+     * cascade delete production routes that were created from it.
      */
     public function derivedRoutes(): HasMany
     {
@@ -110,6 +117,10 @@ class ManufacturingRoute extends Model
 
     /**
      * Get the route this was created from.
+     *
+     * NOTE: This is a soft reference without foreign key constraint.
+     * The source route can be deleted without affecting this route.
+     * The created_from_route_id serves as historical tracking only.
      */
     public function createdFromRoute(): BelongsTo
     {
@@ -118,6 +129,9 @@ class ManufacturingRoute extends Model
 
     /**
      * Get routes created from this route as templates.
+     *
+     * NOTE: This is a soft reference. Deleting this route will NOT
+     * prevent templates that were created from it from functioning.
      */
     public function templatesCreatedFromThis(): HasMany
     {
@@ -192,7 +206,7 @@ class ManufacturingRoute extends Model
      */
     protected function setupStepDependencies(): void
     {
-        $steps = $this->steps()->orderBy('display_order')->get();
+        $steps = $this->steps()->with('manufacturingRoute')->orderBy('display_order')->get();
         $previousStep = null;
 
         foreach ($steps as $step) {

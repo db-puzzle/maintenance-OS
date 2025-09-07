@@ -7,11 +7,7 @@ import {
     Play,
     XCircle,
     Eye,
-    CheckCircle2,
-    AlertCircle,
-    Clock,
-    FileText,
-    Route,
+    List,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -190,63 +186,11 @@ export default function ManufacturingOrderHierarchicalView({
         return order.status === 'draft' && (!order.children || order.children.length === 0);
     };
 
-    // Planning mode helpers
-    const getRouteCompleteness = (order: ManufacturingOrderTreeNode) => {
-        if (!order.manufacturing_route) {
-            return { configured: 0, required: 0, percentage: 0 };
-        }
-
-        const steps = order.manufacturing_route.steps || [];
-        const configuredSteps = steps.filter((step) => step.work_cell_id).length;
-        const requiredSteps = steps.filter((step) => step.step_type !== 'rework').length;
-
-        return {
-            configured: configuredSteps,
-            required: requiredSteps || steps.length,
-            percentage: steps.length > 0 ? Math.round((configuredSteps / steps.length) * 100) : 0
-        };
-    };
-
-    const getRouteStatus = (order: ManufacturingOrderTreeNode) => {
-        const completeness = getRouteCompleteness(order);
-
-        if (!order.manufacturing_route) {
-            return 'no-route';
-        } else if (completeness.percentage === 100) {
-            return 'complete';
-        } else if (completeness.percentage > 0) {
-            return 'in-progress';
-        } else {
-            return 'empty';
-        }
-    };
-
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'complete': return 'text-green-600';
-            case 'in-progress': return 'text-yellow-600';
-            case 'no-route': return 'text-red-600';
-            case 'empty': return 'text-orange-600';
-            default: return 'text-gray-600';
-        }
-    };
-
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'complete': return CheckCircle2;
-            case 'in-progress': return Clock;
-            case 'no-route': return AlertCircle;
-            case 'empty': return FileText;
-            default: return Route;
-        }
-    };
+    // Planning mode helpers - removed progress tracking
 
     // Custom node renderer
     const renderOrderNode = (node: ManufacturingOrderTreeNode, _props: NodeRenderProps) => {
         const isSelected = selectedOrders.has(node.id);
-        const routeStatus = getRouteStatus(node);
-        const routeCompleteness = getRouteCompleteness(node);
-        const StatusIcon = getStatusIcon(routeStatus);
 
         // Compact mode rendering
         if (compactMode) {
@@ -347,7 +291,7 @@ export default function ManufacturingOrderHierarchicalView({
                     <div className={!showImages ? "col-span-2" : ""}>
                         {enhancedMode === 'planning' ? (
                             <div className="flex items-center justify-center space-x-2">
-                                <StatusIcon className={cn("h-4 w-4", getStatusColor(routeStatus))} />
+                                <List className="h-4 w-4 text-gray-600" />
                                 <div className="flex flex-col items-center">
                                     <div className="text-sm">
                                         {node.manufacturing_route ? (
@@ -362,8 +306,7 @@ export default function ManufacturingOrderHierarchicalView({
                                     </div>
                                     {node.manufacturing_route && (
                                         <Badge variant="outline" className="text-xs mt-1">
-                                            {routeCompleteness.configured}/{routeCompleteness.required}
-                                            {routeCompleteness.percentage === 100 && " ✓"}
+                                            {node.manufacturing_route.steps?.length || 0} step{(node.manufacturing_route.steps?.length || 0) !== 1 ? 's' : ''}
                                         </Badge>
                                     )}
                                 </div>
@@ -466,9 +409,9 @@ export default function ManufacturingOrderHierarchicalView({
                                         <div className="flex items-center justify-center">
                                             {node.manufacturing_route ? (
                                                 node.manufacturing_route.steps && node.manufacturing_route.steps.length > 0 ? (
-                                                    <Route className="h-4 w-4 text-foreground" />
+                                                    <List className="h-4 w-4 text-gray-600" />
                                                 ) : (
-                                                    <Route className="h-4 w-4 text-red-600" />
+                                                    <List className="h-4 w-4 text-gray-600" />
                                                 )
                                             ) : (
                                                 <div className="h-4 w-4" />

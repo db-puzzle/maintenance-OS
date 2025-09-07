@@ -110,6 +110,7 @@ export function HierarchicalViewHeader({
                     <ImageDisplayToggleButton
                         showImages={showImages}
                         onToggle={onToggleImages}
+                        compact={true}
                     />
                 )}
 

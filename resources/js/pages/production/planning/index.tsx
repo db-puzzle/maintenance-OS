@@ -6,18 +6,6 @@ import {
     Loader2,
     Check,
 } from 'lucide-react';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 
@@ -34,7 +22,9 @@ import {
     ResizablePanelGroup,
 } from '@/components/ui/resizable';
 import ManufacturingOrderHierarchicalView from '@/components/production/ManufacturingOrderHierarchicalView';
-import RouteBuilder, { type RouteStep } from '@/components/production/planning/RouteBuilder';
+import RouteBuilder from '@/components/production/planning/RouteBuilder';
+import ApplyTemplateDialog from '@/components/production/planning/ApplyTemplateDialog';
+import { SaveAsTemplateDialog } from '@/components/production/templates/SaveAsTemplateDialog';
 // import WorkCellManager from '@/components/production/planning/WorkCellManager';
 // import BulkOperationsPanel from '@/components/production/planning/BulkOperationsPanel';
 // import TemplateLibraryPanel from '@/components/production/planning/TemplateLibraryPanel';
@@ -44,13 +34,14 @@ import { ManufacturingOrder, WorkCell } from '@/types/production';
 import { ManufacturingOrderTreeNode } from '@/components/production/ManufacturingOrderHierarchicalView';
 import { cn } from '@/lib/utils';
 
-type DetailViewMode = 'route' | 'work-cell' | 'bulk' | 'template';
+type DetailViewMode = 'route' | 'work-cell' | 'bulk';
 
 interface RouteTemplate {
     id: number;
     name: string;
     description?: string;
-    category: string;
+    category?: string;
+    item_category?: string;
     steps: Array<{
         id: number;
         sequence: number;
@@ -62,13 +53,14 @@ interface RouteTemplate {
     }>;
     usage_count: number;
     last_used_at?: string;
-    rating: number;
-    tags: string[];
+    rating?: number;
+    tags?: string[];
     created_by: {
         id: number;
         name: string;
     };
     created_at: string;
+    updated_at: string;
     is_default?: boolean;
     item_types?: string[];
 }
@@ -129,9 +121,9 @@ export default function PlanningPage({
 
     // Save as template state
     const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
-    const [templateName, setTemplateName] = useState('');
-    const [templateDescription, setTemplateDescription] = useState('');
-    const [currentRouteSteps, setCurrentRouteSteps] = useState<RouteStep[]>([]);
+
+    // Apply template dialog state
+    const [showApplyTemplateDialog, setShowApplyTemplateDialog] = useState(false);
 
     // Handle MO selection
     const handleMOSelect = useCallback((moId: number, multiSelect: boolean = false) => {
@@ -150,51 +142,6 @@ export default function PlanningPage({
         }
     }, [selectedMOs]);
 
-    // Save as template handler
-    const handleSaveAsTemplate = async () => {
-        if (!templateName) {
-            toast.error('Please enter a template name');
-            return;
-        }
-
-        if (!activeMODetails || currentRouteSteps.length === 0) {
-            toast.error('No route steps to save as template');
-            return;
-        }
-
-        try {
-            await router.post(
-                route('production.planning.routes.save-as-template'),
-                {
-                    name: templateName,
-                    description: templateDescription,
-                    manufacturing_order_id: activeMODetails.id,
-                    steps: currentRouteSteps.map(step => ({
-                        sequence: step.sequence,
-                        name: step.name,
-                        description: step.description,
-                        work_cell_id: step.work_cell_id,
-                        setup_time_minutes: step.setup_time_minutes || 0,
-                        cycle_time_minutes: step.cycle_time_minutes || 0,
-                        step_type: step.step_type,
-                        is_required: step.is_required,
-                    })),
-                },
-                {
-                    onSuccess: () => {
-                        setShowSaveAsTemplate(false);
-                        setTemplateName('');
-                        setTemplateDescription('');
-                    },
-                    onError: () => {
-                        toast.error('Failed to save template');
-                    },
-                }
-            );
-        } catch {
-            toast.error('Failed to save template');
-        }
-    };
 
     // Helper function to find MO in nested structure
     const findMOInHierarchy = useCallback((orders: ManufacturingOrder[], targetId: number): ManufacturingOrder | null => {
@@ -350,14 +297,15 @@ export default function PlanningPage({
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        onClick={() => setDetailViewMode('template')}
+                                                        onClick={() => setShowApplyTemplateDialog(true)}
+                                                        disabled={!activeMODetails || selectedMOs.size === 0}
                                                     >
                                                         <FileText className="h-4 w-4 mr-2" />
                                                         Templates
                                                     </Button>
                                                 </TooltipTrigger>
                                                 <TooltipContent>
-                                                    <p>Open template library (Ctrl+T)</p>
+                                                    <p>Apply a route template to the selected order</p>
                                                 </TooltipContent>
                                             </Tooltip>
 
@@ -368,7 +316,7 @@ export default function PlanningPage({
                                                             variant="outline"
                                                             size="sm"
                                                             onClick={() => setShowSaveAsTemplate(true)}
-                                                            disabled={currentRouteSteps.length === 0}
+                                                            disabled={!activeMODetails?.manufacturing_route}
                                                         >
                                                             <FileText className="h-4 w-4 mr-2" />
                                                             Salvar como Template
@@ -418,7 +366,6 @@ export default function PlanningPage({
                                         onSaveStatusChange={setSaveStatus}
                                         onLastSavedAtChange={setLastSavedAt}
                                         isSaving={saveStatus === 'saving'}
-                                        onSaveAsTemplate={setCurrentRouteSteps}
                                     />
                                 )}
                                 {detailViewMode === 'work-cell' && (
@@ -439,15 +386,6 @@ export default function PlanningPage({
                                         </div>
                                     </div>
                                 )}
-                                {detailViewMode === 'template' && (
-                                    <div className="p-4">
-                                        <h2 className="text-lg font-semibold mb-4">Template Library</h2>
-                                        <p className="text-muted-foreground">Browse and apply route templates</p>
-                                        <div className="mt-4">
-                                            <p className="text-sm">Available templates: {routeTemplates.length}</p>
-                                        </div>
-                                    </div>
-                                )}
                                 {!activeMODetails && detailViewMode === 'route' && (
                                     <div className="flex items-center justify-center h-full text-muted-foreground bg-muted/10 dark:bg-muted/5">
                                         Select a manufacturing order to view its route configuration
@@ -460,45 +398,26 @@ export default function PlanningPage({
             </div>
 
             {/* Save as Template Dialog */}
-            <AlertDialog open={showSaveAsTemplate} onOpenChange={setShowSaveAsTemplate}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Save Route as Template</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Create a reusable template from this route configuration.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div>
-                            <Label htmlFor="template-name">Template Name</Label>
-                            <Input
-                                id="template-name"
-                                value={templateName}
-                                onChange={(e) => setTemplateName(e.target.value)}
-                                placeholder="e.g., Standard Assembly Route"
-                                className="mt-1"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="template-description">Description (Optional)</Label>
-                            <Textarea
-                                id="template-description"
-                                value={templateDescription}
-                                onChange={(e) => setTemplateDescription(e.target.value)}
-                                placeholder="Describe when to use this template..."
-                                className="mt-1"
-                                rows={3}
-                            />
-                        </div>
-                    </div>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleSaveAsTemplate}>
-                            Save Template
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {activeMODetails?.manufacturing_route && (
+                <SaveAsTemplateDialog
+                    manufacturingRoute={activeMODetails.manufacturing_route}
+                    open={showSaveAsTemplate}
+                    onOpenChange={setShowSaveAsTemplate}
+                />
+            )}
+
+            {/* Apply Template Dialog */}
+            {activeMODetails && (
+                <ApplyTemplateDialog
+                    open={showApplyTemplateDialog}
+                    onOpenChange={setShowApplyTemplateDialog}
+                    manufacturingOrderId={activeMODetails.id}
+                    itemCategory={activeMODetails.item?.category?.name}
+                    itemNumber={activeMODetails.item?.item_number}
+                    itemName={activeMODetails.item?.name}
+                    routeTemplates={routeTemplates}
+                />
+            )}
         </AppLayout>
     );
 }

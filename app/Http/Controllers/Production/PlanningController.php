@@ -35,8 +35,11 @@ class PlanningController extends Controller
         // Get manufacturing orders with hierarchy
         $query = ManufacturingOrder::with([
             'item',
+            'item.category',
             'item.images',
             'manufacturingRoute',
+            'manufacturingRoute.item',
+            'manufacturingRoute.item.category',
             'manufacturingRoute.steps',
             'manufacturingRoute.steps.workCell',
         ]);
@@ -68,6 +71,7 @@ class PlanningController extends Controller
         }
 
         $orders = $query->orderBy('order_number')->get();
+        
 
         // Load all nested children recursively
         $orders->each(function ($order) {
@@ -85,6 +89,18 @@ class PlanningController extends Controller
             if ($mainOrder) {
                 $children = $this->buildHierarchy($orders, $mainOrder->id);
                 $orderArray = $mainOrder->toArray();
+                
+                // Ensure manufacturingRoute includes nested item and category relationships
+                if ($mainOrder->manufacturingRoute) {
+                    $orderArray['manufacturing_route'] = $mainOrder->manufacturingRoute->toArray();
+                    if ($mainOrder->manufacturingRoute->item) {
+                        $orderArray['manufacturing_route']['item'] = $mainOrder->manufacturingRoute->item->toArray();
+                        if ($mainOrder->manufacturingRoute->item->category) {
+                            $orderArray['manufacturing_route']['item']['category'] = $mainOrder->manufacturingRoute->item->category->toArray();
+                        }
+                    }
+                }
+                
                 if ($children) {
                     $orderArray['children'] = $children;
                 }
@@ -445,8 +461,11 @@ class PlanningController extends Controller
     {
         $order->load([
             'children.item',
+            'children.item.category',
             'children.item.images',
             'children.manufacturingRoute',
+            'children.manufacturingRoute.item',
+            'children.manufacturingRoute.item.category',
             'children.manufacturingRoute.steps',
             'children.manufacturingRoute.steps.workCell',
         ]);
@@ -489,6 +508,18 @@ class PlanningController extends Controller
                 $children = $this->buildHierarchy($orders, $order->id);
 
                 $orderArray = $order->toArray();
+                
+                // Ensure manufacturingRoute includes nested item and category relationships
+                if ($order->manufacturingRoute) {
+                    $orderArray['manufacturing_route'] = $order->manufacturingRoute->toArray();
+                    if ($order->manufacturingRoute->item) {
+                        $orderArray['manufacturing_route']['item'] = $order->manufacturingRoute->item->toArray();
+                        if ($order->manufacturingRoute->item->category) {
+                            $orderArray['manufacturing_route']['item']['category'] = $order->manufacturingRoute->item->category->toArray();
+                        }
+                    }
+                }
+                
                 if ($children) {
                     $orderArray['children'] = $children;
                 }

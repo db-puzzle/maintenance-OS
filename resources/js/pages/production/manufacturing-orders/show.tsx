@@ -1109,7 +1109,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
 
             {order.manufacturing_route && (
                 <SaveAsTemplateDialog
-                    route={order.manufacturing_route}
+                    manufacturingRoute={order.manufacturing_route}
                     open={saveAsTemplateOpen}
                     onOpenChange={setSaveAsTemplateOpen}
                 />

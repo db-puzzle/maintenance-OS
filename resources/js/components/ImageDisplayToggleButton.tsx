@@ -9,34 +9,32 @@ interface ImageDisplayToggleButtonProps {
     size?: 'default' | 'sm' | 'lg' | 'icon';
     variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     className?: string;
+    compact?: boolean; // New prop for compact sizing to match level switches
 }
 
 export function ImageDisplayToggleButton({
     showImages,
     onToggle,
-    size = 'sm',
+    size = 'icon',
     variant = 'outline',
-    className
+    className,
+    compact = false
 }: ImageDisplayToggleButtonProps) {
-    // Adjust width based on size
-    const widthClass = size === 'default' ? 'w-[145px]' : 'w-[135px]';
-
     return (
         <Button
-            variant={variant}
-            size={size}
+            variant={compact ? 'ghost' : variant}
+            size={compact ? 'sm' : size}
             onClick={() => onToggle(!showImages)}
             className={cn(
-                widthClass,
-                'flex items-center justify-start', // Fixed width with flex layout
+                // Apply compact styling when compact prop is true
+                compact && 'p-0 border transition-colors h-7 w-7 text-xs',
                 showImages
                     ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400 dark:bg-primary dark:text-primary-foreground dark:border-primary dark:hover:bg-primary/90'
                     : 'border hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-accent dark:hover:text-accent-foreground',
                 className
             )}
         >
-            <Image className="h-4 w-4 shrink-0" />
-            <span className="ml-2">{showImages ? 'Imagens ON' : 'Imagens OFF'}</span>
+            <Image className="h-4 w-4" />
         </Button>
     );
 }

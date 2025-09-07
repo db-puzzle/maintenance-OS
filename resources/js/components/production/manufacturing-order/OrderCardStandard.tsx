@@ -7,13 +7,12 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Route } from 'lucide-react';
+import { List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatNumber } from '@/utils/number';
 import { ManufacturingOrderTreeNode } from './types';
 import { OrderCardActions } from './OrderCardActions';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
-import { getRouteStatus, getRouteCompleteness } from './utils';
 import { RouteStatusIndicator } from './RouteStatusIndicator';
 
 // Declare the global route function from Ziggy
@@ -47,8 +46,6 @@ export function OrderCardStandard({
     onReleaseOrder,
     onCancelOrder,
 }: OrderCardStandardProps) {
-    const routeStatus = getRouteStatus(order);
-    const routeCompleteness = getRouteCompleteness(order);
 
     const handleClick = (e: React.MouseEvent) => {
         if (onOrderSelect && enhancedMode === 'planning') {
@@ -131,7 +128,7 @@ export function OrderCardStandard({
                 <div className={!showImages ? "col-span-2" : ""}>
                     {enhancedMode === 'planning' ? (
                         <div className="flex items-center justify-center space-x-2">
-                            <RouteStatusIndicator status={routeStatus} />
+                            <RouteStatusIndicator />
                             <div className="flex flex-col items-center">
                                 <div className="text-sm">
                                     {order.manufacturing_route ? (
@@ -146,8 +143,7 @@ export function OrderCardStandard({
                                 </div>
                                 {order.manufacturing_route && (
                                     <Badge variant="outline" className="text-xs mt-1">
-                                        {routeCompleteness.configured}/{routeCompleteness.required}
-                                        {routeCompleteness.percentage === 100 && " ✓"}
+                                        {order.manufacturing_route.steps?.length || 0} step{(order.manufacturing_route.steps?.length || 0) !== 1 ? 's' : ''}
                                     </Badge>
                                 )}
                             </div>
@@ -197,9 +193,9 @@ export function OrderCardStandard({
                                     <div className="flex items-center justify-center">
                                         {order.manufacturing_route ? (
                                             order.manufacturing_route.steps && order.manufacturing_route.steps.length > 0 ? (
-                                                <Route className="h-4 w-4 text-foreground" />
+                                                <List className="h-4 w-4 text-gray-600" />
                                             ) : (
-                                                <Route className="h-4 w-4 text-red-600" />
+                                                <List className="h-4 w-4 text-gray-600" />
                                             )
                                         ) : (
                                             <div className="h-4 w-4" />

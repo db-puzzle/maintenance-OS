@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm } from '@inertiajs/react';
+import { route } from 'ziggy-js';
 import {
     Dialog,
     DialogContent,
@@ -12,59 +13,115 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { TextInput } from '@/components/TextInput';
 import { Textarea } from '@/components/ui/textarea';
-import { ItemSelect } from '@/components/ItemSelect';
+import StateButton from '@/components/StateButton';
+import { Tag, Globe } from 'lucide-react';
 import { createFormAdapter } from '@/utils/form-adapters';
-import { Badge } from '@/components/ui/badge';
-import { X, Plus } from 'lucide-react';
 import { ManufacturingRoute } from '@/types/production';
 import { toast } from 'sonner';
 
 interface SaveAsTemplateDialogProps {
-    route: ManufacturingRoute;
+    manufacturingRoute: ManufacturingRoute;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
 
 export const SaveAsTemplateDialog: React.FC<SaveAsTemplateDialogProps> = ({
-    route,
+    manufacturingRoute,
     open,
     onOpenChange
 }) => {
-    const [currentTag, setCurrentTag] = useState('');
+    // Check both the route's item and the manufacturing order's item
+    const routeItem = manufacturingRoute.item || manufacturingRoute.manufacturing_order?.item;
+    const hasCategory = !!routeItem?.category?.name;
+
+    // Generate default name from step names
+    const generateDefaultName = () => {
+        if (manufacturingRoute.steps && manufacturingRoute.steps.length > 0) {
+            return manufacturingRoute.steps
+                .sort((a, b) => a.step_number - b.step_number)
+                .map(step => step.name)
+                .join(', ');
+        }
+        return `Template from ${manufacturingRoute.name}`;
+    };
+
+    // Generate informative description
+    const generateDefaultDescription = () => {
+        if (!manufacturingRoute.steps || manufacturingRoute.steps.length === 0) {
+            // If no steps, return the original description unless it's the default empty route message
+            if (manufacturingRoute.description &&
+                !manufacturingRoute.description.includes('Empty route - add steps or execute without steps')) {
+                return manufacturingRoute.description;
+            }
+            return '';
+        }
+
+        const totalSetupTime = manufacturingRoute.steps.reduce((sum, step) => sum + (step.setup_time_minutes || 0), 0);
+        const totalCycleTime = manufacturingRoute.steps.reduce((sum, step) => sum + (step.cycle_time_minutes || 0), 0);
+        const totalSteps = manufacturingRoute.steps.length;
+        const workCells = [...new Set(manufacturingRoute.steps
+            .filter(step => step.work_cell?.name)
+            .map(step => step.work_cell!.name)
+        )];
+
+        let description = `Rota com ${totalSteps} etapa${totalSteps > 1 ? 's' : ''}`;
+
+        if (totalSetupTime > 0) {
+            description += ` | Tempo total de setup: ${totalSetupTime} min`;
+        }
+
+        if (totalCycleTime > 0) {
+            description += ` | Tempo total de ciclo: ${totalCycleTime} min`;
+        }
+
+        if (workCells.length > 0) {
+            description += ` | Células: ${workCells.join(', ')}`;
+        }
+
+        // Add original description if exists and it's not the default empty route message
+        if (manufacturingRoute.description &&
+            !manufacturingRoute.description.includes('Empty route - add steps or execute without steps')) {
+            description += `\n\n${manufacturingRoute.description}`;
+        }
+
+        return description;
+    };
 
     const form = useForm({
-        name: `Template from ${route.name}`,
-        description: route.description || '',
-        item_category_id: route.item?.item_category_id || null,
-        tags: [] as string[],
+        name: generateDefaultName(),
+        description: generateDefaultDescription(),
+        item_category_id: hasCategory ? routeItem?.item_category_id : null,
+        restrict_to_category: hasCategory, // Default to restricting to current category if available
         notes: ''
     });
 
     const formAdapter = createFormAdapter(form);
 
-    const handleAddTag = () => {
-        const tag = currentTag.trim();
-        if (tag && !form.data.tags.includes(tag)) {
-            form.setData('tags', [...form.data.tags, tag]);
-            setCurrentTag('');
-        }
-    };
-
-    const handleRemoveTag = (tagToRemove: string) => {
-        form.setData('tags', form.data.tags.filter(tag => tag !== tagToRemove));
-    };
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        form.post(route(`production.routes.save-as-template`, route.id), {
-            preserveScroll: true,
+        // Clear any existing errors first
+        form.clearErrors();
+
+        // Validate required name field
+        if (!form.data.name.trim()) {
+            form.setError('name', 'Nome do template é obrigatório');
+            return;
+        }
+
+        form.post(route(`production.routes.save-as-template`, manufacturingRoute.id), {
             onSuccess: () => {
-                toast.success('Route saved as template successfully');
+                // The backend will redirect to template show page, 
+                // which will immediately redirect back to where we came from
+                toast.success('Rota salva como template com sucesso');
                 onOpenChange(false);
+                form.reset();
             },
-            onError: () => {
-                toast.error('Failed to save template');
+            onError: (errors) => {
+                if (errors.name) {
+                    form.setError('name', errors.name);
+                }
+                toast.error('Falha ao salvar template');
             }
         });
     };
@@ -73,100 +130,78 @@ export const SaveAsTemplateDialog: React.FC<SaveAsTemplateDialogProps> = ({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Save Route as Template</DialogTitle>
+                    <DialogTitle>Salvar Rota como Template</DialogTitle>
                     <DialogDescription>
-                        Create a reusable template from this manufacturing route.
-                        The template will preserve all steps and configurations.
+                        Crie um template reutilizável a partir desta rota de manufatura.
+                        O template preservará todas as etapas e configurações.
                     </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="name">Template Name</Label>
                         <TextInput
-                            id="name"
                             form={formAdapter}
                             name="name"
-                            placeholder="Enter template name"
+                            label="Nome do Template"
+                            placeholder="Digite o nome do template"
                             required
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
+                        <Label htmlFor="description">Descrição</Label>
                         <Textarea
                             id="description"
                             value={form.data.description}
                             onChange={(e) => form.setData('description', e.target.value)}
-                            placeholder="Describe when to use this template"
+                            placeholder="Descreva quando usar este template"
                             rows={3}
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="category">Item Category (Optional)</Label>
-                        <ItemSelect
-                            value={form.data.item_category_id}
-                            onValueChange={(value) => form.setData('item_category_id', value)}
-                            type="category"
-                            placeholder="Select category to restrict template usage"
-                            isClearable
-                        />
+                        <Label>Aplicabilidade do Template</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <StateButton
+                                icon={Tag}
+                                title="Categoria Específica"
+                                description={hasCategory
+                                    ? routeItem?.category?.name || ''
+                                    : 'Item sem categoria'
+                                }
+                                selected={form.data.restrict_to_category}
+                                onClick={() => {
+                                    form.setData('restrict_to_category', true);
+                                    form.setData('item_category_id', routeItem?.item_category_id);
+                                }}
+                                disabled={!hasCategory}
+                                iconSize="sm"
+                            />
+                            <StateButton
+                                icon={Globe}
+                                title="Qualquer Categoria"
+                                description="Disponível para todos"
+                                selected={!form.data.restrict_to_category}
+                                onClick={() => {
+                                    form.setData('restrict_to_category', false);
+                                    form.setData('item_category_id', null);
+                                }}
+                                iconSize="sm"
+                            />
+                        </div>
                         <p className="text-sm text-muted-foreground">
-                            If specified, this template will be recommended for items in this category
+                            Define se este template será restrito à categoria do item atual ou disponível para todos os itens
                         </p>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label>Tags</Label>
-                        <div className="flex gap-2">
-                            <TextInput
-                                value={currentTag}
-                                onChange={(e) => setCurrentTag(e.target.value)}
-                                placeholder="Add tags (e.g., welding, assembly)"
-                                onKeyPress={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        handleAddTag();
-                                    }
-                                }}
-                                className="flex-1"
-                            />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={handleAddTag}
-                                disabled={!currentTag.trim()}
-                            >
-                                <Plus className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        {form.data.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                {form.data.tags.map((tag) => (
-                                    <Badge key={tag} variant="secondary" className="gap-1">
-                                        {tag}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRemoveTag(tag)}
-                                            className="ml-1 hover:text-destructive"
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                    </Badge>
-                                ))}
-                            </div>
-                        )}
-                    </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="notes">Notes</Label>
+                        <Label htmlFor="notes">Observações</Label>
                         <Textarea
                             id="notes"
                             value={form.data.notes}
                             onChange={(e) => form.setData('notes', e.target.value)}
-                            placeholder="Any additional notes about this template"
+                            placeholder="Observações adicionais sobre este template"
                             rows={2}
                         />
                     </div>
@@ -178,10 +213,10 @@ export const SaveAsTemplateDialog: React.FC<SaveAsTemplateDialogProps> = ({
                             onClick={() => onOpenChange(false)}
                             disabled={form.processing}
                         >
-                            Cancel
+                            Cancelar
                         </Button>
-                        <Button type="submit" disabled={form.processing}>
-                            {form.processing ? 'Saving...' : 'Save as Template'}
+                        <Button type="submit" disabled={form.processing || !form.data.name.trim()}>
+                            {form.processing ? 'Salvando...' : 'Salvar como Template'}
                         </Button>
                     </DialogFooter>
                 </form>

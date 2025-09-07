@@ -51,16 +51,16 @@ const gerenciamentoNavItems: NavGroup = {
                     href: '/production/planning',
                 },
                 {
+                    title: 'Templates de Rotas',
+                    href: '/production/routing',
+                },
+                {
                     title: 'Turnos',
                     href: '/asset-hierarchy/shifts',
                 },
                 {
                     title: 'Células de Trabalho',
                     href: '/production/work-cells',
-                },
-                {
-                    title: 'Roteiros',
-                    href: '/production/routing',
                 },
                 {
                     title: 'Programação',
