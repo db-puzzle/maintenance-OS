@@ -437,6 +437,15 @@ export default function PlanningPage({
                     itemNumber={activeMODetails.item?.item_number}
                     itemName={activeMODetails.item?.name}
                     routeTemplates={routeTemplates}
+                    onTemplateApplied={() => {
+                        // Small delay to ensure backend has completed processing
+                        setTimeout(() => {
+                            // Force a page refresh to get updated data including all nested relationships
+                            router.reload({
+                                only: ['manufacturingOrders']
+                            });
+                        }, 100);
+                    }}
                 />
             )}
         </AppLayout>

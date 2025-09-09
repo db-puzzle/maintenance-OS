@@ -291,6 +291,15 @@ function RoutingOverviewTab({
                         </div>
                     )}
                 </div>
+                {/* Item Category Section */}
+                <div className="grid gap-2">
+                    <Label>Categoria de Item</Label>
+                    <div className="bg-background">
+                        <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                            {routing.item_category ? routing.item_category.name : 'Todos os itens'}
+                        </div>
+                    </div>
+                </div>
                 {routing.route_template && (
                     <div className="grid gap-2">
                         <Label>Template de Roteiro</Label>

@@ -170,6 +170,7 @@ class ProductionRoutingController extends Controller
 
         $routing->load([
             'item',
+            'itemCategory',
             'manufacturingOrder',
             'steps.workCell',
             'templateSource',

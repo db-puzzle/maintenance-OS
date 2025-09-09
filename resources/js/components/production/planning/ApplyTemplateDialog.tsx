@@ -1,7 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
-import axios from 'axios';
 import {
     Search,
     Check,
@@ -82,7 +81,26 @@ export default function ApplyTemplateDialog({
     const [page, setPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
     const [showOverwriteConfirmation, setShowOverwriteConfirmation] = useState(false);
-    const [confirmationText, setConfirmationText] = useState('');
+    const [dialogKey, setDialogKey] = useState(0);
+
+    // Effect to handle when dialog opens/closes via prop change
+    useEffect(() => {
+        if (open) {
+            // Reset selection when dialog opens
+            setSelectedTemplateId(null);
+            setShowOverwriteConfirmation(false);
+            setIsApplying(false);
+            // Increment key to force EntityDataTable to remount
+            setDialogKey(prev => prev + 1);
+        } else {
+            // Also reset when closing to ensure clean state
+            setSearchQuery('');
+            setSelectedTemplateId(null);
+            setPage(1);
+            setShowOverwriteConfirmation(false);
+            setIsApplying(false);
+        }
+    }, [open]);
 
     // Filter templates based on search query and category filter
     const filteredTemplates = useMemo(() => {
@@ -212,7 +230,7 @@ export default function ApplyTemplateDialog({
     };
 
     // Apply the selected template
-    const handleApplyTemplate = async (forceOverwrite = false) => {
+    const handleApplyTemplate = (forceOverwrite = false) => {
         if (!selectedTemplateId) {
             toast.error('Por favor, selecione um template para aplicar');
             return;
@@ -220,56 +238,48 @@ export default function ApplyTemplateDialog({
 
         setIsApplying(true);
 
-        try {
-            const response = await axios.post(
-                route('production.orders.apply-template', { order: manufacturingOrderId }),
-                {
-                    template_id: selectedTemplateId,
-                    overwrite: forceOverwrite,
+        router.post(
+            route('production.planning.orders.apply-template', { order: manufacturingOrderId }),
+            {
+                template_id: selectedTemplateId,
+                overwrite: forceOverwrite,
+            },
+            {
+                onSuccess: () => {
+                    toast.success('Template aplicado com sucesso');
+                    setShowOverwriteConfirmation(false);
+                    setIsApplying(false);
+                    onOpenChange(false);
+                    onTemplateApplied?.();
                 },
-                {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
+                onError: (errors) => {
+                    setIsApplying(false);
 
-            // Success - redirect or reload
-            toast.success('Template aplicado com sucesso');
-            setShowOverwriteConfirmation(false);
-            setConfirmationText('');
-            onOpenChange(false);
+                    // Check if this is an overwrite error
+                    if (errors.message && errors.message.includes('already has a route') && !forceOverwrite) {
+                        setShowOverwriteConfirmation(true);
+                        return;
+                    }
 
-            if (response.data.redirect) {
-                router.visit(response.data.redirect);
-            } else {
-                onTemplateApplied?.();
+                    // Show general error message
+                    const errorMessage = errors.message || 'Falha ao aplicar template';
+                    toast.error(errorMessage);
+                },
+                onFinish: () => {
+                    // This runs regardless of success/error, but after onSuccess/onError
+                    // Only reset loading if we're not showing confirmation dialog
+                    if (!showOverwriteConfirmation) {
+                        setIsApplying(false);
+                    }
+                },
+                preserveState: true,
+                preserveScroll: true,
             }
-        } catch (error) {
-            setIsApplying(false);
-
-            const axiosError = error as { response?: { status?: number; data?: { message?: string } } };
-
-            if (axiosError.response?.status === 409 && !forceOverwrite) {
-                // Route already exists, show confirmation dialog
-                setShowOverwriteConfirmation(true);
-                return;
-            }
-
-            // Log the error for debugging
-            console.error('Failed to apply template:', error);
-
-            // Show error message
-            const errorMessage = axiosError.response?.data?.message || 'Falha ao aplicar template';
-            toast.error(errorMessage);
-        }
+        );
     };
 
-    const handleConfirmOverwrite = async () => {
-        if (confirmationText === 'SUBSTITUIR') {
-            await handleApplyTemplate(true);
-        }
+    const handleConfirmOverwrite = () => {
+        handleApplyTemplate(true);
     };
 
     const handleOpenChange = (open: boolean) => {
@@ -279,7 +289,14 @@ export default function ApplyTemplateDialog({
             setSelectedTemplateId(null);
             setPage(1);
             setShowOverwriteConfirmation(false);
-            setConfirmationText('');
+            setIsApplying(false);
+        } else {
+            // Also reset selection when opening to ensure clean state
+            setSelectedTemplateId(null);
+            setShowOverwriteConfirmation(false);
+            setIsApplying(false);
+            // Increment key to force EntityDataTable to remount
+            setDialogKey(prev => prev + 1);
         }
         onOpenChange(open);
     };
@@ -345,6 +362,7 @@ export default function ApplyTemplateDialog({
                             {/* Templates Table */}
                             <div className="mb-4">
                                 <EntityDataTable
+                                    key={`template-table-${dialogKey}`}
                                     data={paginatedTemplates}
                                     columns={columns}
                                     loading={false}
@@ -438,37 +456,12 @@ export default function ApplyTemplateDialog({
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                            Confirmar Substituição de Rota
+                            Confirmar Template de Rota
                         </DialogTitle>
                         <DialogDescription>
-                            Esta ordem de manufatura já possui uma rota configurada.
                             Ao continuar, todas as etapas atuais serão substituídas pelas etapas do template selecionado.
                         </DialogDescription>
                     </DialogHeader>
-
-                    <Alert className="border-yellow-200 bg-yellow-50">
-                        <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                        <AlertDescription className="text-yellow-800">
-                            <strong>Atenção:</strong> Esta ação não pode ser desfeita.
-                            As etapas atuais da rota serão permanentemente removidas.
-                        </AlertDescription>
-                    </Alert>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="confirmation">Digite SUBSTITUIR para confirmar</Label>
-                        <Input
-                            id="confirmation"
-                            value={confirmationText}
-                            onChange={(e) => setConfirmationText(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && confirmationText === 'SUBSTITUIR' && !isApplying) {
-                                    handleConfirmOverwrite();
-                                }
-                            }}
-                            disabled={isApplying}
-                            placeholder="SUBSTITUIR"
-                        />
-                    </div>
 
                     <DialogFooter>
                         <Button
@@ -476,7 +469,6 @@ export default function ApplyTemplateDialog({
                             variant="outline"
                             onClick={() => {
                                 setShowOverwriteConfirmation(false);
-                                setConfirmationText('');
                                 setIsApplying(false);
                             }}
                             disabled={isApplying}
@@ -485,11 +477,11 @@ export default function ApplyTemplateDialog({
                         </Button>
                         <Button
                             type="button"
-                            variant="destructive"
+                            variant="default"
                             onClick={handleConfirmOverwrite}
-                            disabled={confirmationText !== 'SUBSTITUIR' || isApplying}
+                            disabled={isApplying}
                         >
-                            {isApplying ? 'Substituindo...' : 'Substituir Rota'}
+                            {isApplying ? 'Aplicando...' : 'Aplicar Template'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -101,11 +101,17 @@ export default function RouteBuilder({
 
     // Load existing route when manufacturing order changes
     const previousMOIdRef = useRef<number | null>(null);
+    const previousRouteRef = useRef<string>('');
 
     useEffect(() => {
-        // Only load route if MO actually changed
-        if (previousMOIdRef.current !== manufacturingOrder.id) {
+        // Check if MO changed or route data changed
+        const currentRouteData = JSON.stringify(manufacturingOrder.manufacturing_route?.steps || []);
+        const moChanged = previousMOIdRef.current !== manufacturingOrder.id;
+        const routeDataChanged = previousRouteRef.current !== currentRouteData;
+
+        if (moChanged || routeDataChanged) {
             previousMOIdRef.current = manufacturingOrder.id;
+            previousRouteRef.current = currentRouteData;
 
             if (manufacturingOrder.manufacturing_route && manufacturingOrder.manufacturing_route.steps) {
                 const routeSteps: RouteStep[] = manufacturingOrder.manufacturing_route.steps.map((step: ManufacturingStep, index: number) => ({
@@ -130,11 +136,12 @@ export default function RouteBuilder({
                 setSteps([]);
                 previousStepsRef.current = [];
             }
-            // Clear selected step when changing manufacturing orders
-            setSelectedStep(null);
+            // Clear selected step only when changing manufacturing orders, not when route data updates
+            if (moChanged) {
+                setSelectedStep(null);
+            }
         }
-        // Skip reload if same MO to preserve selection
-    }, [manufacturingOrder.id, manufacturingOrder.manufacturing_route]); // Re-run when manufacturing order changes
+    }, [manufacturingOrder.id, manufacturingOrder.manufacturing_route]); // Re-run when manufacturing order or its route changes
 
     // Track dirty state
     useEffect(() => {
