@@ -1,11 +1,12 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Head, router } from '@inertiajs/react';
 import {
     FileText,
-    AlertCircle,
-    Loader2,
-    Check,
+    CloudCog,
+    CloudAlert,
+    CloudCheck,
 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 
@@ -124,6 +125,20 @@ export default function PlanningPage({
 
     // Apply template dialog state
     const [showApplyTemplateDialog, setShowApplyTemplateDialog] = useState(false);
+
+    // Force re-render to update relative time display
+    const [, forceUpdate] = useState({});
+
+    // Update relative time display every 30 seconds
+    useEffect(() => {
+        if (lastSavedAt) {
+            const interval = setInterval(() => {
+                forceUpdate({});
+            }, 30000); // Update every 30 seconds
+
+            return () => clearInterval(interval);
+        }
+    }, [lastSavedAt]);
 
     // Handle MO selection
     const handleMOSelect = useCallback((moId: number, multiSelect: boolean = false) => {
@@ -263,26 +278,32 @@ export default function PlanningPage({
                                                 <div className="flex items-center gap-2 text-sm">
                                                     {saveStatus === 'saving' && (
                                                         <>
-                                                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                                            <CloudCog className="h-4 w-4 animate-spin text-muted-foreground" />
                                                             <span className="text-muted-foreground">Saving...</span>
                                                         </>
                                                     )}
                                                     {saveStatus === 'saved' && (
                                                         <>
-                                                            <Check className="h-4 w-4 text-green-600" />
+                                                            <CloudCheck className="h-4 w-4 text-green-600" />
                                                             <span className="text-green-600">Saved</span>
                                                         </>
                                                     )}
                                                     {saveStatus === 'error' && (
                                                         <>
-                                                            <AlertCircle className="h-4 w-4 text-red-600" />
+                                                            <CloudAlert className="h-4 w-4 text-red-600" />
                                                             <span className="text-red-600">Save failed</span>
                                                         </>
                                                     )}
-                                                    {lastSavedAt && saveStatus === 'idle' && (
-                                                        <span className="text-muted-foreground">
-                                                            Last saved {lastSavedAt.toLocaleTimeString()}
-                                                        </span>
+                                                    {saveStatus === 'idle' && (
+                                                        <>
+                                                            <CloudCheck className="h-4 w-4 text-muted-foreground" />
+                                                            <span className="text-muted-foreground">
+                                                                {lastSavedAt
+                                                                    ? `Saved ${formatDistanceToNow(lastSavedAt, { addSuffix: true })}`
+                                                                    : 'Ready'
+                                                                }
+                                                            </span>
+                                                        </>
                                                     )}
                                                 </div>
                                             </div>
