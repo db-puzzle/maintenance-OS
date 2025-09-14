@@ -38,14 +38,11 @@ Each manufacturing step can have two types of dependencies:
 ```sql
 -- Add new columns to manufacturing_steps table
 ALTER TABLE manufacturing_steps ADD COLUMN child_order_dependency_type 
-  ENUM('none', 'all_children_completed', 'children_quantity', 'children_percentage') 
-  DEFAULT 'none' AFTER dependency_minimum_percentage;
+  ENUM('none', 'all_children_completed', 'children_quantity') 
+  DEFAULT 'none' AFTER dependency_minimum_quantity;
 
 ALTER TABLE manufacturing_steps ADD COLUMN child_order_minimum_quantity 
   DECIMAL(10, 2) NULL AFTER child_order_dependency_type;
-
-ALTER TABLE manufacturing_steps ADD COLUMN child_order_minimum_percentage 
-  DECIMAL(5, 2) NULL AFTER child_order_minimum_quantity;
 
 -- Add indexes for performance
 CREATE INDEX idx_child_order_dependency_type ON manufacturing_steps(child_order_dependency_type);
@@ -59,8 +56,7 @@ CREATE INDEX idx_child_order_dependency_type ON manufacturing_steps(child_order_
 
 The child order dependency system for **route steps** uses a **minimum-based approach** rather than cumulative totals. This ensures that we have sufficient quantities of ALL required components before a specific step can begin processing:
 
-- **For Quantity Dependencies**: The step checks the MINIMUM quantity completed across all child orders. This guarantees that we have at least that many complete sets of components available for this step.
-- **For Percentage Dependencies**: The step checks the MINIMUM completion percentage across all child orders. This ensures all components have reached at least the specified progress level before this step can begin.
+The step checks the MINIMUM quantity completed across all child orders. This guarantees that we have at least that many complete sets of components available for this step.
 
 **Example**: For a parent order's first manufacturing step that requires 3 different components (A, B, C):
 - Component A: 100 units completed
@@ -77,7 +73,7 @@ A **manufacturing step** can start when BOTH conditions are met:
 
 **Note**: The parent Manufacturing Order itself has NO such restrictions and can be released immediately.
 
-#### 3.2 Child Order Dependency Types
+#### 3.3 Child Order Dependency Types
 
 **none**: No dependency on child orders (default)
 - Step can start regardless of child order status
@@ -89,11 +85,6 @@ A **manufacturing step** can start when BOTH conditions are met:
 - Minimum `quantity_completed` across all child orders ≥ `child_order_minimum_quantity`
 - This ensures we have at least the specified quantity of EACH child component available
 
-**children_percentage**: Minimum percentage from child orders required  
-- Minimum completion percentage across all child orders ≥ `child_order_minimum_percentage`
-- Each child order must have completed at least this percentage of its total quantity
-- Calculated as: MIN((child.quantity_completed / child.quantity) * 100) ≥ `child_order_minimum_percentage`
-
 ### 4. Model Updates
 
 #### 4.1 ManufacturingStep Model
@@ -102,19 +93,16 @@ A **manufacturing step** can start when BOTH conditions are met:
 // Add to $fillable array:
 'child_order_dependency_type',
 'child_order_minimum_quantity',
-'child_order_minimum_percentage',
 
 // Add to $casts array:
 'child_order_dependency_type' => 'string',
 'child_order_minimum_quantity' => 'decimal:2',
-'child_order_minimum_percentage' => 'decimal:2',
 
 // Add constant:
 const CHILD_ORDER_DEPENDENCY_TYPES = [
     'none' => 'No child order dependencies',
     'all_children_completed' => 'All child orders must be completed',
     'children_quantity' => 'Minimum quantity from child orders',
-    'children_percentage' => 'Minimum percentage from child orders',
 ];
 ```
 
@@ -171,26 +159,6 @@ protected function checkChildOrderDependencies(): bool
             $minQuantityCompleted = $childOrders->min('quantity_completed');
             
             return $minQuantityCompleted >= $this->child_order_minimum_quantity;
-                   
-        case 'children_percentage':
-            // Check minimum percentage completed across ALL child orders
-            $childOrders = $manufacturingOrder->children()
-                ->where('status', '!=', 'cancelled')
-                ->get();
-            
-            if ($childOrders->isEmpty()) {
-                return true;
-            }
-            
-            // Find the minimum completion percentage among all child orders
-            $minPercentage = $childOrders->map(function ($child) {
-                if ($child->quantity == 0) {
-                    return 100; // Consider zero-quantity orders as complete
-                }
-                return ($child->quantity_completed / $child->quantity) * 100;
-            })->min();
-            
-            return $minPercentage >= $this->child_order_minimum_percentage;
             
         default:
             return true;
@@ -258,21 +226,18 @@ The route builder will include a new section for configuring child order depende
 
 ```typescript
 interface StepChildOrderDependencyConfig {
-  type: 'none' | 'all_children_completed' | 'children_quantity' | 'children_percentage';
+  type: 'none' | 'all_children_completed' | 'children_quantity';
   minimumQuantity?: number;
-  minimumPercentage?: number;
   
   // Display helpers
   currentChildOrdersCompleted: number;
   totalChildOrders: number;
   minQuantityCompleted: number;
-  minPercentageCompleted: number;
   childOrdersStatus: Array<{
     orderId: number;
     itemName: string;
     quantityCompleted: number;
     quantityRequired: number;
-    percentageCompleted: number;
   }>;
 }
 ```
@@ -291,7 +256,7 @@ Step cards in the route visualization will show:
 
 A new visualization showing:
 - Child orders feeding into parent route steps
-- Progress bars for quantity/percentage thresholds
+- Progress bars for quantity thresholds
 - Which steps are blocked by child order dependencies
 - Real-time updates as child orders progress
 
@@ -305,8 +270,8 @@ For steps identified as "first steps" (no step dependencies):
 
 **Example Scenario**:
 - Manufacturing Order is released immediately (no restrictions)
-- First Step A: Requires 50% of all child orders complete (starts earlier)
-- First Step B: Requires 100% of all child orders complete (starts later)
+- First Step A: Requires minimum 50 units from all child orders (starts earlier)
+- First Step B: Requires all child orders to be 100% complete (starts later)
 - This allows partial production flow while ensuring critical steps wait for all components
 
 ### 9. Template and Auto-Creation Updates
@@ -316,14 +281,14 @@ For steps identified as "first steps" (no step dependencies):
 Route templates can now include child order dependency configurations:
 - Templates can define standard child order dependencies
 - When applied, dependencies are set based on the template
-- Templates can use percentage-based dependencies for scalability
+- Templates specify quantity thresholds for consistent behavior
 
 #### 9.2 Auto-Route Creation
 
 When routes are created automatically from templates:
 1. First steps inherit child order dependencies from templates
 2. Dependencies are adjusted based on the item category
-3. Percentage-based dependencies are preferred for flexibility
+3. Quantity-based dependencies ensure consistent material availability
 
 ### 10. API Updates
 
@@ -334,9 +299,8 @@ interface ManufacturingStepRequest {
   // Existing fields...
   
   // New child order dependency fields
-  child_order_dependency_type?: 'none' | 'all_children_completed' | 'children_quantity' | 'children_percentage';
+  child_order_dependency_type?: 'none' | 'all_children_completed' | 'children_quantity';
   child_order_minimum_quantity?: number;
-  child_order_minimum_percentage?: number;
 }
 ```
 
@@ -352,17 +316,14 @@ interface ManufacturingStepResponse {
   child_order_dependency: {
     type: string;
     minimum_quantity?: number;
-    minimum_percentage?: number;
     current_progress: {
       min_quantity_completed: number;
-      min_percentage_completed: number;
       can_start: boolean;
       child_orders: Array<{
         order_number: string;
         item_name: string;
         quantity_completed: number;
         quantity_total: number;
-        percentage: number;
         is_limiting_factor: boolean;
       }>;
     };
@@ -394,11 +355,17 @@ SET
     CASE 
       WHEN mo.dependency_type = 'all_children_released' THEN 'all_children_completed'
       WHEN mo.dependency_type = 'children_quantity' THEN 'children_quantity'
-      WHEN mo.dependency_type = 'children_percentage' THEN 'children_percentage'
+      WHEN mo.dependency_type = 'children_percentage' THEN 'children_quantity'
       ELSE 'none'
     END,
-  ms.child_order_minimum_quantity = mo.dependency_minimum_quantity,
-  ms.child_order_minimum_percentage = mo.dependency_minimum_percentage
+  ms.child_order_minimum_quantity = 
+    CASE 
+      WHEN mo.dependency_type = 'children_quantity' THEN mo.dependency_minimum_quantity
+      WHEN mo.dependency_type = 'children_percentage' THEN 
+        -- Convert percentage to approximate quantity (this would need business logic)
+        ROUND((mo.dependency_minimum_percentage / 100) * mo.quantity)
+      ELSE NULL
+    END
 WHERE ms.depends_on_step_id IS NULL  -- First steps only
   AND mo.dependency_type != 'none';
 ```
