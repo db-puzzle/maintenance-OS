@@ -97,7 +97,6 @@ class RouteTemplateController extends Controller
             'itemCategory',
             'createdBy',
             'steps.workCell',
-            'derivedRoutes.manufacturingOrder',
         ]);
 
         $usageStats = $this->templateService->getTemplateUsageStats($template);

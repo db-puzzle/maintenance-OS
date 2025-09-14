@@ -126,7 +126,6 @@ class ManufacturingOrderService
 
         $route = $order->manufacturingRoute()->create([
             'item_id' => $order->item_id,
-            'template_source_id' => $templateId,
             'name' => $template->name,
             'description' => $template->description,
             'is_active' => true,
@@ -882,5 +881,79 @@ class ManufacturingOrderService
                 );
             }
         }
+    }
+
+    /**
+     * Apply template to existing manufacturing order.
+     * Only works for orders in Draft status.
+     */
+    public function applyTemplate(ManufacturingOrder $order, int $templateId): void
+    {
+        // Validate order is in Draft status
+        if ($order->status !== 'draft') {
+            throw new \Exception('Templates can only be applied to orders in Draft status');
+        }
+
+        // Load template
+        $template = ManufacturingRoute::templates()
+            ->with('steps')
+            ->findOrFail($templateId);
+
+        // Update existing route
+        DB::transaction(function () use ($order, $template) {
+            $route = $order->manufacturingRoute;
+
+            if (!$route) {
+                throw new \Exception('Manufacturing order does not have a route');
+            }
+
+            // Delete existing steps
+            $route->steps()->delete();
+
+            // Update route information
+            $route->update([
+                'name' => $template->name,
+                'description' => $template->description,
+            ]);
+
+            // Copy steps from template
+            $route->createFromTemplate($template);
+        });
+    }
+
+    /**
+     * Bulk apply template to multiple manufacturing orders.
+     * Only applies to orders in Draft status.
+     */
+    public function bulkApplyTemplate(array $orderIds, int $templateId): array
+    {
+        $results = [
+            'success' => 0,
+            'skipped' => 0,
+            'errors' => []
+        ];
+
+        // Validate template exists
+        $template = ManufacturingRoute::templates()->findOrFail($templateId);
+
+        foreach ($orderIds as $orderId) {
+            try {
+                $order = ManufacturingOrder::findOrFail($orderId);
+
+                if ($order->status !== 'draft') {
+                    $results['skipped']++;
+                    $results['errors'][] = "Order {$order->order_number} skipped - not in Draft status";
+                    continue;
+                }
+
+                $this->applyTemplate($order, $templateId);
+                $results['success']++;
+
+            } catch (\Exception $e) {
+                $results['errors'][] = "Order ID {$orderId}: {$e->getMessage()}";
+            }
+        }
+
+        return $results;
     }
 }

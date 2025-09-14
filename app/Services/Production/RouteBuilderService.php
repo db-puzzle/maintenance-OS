@@ -8,43 +8,6 @@ use Illuminate\Support\Facades\DB;
 
 class RouteBuilderService
 {
-    /**
-     * Apply a template to a manufacturing order
-     */
-    public function applyTemplateToOrder(ManufacturingOrder $order, ManufacturingRoute $template): ManufacturingRoute
-    {
-        return DB::transaction(function () use ($order, $template) {
-            // Delete existing route if any
-            if ($order->manufacturingRoute) {
-                $order->manufacturingRoute->delete();
-            }
-
-            // Create new route
-            $route = ManufacturingRoute::create([
-                'manufacturing_order_id' => $order->id,
-                'name' => $template->name,
-                'description' => $template->description,
-                'template_id' => $template->id,
-            ]);
-
-            // Copy steps from template
-            foreach ($template->steps as $templateStep) {
-                $route->steps()->create([
-                    'step_number' => $templateStep->step_number,
-                    'display_order' => $templateStep->display_order,
-                    'name' => $templateStep->name,
-                    'description' => $templateStep->description,
-                    'work_cell_id' => $templateStep->work_cell_id,
-                    'setup_time_minutes' => $templateStep->setup_time_minutes,
-                    'cycle_time_minutes' => $templateStep->cycle_time_minutes,
-                    'step_type' => $templateStep->step_type,
-                    'status' => 'pending',
-                ]);
-            }
-
-            return $route;
-        });
-    }
 
     /**
      * Copy route from one order to another
@@ -67,7 +30,6 @@ class RouteBuilderService
                 'manufacturing_order_id' => $targetOrder->id,
                 'name' => $sourceRoute->name . ' (Copy)',
                 'description' => $sourceRoute->description,
-                'template_id' => $sourceRoute->template_id,
             ]);
 
             // Copy steps

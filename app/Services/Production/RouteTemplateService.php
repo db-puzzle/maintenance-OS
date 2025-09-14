@@ -231,10 +231,7 @@ class RouteTemplateService
             throw new \InvalidArgumentException('Route is not a template');
         }
 
-        // Check if template is in use
-        if ($template->derivedRoutes()->exists()) {
-            throw new \Exception('Cannot delete template that is in use by production routes');
-        }
+        // Note: We no longer check if template is in use since we don't track template usage
 
         return DB::transaction(function () use ($template) {
             // Delete steps first
@@ -295,16 +292,9 @@ class RouteTemplateService
         }
 
         return [
-            'total_uses' => $template->derivedRoutes()->count(),
-            'active_uses' => $template->derivedRoutes()
-                ->whereHas('manufacturingOrder', function ($q) {
-                    $q->whereNotIn('status', ['completed', 'cancelled']);
-                })
-                ->count(),
-            'last_used_at' => $template->derivedRoutes()
-                ->orderBy('created_at', 'desc')
-                ->first()
-                ?->created_at,
+            'total_uses' => 0, // We no longer track template usage
+            'active_uses' => 0, // We no longer track template usage
+            'last_used_at' => null, // We no longer track template usage
         ];
     }
 }

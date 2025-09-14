@@ -846,7 +846,7 @@ export default function CreateManufacturingOrderDialog({
                                                 {data.order_type !== 'bom' && (
                                                     <StateButton
                                                         icon={FileText}
-                                                        title="Usar Template de Rota"
+                                                        title="Usar Template"
                                                         description="Aplicar agora um template predefinido"
                                                         selected={data.route_creation_mode === 'template'}
                                                         onClick={() => setData('route_creation_mode', 'template')}
@@ -857,7 +857,7 @@ export default function CreateManufacturingOrderDialog({
                                                 {data.order_type === 'bom' && (
                                                     <StateButton
                                                         icon={Zap}
-                                                        title="Criar Automaticamente"
+                                                        title="Usar Templates"
                                                         description="Criar rotas automaticamente com base na categoria do item"
                                                         selected={data.route_creation_mode === 'auto'}
                                                         onClick={() => setData('route_creation_mode', 'auto')}

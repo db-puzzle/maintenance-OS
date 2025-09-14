@@ -153,6 +153,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('orders/{order}/resume', [ManufacturingOrderController::class, 'resume'])->name('orders.resume');
     Route::post('orders/{order}/cancel', [ManufacturingOrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('orders/{order}/apply-template', [ManufacturingOrderController::class, 'applyTemplate'])->name('orders.apply-template');
+    Route::post('orders/bulk-apply-template', [ManufacturingOrderController::class, 'bulkApplyTemplate'])->name('orders.bulk-apply-template');
     Route::post('orders/{order}/report-production', [ManufacturingOrderController::class, 'reportProduction'])->name('orders.report-production');
     Route::post('orders/{order}/update-dependencies', [ManufacturingOrderController::class, 'updateDependencies'])->name('orders.update-dependencies');
 

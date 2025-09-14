@@ -268,12 +268,14 @@ class ManufacturingOrderController extends BaseSearchController
             $templates = ManufacturingRoute::templates()
                 ->where('is_active', true)
                 ->withCount('steps')
-                ->withCount('derivedRoutes as usage_count')
                 ->get()
                 ->map(function ($template) {
                     // Calculate total estimated time
                     $template->estimated_time = $template->steps()
                         ->sum(\DB::raw('COALESCE(setup_time_minutes, 0) + COALESCE(cycle_time_minutes, 0)'));
+                    
+                    // Set usage_count to 0 since we're no longer tracking template usage
+                    $template->usage_count = 0;
 
                     return $template;
                 });
@@ -580,76 +582,88 @@ class ManufacturingOrderController extends BaseSearchController
     {
         $this->authorize('update', $order);
 
-        if (! in_array($order->status, ['draft', 'planned', 'scheduled'])) {
+        $validated = $request->validate([
+            'template_id' => 'required|exists:manufacturing_routes,id',
+        ]);
+
+        try {
+            $this->orderService->applyTemplate($order, $validated['template_id']);
+
+            // Force reload the order data to ensure route is loaded
+            $order->load('manufacturingRoute.steps');
+
             if ($request->wantsJson()) {
                 return response()->json([
-                    'message' => 'Route templates can only be applied to draft, planned, or scheduled orders.',
+                    'message' => 'Route template applied successfully.',
+                    'redirect' => route('production.orders.show', ['order' => $order->id, 'openRouteBuilder' => 1]),
+                ]);
+            }
+
+            return redirect()->route('production.orders.show', ['order' => $order->id, 'openRouteBuilder' => 1])
+                ->with('success', 'Route template applied successfully.');
+
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
                 ], 422);
             }
 
-            return back()->with('error', 'Route templates can only be applied to draft, planned, or scheduled orders.');
+            return back()->with('error', $e->getMessage());
         }
+    }
 
+    /**
+     * Bulk apply a route template to multiple manufacturing orders.
+     */
+    public function bulkApplyTemplate(Request $request)
+    {
         $validated = $request->validate([
+            'order_ids' => 'required|array',
+            'order_ids.*' => 'exists:manufacturing_orders,id',
             'template_id' => 'required|exists:manufacturing_routes,id',
-            'overwrite' => 'sometimes|boolean',
         ]);
 
-        // Check if route exists and overwrite is not confirmed
-        if ($order->manufacturingRoute && ! ($validated['overwrite'] ?? false)) {
+        // Check authorization for all orders first
+        $unauthorizedOrders = [];
+        foreach ($validated['order_ids'] as $orderId) {
+            $order = ManufacturingOrder::find($orderId);
+            if (!$order || !auth()->user()->can('update', $order)) {
+                $unauthorizedOrders[] = $orderId;
+            }
+        }
+
+        if (!empty($unauthorizedOrders)) {
+            return response()->json([
+                'message' => 'You are not authorized to update some of the selected orders.',
+                'unauthorized_orders' => $unauthorizedOrders,
+            ], 403);
+        }
+
+        try {
+            $results = $this->orderService->bulkApplyTemplate(
+                $validated['order_ids'],
+                $validated['template_id']
+            );
+
             if ($request->wantsJson()) {
                 return response()->json([
-                    'requires_confirmation' => true,
-                    'message' => 'This order already has a route. Do you want to overwrite it?',
-                ], 409);
+                    'message' => "Template applied to {$results['success']} orders. {$results['skipped']} skipped.",
+                    'results' => $results,
+                ]);
             }
 
-            return back()->with('error', 'This order already has a route. Please remove it first.');
+            return back()->with('bulkOperationResult', $results);
+
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Failed to apply template: ' . $e->getMessage(),
+                ], 422);
+            }
+
+            return back()->with('error', 'Failed to apply template: ' . $e->getMessage());
         }
-
-        $template = ManufacturingRoute::templates()->with('steps')->findOrFail($validated['template_id']);
-
-        // If route exists and we're overwriting, delete existing steps first
-        if ($order->manufacturingRoute && ($validated['overwrite'] ?? false)) {
-            // Delete existing steps
-            $order->manufacturingRoute->steps()->delete();
-
-            // Update existing route with template information
-            $order->manufacturingRoute->update([
-                'template_source_id' => $template->id,
-                'name' => $template->name,
-                'description' => $template->description,
-            ]);
-
-            $route = $order->manufacturingRoute;
-        } else {
-            // Create new route from template
-            $route = $order->manufacturingRoute()->create([
-                'item_id' => $order->item_id,
-                'template_source_id' => $template->id,
-                'name' => $template->name,
-                'description' => $template->description,
-                'is_active' => true,
-                'is_template' => false,
-                'created_by' => auth()->id(),
-            ]);
-        }
-
-        // Create steps from template
-        $route->createFromTemplate($template);
-
-        // Force reload the order data to ensure route is loaded
-        $order->load('manufacturingRoute.steps');
-
-        if ($request->wantsJson()) {
-            return response()->json([
-                'message' => 'Route template applied successfully.',
-                'redirect' => route('production.orders.show', ['order' => $order->id, 'openRouteBuilder' => 1]),
-            ]);
-        }
-
-        return redirect()->route('production.orders.show', ['order' => $order->id, 'openRouteBuilder' => 1])
-            ->with('success', 'Route template applied successfully.');
     }
 
     /**
@@ -673,11 +687,13 @@ class ManufacturingOrderController extends BaseSearchController
             ->where('is_active', true)
             ->forCategory($order->item?->item_category_id)
             ->withCount('steps')
-            ->withCount('derivedRoutes as usage_count')
             ->get()
             ->map(function ($template) {
                 $template->total_time = $template->steps()
                     ->sum(\DB::raw('setup_time_minutes + cycle_time_minutes'));
+                
+                // Set usage_count to 0 since we're no longer tracking template usage
+                $template->usage_count = 0;
 
                 return $template;
             });

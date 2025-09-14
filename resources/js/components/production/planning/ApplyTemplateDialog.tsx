@@ -6,7 +6,6 @@ import {
     Check,
     Info,
     Filter,
-    AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -80,7 +79,6 @@ export default function ApplyTemplateDialog({
     const [isApplying, setIsApplying] = useState(false);
     const [page, setPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
-    const [showOverwriteConfirmation, setShowOverwriteConfirmation] = useState(false);
     const [dialogKey, setDialogKey] = useState(0);
 
     // Effect to handle when dialog opens/closes via prop change
@@ -88,7 +86,6 @@ export default function ApplyTemplateDialog({
         if (open) {
             // Reset selection when dialog opens
             setSelectedTemplateId(null);
-            setShowOverwriteConfirmation(false);
             setIsApplying(false);
             // Increment key to force EntityDataTable to remount
             setDialogKey(prev => prev + 1);
@@ -97,7 +94,6 @@ export default function ApplyTemplateDialog({
             setSearchQuery('');
             setSelectedTemplateId(null);
             setPage(1);
-            setShowOverwriteConfirmation(false);
             setIsApplying(false);
         }
     }, [open]);
@@ -230,7 +226,7 @@ export default function ApplyTemplateDialog({
     };
 
     // Apply the selected template
-    const handleApplyTemplate = (forceOverwrite = false) => {
+    const handleApplyTemplate = () => {
         if (!selectedTemplateId) {
             toast.error('Por favor, selecione um template para aplicar');
             return;
@@ -239,47 +235,26 @@ export default function ApplyTemplateDialog({
         setIsApplying(true);
 
         router.post(
-            route('production.planning.orders.apply-template', { order: manufacturingOrderId }),
+            route('production.orders.apply-template', { order: manufacturingOrderId }),
             {
                 template_id: selectedTemplateId,
-                overwrite: forceOverwrite,
             },
             {
                 onSuccess: () => {
                     toast.success('Template aplicado com sucesso');
-                    setShowOverwriteConfirmation(false);
                     setIsApplying(false);
                     onOpenChange(false);
                     onTemplateApplied?.();
                 },
                 onError: (errors) => {
                     setIsApplying(false);
-
-                    // Check if this is an overwrite error
-                    if (errors.message && errors.message.includes('already has a route') && !forceOverwrite) {
-                        setShowOverwriteConfirmation(true);
-                        return;
-                    }
-
-                    // Show general error message
                     const errorMessage = errors.message || 'Falha ao aplicar template';
                     toast.error(errorMessage);
-                },
-                onFinish: () => {
-                    // This runs regardless of success/error, but after onSuccess/onError
-                    // Only reset loading if we're not showing confirmation dialog
-                    if (!showOverwriteConfirmation) {
-                        setIsApplying(false);
-                    }
                 },
                 preserveState: true,
                 preserveScroll: true,
             }
         );
-    };
-
-    const handleConfirmOverwrite = () => {
-        handleApplyTemplate(true);
     };
 
     const handleOpenChange = (open: boolean) => {
@@ -288,12 +263,10 @@ export default function ApplyTemplateDialog({
             setSearchQuery('');
             setSelectedTemplateId(null);
             setPage(1);
-            setShowOverwriteConfirmation(false);
             setIsApplying(false);
         } else {
             // Also reset selection when opening to ensure clean state
             setSelectedTemplateId(null);
-            setShowOverwriteConfirmation(false);
             setIsApplying(false);
             // Increment key to force EntityDataTable to remount
             setDialogKey(prev => prev + 1);
@@ -440,7 +413,7 @@ export default function ApplyTemplateDialog({
                             </Button>
                             <Button
                                 type="button"
-                                onClick={() => handleApplyTemplate(false)}
+                                onClick={handleApplyTemplate}
                                 disabled={!selectedTemplateId || isApplying}
                             >
                                 {isApplying ? 'Aplicando...' : 'Aplicar Template'}
@@ -450,42 +423,6 @@ export default function ApplyTemplateDialog({
                 </DialogContent>
             </Dialog>
 
-            {/* Overwrite Confirmation Dialog */}
-            <Dialog open={showOverwriteConfirmation} onOpenChange={setShowOverwriteConfirmation}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                            Confirmar Template de Rota
-                        </DialogTitle>
-                        <DialogDescription>
-                            Ao continuar, todas as etapas atuais serão substituídas pelas etapas do template selecionado.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                                setShowOverwriteConfirmation(false);
-                                setIsApplying(false);
-                            }}
-                            disabled={isApplying}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="default"
-                            onClick={handleConfirmOverwrite}
-                            disabled={isApplying}
-                        >
-                            {isApplying ? 'Aplicando...' : 'Aplicar Template'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </>
     );
 }

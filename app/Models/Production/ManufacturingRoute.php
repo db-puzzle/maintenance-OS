@@ -15,8 +15,6 @@ class ManufacturingRoute extends Model
     protected $fillable = [
         'manufacturing_order_id',
         'item_id',
-        'route_template_id', // Deprecated, will be removed
-        'template_source_id',
         'name',
         'description',
         'is_active',
@@ -24,7 +22,6 @@ class ManufacturingRoute extends Model
         'item_category_id',
         'version',
         'is_latest_for_category',
-        'created_from_route_id',
         'template_metadata',
         'created_by',
     ];
@@ -79,64 +76,6 @@ class ManufacturingRoute extends Model
         return $this->belongsTo(Item::class);
     }
 
-    /**
-     * Get the route template used (deprecated).
-     *
-     * @deprecated This relationship is no longer used. Use templateSource() instead.
-     */
-    public function routeTemplate(): BelongsTo
-    {
-        // Return a dummy relationship that will always be null
-        // This prevents errors when old code tries to load this relationship
-        return $this->belongsTo(ManufacturingRoute::class, 'route_template_id')
-            ->whereRaw('1 = 0'); // This ensures it always returns null
-    }
-
-    /**
-     * Get the template source (new unified approach).
-     *
-     * NOTE: This is a soft reference without foreign key constraint.
-     * Templates can be deleted even if production routes reference them.
-     * The template_source_id serves as historical tracking only.
-     */
-    public function templateSource(): BelongsTo
-    {
-        return $this->belongsTo(ManufacturingRoute::class, 'template_source_id');
-    }
-
-    /**
-     * Get routes derived from this template.
-     *
-     * NOTE: This is a soft reference. Deleting a template will NOT
-     * cascade delete production routes that were created from it.
-     */
-    public function derivedRoutes(): HasMany
-    {
-        return $this->hasMany(ManufacturingRoute::class, 'template_source_id');
-    }
-
-    /**
-     * Get the route this was created from.
-     *
-     * NOTE: This is a soft reference without foreign key constraint.
-     * The source route can be deleted without affecting this route.
-     * The created_from_route_id serves as historical tracking only.
-     */
-    public function createdFromRoute(): BelongsTo
-    {
-        return $this->belongsTo(ManufacturingRoute::class, 'created_from_route_id');
-    }
-
-    /**
-     * Get routes created from this route as templates.
-     *
-     * NOTE: This is a soft reference. Deleting this route will NOT
-     * prevent templates that were created from it from functioning.
-     */
-    public function templatesCreatedFromThis(): HasMany
-    {
-        return $this->hasMany(ManufacturingRoute::class, 'created_from_route_id');
-    }
 
     /**
      * Get the item category (for templates).

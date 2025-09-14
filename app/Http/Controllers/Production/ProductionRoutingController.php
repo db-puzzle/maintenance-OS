@@ -40,7 +40,6 @@ class ProductionRoutingController extends Controller
             })
             ->with(['itemCategory', 'createdBy'])
             ->withCount('steps')
-            ->withCount('derivedRoutes as usage_count')
             ->orderBy('id', 'desc')
             ->paginate($request->input('per_page', 10))
             ->withQueryString();
@@ -173,7 +172,6 @@ class ProductionRoutingController extends Controller
             'itemCategory',
             'manufacturingOrder',
             'steps.workCell',
-            'templateSource',
             'createdBy',
         ]);
 
@@ -184,12 +182,14 @@ class ProductionRoutingController extends Controller
                 ->where('is_active', true)
                 ->forCategory($routing->item?->item_category_id)
                 ->withCount('steps')
-                ->withCount('derivedRoutes as usage_count')
                 ->get()
                 ->map(function ($template) {
                     // Calculate total estimated time
                     $template->estimated_time = $template->steps()
                         ->sum(\DB::raw('COALESCE(setup_time_minutes, 0) + COALESCE(cycle_time_minutes, 0)'));
+                    
+                    // Set usage_count to 0 since we're no longer tracking template usage
+                    $template->usage_count = 0;
 
                     return $template;
                 });

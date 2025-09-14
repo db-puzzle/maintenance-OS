@@ -68,11 +68,7 @@ class ManufacturingRoutePolicy
     public function delete(User $user, ManufacturingRoute $routing): bool
     {
         if ($routing->is_template) {
-            // Cannot delete template if it's in use
-            if ($routing->derivedRoutes()->exists()) {
-                return false;
-            }
-
+            // Note: We no longer check if template is in use since we don't track template usage
             return $user->hasPermissionTo('production.templates.delete')
                 || $user->hasPermissionTo('production.routes.create');
         }
