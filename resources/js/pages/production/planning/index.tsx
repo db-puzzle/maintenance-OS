@@ -387,6 +387,9 @@ export default function PlanningPage({
                                         onSaveStatusChange={setSaveStatus}
                                         onLastSavedAtChange={setLastSavedAt}
                                         isSaving={saveStatus === 'saving'}
+                                        onParentMOClick={(parentId) => {
+                                            handleMOSelect(parentId, false);
+                                        }}
                                     />
                                 )}
                                 {detailViewMode === 'work-cell' && (

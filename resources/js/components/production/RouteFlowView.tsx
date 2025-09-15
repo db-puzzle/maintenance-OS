@@ -1,11 +1,20 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { StepCard } from './StepCard';
 import { GateCard, GateConfiguration } from './GateCard';
-import { ManufacturingStep } from '@/types/production';
+import { ParentMOContinuationCard } from './ParentMOContinuationCard';
+import { ManufacturingStep, ManufacturingOrder } from '@/types/production';
 import { cn } from '@/lib/utils';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 export interface ExtendedManufacturingStep extends ManufacturingStep {
     isNew?: boolean;
@@ -24,6 +33,8 @@ interface RouteFlowViewProps {
     onGateUpdate: (stepId: number, gate: GateConfiguration) => void;
     canEdit: boolean;
     viewMode?: boolean;
+    parentMO?: Pick<ManufacturingOrder, 'id' | 'order_number' | 'item'> | null;
+    onParentMOClick?: () => void;
 }
 
 export default function RouteFlowView({
@@ -37,14 +48,34 @@ export default function RouteFlowView({
     onStepUpdate,
     onGateUpdate,
     canEdit,
-    viewMode = false
+    viewMode = false,
+    parentMO,
+    onParentMOClick
 }: RouteFlowViewProps) {
+    // State for delete confirmation dialog
+    const [stepToDelete, setStepToDelete] = useState<ExtendedManufacturingStep | null>(null);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
     // Handle step click
     const handleStepClick = useCallback((step: ExtendedManufacturingStep) => {
         if (!viewMode) {
             onStepSelect(step.id === selectedStep?.id ? null : step);
         }
     }, [selectedStep, onStepSelect, viewMode]);
+
+    // Handle delete confirmation
+    const handleDeleteClick = useCallback((step: ExtendedManufacturingStep) => {
+        setStepToDelete(step);
+        setShowDeleteDialog(true);
+    }, []);
+
+    const handleConfirmDelete = useCallback(() => {
+        if (stepToDelete) {
+            onStepDelete(stepToDelete);
+            setShowDeleteDialog(false);
+            setStepToDelete(null);
+        }
+    }, [stepToDelete, onStepDelete]);
 
     // Handle gate click
     const handleGateClick = useCallback((gateId: string) => {
@@ -90,22 +121,54 @@ export default function RouteFlowView({
             >
                 <div className="p-8 min-h-full">
                     {steps.length === 0 ? (
-                        <div className="flex items-center justify-center h-64">
-                            <div className="text-center">
-                                <p className="text-muted-foreground mb-4">
-                                    Nenhuma etapa criada ainda
-                                </p>
-                                {canEdit && !viewMode && (
-                                    <Button
-                                        variant="outline"
-                                        onClick={onStepAdd}
-                                    >
-                                        <Plus className="h-4 w-4 mr-2" />
-                                        Criar Primeira Etapa
-                                    </Button>
-                                )}
+                        parentMO && onParentMOClick ? (
+                            // Empty route with parent MO - show direct flow
+                            <div className="relative flex flex-col items-center">
+                                {/* Long solid line with button */}
+                                <div className="relative h-32 flex flex-col items-center justify-center">
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="w-0.5 h-full bg-border" />
+                                    </div>
+
+                                    {/* Button on the line */}
+                                    {canEdit && !viewMode && (
+                                        <Button
+                                            variant="outline"
+                                            onClick={onStepAdd}
+                                            className="relative z-10 bg-background"
+                                        >
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Criar Primeira Etapa
+                                        </Button>
+                                    )}
+                                </div>
+
+                                {/* Parent MO Card */}
+                                <ParentMOContinuationCard
+                                    parentMO={parentMO}
+                                    onClick={onParentMOClick}
+                                    showConnectionLine={false}
+                                />
                             </div>
-                        </div>
+                        ) : (
+                            // No parent MO - show original empty state
+                            <div className="flex items-center justify-center h-64">
+                                <div className="text-center">
+                                    <p className="text-muted-foreground mb-4">
+                                        Nenhuma etapa criada ainda
+                                    </p>
+                                    {canEdit && !viewMode && (
+                                        <Button
+                                            variant="outline"
+                                            onClick={onStepAdd}
+                                        >
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Criar Primeira Etapa
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        )
                     ) : (
                         <div className="max-w-4xl mx-auto">
                             {steps.map((step, index) => (
@@ -118,11 +181,11 @@ export default function RouteFlowView({
                                         <StepCard
                                             step={step}
                                             onClick={() => handleStepClick(step)}
-                                            onDelete={canEdit && !viewMode ? () => onStepDelete(step) : undefined}
+                                            onDelete={canEdit && !viewMode ? () => handleDeleteClick(step) : undefined}
                                             selected={selectedStep?.id === step.id}
                                             disabled={viewMode}
                                             showStatus={false}
-                                            canDelete={canEdit && !viewMode && steps.length > 1}
+                                            canDelete={canEdit && !viewMode}
                                             className={cn(
                                                 "mx-auto transition-all",
                                                 selectedStep?.id === step.id && "scale-[1.02]"
@@ -142,10 +205,53 @@ export default function RouteFlowView({
                                     </div>
                                 </div>
                             ))}
+
+                            {/* Parent MO Continuation Card - shown after the last gate */}
+                            {parentMO && onParentMOClick && steps.length > 0 && (
+                                <div
+                                    className="relative mt-8"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <ParentMOContinuationCard
+                                        parentMO={parentMO}
+                                        onClick={onParentMOClick}
+                                        className="mx-auto"
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
             </ScrollArea>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Confirmar exclusão</DialogTitle>
+                        <DialogDescription asChild>
+                            <div className="space-y-1">
+                                <div>Tem certeza que deseja excluir a etapa "{stepToDelete?.name}"?</div>
+                                <div>Esta ação não pode ser desfeita.</div>
+                            </div>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowDeleteDialog(false)}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleConfirmDelete}
+                        >
+                            Excluir
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

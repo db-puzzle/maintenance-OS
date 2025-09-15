@@ -41,6 +41,7 @@ interface RouteBuilderProps {
         canSaveAsTemplate: boolean;
         canCreateWorkCell: boolean;
     };
+    onParentMOClick?: (parentId: number) => void;
 }
 
 export default function RouteBuilder({
@@ -53,6 +54,7 @@ export default function RouteBuilder({
     isSaving = false,
     onSaveAsTemplate,
     permissions,
+    onParentMOClick,
 }: RouteBuilderProps) {
     const [steps, setSteps] = useState<RouteStep[]>([]);
     const [selectedStep, setSelectedStep] = useState<RouteStep | null>(null);
@@ -424,8 +426,7 @@ export default function RouteBuilder({
         const previousStepsStr = JSON.stringify(previousStepsNormalized);
         const hasChanges = currentStepsStr !== previousStepsStr;
 
-
-        if (!hasChanges || steps.length === 0) {
+        if (!hasChanges) {
             return;
         }
 
@@ -585,6 +586,12 @@ export default function RouteBuilder({
                         onGateUpdate={handleGateUpdate}
                         canEdit={permissions.canEditRoute}
                         viewMode={!permissions.canEditRoute}
+                        parentMO={manufacturingOrder.parent || null}
+                        onParentMOClick={() => {
+                            if (manufacturingOrder.parent && onParentMOClick) {
+                                onParentMOClick(manufacturingOrder.parent.id);
+                            }
+                        }}
                     />
                 </div>
 

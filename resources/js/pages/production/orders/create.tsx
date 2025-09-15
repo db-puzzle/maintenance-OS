@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
+import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -82,7 +82,7 @@ export default function CreateManufacturingOrder({
     const selectedBom = form.data.bill_of_material_id ? billsOfMaterial.find(b => b.id === form.data.bill_of_material_id) : undefined;
 
     return (
-        <AuthenticatedLayout>
+        <AppLayout>
             <Head title="Create Manufacturing Order" />
 
             <div className="space-y-6">
@@ -297,6 +297,6 @@ export default function CreateManufacturingOrder({
                     </div>
                 </form>
             </div>
-        </AuthenticatedLayout>
+        </AppLayout>
     );
 }
