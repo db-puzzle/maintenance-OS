@@ -75,6 +75,10 @@ const gerenciamentoNavItems: NavGroup = {
                     href: '/production/planning',
                 },
                 {
+                    title: 'Scheduler',
+                    href: '/scheduler',
+                },
+                {
                     title: 'Remessas',
                     href: '/production/shipments',
                 },

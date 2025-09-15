@@ -84,14 +84,14 @@ require __DIR__.'/skills-certifications.php';
 // Settings
 require __DIR__.'/settings.php';
 
-// Scheduler
-require __DIR__.'/scheduler.php';
-
 // Users
 require __DIR__.'/users.php';
 
 // Production
 require __DIR__.'/production.php';
+
+// Scheduler
+require __DIR__.'/scheduler.php';
 
 // QR Scanning (public routes)
 require __DIR__.'/qr.php';

@@ -18,6 +18,9 @@ class DatabaseSeeder extends Seeder
             // Production Module Permissions (must run before RoleSeeder)
             ProductionPermissionSeeder::class,
             
+            // Scheduler Module Permissions
+            SchedulerPermissionsSeeder::class,
+            
             // Core System Roles (after all permissions are created)
             RoleSeeder::class,
             

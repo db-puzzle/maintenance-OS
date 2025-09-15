@@ -2,11 +2,11 @@
 
 namespace App\Policies\Production;
 
-use App\Models\Production\ProductionSchedule;
+use App\Models\Production\ScheduleVersion;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class ProductionSchedulePolicy
+class ScheduleVersionPolicy
 {
     use HandlesAuthorization;
 
@@ -21,7 +21,7 @@ class ProductionSchedulePolicy
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, ProductionSchedule $productionSchedule): bool
+    public function view(User $user, ScheduleVersion $scheduleVersion): bool
     {
         return $user->can('production.schedule.view');
     }
@@ -37,10 +37,10 @@ class ProductionSchedulePolicy
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, ProductionSchedule $productionSchedule): bool
+    public function update(User $user, ScheduleVersion $scheduleVersion): bool
     {
-        // Can only update schedules in draft versions
-        if ($productionSchedule->scheduleVersion->isPublished()) {
+        // Can only update draft schedules
+        if ($scheduleVersion->isPublished()) {
             return false;
         }
 
@@ -50,13 +50,26 @@ class ProductionSchedulePolicy
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, ProductionSchedule $productionSchedule): bool
+    public function delete(User $user, ScheduleVersion $scheduleVersion): bool
     {
-        // Can only delete schedules in draft versions
-        if ($productionSchedule->scheduleVersion->isPublished()) {
+        // Can only delete draft schedules
+        if ($scheduleVersion->isPublished()) {
             return false;
         }
 
         return $user->can('production.schedule.delete');
+    }
+
+    /**
+     * Determine whether the user can publish the schedule.
+     */
+    public function publish(User $user, ScheduleVersion $scheduleVersion): bool
+    {
+        // Must be a draft schedule
+        if ($scheduleVersion->isPublished()) {
+            return false;
+        }
+
+        return $user->can('production.schedule.publish');
     }
 }
