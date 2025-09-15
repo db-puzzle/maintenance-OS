@@ -210,11 +210,14 @@ export function SchedulerTimeline() {
                         const isHighlighted = scheduler.highlightedItem?.type === 'step' && 
                                             scheduler.highlightedItem.id === step.id;
 
+                        const progressPercentage = step.status === 'completed' ? 100 : 
+                                                step.status === 'in_progress' ? 50 : 0;
+
                         return (
                             <div
                                 key={schedule.id}
                                 className={cn(
-                                    "absolute top-1 bottom-1 rounded px-2 py-1 cursor-move",
+                                    "absolute top-1 bottom-1 rounded px-2 py-1 cursor-move overflow-hidden",
                                     "bg-primary text-primary-foreground",
                                     "hover:shadow-lg transition-shadow",
                                     schedule.is_locked && "cursor-not-allowed opacity-80",
@@ -227,7 +230,15 @@ export function SchedulerTimeline() {
                                 }}
                                 onMouseDown={(e) => handleStepDragStart(e, step.id)}
                             >
-                                <div className="flex items-center gap-1 h-full">
+                                {/* Progress bar background */}
+                                {progressPercentage > 0 && (
+                                    <div
+                                        className="absolute inset-0 bg-black/20"
+                                        style={{ width: `${progressPercentage}%` }}
+                                    />
+                                )}
+                                
+                                <div className="relative flex items-center gap-1 h-full">
                                     {schedule.is_locked && <Lock className="h-3 w-3" />}
                                     <div className="truncate text-xs">
                                         <div className="font-medium">{step.name}</div>

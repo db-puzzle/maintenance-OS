@@ -32,6 +32,8 @@ interface ManufacturingStep {
     setup_time_minutes: number;
     cycle_time_minutes: number;
     order_quantity?: number;
+    depends_on_step_id?: number;
+    can_start_when_dependency?: 'completed' | 'in_progress';
     work_cell?: {
         id: number;
         name: string;

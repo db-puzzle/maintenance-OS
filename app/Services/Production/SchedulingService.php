@@ -227,8 +227,18 @@ class SchedulingService
      */
     private function isWorkingDay(WorkCell $workCell, Carbon $date): bool
     {
-        // For now, assume Monday-Friday are working days
-        // This should be enhanced to check shift schedules
+        // Check if work cell has a shift assigned
+        if ($workCell->shift) {
+            // Check shift working days
+            $dayOfWeek = strtolower($date->format('l'));
+            $workingDaysField = 'works_on_' . $dayOfWeek;
+            
+            if (property_exists($workCell->shift, $workingDaysField)) {
+                return $workCell->shift->$workingDaysField;
+            }
+        }
+        
+        // Default to Monday-Friday if no shift data
         return $date->isWeekday();
     }
 
@@ -237,8 +247,21 @@ class SchedulingService
      */
     private function getWorkingHours(WorkCell $workCell, Carbon $date): array
     {
-        // Default 8 AM to 5 PM
-        // This should be enhanced to use actual shift data
+        // Use shift data if available
+        if ($workCell->shift) {
+            $startTime = $workCell->shift->start_time ?? '08:00:00';
+            $endTime = $workCell->shift->end_time ?? '17:00:00';
+            
+            list($startHour, $startMinute) = explode(':', $startTime);
+            list($endHour, $endMinute) = explode(':', $endTime);
+            
+            return [
+                'start' => $date->copy()->setTime((int)$startHour, (int)$startMinute),
+                'end' => $date->copy()->setTime((int)$endHour, (int)$endMinute),
+            ];
+        }
+        
+        // Default 8 AM to 5 PM if no shift data
         return [
             'start' => $date->copy()->setTime(8, 0),
             'end' => $date->copy()->setTime(17, 0),
@@ -441,12 +464,33 @@ class SchedulingService
      */
     private function fitsWithinWorkingHours(WorkCell $workCell, Carbon $start, Carbon $end): bool
     {
-        // For simplicity, assume it fits if both start and end are on the same working day
-        // This should be enhanced to handle multi-day scheduling
+        // Handle multi-day scheduling
         if (!$start->isSameDay($end)) {
-            return false;
+            // Check if start time is within working hours of start day
+            $startDayHours = $this->getWorkingHours($workCell, $start);
+            if ($start->lessThan($startDayHours['start']) || $start->greaterThanOrEqualTo($startDayHours['end'])) {
+                return false;
+            }
+            
+            // Check if end time is within working hours of end day
+            $endDayHours = $this->getWorkingHours($workCell, $end);
+            if ($end->lessThanOrEqualTo($endDayHours['start']) || $end->greaterThan($endDayHours['end'])) {
+                return false;
+            }
+            
+            // Check all intermediate days are working days
+            $currentDay = $start->copy()->addDay()->startOfDay();
+            while ($currentDay->lessThan($end->copy()->startOfDay())) {
+                if (!$this->isWorkingDay($workCell, $currentDay)) {
+                    return false;
+                }
+                $currentDay->addDay();
+            }
+            
+            return true;
         }
         
+        // Single day scheduling
         $workingHours = $this->getWorkingHours($workCell, $start);
         
         return $start->greaterThanOrEqualTo($workingHours['start']) && 
