@@ -427,4 +427,70 @@ class ManufacturingOrder extends Model
     {
         return $this->manufacturingRoute;
     }
+
+    /**
+     * Get schedule alerts for this order.
+     */
+    public function scheduleAlerts(): HasMany
+    {
+        return $this->hasMany(ScheduleAlert::class);
+    }
+
+    /**
+     * Update planned dates based on scheduled steps.
+     */
+    public function updatePlannedDatesFromSchedule(int $scheduleVersionId): void
+    {
+        $steps = $this->manufacturingRoute->steps()
+            ->with(['productionSchedules' => function ($query) use ($scheduleVersionId) {
+                $query->where('schedule_version_id', $scheduleVersionId);
+            }])
+            ->get();
+
+        $scheduledSteps = $steps->filter(function ($step) {
+            return $step->productionSchedules->isNotEmpty();
+        });
+
+        if ($scheduledSteps->isEmpty()) {
+            return;
+        }
+
+        $earliestStart = $scheduledSteps->min(function ($step) {
+            return $step->productionSchedules->first()->scheduled_start;
+        });
+
+        $latestEnd = $scheduledSteps->max(function ($step) {
+            return $step->productionSchedules->first()->scheduled_end;
+        });
+
+        $this->update([
+            'planned_start_date' => $earliestStart,
+            'planned_end_date' => $latestEnd,
+        ]);
+    }
+
+    /**
+     * Check if order is scheduled in a specific version.
+     */
+    public function isScheduledInVersion(int $versionId): bool
+    {
+        if (!$this->has_route) {
+            return false;
+        }
+
+        return $this->manufacturingRoute->steps()
+            ->whereHas('productionSchedules', function ($query) use ($versionId) {
+                $query->where('schedule_version_id', $versionId);
+            })
+            ->exists();
+    }
+
+    /**
+     * Scope for schedulable orders.
+     */
+    public function scopeSchedulable($query)
+    {
+        return $query->whereIn('status', ['planned', 'released', 'in_progress'])
+            ->whereHas('manufacturingRoute.steps');
+    }
 }

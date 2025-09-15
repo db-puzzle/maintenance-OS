@@ -15,7 +15,9 @@ use App\Models\Production\ItemCategory;
 use App\Models\Production\ManufacturingStep;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingRoute;
+use App\Models\Production\ProductionSchedule;
 use App\Models\Production\QrTracking;
+use App\Models\Production\ScheduleVersion;
 use App\Models\Production\Shipment;
 use App\Models\Production\WorkCell;
 use App\Models\Skill;
@@ -31,7 +33,9 @@ use App\Policies\Production\ItemCategoryPolicy;
 use App\Policies\Production\ManufacturingRoutePolicy;
 use App\Policies\Production\ManufacturingStepPolicy;
 use App\Policies\Production\ProductionOrderPolicy;
+use App\Policies\Production\ProductionSchedulePolicy;
 use App\Policies\Production\QrTrackingPolicy;
+use App\Policies\Production\ScheduleVersionPolicy;
 use App\Policies\Production\ShipmentPolicy;
 use App\Policies\Production\WorkCellPolicy;
 use App\Policies\SectorPolicy;
@@ -75,6 +79,10 @@ class AuthServiceProvider extends ServiceProvider
         WorkCell::class => WorkCellPolicy::class,
         QrTracking::class => QrTrackingPolicy::class,
         Shipment::class => ShipmentPolicy::class,
+        
+        // Scheduler Module
+        ScheduleVersion::class => ScheduleVersionPolicy::class,
+        ProductionSchedule::class => ProductionSchedulePolicy::class,
     ];
 
     /**

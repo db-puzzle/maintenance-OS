@@ -55,6 +55,8 @@ class ManufacturingStep extends Model
         'sampling_size',
         'depends_on_step_id',
         'can_start_when_dependency',
+        'scheduled_start',
+        'scheduled_end',
     ];
 
     protected $casts = [
@@ -66,6 +68,8 @@ class ManufacturingStep extends Model
         'can_start_when_dependency' => 'string',
         'actual_start_time' => 'datetime',
         'actual_end_time' => 'datetime',
+        'scheduled_start' => 'datetime',
+        'scheduled_end' => 'datetime',
     ];
 
     /**
@@ -154,6 +158,24 @@ class ManufacturingStep extends Model
     public function executions(): HasMany
     {
         return $this->hasMany(ManufacturingStepExecution::class);
+    }
+
+    /**
+     * Get the production schedules for this step.
+     */
+    public function productionSchedules(): HasMany
+    {
+        return $this->hasMany(ProductionSchedule::class);
+    }
+
+    /**
+     * Get the current production schedule for a specific version.
+     */
+    public function getScheduleForVersion(int $versionId): ?ProductionSchedule
+    {
+        return $this->productionSchedules()
+            ->where('schedule_version_id', $versionId)
+            ->first();
     }
 
     /**

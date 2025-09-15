@@ -43,6 +43,10 @@ return new class extends Migration
             $table->foreignId('depends_on_step_id')->nullable()->constrained('manufacturing_steps');
             $table->enum('can_start_when_dependency', ['completed', 'in_progress'])->default('completed');
             
+            // Scheduler fields
+            $table->timestamp('scheduled_start')->nullable();
+            $table->timestamp('scheduled_end')->nullable();
+            
             $table->timestamps();
             
             $table->unique(['manufacturing_route_id', 'step_number']);
