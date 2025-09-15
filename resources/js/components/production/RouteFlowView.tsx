@@ -95,9 +95,9 @@ export default function RouteFlowView({
     }, [onStepSelect]);
 
     return (
-        <div className="flex flex-col h-full bg-muted/20">
+        <div className="flex flex-col h-full bg-muted/20 overflow-hidden">
             {/* Header */}
-            <div className="border-b bg-background px-4 py-3">
+            <div className="border-b bg-background px-4 py-3 flex-shrink-0">
                 <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium">Fluxo de Produção</h3>
                     {canEdit && !viewMode && (
@@ -116,10 +116,10 @@ export default function RouteFlowView({
 
             {/* Flow View */}
             <ScrollArea
-                className="flex-1"
+                className="flex-1 overflow-y-auto"
                 onClick={handleBackgroundClick}
             >
-                <div className="p-8 min-h-full">
+                <div className="p-8 pb-24 min-h-full">
                     {steps.length === 0 ? (
                         parentMO && onParentMOClick ? (
                             // Empty route with parent MO - show direct flow

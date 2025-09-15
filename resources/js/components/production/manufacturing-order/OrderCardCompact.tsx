@@ -60,7 +60,7 @@ export function OrderCardCompact({
     return (
         <div
             className={cn(
-                "w-full p-2 border rounded-md transition-all hover:bg-muted/50",
+                "w-full min-w-[320px] p-2 border rounded-md transition-all hover:bg-muted/50",
                 onOrderClick && "cursor-pointer",
                 isSelected && "border-ring ring-ring/10 ring-[2px]",
                 enhancedMode === 'planning' && isSelected && "border-ring ring-ring/10 ring-[2px]"

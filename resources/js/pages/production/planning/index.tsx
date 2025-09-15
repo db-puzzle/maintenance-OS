@@ -243,16 +243,19 @@ export default function PlanningPage({
                             </div>
 
                             {/* MO Tree View */}
-                            <div className="flex-1 overflow-auto p-4 bg-background/30 dark:bg-background/10">
-                                <ManufacturingOrderHierarchicalView
-                                    orders={manufacturingOrders as ManufacturingOrderTreeNode[]}
-                                    onOrderSelect={handleMOSelect}
-                                    selectedOrders={selectedMOs}
-                                    showThumbnails={showThumbnails}
-                                    searchQuery={searchQuery}
-                                    enhancedMode="planning"
-                                    compactMode={true}
-                                />
+                            <div className="flex-1 overflow-auto bg-background/30 dark:bg-background/10 [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-corner]:bg-transparent">
+                                {/* Add a wrapper div with min-width to enable horizontal scroll and padding */}
+                                <div className="min-w-fit p-4 pb-8">
+                                    <ManufacturingOrderHierarchicalView
+                                        orders={manufacturingOrders as ManufacturingOrderTreeNode[]}
+                                        onOrderSelect={handleMOSelect}
+                                        selectedOrders={selectedMOs}
+                                        showThumbnails={showThumbnails}
+                                        searchQuery={searchQuery}
+                                        enhancedMode="planning"
+                                        compactMode={true}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </ResizablePanel>

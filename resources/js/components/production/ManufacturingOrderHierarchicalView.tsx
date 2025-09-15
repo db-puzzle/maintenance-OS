@@ -218,7 +218,7 @@ export default function ManufacturingOrderHierarchicalView({
         return (
             <div
                 className={cn(
-                    "w-full p-3 border rounded-lg transition-all hover:bg-muted/50",
+                    "w-full min-w-[640px] p-3 border rounded-lg transition-all hover:bg-muted/50",
                     onOrderClick && "cursor-pointer",
                     isSelected && "border-ring ring-ring/10 ring-[2px]",
                     enhancedMode === 'planning' && selectedOrders.has(node.id) && "border-ring ring-ring/10 ring-[2px]"
@@ -460,13 +460,13 @@ export default function ManufacturingOrderHierarchicalView({
 
     // Header columns
     const headerColumns = compactMode ? (
-        <div className="bg-muted/50 dark:bg-muted/20 p-2 rounded-md font-semibold text-xs mb-2 flex justify-between items-center">
+        <div className="bg-muted/50 dark:bg-muted/20 p-2 rounded-md font-semibold text-xs mb-2 flex justify-between items-center min-w-[320px]">
             <div>Manufacturing Orders</div>
             <div className="text-muted-foreground">Route / Status</div>
         </div>
     ) : (
         <div className={cn(
-            "bg-muted/50 dark:bg-muted/20 p-3 rounded-lg grid gap-2 font-semibold text-sm mb-2",
+            "bg-muted/50 dark:bg-muted/20 p-3 rounded-lg grid gap-2 font-semibold text-sm mb-2 min-w-[640px]",
             showImages ? "grid-cols-[60px_3fr_3fr_1fr_1fr_2fr_1fr_1fr]" : "grid-cols-12"
         )}>
             {showImages && <div className="text-center">Imagem</div>}
@@ -528,7 +528,7 @@ export default function ManufacturingOrderHierarchicalView({
 
             {/* Tree view */}
             <div className={cn(
-                compactMode ? "" : "px-6 pb-8 lg:px-8"
+                compactMode ? "pb-8" : "px-6 pb-8 lg:px-8"
             )}>
                 <GenericHierarchicalTreeView
                     data={orders}

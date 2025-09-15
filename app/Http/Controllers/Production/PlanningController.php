@@ -186,7 +186,7 @@ class PlanningController extends Controller
         $this->authorize('update', $order);
 
         $validated = $request->validate([
-            'steps' => 'required|array',
+            'steps' => 'present|array',
             'steps.*.sequence' => 'required|integer|min:1',
             'steps.*.name' => 'required|string|max:255',
             'steps.*.description' => 'nullable|string',
