@@ -33,13 +33,6 @@ class ManufacturingOrder extends Model
         'forecast' => 'Forecast',
     ];
 
-    public const ORDER_DEPENDENCY_TYPES = [
-        'none' => 'No dependencies - can release/execute independently',
-        'all_children_released' => 'All child orders must be released',
-        'children_quantity' => 'Child orders must complete specific quantity',
-        'children_percentage' => 'Child orders must complete specific percentage',
-        'progressive' => 'Mixed dependencies per child order',
-    ];
 
     protected $fillable = [
         'order_number',
@@ -56,7 +49,6 @@ class ManufacturingOrder extends Model
         'priority',
         'child_orders_count',
         'completed_child_orders_count',
-        'auto_complete_on_children',
         'requested_date',
         'planned_start_date',
         'planned_end_date',
@@ -65,13 +57,6 @@ class ManufacturingOrder extends Model
         'source_type',
         'source_reference',
         'created_by',
-        // Progressive flow fields
-        'dependency_type',
-        'dependency_minimum_quantity',
-        'dependency_minimum_percentage',
-        'can_release_before_children',
-        'cumulative_children_quantity_completed',
-        'cumulative_children_quantity_required',
         // Smart progress fields
         'smart_progress_percentage',
         'progress_calculated_at',
@@ -81,19 +66,12 @@ class ManufacturingOrder extends Model
         'quantity' => 'decimal:2',
         'quantity_completed' => 'decimal:2',
         'quantity_scrapped' => 'decimal:2',
-        'auto_complete_on_children' => 'boolean',
         'requested_date' => 'date',
         'planned_start_date' => 'datetime',
         'planned_end_date' => 'datetime',
         'actual_start_date' => 'datetime',
         'actual_end_date' => 'datetime',
         'hold_at' => 'datetime',
-        // Progressive flow casts
-        'dependency_minimum_quantity' => 'decimal:2',
-        'dependency_minimum_percentage' => 'decimal:2',
-        'can_release_before_children' => 'boolean',
-        'cumulative_children_quantity_completed' => 'decimal:2',
-        'cumulative_children_quantity_required' => 'decimal:2',
         // Smart progress casts
         'smart_progress_percentage' => 'decimal:2',
         'progress_calculated_at' => 'datetime',
@@ -216,21 +194,12 @@ class ManufacturingOrder extends Model
                 throw new \Exception('Manufacturing order item does not match BOM root item');
             }
 
-            // Prepare dependency configuration to propagate
-            $dependencyConfig = [
-                'can_release_before_children' => $this->can_release_before_children ?? true,
-                'dependency_type' => $this->dependency_type ?? 'none',
-                'dependency_minimum_quantity' => $this->dependency_minimum_quantity ?? 0,
-                'dependency_minimum_percentage' => $this->dependency_minimum_percentage ?? 0,
-            ];
-
             // Create orders for the root item's children only
             $this->createChildOrdersFromBomItems(
                 $this->billOfMaterial->currentVersion->id,
                 $rootBomItem->id, // Use root BOM item as parent, not null
                 $this->id, // This order represents the root item
-                1, // Initial quantity multiplier
-                $dependencyConfig // Pass dependency configuration
+                1 // Initial quantity multiplier
             );
 
             $this->updateChildOrderCounts();
@@ -240,7 +209,7 @@ class ManufacturingOrder extends Model
     /**
      * Recursively create child orders from BOM items hierarchy.
      */
-    private function createChildOrdersFromBomItems($bomVersionId, $parentItemId, $parentOrderId, $parentQuantity = 1, $dependencyConfig = null): void
+    private function createChildOrdersFromBomItems($bomVersionId, $parentItemId, $parentOrderId, $parentQuantity = 1): void
     {
         // Get BOM items that are children of the specified parent
         $bomItems = \App\Models\Production\BomItem::where('bom_version_id', $bomVersionId)
@@ -267,24 +236,6 @@ class ManufacturingOrder extends Model
                 'created_by' => $this->created_by,
             ];
 
-            // Apply dependency configuration if provided
-            if ($dependencyConfig) {
-                // Always inherit these fields if they are not null
-                if (isset($dependencyConfig['can_release_before_children'])) {
-                    $childOrderData['can_release_before_children'] = $dependencyConfig['can_release_before_children'];
-                }
-                if (isset($dependencyConfig['dependency_type'])) {
-                    $childOrderData['dependency_type'] = $dependencyConfig['dependency_type'];
-                }
-
-                // Handle quantity-based dependencies proportionally
-                if ($dependencyConfig['dependency_type'] === 'children_quantity' && $dependencyConfig['dependency_minimum_quantity'] > 0) {
-                    $proportion = $orderQuantity / $this->quantity;
-                    $childOrderData['dependency_minimum_quantity'] = max(1, round($dependencyConfig['dependency_minimum_quantity'] * $proportion));
-                } elseif ($dependencyConfig['dependency_type'] === 'children_percentage' && isset($dependencyConfig['dependency_minimum_percentage'])) {
-                    $childOrderData['dependency_minimum_percentage'] = $dependencyConfig['dependency_minimum_percentage'];
-                }
-            }
 
             // Create manufacturing order for this BOM item
             $childOrder = ManufacturingOrder::create($childOrderData);
@@ -304,8 +255,7 @@ class ManufacturingOrder extends Model
                     $bomVersionId,
                     $bomItem->id, // This BOM item is now the parent
                     $childOrder->id, // The newly created order is the parent order
-                    $bomItem->quantity, // Pass down the quantity multiplier
-                    $dependencyConfig // Pass dependency configuration down the hierarchy
+                    $bomItem->quantity // Pass down the quantity multiplier
                 );
             }
 
@@ -398,39 +348,6 @@ class ManufacturingOrder extends Model
         $this->save();
     }
 
-    /**
-     * Check if order should auto-complete based on children.
-     */
-    public function checkAutoComplete(): void
-    {
-        // If order has routing steps, it should not auto-complete based on children
-        // It will be completed when all routing steps are completed
-        if ($this->hasActiveRoute()) {
-            return;
-        }
-
-        if ($this->auto_complete_on_children &&
-            $this->child_orders_count > 0 &&
-            $this->child_orders_count === $this->completed_child_orders_count) {
-            $this->status = 'completed';
-            $this->actual_end_date = now();
-            $this->save();
-
-            // Notify parent if exists
-            if ($this->parent) {
-                $this->parent->incrementCompletedChildren();
-            }
-        }
-    }
-
-    /**
-     * Increment completed children count and check for auto-completion.
-     */
-    public function incrementCompletedChildren(): void
-    {
-        $this->increment('completed_child_orders_count');
-        $this->checkAutoComplete();
-    }
 
     /**
      * Scope for active orders.
@@ -562,128 +479,11 @@ class ManufacturingOrder extends Model
         return true;
     }
 
-    /**
-     * Check if order can start execution.
-     */
-    public function canStartExecution(): bool
-    {
-        if ($this->dependency_type === 'none') {
-            return true;
-        }
 
-        switch ($this->dependency_type) {
-            case 'all_children_released':
-                return $this->children()
-                    ->whereNotIn('status', ['released', 'in_progress', 'completed'])
-                    ->count() === 0;
 
-            case 'children_quantity':
-                return $this->cumulative_children_quantity_completed >=
-                       $this->dependency_minimum_quantity;
 
-            case 'children_percentage':
-                if ($this->cumulative_children_quantity_required == 0) {
-                    return true; // No children quantities required
-                }
-                $requiredQuantity = ($this->cumulative_children_quantity_required *
-                                    $this->dependency_minimum_percentage) / 100;
 
-                return $this->cumulative_children_quantity_completed >= $requiredQuantity;
 
-            case 'progressive':
-                return $this->checkProgressiveDependencies();
-        }
-
-        return false;
-    }
-
-    /**
-     * Check progressive dependencies (mixed rules per child).
-     */
-    protected function checkProgressiveDependencies(): bool
-    {
-        $dependencies = ManufacturingOrderDependency::where('parent_order_id', $this->id)
-            ->where('dependency_type', 'required')
-            ->where('is_satisfied', false)
-            ->count();
-
-        return $dependencies === 0;
-    }
-
-    /**
-     * Check progressive release dependencies.
-     */
-    protected function checkProgressiveReleaseDependencies(): bool
-    {
-        // For progressive dependencies, we may have different release rules
-        // This could be customized based on business requirements
-        return true; // Allow release by default
-    }
-
-    /**
-     * Update from child order progress.
-     */
-    public function updateFromChildProgress(ManufacturingOrder $childOrder, float $quantityCompleted): void
-    {
-        DB::transaction(function () use ($childOrder, $quantityCompleted) {
-            // Update cumulative tracking
-            $this->increment('cumulative_children_quantity_completed', $quantityCompleted);
-
-            // Update specific dependency tracking
-            $dependency = ManufacturingOrderDependency::where('parent_order_id', $this->id)
-                ->where('child_order_id', $childOrder->id)
-                ->first();
-
-            if ($dependency) {
-                $dependency->updateProgress($quantityCompleted);
-            }
-
-            // Check if execution can now start
-            if ($this->status === 'released' && $this->canStartExecution()) {
-                $this->notifyExecutionReady();
-
-                // Auto-queue first steps if route exists
-                if ($this->manufacturingRoute) {
-                    $this->queueFirstSteps();
-                }
-            }
-        });
-    }
-
-    /**
-     * Notify that execution is ready to start.
-     */
-    protected function notifyExecutionReady(): void
-    {
-        // Log activity
-        activity()
-            ->performedOn($this)
-            ->withProperties([
-                'dependency_type' => $this->dependency_type,
-                'children_completed' => $this->cumulative_children_quantity_completed,
-                'children_required' => $this->cumulative_children_quantity_required,
-            ])
-            ->log('Manufacturing order ready for execution - dependencies satisfied');
-
-        // Additional notifications could be sent here
-    }
-
-    /**
-     * Queue first steps when dependencies are met.
-     */
-    protected function queueFirstSteps(): void
-    {
-        $firstSteps = $this->manufacturingRoute->steps()
-            ->where('status', 'pending')
-            ->whereNull('depends_on_step_id')
-            ->get();
-
-        foreach ($firstSteps as $step) {
-            if ($step->canStart()) {
-                $step->moveToQueued();
-            }
-        }
-    }
 
     /**
      * Get hierarchical Work In Progress.
@@ -882,7 +682,7 @@ class ManufacturingOrder extends Model
         }
 
         // Check if execution dependencies are met
-        return $this->canStartExecution();
+        return true; // Manufacturing orders can always start - dependencies are at step level now
     }
 
     /**

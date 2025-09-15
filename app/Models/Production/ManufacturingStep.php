@@ -56,6 +56,12 @@ class ManufacturingStep extends Model
         'immediate' => 'Start as soon as previous step begins',      // Maximum progressive flow
     ];
 
+    public const CHILD_ORDER_DEPENDENCY_TYPES = [
+        'none' => 'No child order dependencies',
+        'all_children_completed' => 'All child orders must be completed',
+        'children_quantity' => 'Minimum quantity from child orders',
+    ];
+
     protected $fillable = [
         'manufacturing_route_id',
         'display_order',
@@ -84,6 +90,9 @@ class ManufacturingStep extends Model
         'dependency_minimum_percentage',
         'cumulative_quantity_completed',
         'cumulative_quantity_scrapped',
+        // Child order dependency fields
+        'child_order_dependency_type',
+        'child_order_minimum_quantity',
     ];
 
     protected $casts = [
@@ -99,6 +108,9 @@ class ManufacturingStep extends Model
         // Progressive flow casts
         'dependency_start_condition' => 'string',
         'dependency_minimum_percentage' => 'decimal:2',
+        // Child order dependency casts
+        'child_order_dependency_type' => 'string',
+        'child_order_minimum_quantity' => 'decimal:2',
     ];
 
     /**
@@ -198,14 +210,24 @@ class ManufacturingStep extends Model
      */
     public function canStart(): bool
     {
-        // For first steps, check order-level dependencies
-        if ($this->isFirstStep()) {
-            $order = $this->manufacturingRoute->manufacturingOrder;
-            if (! $order->canStartExecution()) {
-                return false;
-            }
+        // Check step dependencies first
+        if (!$this->checkStepDependencies()) {
+            return false;
         }
+        
+        // Then check child order dependencies
+        if (!$this->checkChildOrderDependencies()) {
+            return false;
+        }
+        
+        return true;
+    }
 
+    /**
+     * Check step dependencies.
+     */
+    protected function checkStepDependencies(): bool
+    {
         // If no step dependency, can start
         if (! $this->depends_on_step_id) {
             return true;
@@ -235,6 +257,48 @@ class ManufacturingStep extends Model
             default:
                 // Fallback to completed for backward compatibility
                 return $dependency->status === 'completed';
+        }
+    }
+
+    /**
+     * Check child order dependencies.
+     */
+    protected function checkChildOrderDependencies(): bool
+    {
+        // If no child order dependency, can start
+        if ($this->child_order_dependency_type === 'none') {
+            return true;
+        }
+        
+        $manufacturingOrder = $this->manufacturingRoute->manufacturingOrder;
+        
+        // Check if MO has child orders
+        if ($manufacturingOrder->child_orders_count === 0) {
+            return true; // No children to wait for
+        }
+        
+        switch ($this->child_order_dependency_type) {
+            case 'all_children_completed':
+                return $manufacturingOrder->completed_child_orders_count === 
+                       $manufacturingOrder->child_orders_count;
+                       
+            case 'children_quantity':
+                // Check minimum quantity completed across ALL child orders
+                $childOrders = $manufacturingOrder->children()
+                    ->where('status', '!=', 'cancelled')
+                    ->get();
+                
+                if ($childOrders->isEmpty()) {
+                    return true;
+                }
+                
+                // Find the minimum quantity completed among all child orders
+                $minQuantityCompleted = $childOrders->min('quantity_completed');
+                
+                return $minQuantityCompleted >= $this->child_order_minimum_quantity;
+                
+            default:
+                return true;
         }
     }
 

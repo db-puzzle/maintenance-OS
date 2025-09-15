@@ -47,6 +47,32 @@ class ManufacturingOrderObserver
         if ($order->isDirty('status') && in_array($order->status, ['completed', 'cancelled']) && $order->parent_id) {
             $order->parent->updateChildOrderCounts();
         }
+        
+        // Check parent step dependencies when child order quantity is updated
+        if ($order->isDirty('quantity_completed') && $order->parent_id) {
+            $this->checkParentStepDependencies($order);
+        }
+    }
+
+    /**
+     * Check parent order's route steps when child order progress changes.
+     */
+    protected function checkParentStepDependencies(ManufacturingOrder $childOrder): void
+    {
+        $parentOrder = $childOrder->parent;
+        if (!$parentOrder->manufacturingRoute) {
+            return;
+        }
+        
+        // Check all pending steps with child order dependencies
+        $parentOrder->manufacturingRoute->steps()
+            ->where('status', 'pending')
+            ->where('child_order_dependency_type', '!=', 'none')
+            ->each(function ($step) {
+                if ($step->canStart()) {
+                    $step->moveToQueued();
+                }
+            });
     }
 
     /**

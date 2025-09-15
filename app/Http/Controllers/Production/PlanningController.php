@@ -193,6 +193,8 @@ class PlanningController extends Controller
             'steps.*.cycle_time_minutes' => 'nullable|integer|min:0',
             'steps.*.step_type' => 'required|in:standard,quality_check,rework',
             'steps.*.is_required' => 'boolean',
+            'steps.*.child_order_dependency_type' => 'nullable|in:none,all_children_completed,children_quantity',
+            'steps.*.child_order_minimum_quantity' => 'nullable|numeric|min:0',
         ]);
 
         DB::transaction(function () use ($order, $validated) {
@@ -207,6 +209,10 @@ class PlanningController extends Controller
 
             // Create new steps
             foreach ($validated['steps'] as $stepData) {
+                // Ensure child order dependency fields are included
+                $stepData['child_order_dependency_type'] = $stepData['child_order_dependency_type'] ?? 'all_children_completed';
+                $stepData['child_order_minimum_quantity'] = $stepData['child_order_minimum_quantity'] ?? 0;
+                
                 $route->steps()->create($stepData);
             }
 

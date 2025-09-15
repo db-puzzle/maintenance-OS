@@ -330,4 +330,21 @@ class ManufacturingStepController extends Controller
             return back()->with('error', $e->getMessage());
         }
     }
+
+    /**
+     * Update child order dependencies for a step.
+     */
+    public function updateDependencies(Request $request, ManufacturingStep $step)
+    {
+        $this->authorize('update', $step);
+
+        $validated = $request->validate([
+            'child_order_dependency_type' => 'required|in:none,all_children_completed,children_quantity',
+            'child_order_minimum_quantity' => 'nullable|required_if:child_order_dependency_type,children_quantity|numeric|min:0',
+        ]);
+
+        $step->update($validated);
+
+        return back()->with('success', 'Step dependencies updated successfully.');
+    }
 }

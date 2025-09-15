@@ -148,4 +148,26 @@ class ManufacturingOrderPolicy
 
         return $user->can('production.routes.createFromTemplate');
     }
+
+    /**
+     * Determine whether the user can report production on the order.
+     */
+    public function reportProduction(User $user, ManufacturingOrder $manufacturingOrder): bool
+    {
+        // Can't report on completed or cancelled orders
+        if (in_array($manufacturingOrder->status, ['completed', 'cancelled'])) {
+            return false;
+        }
+
+        return $user->can('production.orders.reportProduction');
+    }
+
+    /**
+     * Determine whether the user can configure dependencies.
+     * Note: This is deprecated as dependencies are now at step level.
+     */
+    public function configureDependencies(User $user, ManufacturingOrder $manufacturingOrder): bool
+    {
+        return false; // Always return false as this feature is deprecated at order level
+    }
 }

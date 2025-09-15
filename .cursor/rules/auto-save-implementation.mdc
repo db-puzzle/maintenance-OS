@@ -1,0 +1,195 @@
+---
+description: Standardized implementation pattern for auto-save functionality across the application. This ensures consistent behavior and prevents common pitfalls like ID synchronization issues after saves.
+
+## Core Principles:
+1. **Parent-Child Architecture**: Auto-save logic lives in the parent component, child components only report changes
+2. **Content-Based Comparison**: Compare actual data, not IDs which may change after save
+3. **Debounced Saves**: Wait 1.5 seconds after last change before saving
+4. **No Blur Strategy**: Never use blur to trigger saves - it creates poor UX
+
+## Standard Implementation:
+
+### Parent Component (e.g., RouteBuilder):
+```typescript
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { router } from '@inertiajs/react';
+
+export default function ParentComponent() {
+    const [items, setItems] = useState<Item[]>([]);
+    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const previousItemsRef = useRef<Item[]>([]);
+    const itemsRef = useRef<Item[]>(items);
+
+    // Keep itemsRef synchronized
+    useEffect(() => {
+        itemsRef.current = items;
+    }, [items]);
+
+    // Auto-save function
+    const saveItems = useCallback(async () => {
+        if (!permissions.canEdit) return;
+
+        onSaveStatusChange?.('saving');
+        const itemsAtSaveTime = [...itemsRef.current];
+
+        try {
+            await router.post(route('items.save'), {
+                items: itemsAtSaveTime,
+                is_autosave: true,
+            }, {
+                preserveScroll: true,
+                preserveState: true,
+                only: [], // Don't reload data
+                onSuccess: () => {
+                    // Update reference with saved data
+                    previousItemsRef.current = [...itemsAtSaveTime];
+                    onSaveStatusChange?.('saved');
+                }
+            });
+        } catch (error) {
+            onSaveStatusChange?.('error');
+        }
+    }, [permissions.canEdit]);
+
+    // Debounced auto-save effect
+    useEffect(() => {
+        if (!permissions.canEdit) return;
+
+        // Normalize items for comparison (exclude IDs)
+        const normalizeItem = (item: Item) => ({
+            // Include all properties EXCEPT id
+            name: item.name,
+            description: item.description,
+            value: item.value,
+            // ... other properties
+        });
+
+        const currentNormalized = items.map(normalizeItem);
+        const previousNormalized = previousItemsRef.current.map(normalizeItem);
+        
+        const hasChanges = JSON.stringify(currentNormalized) !== JSON.stringify(previousNormalized);
+
+        if (!hasChanges || items.length === 0) return;
+
+        // Clear existing timeout
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+
+        // Set new timeout (1.5 seconds)
+        saveTimeoutRef.current = setTimeout(() => {
+            saveItems();
+        }, 1500);
+
+        return () => {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+        };
+    }, [items, permissions.canEdit]);
+
+    // Handle child updates
+    const handleItemUpdate = (itemId: string | number, updates: Partial<Item>) => {
+        // Find by ID first
+        let index = items.findIndex(item => String(item.id) === String(itemId));
+        
+        // Fallback to sequence/position if ID not found (handles post-save ID changes)
+        if (index < 0 && selectedItem) {
+            index = items.findIndex(item => item.sequence === selectedItem.sequence);
+        }
+
+        if (index >= 0) {
+            const newItems = [...items];
+            newItems[index] = { ...items[index], ...updates };
+            setItems(newItems);
+        }
+    };
+
+    return (
+        <ChildComponent
+            item={selectedItem}
+            onItemUpdate={handleItemUpdate}
+        />
+    );
+}
+```
+
+### Child Component (e.g., PropertiesPanel):
+```typescript
+interface Props {
+    item: Item | null;
+    onItemUpdate: (itemId: number, updates: Partial<Item>) => void;
+}
+
+export default function ChildComponent({ item, onItemUpdate }: Props) {
+    // Simple: just call parent's update function
+    const handleFieldChange = (fieldName: string, value: any) => {
+        if (item) {
+            onItemUpdate(item.id, { [fieldName]: value });
+        }
+    };
+
+    return (
+        <Input
+            value={item?.name || ''}
+            onChange={(e) => handleFieldChange('name', e.target.value)}
+        />
+    );
+}
+```
+
+## Common Patterns:
+
+### 1. Initial Load Prevention:
+```typescript
+useEffect(() => {
+    if (data.items) {
+        setItems(data.items);
+        // Prevent auto-save on initial load
+        previousItemsRef.current = data.items;
+    }
+}, [data.items]);
+```
+
+### 2. Status Indicators:
+```typescript
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+```
+
+### 3. ID Synchronization After Save:
+```typescript
+// If backend returns new IDs, handle in onSuccess
+onSuccess: (page) => {
+    const updatedItems = page.props.items;
+    // Update local state with new IDs if needed
+    setItems(updatedItems);
+    previousItemsRef.current = updatedItems;
+}
+```
+
+## DO NOT:
+- Use blur events to trigger saves - it creates focus issues
+- Compare entire objects including IDs - they change after save
+- Save on every keystroke - always debounce
+- Block user input during save - use background saves
+- Create save logic in child components - keep it centralized
+
+## Edge Cases:
+1. **Concurrent Edits**: Latest change wins, consider conflict resolution
+2. **Network Failures**: Show error state, retry with exponential backoff
+3. **Component Unmount**: Always cleanup timeouts
+4. **Large Data Sets**: Consider chunking or selective field updates
+
+## Testing Checklist:
+- [ ] Auto-save triggers after 1.5 seconds of inactivity
+- [ ] Multiple rapid changes only trigger one save
+- [ ] Saves continue working after initial save (ID changes)
+- [ ] No focus loss during typing
+- [ ] Proper cleanup on unmount
+- [ ] Error states handled gracefully
+
+globs:
+alwaysApply: false
+---

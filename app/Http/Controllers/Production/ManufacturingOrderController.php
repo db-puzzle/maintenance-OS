@@ -205,7 +205,6 @@ class ManufacturingOrderController extends BaseSearchController
             'template_source_id' => 'nullable|exists:manufacturing_routes,id',
             'auto_select_template' => 'nullable|boolean',
             'create_empty_route' => 'nullable|boolean',
-            'auto_complete_on_children' => 'nullable|boolean',
             'route_creation_mode' => 'nullable|in:manual,template,auto',
         ]);
 
@@ -292,7 +291,7 @@ class ManufacturingOrderController extends BaseSearchController
                     'in_process' => $order->work_in_progress_quantity,
                     'completed' => $order->last_step_completed_quantity,
                 ],
-                'can_execute' => $order->canStartExecution(),
+                'can_execute' => true, // Manufacturing orders can always execute - dependencies are at step level
                 'can_release' => $order->canBeReleased(),
                 // Smart progress data
                 'smart_progress' => $order->smart_progress_percentage,
@@ -340,7 +339,6 @@ class ManufacturingOrderController extends BaseSearchController
             'workCells' => WorkCell::where('is_active', true)->get(),
             'stepTypes' => ManufacturingStep::STEP_TYPES,
             'stepStartConditions' => ManufacturingStep::STEP_START_CONDITIONS,
-            'orderDependencyTypes' => ManufacturingOrder::ORDER_DEPENDENCY_TYPES,
             'forms' => Form::where('is_active', true)->get(['id', 'name']),
             'plants' => \App\Models\AssetHierarchy\Plant::all(['id', 'name']),
             'shifts' => \App\Models\AssetHierarchy\Shift::all(['id', 'name']),
@@ -803,10 +801,6 @@ class ManufacturingOrderController extends BaseSearchController
                     'actual_end_date' => now(),
                 ]);
 
-                // Check parent auto-completion
-                if ($order->parent) {
-                    $order->parent->checkAutoCompletion();
-                }
             }
 
             // Create audit log
@@ -824,30 +818,6 @@ class ManufacturingOrderController extends BaseSearchController
         return back()->with('success', 'Production reported successfully.');
     }
 
-    /**
-     * Update dependency configuration for an order.
-     */
-    public function updateDependencies(Request $request, ManufacturingOrder $order)
-    {
-        $this->authorize('configureDependencies', $order);
-
-        $validated = $request->validate([
-            'dependency_type' => 'required|in:none,all_children_released,children_quantity,children_percentage,progressive',
-            'dependency_minimum_quantity' => 'nullable|required_if:dependency_type,children_quantity|numeric|min:0',
-            'dependency_minimum_percentage' => 'nullable|required_if:dependency_type,children_percentage|numeric|min:0.01|max:100',
-            'can_release_before_children' => 'boolean',
-            'child_dependencies' => 'nullable|array',
-            'child_dependencies.*.child_order_id' => 'required|exists:manufacturing_orders,id',
-            'child_dependencies.*.dependency_type' => 'required|in:required,optional',
-            'child_dependencies.*.minimum_quantity' => 'nullable|numeric|min:0',
-            'child_dependencies.*.minimum_percentage' => 'nullable|numeric|min:0.01|max:100',
-        ]);
-
-        $this->orderService->updateOrderDependency($order, $validated);
-
-        return redirect()->route('production.orders.show', $order)
-            ->with('success', 'Order dependencies updated successfully.');
-    }
 
     /**
      * Report progress on a specific step.

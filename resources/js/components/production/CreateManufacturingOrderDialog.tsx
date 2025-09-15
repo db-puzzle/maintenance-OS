@@ -14,10 +14,7 @@ import {
     Wrench,
     FileText,
     Zap,
-    Ban,
-    PlayCircle,
-    TrendingUp,
-    Percent
+    Ban
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -132,14 +129,8 @@ export default function CreateManufacturingOrderDialog({
         requested_date: '',
         source_type: 'manual',
         source_reference: '',
-        auto_complete_on_children: true as boolean,
         route_creation_mode: 'manual',
         route_template_id: '',
-        // Progressive flow fields
-        dependency_type: 'none' as 'none' | 'all_children_released' | 'children_quantity' | 'children_percentage',
-        dependency_minimum_quantity: 0,
-        dependency_minimum_percentage: 0,
-        can_release_before_children: true as boolean,
     });
 
     const selectedItem = useMemo(() => {
@@ -157,22 +148,12 @@ export default function CreateManufacturingOrderDialog({
         );
     }, [selectedItem, billsOfMaterial]);
 
-    const steps = useMemo(() => {
-        const baseSteps = [
-            { number: 1, title: 'Item', icon: <Package className="h-4 w-4" /> },
-            { number: 2, title: 'BOM', icon: <Factory className="h-4 w-4" /> },
-            { number: 3, title: 'Detalhes', icon: <Calendar className="h-4 w-4" /> },
-            { number: 4, title: 'Rotas', icon: <Settings className="h-4 w-4" /> },
-        ];
-
-        // Only add the Dependencies steps if using BOM
-        if (data.order_type === 'bom' && itemBOMs.length > 0) {
-            baseSteps.push({ number: 5, title: 'Liberação', icon: <PlayCircle className="h-4 w-4" /> });
-            baseSteps.push({ number: 6, title: 'Produção', icon: <TrendingUp className="h-4 w-4" /> });
-        }
-
-        return baseSteps;
-    }, [data.order_type, itemBOMs.length]);
+    const steps = useMemo(() => [
+        { number: 1, title: 'Item', icon: <Package className="h-4 w-4" /> },
+        { number: 2, title: 'BOM', icon: <Factory className="h-4 w-4" /> },
+        { number: 3, title: 'Detalhes', icon: <Calendar className="h-4 w-4" /> },
+        { number: 4, title: 'Rotas', icon: <Settings className="h-4 w-4" /> },
+    ], []);
 
     // Handle when selectedBomId is provided (e.g., from BOM show page)
     useEffect(() => {
@@ -464,16 +445,6 @@ export default function CreateManufacturingOrderDialog({
             item_id: data.item_id ? parseInt(data.item_id) : null,
             bill_of_material_id: data.bill_of_material_id ? parseInt(data.bill_of_material_id) : null,
             route_template_id: data.route_template_id ? parseInt(data.route_template_id) : null,
-            // For BOM orders, use the user's choice
-            // For non-BOM orders, always set to false (no children to auto-complete on)
-            auto_complete_on_children: data.order_type === 'bom' ? data.auto_complete_on_children : false,
-            // Only include progressive flow fields for BOM orders
-            ...(data.order_type === 'bom' ? {
-                dependency_type: data.dependency_type,
-                dependency_minimum_quantity: data.dependency_minimum_quantity,
-                dependency_minimum_percentage: data.dependency_minimum_percentage,
-                can_release_before_children: data.can_release_before_children,
-            } : {})
         };
 
         post(route('production.orders.store', submitData), {
@@ -501,12 +472,7 @@ export default function CreateManufacturingOrderDialog({
             case 3:
                 return data.quantity > 0 && !!data.unit_of_measure;
             case 4:
-                // For BOM orders, auto_complete_on_children must be selected
-                return data.order_type !== 'bom' || data.auto_complete_on_children !== undefined;
-            case 5:
-                return true; // Release dependencies are optional
-            case 6:
-                return true; // Production dependencies are optional
+                return true; // Route configuration is always valid
             default:
                 return false;
         }
@@ -530,7 +496,7 @@ export default function CreateManufacturingOrderDialog({
                 <DialogHeader className="mt-4 px-6 py-4 border-b">
                     <DialogTitle>Criar Ordem de Manufatura</DialogTitle>
                     <DialogDescription>
-                        Crie uma nova ordem de manufatura paraprodução
+                        Crie uma nova ordem de manufatura para produção
                     </DialogDescription>
                 </DialogHeader>
 
@@ -891,84 +857,22 @@ export default function CreateManufacturingOrderDialog({
                                         </div>
                                     </div>
 
-                                    {/* Auto-Complete Configuration - Only for BOM orders (orders with children) */}
-                                    {data.order_type === 'bom' && (
-                                        <div>
-                                            <h3 className="font-medium mb-4">Conclusão da Ordem Pai</h3>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <StateButton
-                                                    icon={Check}
-                                                    title="Concluir Automaticamente"
-                                                    description="A ordem pai será automaticamente concluída quando todas as ordens filhas forem concluídas"
-                                                    selected={data.auto_complete_on_children === true}
-                                                    onClick={() => setData('auto_complete_on_children', true)}
-                                                />
-                                                <StateButton
-                                                    icon={Ban}
-                                                    title="Concluir Manualmente"
-                                                    description="A ordem pai precisará ser concluída manualmente, mesmo após todas as ordens filhas serem concluídas"
-                                                    selected={data.auto_complete_on_children === false}
-                                                    onClick={() => setData('auto_complete_on_children', false)}
-                                                />
-                                            </div>
-                                            <Alert className="mt-4">
-                                                <Info className="h-4 w-4" />
-                                                <AlertDescription>
-                                                    Nota: Se etapas de roteamento forem adicionadas posteriormente, a ordem sempre será concluída manualmente.
-                                                </AlertDescription>
-                                            </Alert>
-                                        </div>
-                                    )}
-
-                                    {/* For non-BOM orders, no auto-complete option */}
-                                    {data.order_type !== 'bom' && (
-                                        <Alert className="mt-4">
-                                            <Info className="h-4 w-4" />
-                                            <AlertDescription>
-                                                Ordens sem BOM devem ser concluídas manualmente ou através de etapas de roteamento.
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
-
-                                </div>
-                            </ScrollArea>
-                        )}
-
-                        {/* Step 5: Release Dependencies */}
-                        {currentStep === 5 && data.order_type === 'bom' && (
-                            <ScrollArea className="h-full">
-                                <div className="space-y-6 pr-4">
-                                    <div>
-                                        <h3 className="font-medium mb-2">Liberação da Ordem-Pai</h3>
-                                        <p className="text-sm text-muted-foreground mb-6">
-                                            Configure quando a ordem pai pode ser liberada para produção.
-                                        </p>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <StateButton
-                                                icon={PlayCircle}
-                                                title="A Qualquer Momento"
-                                                description="A ordem pai pode ser liberada mesmo se as ordens filhas não estiverem prontas"
-                                                selected={data.can_release_before_children === true}
-                                                onClick={() => setData('can_release_before_children', true)}
-                                            />
-
-                                            <StateButton
-                                                icon={Ban}
-                                                title="Após Ordens Filhas"
-                                                description="A ordem pai deve esperar pelas ordens filhas serem liberadas antes de ser liberada"
-                                                selected={data.can_release_before_children === false}
-                                                onClick={() => setData('can_release_before_children', false)}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Add inheritance info alert */}
+                                    {/* Information about production routes */}
                                     <Alert>
                                         <Info className="h-4 w-4" />
                                         <AlertDescription>
-                                            A configuração de liberação selecionada será replicada automaticamente
-                                            para todas as ordens filhas. Você poderá ajustar individualmente
-                                            durante o planejamento, antes da liberação das ordens.
+                                            <div className="space-y-2">
+                                                <p className="font-medium">Sobre Rotas de Produção:</p>
+                                                <p>
+                                                    As rotas de produção definem as etapas necessárias para fabricar o item.
+                                                    Você pode criar rotas manualmente após a criação da ordem ou aplicar
+                                                    templates predefinidos para agilizar o processo.
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Para ordens com BOM, as rotas podem ser criadas automaticamente
+                                                    com base na categoria dos itens, garantindo consistência no processo produtivo.
+                                                </p>
+                                            </div>
                                         </AlertDescription>
                                     </Alert>
 
@@ -976,132 +880,7 @@ export default function CreateManufacturingOrderDialog({
                             </ScrollArea>
                         )}
 
-                        {/* Step 6: Production Dependencies */}
-                        {currentStep === 6 && data.order_type === 'bom' && (
-                            <ScrollArea className="h-full">
-                                <div className="space-y-6 pr-4">
-                                    <div>
-                                        <h3 className="font-medium mb-2">Dependências para Início da Produção</h3>
-                                        <p className="text-sm text-muted-foreground mb-6">
-                                            Configure quando a ordem pai pode começar a ser produzida com base no progresso das ordens filhas.
-                                        </p>
 
-                                        {/* Dependency Type Selection - 2x2 Grid */}
-                                        <div className="grid grid-cols-2 gap-4">
-
-                                            <StateButton
-                                                icon={PlayCircle}
-                                                title="Todas as Ordens Filhas Completas"
-                                                description="A ordem pai só pode iniciar após todas as ordens filhas serem concluídas"
-                                                selected={data.dependency_type === 'all_children_released'}
-                                                onClick={() => {
-                                                    setData('dependency_type', 'all_children_released');
-                                                    setData('dependency_minimum_quantity', 0);
-                                                    setData('dependency_minimum_percentage', 0);
-                                                }}
-                                            />
-
-                                            <StateButton
-                                                icon={Ban}
-                                                title="Sem Dependências"
-                                                description="A ordem pai pode começar a qualquer momento, independentemente das ordens filhas"
-                                                selected={data.dependency_type === 'none'}
-                                                onClick={() => {
-                                                    setData('dependency_type', 'none');
-                                                    setData('dependency_minimum_quantity', 0);
-                                                    setData('dependency_minimum_percentage', 0);
-                                                }}
-                                            />
-
-                                            <StateButton
-                                                icon={TrendingUp}
-                                                title="Baseado em Quantidade"
-                                                description="A ordem pai só pode iniciar após as ordens filhas concluírem uma quantidade específica"
-                                                selected={data.dependency_type === 'children_quantity'}
-                                                onClick={() => {
-                                                    setData('dependency_type', 'children_quantity');
-                                                    setData('dependency_minimum_percentage', 0);
-                                                }}
-                                            />
-
-                                            <StateButton
-                                                icon={Percent}
-                                                title="Baseado em Porcentagem"
-                                                description="A ordem pai só pode iniciar após as ordens filhas concluírem uma porcentagem específica de sua quantidade total"
-                                                selected={data.dependency_type === 'children_percentage'}
-                                                onClick={() => {
-                                                    setData('dependency_type', 'children_percentage');
-                                                    setData('dependency_minimum_quantity', 0);
-                                                }}
-                                            />
-                                        </div>
-
-                                        {/* Quantity-Based Configuration */}
-                                        {data.dependency_type === 'children_quantity' && (
-                                            <div className="mt-6 p-4 rounded-lg border bg-muted/50">
-                                                <Label htmlFor="min-quantity">Quantidade Mínima Requerida</Label>
-                                                <Input
-                                                    id="min-quantity"
-                                                    type="number"
-                                                    value={data.dependency_minimum_quantity}
-                                                    onChange={(e) => setData('dependency_minimum_quantity', parseFloat(e.target.value) || 0)}
-                                                    min={0}
-                                                    step={1}
-                                                    className="mt-2"
-                                                />
-                                                <p className="text-xs text-muted-foreground mt-2">
-                                                    Total de unidades que devem ser concluídas em todas as ordens filhas
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        {/* Percentage-Based Configuration */}
-                                        {data.dependency_type === 'children_percentage' && (
-                                            <div className="mt-6 p-4 rounded-lg border bg-muted/50">
-                                                <Label htmlFor="min-percentage">Porcentagem Mínima Requerida</Label>
-                                                <div className="flex items-center gap-3 mt-2">
-                                                    <Progress
-                                                        value={data.dependency_minimum_percentage}
-                                                        className="h-2 flex-1"
-                                                    />
-                                                    <div className="flex items-center gap-1">
-                                                        <Input
-                                                            id="min-percentage"
-                                                            type="number"
-                                                            min={0}
-                                                            max={100}
-                                                            value={data.dependency_minimum_percentage}
-                                                            onChange={(e) => {
-                                                                const value = parseInt(e.target.value) || 0;
-                                                                setData('dependency_minimum_percentage', Math.min(100, Math.max(0, value)));
-                                                            }}
-                                                            className="w-16 h-8 text-center"
-                                                        />
-                                                        <span className="text-sm text-muted-foreground">%</span>
-                                                    </div>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground mt-2">
-                                                    Porcentagem de quantidade produzida por cada uma das ordens filhas
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Add inheritance info alert */}
-                                    <Alert>
-                                        <Info className="h-4 w-4" />
-                                        <AlertDescription>
-                                            As dependências de produção selecionadas serão aplicadas a todas as
-                                            ordens filhas. Para dependências baseadas em quantidade, os valores
-                                            serão ajustados proporcionalmente. Ajustes individuais podem ser
-                                            feitos durante o planejamento.
-                                        </AlertDescription>
-                                    </Alert>
-
-
-                                </div>
-                            </ScrollArea>
-                        )}
                     </div>
 
                     <DialogFooter className="px-6 py-4">

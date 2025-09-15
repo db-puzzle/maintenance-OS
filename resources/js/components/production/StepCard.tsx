@@ -85,6 +85,7 @@ export function StepCard({
                             )}
                         </div>
                     )}
+
                 </div>
                 {/* Status Indicators */}
                 {step.status === 'completed' && (

@@ -54,6 +54,10 @@ return new class extends Migration
             $table->integer('cumulative_quantity_completed')->default(0);
             $table->integer('cumulative_quantity_scrapped')->default(0);
 
+            // Child order dependency fields
+            $table->enum('child_order_dependency_type', ['none', 'all_children_completed', 'children_quantity'])->default('all_children_completed');
+            $table->decimal('child_order_minimum_quantity', 10, 2)->nullable();
+
             $table->timestamps();
 
             $table->index(['manufacturing_route_id', 'display_order']);
@@ -61,6 +65,7 @@ return new class extends Migration
             $table->index('status');
             $table->index('step_type');
             $table->index('is_template');
+            $table->index('child_order_dependency_type');
 
             // Note: Constraint enforced at model level - template steps should not have status or execution data
         });

@@ -2,9 +2,11 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { router, useForm } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
 import CreateWorkCellSheet from '@/components/production/CreateWorkCellSheet';
-import RouteBuilderCanvas from '@/components/production/RouteBuilderCanvas';
+import RouteFlowView from '@/components/production/RouteFlowView';
 import StepPropertiesPanel from '@/components/production/StepPropertiesPanel';
+import GatePropertiesPanel from '@/components/production/GatePropertiesPanel';
 import { ManufacturingStep, WorkCell, ManufacturingOrder } from '@/types/production';
+import { GateConfiguration } from '@/components/production/GateCard';
 
 // ExtendedManufacturingStep type is defined in StepPropertiesPanel
 
@@ -21,6 +23,8 @@ export interface RouteStep {
     quality_check_mode?: 'every_part' | 'entire_lot' | 'sampling';
     sampling_size?: number;
     form_id?: number;
+    // Gate after this step
+    gate_after?: GateConfiguration;
 }
 
 interface RouteBuilderProps {
@@ -52,9 +56,8 @@ export default function RouteBuilder({
 }: RouteBuilderProps) {
     const [steps, setSteps] = useState<RouteStep[]>([]);
     const [selectedStep, setSelectedStep] = useState<RouteStep | null>(null);
+    const [selectedGateId, setSelectedGateId] = useState<string | null>(null);
     const [showCreateWorkCell, setShowCreateWorkCell] = useState(false);
-    const [isDragging, setIsDragging] = useState(false);
-    const [draggedStep, setDraggedStep] = useState<RouteStep | null>(null);
 
     // Auto-save state
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -91,6 +94,7 @@ export default function RouteBuilder({
     // Track selected step sequence for maintaining selection after updates
     const selectedStepSequenceRef = useRef<number | null>(null);
     const selectedStepIdRef = useRef<string | number | null>(null);
+    const selectedGateIdRef = useRef<string | null>(null);
 
     // Update selectedStepSequenceRef when selectedStep changes
     useEffect(() => {
@@ -98,10 +102,16 @@ export default function RouteBuilder({
         selectedStepIdRef.current = selectedStep?.id || null;
     }, [selectedStep]);
 
+    // Update selectedGateIdRef when selectedGateId changes
+    useEffect(() => {
+        selectedGateIdRef.current = selectedGateId;
+    }, [selectedGateId]);
+
 
     // Load existing route when manufacturing order changes
     const previousMOIdRef = useRef<number | null>(null);
     const previousRouteRef = useRef<string>('');
+    const previousSelectedGateSequence = useRef<number | null>(null);
 
     useEffect(() => {
         // Check if MO changed or route data changed
@@ -110,6 +120,18 @@ export default function RouteBuilder({
         const routeDataChanged = previousRouteRef.current !== currentRouteData;
 
         if (moChanged || routeDataChanged) {
+            // Store the sequence number of the currently selected gate before updating
+            if (selectedGateId && !moChanged) {
+                const match = selectedGateId.match(/gate-after-(.+)/);
+                if (match) {
+                    const stepId = match[1];
+                    const currentStep = steps.find(s => String(s.id) === stepId);
+                    if (currentStep) {
+                        previousSelectedGateSequence.current = currentStep.sequence;
+                    }
+                }
+            }
+
             previousMOIdRef.current = manufacturingOrder.id;
             previousRouteRef.current = currentRouteData;
 
@@ -127,10 +149,31 @@ export default function RouteBuilder({
                     quality_check_mode: step.quality_check_mode,
                     sampling_size: step.sampling_size,
                     form_id: step.form_id,
+                    // Convert child order dependencies to gate_after
+                    gate_after: (() => {
+                        const gateConfig: GateConfiguration = {
+                            dependency_type: step.child_order_dependency_type === 'none'
+                                ? 'none'
+                                : (step.child_order_dependency_type || 'all_children_completed') as GateConfiguration['dependency_type'],
+                            minimum_quantity: step.child_order_minimum_quantity || 0
+                        };
+                        return gateConfig;
+                    })(),
                 }));
                 setSteps(routeSteps);
                 // Initialize previousStepsRef to prevent auto-save on initial load
                 previousStepsRef.current = routeSteps;
+
+                // Restore gate selection after route update if sequence was stored
+                if (!moChanged && previousSelectedGateSequence.current !== null) {
+                    const stepWithStoredSequence = routeSteps.find(s => s.sequence === previousSelectedGateSequence.current);
+                    if (stepWithStoredSequence) {
+                        const newGateId = `gate-after-${stepWithStoredSequence.id}`;
+                        setSelectedGateId(newGateId);
+                        selectedGateIdRef.current = newGateId;
+                    }
+                    previousSelectedGateSequence.current = null;
+                }
             } else {
                 // Clear steps and initialize previousStepsRef for new routes
                 setSteps([]);
@@ -139,6 +182,7 @@ export default function RouteBuilder({
             // Clear selected step only when changing manufacturing orders, not when route data updates
             if (moChanged) {
                 setSelectedStep(null);
+                setSelectedGateId(null);
             }
         }
     }, [manufacturingOrder.id, manufacturingOrder.manufacturing_route]); // Re-run when manufacturing order or its route changes
@@ -188,6 +232,7 @@ export default function RouteBuilder({
             work_cell_id: null,
             step_type: 'standard',
             is_required: true,
+            gate_after: { dependency_type: 'all_children_completed' },
         };
         setSteps(prevSteps => [...prevSteps, newStep]);
         setSelectedStep(newStep);
@@ -207,6 +252,24 @@ export default function RouteBuilder({
             setSelectedStep(null);
         }
     }, [steps, selectedStep]);
+
+    // Handle gate update
+    const handleGateUpdate = useCallback((stepId: number | string, gate: GateConfiguration) => {
+        setSteps(prevSteps => {
+            // Create a new array with updated step
+            return prevSteps.map(step => {
+                if (String(step.id) === String(stepId)) {
+                    // Create a new object to ensure React detects the change
+                    return {
+                        ...step,
+                        gate_after: { ...gate } // Spread to create new object
+                    };
+                }
+                // Return the same object reference for unchanged steps
+                return step;
+            });
+        });
+    }, []);
 
     // Track the active element to restore focus after save
     const focusedElementRef = useRef<HTMLElement | null>(null);
@@ -229,16 +292,22 @@ export default function RouteBuilder({
             await router.post(
                 window.route('production.planning.orders.save-route', manufacturingOrder.id),
                 {
-                    steps: stepsAtSaveTime.map(step => ({
-                        sequence: step.sequence,
-                        name: step.name,
-                        description: step.description,
-                        work_cell_id: step.work_cell_id,
-                        setup_time_minutes: step.setup_time_minutes || 0,
-                        cycle_time_minutes: step.cycle_time_minutes || 0,
-                        step_type: step.step_type,
-                        is_required: step.is_required,
-                    })),
+                    steps: stepsAtSaveTime.map(step => {
+                        const saveData = {
+                            sequence: step.sequence,
+                            name: step.name,
+                            description: step.description,
+                            work_cell_id: step.work_cell_id,
+                            setup_time_minutes: step.setup_time_minutes || 0,
+                            cycle_time_minutes: step.cycle_time_minutes || 0,
+                            step_type: step.step_type,
+                            is_required: step.is_required,
+                            // Convert gate_after back to child order dependencies for backend
+                            child_order_dependency_type: step.gate_after?.dependency_type || 'all_children_completed',
+                            child_order_minimum_quantity: step.gate_after?.minimum_quantity || 0,
+                        };
+                        return saveData;
+                    }),
                     is_autosave: true, // Add flag to indicate this is an auto-save
                 },
                 {
@@ -247,8 +316,9 @@ export default function RouteBuilder({
                     only: [], // Don't reload any data to preserve focus
                     replace: false, // Don't replace browser history
                     onSuccess: () => {
-                        // Update previousStepsRef to mark data as saved
-                        previousStepsRef.current = stepsAtSaveTime;
+                        // Update previousStepsRef with the steps that were just saved
+                        // This ensures subsequent changes are detected properly
+                        previousStepsRef.current = [...stepsAtSaveTime];
 
                         onSaveStatusChange?.('saved');
                         onLastSavedAtChange?.(new Date());
@@ -260,6 +330,31 @@ export default function RouteBuilder({
                             const stepToReselect = steps.find(s => String(s.id) === String(selectedStepIdRef.current));
                             if (stepToReselect) {
                                 setSelectedStep(stepToReselect);
+                            }
+                        }
+
+                        // Restore selected gate if it was cleared during save
+                        if (selectedGateIdRef.current && !selectedGateId) {
+                            setSelectedGateId(selectedGateIdRef.current);
+                        }
+
+                        // Update selectedGateId if the step IDs have changed
+                        if (selectedGateIdRef.current) {
+                            const match = selectedGateIdRef.current.match(/gate-after-(.+)/);
+                            if (match) {
+                                const oldStepId = match[1];
+                                // Find the step that had this ID in the saved data
+                                const oldStep = stepsAtSaveTime.find(s => String(s.id) === oldStepId);
+                                if (oldStep) {
+                                    // Find the corresponding step in the current data by sequence
+                                    const currentStep = stepsRef.current.find(s => s.sequence === oldStep.sequence);
+                                    if (currentStep && String(currentStep.id) !== oldStepId) {
+                                        // IDs have changed, update the selectedGateId
+                                        const newGateId = `gate-after-${currentStep.id}`;
+                                        setSelectedGateId(newGateId);
+                                        selectedGateIdRef.current = newGateId;
+                                    }
+                                }
                             }
                         }
 
@@ -292,7 +387,7 @@ export default function RouteBuilder({
                 onSaveStatusChange?.('idle');
             }, 1500);
         }
-    }, [permissions.canEditRoute, manufacturingOrder.id, onSave, onSaveStatusChange, onLastSavedAtChange, selectedStep, steps]);
+    }, [permissions.canEditRoute, manufacturingOrder.id, onSave, onSaveStatusChange, onLastSavedAtChange, selectedStep, selectedGateId, steps]);
 
     // Keep stepsRef updated
     useEffect(() => {
@@ -306,10 +401,29 @@ export default function RouteBuilder({
             return;
         }
 
-        // Check if steps have actually changed
-        const currentStepsStr = JSON.stringify(steps);
-        const previousStepsStr = JSON.stringify(previousStepsRef.current);
+        // Check if steps have actually changed by comparing content, not IDs
+        const normalizeStep = (step: RouteStep) => ({
+            sequence: step.sequence,
+            name: step.name,
+            description: step.description,
+            work_cell_id: step.work_cell_id,
+            setup_time_minutes: step.setup_time_minutes,
+            cycle_time_minutes: step.cycle_time_minutes,
+            step_type: step.step_type,
+            is_required: step.is_required,
+            quality_check_mode: step.quality_check_mode,
+            sampling_size: step.sampling_size,
+            form_id: step.form_id,
+            gate_after: step.gate_after
+        });
+
+        const currentStepsNormalized = steps.map(normalizeStep);
+        const previousStepsNormalized = previousStepsRef.current.map(normalizeStep);
+
+        const currentStepsStr = JSON.stringify(currentStepsNormalized);
+        const previousStepsStr = JSON.stringify(previousStepsNormalized);
         const hasChanges = currentStepsStr !== previousStepsStr;
+
 
         if (!hasChanges || steps.length === 0) {
             return;
@@ -320,29 +434,10 @@ export default function RouteBuilder({
             clearTimeout(saveTimeoutRef.current);
         }
 
-        // Set new timeout for auto-save (3 seconds after last change to avoid interrupting editing)
+        // Set new timeout for auto-save (1500ms after last change)
         saveTimeoutRef.current = setTimeout(() => {
-            // Only save if no step is currently being edited (no active input/textarea focus)
-            const activeElement = document.activeElement;
-            const isEditingInput = activeElement && (
-                activeElement.tagName === 'INPUT' ||
-                activeElement.tagName === 'TEXTAREA' ||
-                activeElement.tagName === 'SELECT' ||
-                activeElement.closest('[role="combobox"]') // For custom select components
-            );
-
-            if (!isEditingInput) {
-                saveRoute();
-            } else {
-                // If user is still editing, postpone the save
-                if (saveTimeoutRef.current) {
-                    clearTimeout(saveTimeoutRef.current);
-                }
-                saveTimeoutRef.current = setTimeout(() => {
-                    saveRoute();
-                }, 1500); // Try again in 3 seconds
-            }
-        }, 1500); // Increased from 1.5 to 3 seconds
+            saveRoute();
+        }, 1500); // 1.5 seconds delay for auto-save
 
         // Cleanup timeout on unmount or when dependencies change
         return () => {
@@ -390,6 +485,7 @@ export default function RouteBuilder({
         quality_check_mode: step.quality_check_mode,
         sampling_size: step.sampling_size,
         form_id: step.form_id,
+        gate_after: step.gate_after,
         manufacturing_route_id: manufacturingOrder.manufacturing_route?.id || 0,
         manufacturing_route: manufacturingOrder.manufacturing_route || {
             id: 0,
@@ -409,71 +505,92 @@ export default function RouteBuilder({
         return found || null;
     }, [selectedStep, canvasSteps]);
 
+    // Handle gate selection
+    const handleGateSelect = useCallback((gateId: string) => {
+        setSelectedGateId(gateId);
+        setSelectedStep(null); // Clear step selection when gate is selected
+    }, []);
+
+    // Handle step selection
+    const handleStepSelect = useCallback((step: RouteStep | null) => {
+        setSelectedStep(step);
+        setSelectedGateId(null); // Clear gate selection when step is selected
+    }, []);
+
+    // Get selected gate data
+    const getSelectedGateData = useMemo(() => {
+        if (!selectedGateId || !steps.length) return null;
+
+        // Extract step ID from gate ID (format: "gate-after-{stepId}")
+        const match = selectedGateId.match(/gate-after-(.+)/);
+        if (!match) return null;
+
+        const stepId = match[1];
+        const precedingStep = steps.find(s => String(s.id) === stepId);
+
+        if (!precedingStep) {
+            return null;
+        }
+
+        const precedingStepIndex = steps.findIndex(s => s.id === precedingStep.id);
+        const followingStep = precedingStepIndex < steps.length - 1 ? steps[precedingStepIndex + 1] : null;
+
+        return {
+            gate: precedingStep.gate_after || { dependency_type: 'all_children_completed' },
+            precedingStep: canvasSteps.find(s => String(s.id) === String(precedingStep.id)) || null,
+            followingStep: followingStep ? canvasSteps.find(s => String(s.id) === String(followingStep.id)) || null : null,
+            precedingStepId: precedingStep.id
+        };
+    }, [selectedGateId, steps, canvasSteps]);
+
     return (
         <div className="flex flex-col h-full">
 
-            {/* Main Content - Canvas and Properties Panel */}
+            {/* Main Content - Flow View and Properties Panel */}
             <div className="flex-1 flex overflow-hidden relative">
-                {/* Canvas area with transition */}
+                {/* Flow view area with transition */}
                 <div className={cn(
                     "flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-out",
-                    selectedStep ? "pr-[35rem]" : "pr-0"
+                    (selectedStep || selectedGateId) ? "pr-[35rem]" : "pr-0"
                 )}>
-                    <RouteBuilderCanvas
+                    <RouteFlowView
                         steps={canvasSteps}
                         selectedStep={canvasSelectedStep}
-                        zoom={100}
-                        can={{ manage_steps: permissions.canEditRoute }}
+                        selectedGateId={selectedGateId}
                         onStepSelect={(step) => {
                             if (step) {
                                 const routeStep = steps.find(s => String(s.id) === String(step.id));
-                                setSelectedStep(routeStep || null);
+                                handleStepSelect(routeStep || null);
                             } else {
-                                setSelectedStep(null);
+                                handleStepSelect(null);
                             }
                         }}
+                        onGateSelect={handleGateSelect}
                         onStepAdd={handleAddStep}
-                        onStepReorder={(updatedSteps) => {
-                            const newSteps = updatedSteps.map((step, index) => ({
-                                id: step.id,
-                                sequence: index + 1,
-                                name: step.name,
-                                description: step.description || '',
-                                work_cell_id: step.work_cell?.id || null,
-                                setup_time_minutes: step.setup_time_minutes,
-                                cycle_time_minutes: step.cycle_time_minutes,
-                                step_type: step.step_type || 'standard',
-                                is_required: true,
-                                quality_check_mode: step.quality_check_mode,
-                                sampling_size: step.sampling_size,
-                                form_id: step.form_id,
-                            }));
-                            setSteps(newSteps);
-                        }}
                         onStepDelete={(step) => {
                             const index = steps.findIndex(s => String(s.id) === String(step.id));
                             if (index >= 0) {
                                 handleDeleteStep(index);
                             }
                         }}
-                        isDragging={isDragging}
-                        onDragStart={setIsDragging}
-                        draggedStep={draggedStep ? canvasSteps.find(s => String(s.id) === String(draggedStep.id)) || null : null}
-                        onDraggedStepChange={(step) => {
-                            if (step) {
-                                const routeStep = steps.find(s => String(s.id) === String(step.id));
-                                setDraggedStep(routeStep || null);
-                            } else {
-                                setDraggedStep(null);
+                        onStepUpdate={(stepId, updates) => {
+                            // Handle step updates from RouteFlowView
+                            const index = steps.findIndex(s => String(s.id) === String(stepId));
+                            if (index >= 0) {
+                                const newSteps = [...steps];
+                                newSteps[index] = { ...steps[index], ...updates };
+                                setSteps(newSteps);
                             }
                         }}
-                        isPanelOpen={!!selectedStep}
+                        onGateUpdate={handleGateUpdate}
+                        canEdit={permissions.canEditRoute}
                         viewMode={!permissions.canEditRoute}
                     />
                 </div>
 
-                {/* Step Properties Panel - Absolute positioned */}
+                {/* Properties Panels - Absolute positioned */}
                 <div className="absolute inset-y-0 right-0 z-10">
+                    {/* Step Properties Panel */}
                     <StepPropertiesPanel
                         selectedStep={canvasSelectedStep}
                         steps={canvasSteps}
@@ -500,8 +617,9 @@ export default function RouteBuilder({
                             // Try to find by exact ID match first
                             let index = steps.findIndex(s => String(s.id) === String(stepId));
 
-                            // If not found and stepId is a temp ID, try to match by sequence
-                            if (index < 0 && String(stepId).startsWith('temp-') && selectedStep) {
+                            // If not found, try to match by the currently selected step
+                            if (index < 0 && selectedStep) {
+                                // The stepId might be stale after a save, so use the selectedStep instead
                                 index = steps.findIndex(s => s.sequence === selectedStep.sequence);
                             }
 
@@ -527,10 +645,27 @@ export default function RouteBuilder({
                                 if (selectedStep && String(selectedStep.id) === String(stepId)) {
                                     setSelectedStep(updatedStep);
                                 }
+                            } else {
                             }
                         }}
-                        isOpen={!!selectedStep}
+                        isOpen={!!selectedStep && !selectedGateId}
                         viewMode={!permissions.canEditRoute}
+                    />
+
+                    {/* Gate Properties Panel */}
+                    <GatePropertiesPanel
+                        selectedGate={getSelectedGateData?.gate || null}
+                        precedingStep={getSelectedGateData?.precedingStep || null}
+                        followingStep={getSelectedGateData?.followingStep || null}
+                        gateId={selectedGateId}
+                        onGateUpdate={(gate) => {
+                            if (getSelectedGateData?.precedingStepId) {
+                                handleGateUpdate(getSelectedGateData.precedingStepId, gate);
+                            }
+                        }}
+                        isOpen={!!selectedGateId}
+                        viewMode={!permissions.canEditRoute}
+                        manufacturingOrderQuantity={manufacturingOrder.quantity}
                     />
                 </div>
             </div>

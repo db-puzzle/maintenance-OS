@@ -337,6 +337,9 @@ export interface RouteTemplateStep {
     form_id?: number;
     quality_check_mode?: 'every_part' | 'entire_lot' | 'sampling';
     sampling_size?: number;
+    // Child order dependency fields
+    child_order_dependency_type?: 'none' | 'all_children_completed' | 'children_quantity';
+    child_order_minimum_quantity?: number;
 }
 
 export interface ManufacturingRoute {
@@ -396,6 +399,9 @@ export interface ManufacturingStep {
     sampling_size?: number;
     depends_on_step_id?: number;
     can_start_when_dependency?: 'completed';
+    // Child order dependency fields
+    child_order_dependency_type?: 'none' | 'all_children_completed' | 'children_quantity';
+    child_order_minimum_quantity?: number;
     dependencies?: ManufacturingStep[];
     executions?: ManufacturingStepExecution[];
     current_execution?: ManufacturingStepExecution;

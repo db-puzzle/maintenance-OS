@@ -35,15 +35,6 @@ return new class extends Migration
             // Child order tracking
             $table->integer('child_orders_count')->default(0);
             $table->integer('completed_child_orders_count')->default(0);
-            $table->boolean('auto_complete_on_children')->default(true);
-
-            // Hierarchical dependency fields for progressive flow
-            $table->enum('dependency_type', ['none', 'all_children_released', 'children_quantity', 'children_percentage', 'progressive'])->default('none');
-            $table->decimal('dependency_minimum_quantity', 10, 2)->nullable();
-            $table->decimal('dependency_minimum_percentage', 5, 2)->nullable();
-            $table->boolean('can_release_before_children')->default(false);
-            $table->decimal('cumulative_children_quantity_completed', 10, 2)->default(0);
-            $table->decimal('cumulative_children_quantity_required', 10, 2)->default(0);
 
             // Dates
             $table->date('requested_date')->nullable();
@@ -64,7 +55,6 @@ return new class extends Migration
             $table->index('item_id');
             $table->index('bill_of_material_id');
             $table->index('parent_id');
-            $table->index('dependency_type');
             $table->index('smart_progress_percentage');
             $table->index(['progress_calculated_at', 'smart_progress_percentage']);
         });

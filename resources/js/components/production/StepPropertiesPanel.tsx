@@ -95,6 +95,7 @@ export default function StepPropertiesPanel({
         setPreviousWorkCellsLength(workCells.length);
     }, [workCells]);
 
+
     useEffect(() => {
         if (isOpen) {
             // Show the component
@@ -139,10 +140,7 @@ export default function StepPropertiesPanel({
 
 
             <ScrollArea className="flex-1 overflow-y-auto">
-                <div className={cn(
-                    "p-4 space-y-4 transition-all duration-300 delay-100",
-                    isVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
-                )}>
+                <div className="p-4 space-y-4">
                     {/* Basic Info */}
                     <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-4">
@@ -383,6 +381,7 @@ export default function StepPropertiesPanel({
                             </div>
                         </div>
                     </div>
+
 
 
                 </div>

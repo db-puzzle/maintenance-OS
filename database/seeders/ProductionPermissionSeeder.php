@@ -21,6 +21,9 @@ class ProductionPermissionSeeder extends Seeder
             'production.orders.delete' => 'Delete manufacturing orders',
             'production.orders.release' => 'Release orders for production',
             'production.orders.cancel' => 'Cancel manufacturing orders',
+            'production.orders.reportProduction' => 'Report production on orders',
+            'production.orders.plan' => 'Plan manufacturing orders',
+            'production.orders.complete' => 'Complete manufacturing orders',
         ];
 
         // Manufacturing Routes
@@ -41,6 +44,7 @@ class ProductionPermissionSeeder extends Seeder
             'production.steps.execute' => 'Execute manufacturing steps',
             'production.steps.executeQualityCheck' => 'Execute quality checks',
             'production.steps.handleRework' => 'Handle rework decisions',
+            'production.steps.configureDependencies' => 'Configure step dependencies',
         ];
 
         // Route Templates

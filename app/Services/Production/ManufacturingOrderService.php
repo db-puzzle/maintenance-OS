@@ -303,8 +303,8 @@ class ManufacturingOrderService
                 'status' => 'released',
             ]);
 
-            // Only queue steps if execution can start
-            if ($order->canStartExecution() && $order->manufacturingRoute) {
+            // Always queue first steps when order is released
+            if ($order->manufacturingRoute) {
                 $this->queueFirstSteps($order);
             }
 
@@ -844,44 +844,8 @@ class ManufacturingOrderService
             ]);
         }
 
-        // Calculate total required quantity from children
-        $totalRequired = $parentOrder->children()
-            ->join('bom_items', 'manufacturing_orders.item_id', '=', 'bom_items.item_id')
-            ->where('bom_items.bom_version_id', $parentOrder->billOfMaterial->currentVersion->id)
-            ->sum(DB::raw('bom_items.quantity * manufacturing_orders.quantity'));
-
-        $parentOrder->update(['cumulative_children_quantity_required' => $totalRequired]);
     }
 
-    /**
-     * Update dependency configuration.
-     */
-    public function updateOrderDependency(ManufacturingOrder $order, array $data): void
-    {
-        $order->update([
-            'dependency_type' => $data['dependency_type'],
-            'dependency_minimum_quantity' => $data['dependency_minimum_quantity'] ?? null,
-            'dependency_minimum_percentage' => $data['dependency_minimum_percentage'] ?? null,
-            'can_release_before_children' => $data['can_release_before_children'] ?? false,
-        ]);
-
-        // If progressive dependencies, update individual child dependencies
-        if ($data['dependency_type'] === 'progressive' && isset($data['child_dependencies'])) {
-            foreach ($data['child_dependencies'] as $childDep) {
-                ManufacturingOrderDependency::updateOrCreate(
-                    [
-                        'parent_order_id' => $order->id,
-                        'child_order_id' => $childDep['child_order_id'],
-                    ],
-                    [
-                        'dependency_type' => $childDep['dependency_type'] ?? 'required',
-                        'minimum_quantity' => $childDep['minimum_quantity'] ?? null,
-                        'minimum_percentage' => $childDep['minimum_percentage'] ?? null,
-                    ]
-                );
-            }
-        }
-    }
 
     /**
      * Apply template to existing manufacturing order.
