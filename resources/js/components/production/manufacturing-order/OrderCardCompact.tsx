@@ -48,6 +48,13 @@ export function OrderCardCompact({
     onCancelOrder,
     onPriorityUpdateError,
 }: OrderCardCompactProps) {
+    // Track priority locally to sync with PriorityEditor after successful save
+    const [localPriority, setLocalPriority] = React.useState(order.priority || 50);
+
+    // Update local priority when order prop changes
+    React.useEffect(() => {
+        setLocalPriority(order.priority || 50);
+    }, [order.priority]);
 
     const handleClick = (e: React.MouseEvent) => {
         if (onOrderSelect && enhancedMode === 'planning') {
@@ -75,6 +82,8 @@ export function OrderCardCompact({
             only: ['manufacturingOrders'], // Only reload the manufacturing orders data
             onSuccess: () => {
                 toast.success(`Priority updated to ${newPriority}`);
+                // Update local priority to sync with PriorityEditor
+                setLocalPriority(newPriority);
             },
             onError: (errors) => {
                 console.error('Priority update errors:', errors);
@@ -170,7 +179,7 @@ export function OrderCardCompact({
                     {/* Priority Editor */}
                     {permissions.canUpdate && (
                         <PriorityEditor
-                            priority={order.priority || 50}
+                            priority={localPriority}
                             onChange={handlePriorityChange}
                             disabled={!['draft', 'planned', 'scheduled'].includes(order.status)}
                             compact={false}
