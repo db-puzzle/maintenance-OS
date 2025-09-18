@@ -93,4 +93,22 @@ class ManufacturingRoutePolicy
 
         return $user->hasPermissionTo('production.routes.create');
     }
+
+    /**
+     * Determine whether the user can export route templates.
+     */
+    public function export(User $user): bool
+    {
+        return $user->hasPermissionTo('production.templates.export')
+            || $user->hasPermissionTo('production.routes.create');
+    }
+
+    /**
+     * Determine whether the user can import route templates.
+     */
+    public function import(User $user): bool
+    {
+        return $user->hasPermissionTo('production.templates.import')
+            || $user->hasPermissionTo('production.routes.create');
+    }
 }

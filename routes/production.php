@@ -123,6 +123,9 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     });
 
     // Routing Management
+    Route::get('routing/export', [ProductionRoutingController::class, 'export'])->name('routing.export');
+    Route::get('routing/import/wizard', [ProductionRoutingController::class, 'importWizard'])->name('routing.import.wizard');
+    Route::post('routing/import', [ProductionRoutingController::class, 'import'])->name('routing.import');
     Route::resource('routing', ProductionRoutingController::class)->except(['edit']);
     // DEPRECATED: Route removed as builder functionality is no longer needed
     // Route::get('routing/{routing}/builder', [ProductionRoutingController::class, 'builder'])->name('routing.builder');

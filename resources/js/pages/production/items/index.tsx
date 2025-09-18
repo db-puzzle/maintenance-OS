@@ -261,6 +261,25 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             </div>
         )
     };
+
+    const routeTemplateColumn: ColumnConfig<Item> = {
+        key: 'route_template',
+        label: 'Template de Rota',
+        sortable: true,
+        width: 'w-[150px]',
+        render: (value: unknown, item: Item) => {
+            // Check if category has route templates based on the route_templates_count
+            const hasRouteTemplate = item.category &&
+                (item.category.has_route_template ||
+                    (item.category as any).route_templates_count > 0);
+
+            return (
+                <div className="text-sm">
+                    {hasRouteTemplate ? 'Sim' : 'Não'}
+                </div>
+            );
+        }
+    };
     const otherColumns: ColumnConfig<Item>[] = [
         // DEPRECATED: item_type column removed
         // {
@@ -292,6 +311,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                 item.primary_bom && item.can_be_manufactured ? 'Sim' : 'Não'
             )
         },
+        routeTemplateColumn,
         {
             key: 'status',
             label: 'Status',

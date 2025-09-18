@@ -1,12 +1,6 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
     HoverCard,
     HoverCardContent,
     HoverCardTrigger,
@@ -14,10 +8,15 @@ import {
 import { cn } from '@/lib/utils';
 import { formatNumber } from '@/utils/number';
 import { ManufacturingOrderTreeNode } from './types';
-import { RouteStatusIndicator } from './RouteStatusIndicator';
 import { OrderCardActions } from './OrderCardActions';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { ImageWithBlurEffect } from '@/components/production/ImageWithBlurEffect';
+import { PriorityEditor } from './PriorityEditor';
+import { router } from '@inertiajs/react';
+import { toast } from 'sonner';
+
+// Declare the global route function from Ziggy
+declare const route: (name: string, params?: string | number | Record<string, string | number>) => string;
 
 interface OrderCardCompactProps {
     order: ManufacturingOrderTreeNode;
@@ -34,6 +33,7 @@ interface OrderCardCompactProps {
     };
     onReleaseOrder: (order: ManufacturingOrderTreeNode) => void;
     onCancelOrder: (order: ManufacturingOrderTreeNode) => void;
+    onPriorityUpdateError?: () => void;
 }
 
 export function OrderCardCompact({
@@ -46,6 +46,7 @@ export function OrderCardCompact({
     permissions,
     onReleaseOrder,
     onCancelOrder,
+    onPriorityUpdateError,
 }: OrderCardCompactProps) {
 
     const handleClick = (e: React.MouseEvent) => {
@@ -55,6 +56,33 @@ export function OrderCardCompact({
         } else if (onOrderClick) {
             onOrderClick(order);
         }
+    };
+
+    const handlePriorityChange = (newPriority: number) => {
+        // Check if order can be updated
+        if (!['draft', 'planned', 'scheduled'].includes(order.status)) {
+            toast.error('Only draft, planned, or scheduled orders can be updated');
+            return;
+        }
+
+        router.patch(route('production.orders.update', order.id), {
+            priority: newPriority,
+            quantity: order.quantity,
+            unit_of_measure: order.unit_of_measure
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            only: ['manufacturingOrders'], // Only reload the manufacturing orders data
+            onSuccess: () => {
+                toast.success(`Priority updated to ${newPriority}`);
+            },
+            onError: (errors) => {
+                console.error('Priority update errors:', errors);
+                toast.error('Failed to update priority');
+                // Trigger error callback to allow parent to handle it
+                onPriorityUpdateError?.();
+            }
+        });
     };
 
     return (
@@ -137,33 +165,17 @@ export function OrderCardCompact({
                     </div>
                 </div>
 
-                {/* Right side - Route status and actions */}
+                {/* Right side - Priority, status and actions */}
                 <div className="flex items-center gap-2 shrink-0">
-                    {/* Route Status */}
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div className="flex items-center gap-1">
-                                    <RouteStatusIndicator />
-                                    <span className="text-xs text-muted-foreground select-none">
-                                        {order.manufacturing_route?.steps?.length || 0}
-                                    </span>
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <div className="text-xs select-none">
-                                    <div className="font-medium">
-                                        {order.manufacturing_route?.name || 'No route'}
-                                    </div>
-                                    {order.manufacturing_route && (
-                                        <div className="mt-1">
-                                            {order.manufacturing_route.steps?.length || 0} step{(order.manufacturing_route.steps?.length || 0) !== 1 ? 's' : ''} in route
-                                        </div>
-                                    )}
-                                </div>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                    {/* Priority Editor */}
+                    {permissions.canUpdate && (
+                        <PriorityEditor
+                            priority={order.priority || 50}
+                            onChange={handlePriorityChange}
+                            disabled={!['draft', 'planned', 'scheduled'].includes(order.status)}
+                            compact={false}
+                        />
+                    )}
 
                     {/* Status Badge */}
                     <Badge

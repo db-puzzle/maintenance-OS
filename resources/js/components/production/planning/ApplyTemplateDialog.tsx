@@ -241,7 +241,6 @@ export default function ApplyTemplateDialog({
             },
             {
                 onSuccess: () => {
-                    toast.success('Template aplicado com sucesso');
                     setIsApplying(false);
                     onOpenChange(false);
                     onTemplateApplied?.();

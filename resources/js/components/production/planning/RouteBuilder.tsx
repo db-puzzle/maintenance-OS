@@ -587,6 +587,7 @@ export default function RouteBuilder({
                         canEdit={permissions.canEditRoute}
                         viewMode={!permissions.canEditRoute}
                         parentMO={manufacturingOrder.parent || null}
+                        itemCategoryName={manufacturingOrder.item?.category?.name}
                         onParentMOClick={() => {
                             if (manufacturingOrder.parent && onParentMOClick) {
                                 onParentMOClick(manufacturingOrder.parent.id);

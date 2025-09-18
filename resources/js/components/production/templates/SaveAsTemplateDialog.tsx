@@ -36,13 +36,22 @@ export const SaveAsTemplateDialog: React.FC<SaveAsTemplateDialogProps> = ({
 
     // Generate default name from step names
     const generateDefaultName = () => {
-        if (manufacturingRoute.steps && manufacturingRoute.steps.length > 0) {
-            return manufacturingRoute.steps
-                .sort((a, b) => a.step_number - b.step_number)
-                .map(step => step.name)
+        // Check if steps are available and have valid names
+        if (manufacturingRoute.steps && Array.isArray(manufacturingRoute.steps) && manufacturingRoute.steps.length > 0) {
+            const stepNames = manufacturingRoute.steps
+                .sort((a, b) => (a.step_number || 0) - (b.step_number || 0))
+                .map(step => step.name || '')
+                .filter(name => name.trim() !== '') // Filter out empty names
                 .join(', ');
+
+            // If we have valid step names, use them
+            if (stepNames.trim()) {
+                return stepNames;
+            }
         }
-        return `Template from ${manufacturingRoute.name}`;
+
+        // Fallback to route name without "Template from" prefix
+        return manufacturingRoute.name || 'Novo Template';
     };
 
     // Generate informative description
@@ -88,12 +97,26 @@ export const SaveAsTemplateDialog: React.FC<SaveAsTemplateDialogProps> = ({
     };
 
     const form = useForm({
-        name: generateDefaultName(),
-        description: generateDefaultDescription(),
+        name: '',
+        description: '',
         item_category_id: hasCategory ? routeItem?.item_category_id : null,
         restrict_to_category: hasCategory, // Default to restricting to current category if available
         notes: ''
     });
+
+    // Set default values when dialog opens
+    React.useEffect(() => {
+        if (open) {
+            form.setData({
+                name: generateDefaultName(),
+                description: generateDefaultDescription(),
+                item_category_id: hasCategory ? routeItem?.item_category_id : null,
+                restrict_to_category: hasCategory,
+                notes: ''
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, manufacturingRoute.id]); // Re-run when dialog opens or route changes
 
     const formAdapter = createFormAdapter(form);
 

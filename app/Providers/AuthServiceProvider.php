@@ -20,6 +20,8 @@ use App\Models\Production\ManufacturingRoute;
 use App\Models\Production\QrTracking;
 use App\Models\Production\Shipment;
 use App\Models\Production\WorkCell;
+use App\Models\Production\ScheduleVersion;
+use App\Models\Production\ProductionSchedule;
 use App\Models\Skill;
 use App\Models\WorkOrders\WorkOrder;
 use App\Policies\AreaPolicy;
@@ -34,10 +36,12 @@ use App\Policies\Production\ManufacturingOrderDependencyPolicy;
 use App\Policies\Production\ManufacturingOrderFlowPolicy;
 use App\Policies\Production\ManufacturingRoutePolicy;
 use App\Policies\Production\ManufacturingStepPolicy;
-use App\Policies\Production\ProductionOrderPolicy;
+use App\Policies\Production\ManufacturingOrderPolicy;
 use App\Policies\Production\QrTrackingPolicy;
 use App\Policies\Production\ShipmentPolicy;
 use App\Policies\Production\WorkCellPolicy;
+use App\Policies\Production\ScheduleVersionPolicy;
+use App\Policies\Production\ProductionSchedulePolicy;
 use App\Policies\SectorPolicy;
 use App\Policies\SkillPolicy;
 use App\Policies\SystemPolicy;
@@ -70,7 +74,7 @@ class AuthServiceProvider extends ServiceProvider
         Certification::class => CertificationPolicy::class,
         
         // Production Module
-        ManufacturingOrder::class => ProductionOrderPolicy::class,
+        ManufacturingOrder::class => ManufacturingOrderPolicy::class,
         ManufacturingOrderDependency::class => ManufacturingOrderDependencyPolicy::class,
         ManufacturingOrderFlow::class => ManufacturingOrderFlowPolicy::class,
         ManufacturingRoute::class => ManufacturingRoutePolicy::class,
@@ -81,6 +85,8 @@ class AuthServiceProvider extends ServiceProvider
         WorkCell::class => WorkCellPolicy::class,
         QrTracking::class => QrTrackingPolicy::class,
         Shipment::class => ShipmentPolicy::class,
+        ScheduleVersion::class => ScheduleVersionPolicy::class,
+        ProductionSchedule::class => ProductionSchedulePolicy::class,
     ];
 
     /**

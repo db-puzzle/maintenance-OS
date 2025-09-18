@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Events\Scheduling;
+
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
+
+class SchedulingFailed implements ShouldBroadcast
+{
+    use Dispatchable, InteractsWithSockets, SerializesModels;
+
+    /**
+     * Create a new event instance.
+     */
+    public function __construct(
+        public string $jobId,
+        public int $scheduleVersionId,
+        public string $error,
+        public array $context
+    ) {}
+
+    /**
+     * Get the channels the event should broadcast on.
+     */
+    public function broadcastOn(): Channel
+    {
+        return new Channel("scheduling.{$this->scheduleVersionId}");
+    }
+
+    /**
+     * Get the data to broadcast.
+     */
+    public function broadcastWith(): array
+    {
+        return [
+            'jobId' => $this->jobId,
+            'scheduleVersionId' => $this->scheduleVersionId,
+            'error' => $this->error,
+            'context' => $this->context,
+            'timestamp' => now()->toIso8601String(),
+        ];
+    }
+}

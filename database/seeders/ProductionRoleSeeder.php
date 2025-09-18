@@ -86,6 +86,17 @@ class ProductionRoleSeeder extends Seeder
             'production.workcells.update',
             'production.workcells.delete',
             
+            // All scheduling permissions
+            'production.schedule.view',
+            'production.schedule.create',
+            'production.schedule.edit',
+            'production.schedule.delete',
+            'production.schedule.runAlgorithm',
+            'production.schedule.lockStep',
+            'production.schedule.resolveAlerts',
+            'production.schedule.createSnapshot',
+            'production.schedule.restoreSnapshot',
+            
             // All report permissions
             'production.reports.viewProductionMetrics',
             'production.reports.viewQualityMetrics',
@@ -130,6 +141,17 @@ class ProductionRoleSeeder extends Seeder
             'production.workcells.view',
             'production.reports.viewProductionMetrics',
             'production.reports.viewEfficiencyReports',
+            // All scheduling permissions (including publish for planner role)
+            'production.schedule.view',
+            'production.schedule.create',
+            'production.schedule.edit',
+            'production.schedule.publish',
+            'production.schedule.delete',
+            'production.schedule.runAlgorithm',
+            'production.schedule.lockStep',
+            'production.schedule.resolveAlerts',
+            'production.schedule.createSnapshot',
+            'production.schedule.restoreSnapshot',
         ]);
 
         // Shop Floor Supervisor - Supervises production execution
@@ -161,6 +183,9 @@ class ProductionRoleSeeder extends Seeder
             'production.workcells.view',
             'production.reports.viewProductionMetrics',
             'production.reports.viewQualityMetrics',
+            // View scheduling only
+            'production.schedule.view',
+            'production.schedule.resolveAlerts',
         ]);
 
         // Machine Operator - Executes manufacturing steps
@@ -177,6 +202,8 @@ class ProductionRoleSeeder extends Seeder
             'production.steps.view',
             'production.steps.execute',
             'production.workcells.view',
+            // View scheduling only
+            'production.schedule.view',
         ]);
 
         // Quality Inspector - Performs quality checks
@@ -249,6 +276,8 @@ class ProductionRoleSeeder extends Seeder
             'production.reports.viewProductionMetrics',
             'production.reports.viewQualityMetrics',
             'production.reports.viewEfficiencyReports',
+            // View scheduling only
+            'production.schedule.view',
         ]);
     }
 } 

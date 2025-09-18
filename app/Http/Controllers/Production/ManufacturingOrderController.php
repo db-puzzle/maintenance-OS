@@ -402,6 +402,11 @@ class ManufacturingOrderController extends BaseSearchController
 
         $order->update($validated);
 
+        // Handle Inertia requests differently to avoid redirects
+        if ($request->header('X-Inertia')) {
+            return back()->with('success', 'Manufacturing order updated successfully.');
+        }
+
         return redirect()->route('production.orders.show', $order)
             ->with('success', 'Manufacturing order updated successfully.');
     }
@@ -592,13 +597,13 @@ class ManufacturingOrderController extends BaseSearchController
 
             if ($request->wantsJson()) {
                 return response()->json([
-                    'message' => 'Route template applied successfully.',
-                    'redirect' => route('production.orders.show', ['order' => $order->id, 'openRouteBuilder' => 1]),
+                    'message' => 'Template de rota aplicado com sucesso.',
                 ]);
             }
 
-            return redirect()->route('production.orders.show', ['order' => $order->id, 'openRouteBuilder' => 1])
-                ->with('success', 'Route template applied successfully.');
+            // Use back() to stay on the current page (planning page)
+            return back()
+                ->with('success', 'Template de rota aplicado com sucesso.');
 
         } catch (\Exception $e) {
             if ($request->wantsJson()) {
@@ -739,7 +744,8 @@ class ManufacturingOrderController extends BaseSearchController
                 ]);
             }
 
-            return redirect()->route('production.orders.show', ['order' => $order->id, 'openRouteBuilder' => 1])
+            // Use back() to stay on the current page if it's the planning page
+            return back()
                 ->with('success', 'Route created successfully.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());

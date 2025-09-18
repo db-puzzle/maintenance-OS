@@ -8,57 +8,65 @@ use App\Models\User;
 class ProductionSchedulePolicy
 {
     /**
-     * Determine whether the user can view any production schedules.
+     * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('production.schedules.viewAny');
+        return $user->can('production.schedule.view');
     }
 
     /**
-     * Determine whether the user can view the production schedule.
+     * Determine whether the user can view the model.
      */
-    public function view(User $user, ProductionSchedule $schedule): bool
+    public function view(User $user, ProductionSchedule $productionSchedule): bool
     {
-        return $user->hasPermissionTo('production.schedules.view');
+        return $user->can('production.schedule.view');
     }
 
     /**
-     * Determine whether the user can update the production schedule.
+     * Determine whether the user can create models.
      */
-    public function update(User $user, ProductionSchedule $schedule): bool
+    public function create(User $user): bool
     {
-        // Cannot update completed or cancelled schedules
-        if (in_array($schedule->status, ['completed', 'cancelled'])) {
+        return $user->can('production.schedule.edit');
+    }
+
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(User $user, ProductionSchedule $productionSchedule): bool
+    {
+        // Can't update schedules from published versions
+        if ($productionSchedule->scheduleVersion->status === 'published') {
             return false;
         }
 
-        return $user->hasPermissionTo('production.schedules.update');
+        return $user->can('production.schedule.edit');
     }
 
     /**
-     * Determine whether the user can start the production schedule.
+     * Determine whether the user can delete the model.
      */
-    public function start(User $user, ProductionSchedule $schedule): bool
+    public function delete(User $user, ProductionSchedule $productionSchedule): bool
     {
-        // Can only start scheduled items
-        if ($schedule->status !== 'scheduled') {
+        // Can't delete schedules from published versions
+        if ($productionSchedule->scheduleVersion->status === 'published') {
             return false;
         }
 
-        return $user->hasPermissionTo('production.schedules.start');
+        return $user->can('production.schedule.edit');
     }
 
     /**
-     * Determine whether the user can complete the production schedule.
+     * Determine whether the user can lock/unlock the schedule.
      */
-    public function complete(User $user, ProductionSchedule $schedule): bool
+    public function toggleLock(User $user, ProductionSchedule $productionSchedule): bool
     {
-        // Can only complete in-progress items
-        if ($schedule->status !== 'in_progress') {
+        // Can't modify schedules from published versions
+        if ($productionSchedule->scheduleVersion->status === 'published') {
             return false;
         }
 
-        return $user->hasPermissionTo('production.schedules.complete');
+        return $user->can('production.schedule.edit');
     }
-} 
+}

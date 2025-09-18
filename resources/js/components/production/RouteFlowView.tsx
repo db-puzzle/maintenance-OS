@@ -35,6 +35,7 @@ interface RouteFlowViewProps {
     viewMode?: boolean;
     parentMO?: Pick<ManufacturingOrder, 'id' | 'order_number' | 'item'> | null;
     onParentMOClick?: () => void;
+    itemCategoryName?: string;
 }
 
 export default function RouteFlowView({
@@ -50,7 +51,8 @@ export default function RouteFlowView({
     canEdit,
     viewMode = false,
     parentMO,
-    onParentMOClick
+    onParentMOClick,
+    itemCategoryName
 }: RouteFlowViewProps) {
     // State for delete confirmation dialog
     const [stepToDelete, setStepToDelete] = useState<ExtendedManufacturingStep | null>(null);
@@ -99,7 +101,12 @@ export default function RouteFlowView({
             {/* Header */}
             <div className="border-b bg-background px-4 py-3 flex-shrink-0">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium">Fluxo de Produção</h3>
+                    <div>
+                        <h3 className="text-sm font-medium">Fluxo de Produção</h3>
+                        {itemCategoryName && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{itemCategoryName}</p>
+                        )}
+                    </div>
                     {canEdit && !viewMode && (
                         <Button
                             variant="outline"

@@ -13,6 +13,8 @@ export interface ItemCategory {
     description?: string;
     is_active: boolean;
     items_count?: number;
+    has_route_template?: boolean;
+    route_templates_count?: number;
     created_by?: number;
     createdBy?: User;
     created_at: string;
@@ -378,6 +380,7 @@ export interface ManufacturingRoute {
 export interface ManufacturingStep {
     id: number;
     manufacturing_route_id: number;
+    display_order?: number;
     step_number: number;
     step_type: 'standard' | 'quality_check' | 'rework';
     name: string;
@@ -405,24 +408,10 @@ export interface ManufacturingStep {
     dependencies?: ManufacturingStep[];
     executions?: ManufacturingStepExecution[];
     current_execution?: ManufacturingStepExecution;
-    manufacturing_route: ManufacturingRoute;
-}
-
-export interface ProductionSchedule {
-    id: number;
-    manufacturing_order_id: number;
-    manufacturing_order?: ManufacturingOrder;
-    manufacturing_step_id: number;
-    manufacturing_step?: ManufacturingStep;
-    work_cell_id: number;
-    work_cell?: WorkCell;
-    scheduled_start: string;
-    scheduled_end: string;
-    actual_start?: string;
-    actual_end?: string;
-    status: 'scheduled' | 'ready' | 'in_progress' | 'completed' | 'cancelled';
-    created_at: string;
-    updated_at: string;
+    // Scheduling fields
+    scheduled_start?: string;
+    scheduled_end?: string;
+    manufacturing_route?: ManufacturingRoute;
 }
 
 export interface ManufacturingStepExecution {

@@ -6,6 +6,9 @@ import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import CreateManufacturingRouteDialog from '@/components/production/CreateManufacturingRouteDialog';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Download, Upload, FileText } from 'lucide-react';
 
 import { ColumnConfig } from '@/types/shared';
 import { ManufacturingRoute as Routing, Item, ManufacturingOrder, ItemCategory, WorkCell } from '@/types/production';
@@ -26,6 +29,8 @@ interface Props {
     };
     can: {
         create?: boolean;
+        import?: boolean;
+        export?: boolean;
     };
     items?: Item[];
     orders?: ManufacturingOrder[];
@@ -80,6 +85,22 @@ export default function RoutingTemplatesIndex({
             });
         }
     };
+
+    const handleExport = (format: 'json' | 'csv') => {
+        const params = new URLSearchParams();
+        params.append('format', format);
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                params.append(key, String(value));
+            }
+        });
+        window.open(`${window.route('production.routing.export')}?${params.toString()}`, '_blank');
+    };
+
+    const handleImport = () => {
+        router.visit(window.route('production.routing.import.wizard'));
+    };
+
     const columns: ColumnConfig<Routing>[] = [
         {
             key: 'name',
@@ -190,6 +211,39 @@ export default function RoutingTemplatesIndex({
                 createRoute={can.create ? '#' : undefined}
                 onCreateClick={can.create ? () => setCreateDialogOpen(true) : undefined}
                 createButtonText="Novo Modelo"
+                actions={
+                    <div className="flex items-center gap-2">
+                        {can?.import && (
+                            <Button
+                                variant="outline"
+                                onClick={handleImport}
+                            >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Importar Templates
+                            </Button>
+                        )}
+                        {can?.export && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline">
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Exportar
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleExport('json')}>
+                                        <FileText className="h-4 w-4 mr-2" />
+                                        Exportar como JSON
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleExport('csv')}>
+                                        <FileText className="h-4 w-4 mr-2" />
+                                        Exportar como CSV
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                    </div>
+                }
             >
                 <div className="space-y-4">
                     <EntityDataTable

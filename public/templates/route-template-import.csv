@@ -1,0 +1,10 @@
+Template Name,Template Description,Category,Version,Is Active,Step Number,Step Name,Step Description,Step Type,Work Cell,Setup Time (Minutes),Cycle Time (Minutes),Quality Check Mode,Sampling Size
+Standard Assembly Route,Standard assembly process for electronic products,Electronics,1,Yes,1,Component Preparation,Prepare and verify all components,standard,Prep Station,15,5,every_part,0
+Standard Assembly Route,Standard assembly process for electronic products,Electronics,1,Yes,2,PCB Assembly,Mount components on PCB,standard,Assembly Cell 1,30,10,every_part,0
+Standard Assembly Route,Standard assembly process for electronic products,Electronics,1,Yes,3,Quality Inspection,Inspect assembled PCB,quality_check,QC Station,5,3,sampling,10
+Standard Assembly Route,Standard assembly process for electronic products,Electronics,1,Yes,4,Final Assembly,Complete product assembly,standard,Assembly Cell 2,20,8,every_part,0
+Standard Assembly Route,Standard assembly process for electronic products,Electronics,1,Yes,5,Testing,Functional testing of product,quality_check,Test Station,10,5,every_part,0
+Machining Route,Standard machining process for metal parts,Mechanical,1,Yes,1,Raw Material Prep,Prepare raw material for machining,standard,Prep Area,10,2,every_part,0
+Machining Route,Standard machining process for metal parts,Mechanical,1,Yes,2,CNC Machining,Machine part to specifications,standard,CNC Machine 1,45,15,every_part,0
+Machining Route,Standard machining process for metal parts,Mechanical,1,Yes,3,Deburring,Remove burrs and clean part,standard,Finishing Station,5,3,every_part,0
+Machining Route,Standard machining process for metal parts,Mechanical,1,Yes,4,Quality Check,Dimensional inspection,quality_check,CMM Station,15,10,sampling,5

@@ -34,6 +34,12 @@ class ItemCategory extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function routeTemplates(): HasMany
+    {
+        return $this->hasMany(ManufacturingRoute::class, 'item_category_id')
+            ->where('is_template', true);
+    }
+
     // Scopes
     public function scopeActive($query)
     {
@@ -55,5 +61,10 @@ class ItemCategory extends Model
     public function getActiveItemCount(): int
     {
         return $this->items()->where('is_active', true)->count();
+    }
+
+    public function hasRouteTemplate(): bool
+    {
+        return $this->routeTemplates()->where('is_active', true)->exists();
     }
 } 

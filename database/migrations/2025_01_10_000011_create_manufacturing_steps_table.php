@@ -58,6 +58,10 @@ return new class extends Migration
             $table->enum('child_order_dependency_type', ['none', 'all_children_completed', 'children_quantity'])->default('all_children_completed');
             $table->decimal('child_order_minimum_quantity', 10, 2)->nullable();
 
+            // Scheduling fields
+            $table->timestamp('scheduled_start')->nullable();
+            $table->timestamp('scheduled_end')->nullable();
+
             $table->timestamps();
 
             $table->index(['manufacturing_route_id', 'display_order']);

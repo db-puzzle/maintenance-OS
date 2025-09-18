@@ -11,6 +11,7 @@ use App\Models\Production\ManufacturingRoute;
 // RouteTemplate is deprecated - using unified ManufacturingRoute model
 use App\Models\Production\ManufacturingStep;
 use App\Models\Production\WorkCell;
+use App\Services\Production\RouteTemplateImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -18,6 +19,8 @@ use Inertia\Response;
 
 class ProductionRoutingController extends Controller
 {
+    public function __construct(private RouteTemplateImportService $importService) {}
+
     /**
      * Display a listing of production routings.
      */
@@ -49,6 +52,8 @@ class ProductionRoutingController extends Controller
             'filters' => $request->only(['search', 'is_active', 'per_page']),
             'can' => [
                 'create' => $request->user()->can('create', ManufacturingRoute::class),
+                'export' => $request->user()->can('export', ManufacturingRoute::class),
+                'import' => $request->user()->can('import', ManufacturingRoute::class),
             ],
             // Data for create dialog
             'items' => Item::where('is_active', true)->orderBy('item_number')->get(),
@@ -187,7 +192,7 @@ class ProductionRoutingController extends Controller
                     // Calculate total estimated time
                     $template->estimated_time = $template->steps()
                         ->sum(\DB::raw('COALESCE(setup_time_minutes, 0) + COALESCE(cycle_time_minutes, 0)'));
-                    
+
                     // Set usage_count to 0 since we're no longer tracking template usage
                     $template->usage_count = 0;
 
@@ -659,6 +664,249 @@ class ProductionRoutingController extends Controller
                 ->with('openRouteBuilder', true);
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to create steps from template: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export route templates to JSON or CSV.
+     */
+    public function export(Request $request)
+    {
+        $this->authorize('export', ManufacturingRoute::class);
+
+        $format = $request->input('format', 'json');
+
+        // Get filtered templates based on request parameters
+        $query = ManufacturingRoute::templates()
+            ->when($request->input('search'), function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('itemCategory', function ($query) use ($search) {
+                            $query->where('name', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->when($request->filled('is_active'), function ($query) use ($request) {
+                $query->where('is_active', $request->boolean('is_active'));
+            })
+            ->with(['itemCategory', 'createdBy', 'steps.workCell']);
+
+        $templates = $query->get();
+
+        if ($format === 'csv') {
+            return $this->exportCsv($templates);
+        }
+
+        return $this->exportJson($templates);
+    }
+
+    /**
+     * Export route templates as JSON.
+     */
+    protected function exportJson($templates)
+    {
+        $exportData = [
+            'exported_at' => now()->toIso8601String(),
+            'exported_by' => auth()->user()->name,
+            'total_templates' => $templates->count(),
+            'templates' => $templates->map(function ($template) {
+                return [
+                    'name' => $template->name,
+                    'description' => $template->description,
+                    'item_category_name' => $template->itemCategory?->name,
+                    'version' => $template->version,
+                    'is_active' => $template->is_active,
+                    'is_latest_for_category' => $template->is_latest_for_category,
+                    'template_metadata' => $template->template_metadata,
+                    'steps' => $template->steps->map(function ($step) {
+                        return [
+                            'step_number' => $step->step_number,
+                            'name' => $step->name,
+                            'description' => $step->description,
+                            'step_type' => $step->step_type,
+                            'work_cell_name' => $step->workCell?->name,
+                            'setup_time_minutes' => $step->setup_time_minutes,
+                            'cycle_time_minutes' => $step->cycle_time_minutes,
+                            'quality_check_mode' => $step->quality_check_mode,
+                            'sampling_size' => $step->sampling_size,
+                            'form_id' => $step->form_id,
+                        ];
+                    }),
+                ];
+            }),
+        ];
+
+        $jsonContent = json_encode($exportData, JSON_PRETTY_PRINT);
+
+        return response($jsonContent)
+            ->header('Content-Type', 'application/json')
+            ->header('Content-Disposition', 'attachment; filename="route-templates-' . date('Y-m-d') . '.json"');
+    }
+
+    /**
+     * Export route templates as CSV.
+     */
+    protected function exportCsv($templates)
+    {
+        $headers = [
+            'Template Name',
+            'Template Description',
+            'Category',
+            'Version',
+            'Is Active',
+            'Step Number',
+            'Step Name',
+            'Step Description',
+            'Step Type',
+            'Work Cell',
+            'Setup Time (Minutes)',
+            'Cycle Time (Minutes)',
+            'Quality Check Mode',
+            'Sampling Size',
+        ];
+
+        $csv = fopen('php://temp', 'r+');
+        fputcsv($csv, $headers);
+
+        foreach ($templates as $template) {
+            // If template has no steps, still export the template info
+            if ($template->steps->isEmpty()) {
+                fputcsv($csv, [
+                    $template->name,
+                    $template->description,
+                    $template->itemCategory?->name,
+                    $template->version,
+                    $template->is_active ? 'Yes' : 'No',
+                    '', // Step Number
+                    '', // Step Name
+                    '', // Step Description
+                    '', // Step Type
+                    '', // Work Cell
+                    '', // Setup Time
+                    '', // Cycle Time
+                    '', // Quality Check Mode
+                    '', // Sampling Size
+                ]);
+            } else {
+                // Export each step with template info
+                foreach ($template->steps as $step) {
+                    fputcsv($csv, [
+                        $template->name,
+                        $template->description,
+                        $template->itemCategory?->name,
+                        $template->version,
+                        $template->is_active ? 'Yes' : 'No',
+                        $step->step_number,
+                        $step->name,
+                        $step->description,
+                        $step->step_type,
+                        $step->workCell?->name,
+                        $step->setup_time_minutes,
+                        $step->cycle_time_minutes,
+                        $step->quality_check_mode,
+                        $step->sampling_size,
+                    ]);
+                }
+            }
+        }
+
+        rewind($csv);
+        $output = stream_get_contents($csv);
+        fclose($csv);
+
+        return response($output)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="route-templates-' . date('Y-m-d') . '.csv"');
+    }
+
+    /**
+     * Show import wizard.
+     */
+    public function importWizard(): Response
+    {
+        $this->authorize('import', ManufacturingRoute::class);
+
+        $categories = ItemCategory::active()->orderBy('name')->get();
+        $workCells = WorkCell::active()->orderBy('name')->get();
+
+        return Inertia::render('production/routing/import', [
+            'categories' => $categories,
+            'workCells' => $workCells,
+            'supportedFormats' => ['csv', 'txt', 'json'],
+            'csvHeaders' => [
+                'template_name' => 'Template Name',
+                'template_description' => 'Template Description',
+                'item_category_name' => 'Category',
+                'version' => 'Version',
+                'is_active' => 'Is Active',
+                'step_number' => 'Step Number',
+                'name' => 'Step Name',
+                'description' => 'Step Description',
+                'step_type' => 'Step Type',
+                'work_cell_name' => 'Work Cell',
+                'setup_time_minutes' => 'Setup Time (Minutes)',
+                'cycle_time_minutes' => 'Cycle Time (Minutes)',
+                'quality_check_mode' => 'Quality Check Mode',
+                'sampling_size' => 'Sampling Size',
+            ],
+        ]);
+    }
+
+    /**
+     * Import route templates from file.
+     */
+    public function import(Request $request)
+    {
+        $this->authorize('import', ManufacturingRoute::class);
+
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt,json',
+            'mapping' => 'nullable|array',
+            'update_existing' => 'boolean',
+        ]);
+
+        try {
+            $file = $request->file('file');
+            $extension = $file->getClientOriginalExtension();
+
+            $updateExisting = $request->input('update_existing', true);
+
+            if ($extension === 'json') {
+                // Handle JSON import
+                $data = json_decode(file_get_contents($file->getRealPath()), true);
+                $result = $this->importService->importFromNativeJson($data, $updateExisting);
+            } else {
+                // Handle CSV import
+                $mapping = $request->input('mapping', []);
+                // Handle both array (from Inertia) and JSON string formats
+                if (is_string($mapping)) {
+                    $mapping = json_decode($mapping, true) ?? [];
+                }
+                $result = $this->importService->importFromCsv($file, $mapping, $updateExisting);
+            }
+
+            $message = "Successfully imported {$result['count']} route templates.";
+
+            if (isset($result['skipped']) && $result['skipped'] > 0) {
+                $message .= " {$result['skipped']} templates were skipped (already exist).";
+            }
+
+            // Add warning about created work cells
+            if (! empty($result['created_work_cells'])) {
+                $workCellNames = implode(', ', $result['created_work_cells']);
+                $message .= " Warning: The following work cells were created with default settings and need configuration: {$workCellNames}";
+            }
+
+            if (count($result['errors']) > 0) {
+                return back()->with('warning', $message)
+                    ->withErrors($result['errors']);
+            }
+
+            return redirect()->route('production.routing.index')
+                ->with('success', $message);
+        } catch (\Exception $e) {
+            return back()->withErrors(['file' => 'Import failed: ' . $e->getMessage()]);
         }
     }
 }

@@ -55,6 +55,8 @@ class ProductionPermissionSeeder extends Seeder
             'production.templates.update' => 'Update route templates',
             'production.templates.delete' => 'Delete route templates',
             'production.templates.duplicate' => 'Duplicate route templates',
+            'production.templates.export' => 'Export route templates',
+            'production.templates.import' => 'Import route templates',
         ];
 
         // Items and BOMs
@@ -92,6 +94,20 @@ class ProductionPermissionSeeder extends Seeder
             'production.shipments.markDelivered' => 'Mark shipments as delivered',
         ];
 
+        // Scheduling
+        $schedulingPermissions = [
+            'production.schedule.view' => 'View production schedules',
+            'production.schedule.create' => 'Create draft schedules',
+            'production.schedule.edit' => 'Edit draft schedules',
+            'production.schedule.publish' => 'Publish schedules',
+            'production.schedule.delete' => 'Delete draft schedules',
+            'production.schedule.runAlgorithm' => 'Run scheduling algorithms',
+            'production.schedule.lockStep' => 'Lock/unlock schedule steps',
+            'production.schedule.resolveAlerts' => 'Resolve scheduling alerts',
+            'production.schedule.createSnapshot' => 'Create schedule snapshots',
+            'production.schedule.restoreSnapshot' => 'Restore from snapshots',
+        ];
+
         // Work Cells
         $workCellPermissions = [
             'production.workcells.viewAny' => 'View all work cells',
@@ -118,6 +134,7 @@ class ProductionPermissionSeeder extends Seeder
             $itemPermissions,
             $qualityPermissions,
             $shipmentPermissions,
+            $schedulingPermissions,
             $workCellPermissions,
             $reportPermissions
         );
@@ -132,4 +149,4 @@ class ProductionPermissionSeeder extends Seeder
             );
         }
     }
-} 
+}

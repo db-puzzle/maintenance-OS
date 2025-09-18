@@ -114,7 +114,7 @@ class PlanningController extends Controller
         }
 
         // Get route templates (routes where is_template = true)
-        $routeTemplates = ManufacturingRoute::with(['steps', 'createdBy'])
+        $routeTemplates = ManufacturingRoute::with(['steps', 'createdBy', 'itemCategory'])
             ->where('is_template', true)
             ->orderBy('created_at', 'desc')
             ->get()
@@ -124,6 +124,7 @@ class PlanningController extends Controller
                     'name' => $template->name,
                     'description' => $template->description,
                     'category' => 'Custom',
+                    'item_category' => $template->itemCategory ? $template->itemCategory->name : null,
                     'steps' => $template->steps,
                     'usage_count' => 0, // TODO: Track usage
                     'last_used_at' => null,

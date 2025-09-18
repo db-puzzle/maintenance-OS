@@ -37,6 +37,7 @@ class ItemController extends BaseSearchController
             'status' => 'status',
             'capabilities' => 'capabilities', // This will need custom sorting logic
             'primary_bom' => 'primary_bom', // This will need custom sorting logic
+            'route_template' => 'route_template', // This will need custom sorting logic
         ];
 
         // Get sort parameters
@@ -69,7 +70,11 @@ class ItemController extends BaseSearchController
                     $query->where('can_be_manufactured', true);
                 }
             })
-            ->with(['category', 'createdBy', 'primaryImage', 'primaryBom'])
+            ->with(['category' => function ($query) {
+                $query->withCount(['routeTemplates' => function ($q) {
+                    $q->where('is_active', true);
+                }]);
+            }, 'createdBy', 'primaryImage', 'primaryBom'])
             ->withCount('images');
 
         // Apply custom sorting logic
@@ -92,6 +97,22 @@ class ItemController extends BaseSearchController
                     ELSE 0 
                 END $sortDirection
             ");
+        } elseif ($sortBy === 'route_template') {
+            // Sort by whether item's category has route templates
+            // We need to join with categories and check if they have active route templates
+            $query->leftJoin('item_categories', 'items.item_category_id', '=', 'item_categories.id')
+                ->orderByRaw("
+                    CASE 
+                        WHEN EXISTS (
+                            SELECT 1 FROM manufacturing_routes 
+                            WHERE manufacturing_routes.item_category_id = item_categories.id 
+                            AND manufacturing_routes.is_template = true
+                            AND manufacturing_routes.is_active = true
+                        ) THEN 1 
+                        ELSE 0 
+                    END $sortDirection
+                ")
+                ->select('items.*'); // Ensure we only select items columns
         } else {
             // Default sorting
             $query->orderBy($sortColumn, $sortDirection);
@@ -100,7 +121,18 @@ class ItemController extends BaseSearchController
         $items = $query->paginate($request->input('per_page', 10))
             ->withQueryString();
 
-        $categories = ItemCategory::active()->orderBy('name')->get();
+        $categories = ItemCategory::active()->orderBy('name')->get()->map(function ($category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'description' => $category->description,
+                'is_active' => $category->is_active,
+                'items_count' => $category->items_count ?? 0,
+                'has_route_template' => $category->hasRouteTemplate(),
+                'created_at' => $category->created_at,
+                'updated_at' => $category->updated_at,
+            ];
+        });
 
         return Inertia::render('production/items/index', [
             'items' => $items,
@@ -118,7 +150,18 @@ class ItemController extends BaseSearchController
     {
         $this->authorize('create', Item::class);
 
-        $categories = ItemCategory::active()->orderBy('name')->get();
+        $categories = ItemCategory::active()->orderBy('name')->get()->map(function ($category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'description' => $category->description,
+                'is_active' => $category->is_active,
+                'items_count' => $category->items_count ?? 0,
+                'has_route_template' => $category->hasRouteTemplate(),
+                'created_at' => $category->created_at,
+                'updated_at' => $category->updated_at,
+            ];
+        });
 
         return Inertia::render('production/items/show', [
             'categories' => $categories,
@@ -226,7 +269,18 @@ class ItemController extends BaseSearchController
             ->withQueryString();
 
         // Load categories for the form
-        $categories = ItemCategory::active()->orderBy('name')->get();
+        $categories = ItemCategory::active()->orderBy('name')->get()->map(function ($category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'description' => $category->description,
+                'is_active' => $category->is_active,
+                'items_count' => $category->items_count ?? 0,
+                'has_route_template' => $category->hasRouteTemplate(),
+                'created_at' => $category->created_at,
+                'updated_at' => $category->updated_at,
+            ];
+        });
 
         return Inertia::render('production/items/show', [
             'item' => $item,
@@ -246,7 +300,18 @@ class ItemController extends BaseSearchController
     {
         $this->authorize('update', $item);
 
-        $categories = ItemCategory::active()->orderBy('name')->get();
+        $categories = ItemCategory::active()->orderBy('name')->get()->map(function ($category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'description' => $category->description,
+                'is_active' => $category->is_active,
+                'items_count' => $category->items_count ?? 0,
+                'has_route_template' => $category->hasRouteTemplate(),
+                'created_at' => $category->created_at,
+                'updated_at' => $category->updated_at,
+            ];
+        });
 
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
@@ -470,7 +535,18 @@ class ItemController extends BaseSearchController
     {
         $this->authorize('import', Item::class);
 
-        $categories = ItemCategory::active()->orderBy('name')->get();
+        $categories = ItemCategory::active()->orderBy('name')->get()->map(function ($category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'description' => $category->description,
+                'is_active' => $category->is_active,
+                'items_count' => $category->items_count ?? 0,
+                'has_route_template' => $category->hasRouteTemplate(),
+                'created_at' => $category->created_at,
+                'updated_at' => $category->updated_at,
+            ];
+        });
 
         return Inertia::render('production/items/import', [
             'categories' => $categories,

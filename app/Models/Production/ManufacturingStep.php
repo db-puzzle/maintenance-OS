@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Production\ProductionSchedule;
 
 class ManufacturingStep extends Model
 {
@@ -93,6 +94,9 @@ class ManufacturingStep extends Model
         // Child order dependency fields
         'child_order_dependency_type',
         'child_order_minimum_quantity',
+        // Scheduling fields
+        'scheduled_start',
+        'scheduled_end',
     ];
 
     protected $casts = [
@@ -111,6 +115,9 @@ class ManufacturingStep extends Model
         // Child order dependency casts
         'child_order_dependency_type' => 'string',
         'child_order_minimum_quantity' => 'decimal:2',
+        // Scheduling casts
+        'scheduled_start' => 'datetime',
+        'scheduled_end' => 'datetime',
     ];
 
     /**
@@ -203,6 +210,14 @@ class ManufacturingStep extends Model
     public function executions(): HasMany
     {
         return $this->hasMany(ManufacturingStepExecution::class);
+    }
+
+    /**
+     * Get the production schedules for this step.
+     */
+    public function productionSchedules(): HasMany
+    {
+        return $this->hasMany(ProductionSchedule::class);
     }
 
     /**
