@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     Package,
@@ -8,6 +8,7 @@ import {
     XCircle,
     Eye,
     List,
+    RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -55,6 +56,10 @@ export interface ManufacturingOrderTreeNode extends ManufacturingOrder, GenericT
     [key: string]: unknown; // Index signature for GenericTreeNode compatibility
 }
 
+// Sorting types
+type SortField = 'priority' | 'order_number';
+type SortDirection = 'asc' | 'desc';
+
 interface ManufacturingOrderHierarchicalViewProps {
     orders: ManufacturingOrderTreeNode[];
     showActions?: boolean;
@@ -92,6 +97,12 @@ export default function ManufacturingOrderHierarchicalView({
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [selectedOrderForAction, setSelectedOrderForAction] = useState<ManufacturingOrderTreeNode | null>(null);
 
+    // Sorting state
+    const [sortField, setSortField] = useState<SortField>('priority');
+    const [sortDirection, setSortDirection] = useState<SortDirection>('desc'); // Higher priority first by default
+    const [hasUnsortedChanges, setHasUnsortedChanges] = useState(false);
+    const [lastSortTimestamp, setLastSortTimestamp] = useState(Date.now());
+
     // Use tree expansion hook
     const {
         expanded,
@@ -106,6 +117,64 @@ export default function ManufacturingOrderHierarchicalView({
     const canCancelOrders = userPermissions.includes('production.orders.cancel');
     const canUpdateOrders = userPermissions.includes('production.orders.update');
     const canDeleteOrders = userPermissions.includes('production.orders.delete');
+
+    // Sorting function that preserves hierarchy
+    const sortOrders = useCallback((orderList: ManufacturingOrderTreeNode[]): ManufacturingOrderTreeNode[] => {
+        const sortedList = [...orderList].sort((a, b) => {
+            let comparison = 0;
+
+            if (sortField === 'priority') {
+                comparison = a.priority - b.priority;
+            } else if (sortField === 'order_number') {
+                comparison = a.order_number.localeCompare(b.order_number);
+            }
+
+            return sortDirection === 'asc' ? comparison : -comparison;
+        });
+
+        // Recursively sort children
+        return sortedList.map(order => ({
+            ...order,
+            children: order.children ? sortOrders(order.children) : undefined
+        }));
+    }, [sortField, sortDirection]);
+
+    // Store the initial orders when component mounts or when sort is applied
+    const [sortedOrdersSnapshot, setSortedOrdersSnapshot] = useState<ManufacturingOrderTreeNode[]>(() => sortOrders(orders));
+
+    // Apply sorting only when explicitly triggered
+    useEffect(() => {
+        setSortedOrdersSnapshot(sortOrders(orders));
+        setHasUnsortedChanges(false);
+    }, [sortField, sortDirection, lastSortTimestamp]); // Deliberately exclude orders and sortOrders
+
+    // Track changes to orders that might affect sorting
+    useEffect(() => {
+        // When orders change, check if we need to indicate unsorted changes
+        // This will be triggered when priorities are updated
+        // Don't re-sort automatically, just indicate that changes exist
+        setHasUnsortedChanges(true);
+    }, [orders]);
+
+    // Sorting handlers
+    const handleSortChange = (field: SortField) => {
+        if (field === sortField) {
+            // Toggle direction if same field
+            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            // Set new field with default direction
+            setSortField(field);
+            setSortDirection(field === 'priority' ? 'desc' : 'asc');
+        }
+        setLastSortTimestamp(Date.now());
+        setHasUnsortedChanges(false);
+    };
+
+    const handleRefreshSort = () => {
+        setLastSortTimestamp(Date.now());
+        setHasUnsortedChanges(false);
+        toast.success('Sort order refreshed');
+    };
 
     // Handlers
     const handleTemplateSelect = (templateId: number) => {
@@ -234,7 +303,7 @@ export default function ManufacturingOrderHierarchicalView({
             >
                 <div className={cn(
                     "grid gap-2 items-center w-full",
-                    showImages ? "grid-cols-[60px_3fr_3fr_1fr_1fr_2fr_1fr_1fr]" : "grid-cols-12"
+                    showImages ? "grid-cols-[60px_3fr_3fr_1fr_1fr_1fr_2fr_1fr_1fr]" : "grid-cols-[3fr_3fr_1fr_1fr_1fr_2fr_1fr_1fr]"
                 )}>
                     {/* Image */}
                     {showImages && (
@@ -283,8 +352,18 @@ export default function ManufacturingOrderHierarchicalView({
                     </div>
 
                     {/* Unit of Measure */}
-                    <div className={!showImages ? "col-span-1" : ""}>
+                    <div className={!showImages ? "" : ""}>
                         <div className="text-sm text-muted-foreground">{node.unit_of_measure}</div>
+                    </div>
+
+                    {/* Priority */}
+                    <div className="text-center">
+                        <Badge
+                            variant={node.priority <= 3 ? "destructive" : node.priority <= 6 ? "default" : "secondary"}
+                            className="min-w-[2rem]"
+                        >
+                            {node.priority}
+                        </Badge>
                     </div>
 
                     {/* Route Name */}
@@ -467,16 +546,17 @@ export default function ManufacturingOrderHierarchicalView({
     ) : (
         <div className={cn(
             "bg-muted/50 dark:bg-muted/20 p-3 rounded-lg grid gap-2 font-semibold text-sm mb-2 min-w-[640px]",
-            showImages ? "grid-cols-[60px_3fr_3fr_1fr_1fr_2fr_1fr_1fr]" : "grid-cols-12"
+            showImages ? "grid-cols-[60px_3fr_3fr_1fr_1fr_1fr_2fr_1fr_1fr]" : "grid-cols-[3fr_3fr_1fr_1fr_1fr_2fr_1fr_1fr]"
         )}>
             {showImages && <div className="text-center">Imagem</div>}
-            <div className={showImages ? "" : "col-span-3"}>Order Number</div>
-            <div className={showImages ? "" : "col-span-3"}>Item</div>
-            <div className={cn("text-right", !showImages && "col-span-1")}>Qty</div>
-            <div className={!showImages ? "col-span-1" : ""}>Unit</div>
-            <div className={cn("text-center", !showImages && "col-span-2")}>Route Name</div>
-            <div className={cn("text-center", !showImages && "col-span-1")}>Status</div>
-            <div className={cn("text-center", !showImages && "col-span-1")}>Actions</div>
+            <div className={showImages ? "" : ""}>Order Number</div>
+            <div className={showImages ? "" : ""}>Item</div>
+            <div className={cn("text-right", !showImages && "")}>Qty</div>
+            <div className="">Unit</div>
+            <div className="text-center">Priority</div>
+            <div className={cn("text-center", !showImages && "")}>Route Name</div>
+            <div className={cn("text-center", !showImages && "")}>Status</div>
+            <div className={cn("text-center", !showImages && "")}>Actions</div>
         </div>
     );
 
@@ -504,6 +584,88 @@ export default function ManufacturingOrderHierarchicalView({
 
     const totalOrdersCount = countAllOrders(orders);
 
+    // Sorting controls component
+    const sortingControls = (
+        <div className="flex items-center gap-1">
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                            "h-8 gap-1",
+                            compactMode && "h-7 text-xs"
+                        )}
+                    >
+                        <span>
+                            {sortField === 'priority' ? 'Priority' : 'Order Number'}
+                            {' '}
+                            {sortDirection === 'asc' ? '↑' : '↓'}
+                        </span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
+                        Sort by
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleSortChange('priority')}>
+                        <span className={cn(sortField === 'priority' && "font-semibold")}>
+                            Priority
+                        </span>
+                        {sortField === 'priority' && (
+                            <span className="ml-auto text-xs">
+                                {sortDirection === 'desc' ? 'High → Low' : 'Low → High'}
+                            </span>
+                        )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleSortChange('order_number')}>
+                        <span className={cn(sortField === 'order_number' && "font-semibold")}>
+                            Order Number
+                        </span>
+                        {sortField === 'order_number' && (
+                            <span className="ml-auto text-xs">
+                                {sortDirection === 'asc' ? 'A → Z' : 'Z → A'}
+                            </span>
+                        )}
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className={cn(
+                                "h-8 w-8 relative",
+                                compactMode && "h-7 w-7"
+                            )}
+                            onClick={handleRefreshSort}
+                        >
+                            <RefreshCw className={cn(
+                                "h-3.5 w-3.5",
+                                compactMode && "h-3 w-3"
+                            )} />
+                            {hasUnsortedChanges && (
+                                <span className="absolute -top-1 -right-1 h-2 w-2 bg-destructive rounded-full" />
+                            )}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>
+                            {hasUnsortedChanges
+                                ? "Priority changes detected. Click to re-apply sort."
+                                : "Refresh sort order"
+                            }
+                        </p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        </div>
+    );
+
     return (
         <div className={cn(
             "flex flex-col",
@@ -523,6 +685,7 @@ export default function ManufacturingOrderHierarchicalView({
                     onToggleImages={setShowImages}
                     showLevelControls={maxDepth > 0}
                     compact={compactMode}
+                    actions={sortingControls}
                 />
             </div>
 
@@ -531,7 +694,7 @@ export default function ManufacturingOrderHierarchicalView({
                 compactMode ? "pb-8" : "px-6 pb-8 lg:px-8"
             )}>
                 <GenericHierarchicalTreeView
-                    data={orders}
+                    data={sortedOrdersSnapshot}
                     renderNode={renderOrderNode}
                     headerColumns={headerColumns}
                     emptyState={emptyState}

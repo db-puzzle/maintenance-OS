@@ -63,7 +63,7 @@ export function PriorityEditor({
         // Set a new timer
         debounceTimerRef.current = setTimeout(() => {
             onChange(newValue);
-        }, 500); // 500ms delay
+        }, 800); // 500ms delay
     }, [onChange]);
 
     const handleIncrement = (amount: number) => {
