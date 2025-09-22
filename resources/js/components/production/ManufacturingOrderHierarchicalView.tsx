@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     Package,
@@ -88,6 +88,15 @@ export default function ManufacturingOrderHierarchicalView({
     const { props } = usePage<{ auth: { permissions?: string[] } }>();
     const auth = props.auth;
     const userPermissions = auth?.permissions || [];
+
+    // Debug logging
+    useEffect(() => {
+        console.log('ManufacturingOrderHierarchicalView - Orders updated:', {
+            ordersCount: orders.length,
+            orders: orders.map(o => ({ id: o.id, number: o.order_number, status: o.status })),
+            selectedOrders: Array.from(selectedOrders)
+        });
+    }, [orders, selectedOrders]);
 
     // State
     const [showImages, setShowImages] = useState(externalShowThumbnails !== undefined ? externalShowThumbnails : false);

@@ -7,6 +7,9 @@ Route::middleware(['auth', 'web'])->prefix('production/scheduler')->group(functi
     // Main scheduler interface
     Route::get('/', [SchedulingController::class, 'index'])->name('production.scheduler.index');
     
+    // New scheduler interface (v2)
+    Route::get('v2', [SchedulingController::class, 'indexV2'])->name('production.scheduler.index-v2');
+    
     // Scheduling operations
     Route::post('/run', [SchedulingController::class, 'runScheduler'])->name('production.scheduler.run');
     Route::get('/versions/{version}/progress', [SchedulingController::class, 'getSchedulingProgress'])->name('production.scheduler.progress');

@@ -28,9 +28,26 @@ class SchedulingController extends Controller
     }
 
     /**
+     * Display the scheduling interface v2 (Bryntum-style).
+     */
+    public function indexV2(Request $request)
+    {
+        // Use the same logic as index but return a different view
+        return $this->prepareSchedulerData($request, 'production/scheduler-v2/index');
+    }
+
+    /**
      * Display the scheduling interface.
      */
     public function index(Request $request)
+    {
+        return $this->prepareSchedulerData($request, 'production/scheduler/index');
+    }
+
+    /**
+     * Prepare scheduler data for both v1 and v2 interfaces.
+     */
+    private function prepareSchedulerData(Request $request, string $viewName)
     {
         $this->authorize('viewAny', ScheduleVersion::class);
 
@@ -86,7 +103,7 @@ class SchedulingController extends Controller
             })
             ->get();
 
-        return Inertia::render('production/scheduler/index', [
+        return Inertia::render($viewName, [
             'currentVersion' => $currentVersion,
             'publishedVersion' => $publishedVersion,
             'orders' => $orders,

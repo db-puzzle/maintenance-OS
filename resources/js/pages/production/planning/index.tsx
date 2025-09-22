@@ -106,6 +106,15 @@ export default function PlanningPage({
     selectedMO,
     permissions
 }: PlanningPageProps) {
+    // Debug initial props and re-renders
+    useEffect(() => {
+        console.log('PlanningPage - Props updated:', {
+            manufacturingOrdersCount: manufacturingOrders.length,
+            manufacturingOrders: manufacturingOrders.map(o => ({ id: o.id, order_number: o.order_number, status: o.status })),
+            selectedMO,
+            timestamp: new Date().toISOString()
+        });
+    }, [manufacturingOrders]);
 
 
     // State management
@@ -177,7 +186,13 @@ export default function PlanningPage({
     // Active MO details
     const activeMODetails = useMemo(() => {
         if (!activeMO) return null;
-        return findMOInHierarchy(manufacturingOrders, activeMO);
+        const found = findMOInHierarchy(manufacturingOrders, activeMO);
+        console.log('activeMODetails - computed:', {
+            activeMOId: activeMO,
+            found: found,
+            status: found?.status
+        });
+        return found;
     }, [activeMO, manufacturingOrders, findMOInHierarchy]);
 
     // Handle marking as planned/draft
@@ -191,17 +206,43 @@ export default function PlanningPage({
         const targetState = activeMODetails?.status === 'planned' ? 'draft' : 'planned';
         const actionText = targetState === 'planned' ? 'marked as planned' : 'reverted to draft';
 
+        console.log('handleToggleStatus - Before transition:', {
+            selectedMOs: Array.from(selectedMOs),
+            currentStatus: activeMODetails?.status,
+            targetState,
+            activeMOId: activeMO,
+            activeMODetails
+        });
+
+        // Store current selection and active MO before the request
+        const currentSelectedMOs = new Set(selectedMOs);
+        const currentActiveMO = activeMO;
+
         router.post(route('production.planning.orders.bulk-transition'), {
             orderIds: Array.from(selectedMOs),
             targetState: targetState,
         }, {
-            onSuccess: () => {
+            onSuccess: (page) => {
+                console.log('handleToggleStatus - Success:', {
+                    pageProps: page.props,
+                    manufacturingOrders: page.props.manufacturingOrders,
+                    selectedMOs: Array.from(selectedMOs)
+                });
                 toast.success(`${selectedMOs.size} manufacturing order${selectedMOs.size > 1 ? 's have' : ' has'} been ${actionText}.`);
-                // Keep the selection active - don't clear it
-                // setSelectedMOs(new Set());
+
+                // Restore selection after the update
+                setSelectedMOs(currentSelectedMOs);
+                setActiveMO(currentActiveMO);
             },
-            preserveState: true,
+            onError: (errors) => {
+                console.error('handleToggleStatus - Error:', errors);
+            },
+            onFinish: () => {
+                console.log('handleToggleStatus - Finished');
+            },
+            preserveState: false, // Don't preserve state, we'll manage it manually
             preserveScroll: true,
+            only: ['manufacturingOrders'], // Only reload the manufacturing orders data
         });
     }, [selectedMOs, activeMODetails]);
 

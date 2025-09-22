@@ -19,16 +19,15 @@ class ManufacturingRouteObserver
             $order->update(['auto_complete_on_children' => false]);
 
             // Log this change
-            // TODO: Add activity logging when spatie/laravel-activitylog is installed
-            // activity()
-            //     ->performedOn($order)
-            //     ->causedBy(auth()->user())
-            //     ->withProperties([
-            //         'reason' => 'Route added - auto-completion disabled',
-            //         'previous_value' => true,
-            //         'new_value' => false,
-            //     ])
-            //     ->log('Auto-completion disabled due to route creation');
+            activity()
+                ->performedOn($order)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'reason' => 'Route added - auto-completion disabled',
+                    'previous_value' => true,
+                    'new_value' => false,
+                ])
+                ->log('Auto-completion disabled due to route creation');
         }
     }
 }

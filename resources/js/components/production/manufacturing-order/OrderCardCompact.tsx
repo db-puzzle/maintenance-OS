@@ -51,6 +51,16 @@ export function OrderCardCompact({
     // Track priority locally to sync with PriorityEditor after successful save
     const [localPriority, setLocalPriority] = React.useState(order.priority || 50);
 
+    // Debug logging
+    React.useEffect(() => {
+        console.log('OrderCardCompact - Order updated:', {
+            orderId: order.id,
+            orderNumber: order.order_number,
+            status: order.status,
+            priority: order.priority
+        });
+    }, [order]);
+
     // Update local priority when order prop changes
     React.useEffect(() => {
         setLocalPriority(order.priority || 50);
