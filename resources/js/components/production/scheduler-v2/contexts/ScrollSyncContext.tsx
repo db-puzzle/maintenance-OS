@@ -17,14 +17,6 @@ interface ScrollSyncContextValue {
 
 const ScrollSyncContext = createContext<ScrollSyncContextValue | null>(null);
 
-export const useScrollSync = () => {
-    const context = useContext(ScrollSyncContext);
-    if (!context) {
-        throw new Error('useScrollSync must be used within a ScrollSyncProvider');
-    }
-    return context;
-};
-
 interface ScrollSyncProviderProps {
     children: ReactNode;
 }
@@ -33,9 +25,9 @@ export const ScrollSyncProvider: React.FC<ScrollSyncProviderProps> = ({ children
     const scrollContainers = useRef<Map<string, HTMLElement>>(new Map());
     const scrollPosition = useRef<ScrollPosition>({
         x: 0,
-        y: { gantt: 0, scheduler: 0 },
+        y: { gantt: 0, scheduler: 0 }
     });
-    const isUpdating = useRef(false);
+    const isSyncing = useRef<Set<string>>(new Set());
 
     const registerScrollContainer = useCallback((id: string, element: HTMLElement) => {
         scrollContainers.current.set(id, element);
@@ -46,72 +38,58 @@ export const ScrollSyncProvider: React.FC<ScrollSyncProviderProps> = ({ children
     }, []);
 
     const syncScroll = useCallback((source: string, axis: 'x' | 'y', value: number) => {
-        if (isUpdating.current) return;
+        // Prevent recursive syncing
+        if (isSyncing.current.has(source)) return;
 
-        isUpdating.current = true;
+        isSyncing.current.add(source);
 
-        try {
+        requestAnimationFrame(() => {
+            const containers = scrollContainers.current;
+
             if (axis === 'x') {
-                // Horizontal scroll syncs between timelines
+                // Horizontal scroll - sync between timelines only
                 scrollPosition.current.x = value;
 
-                // Update gantt timeline
                 if (source !== 'gantt-timeline') {
-                    const ganttTimeline = scrollContainers.current.get('gantt-timeline');
-                    if (ganttTimeline) {
-                        ganttTimeline.scrollLeft = value;
-                    }
+                    const ganttTimeline = containers.get('gantt-timeline');
+                    if (ganttTimeline) ganttTimeline.scrollLeft = value;
                 }
 
-                // Update scheduler timeline
                 if (source !== 'scheduler-timeline') {
-                    const schedulerTimeline = scrollContainers.current.get('scheduler-timeline');
-                    if (schedulerTimeline) {
-                        schedulerTimeline.scrollLeft = value;
-                    }
+                    const schedulerTimeline = containers.get('scheduler-timeline');
+                    if (schedulerTimeline) schedulerTimeline.scrollLeft = value;
                 }
             } else if (axis === 'y') {
-                // Vertical scroll syncs within each view
+                // Vertical scroll - sync within each view
                 if (source === 'gantt-grid' || source === 'gantt-timeline') {
                     scrollPosition.current.y.gantt = value;
 
-                    // Sync gantt grid and timeline vertical scroll
                     if (source !== 'gantt-grid') {
-                        const ganttGrid = scrollContainers.current.get('gantt-grid');
-                        if (ganttGrid) {
-                            ganttGrid.scrollTop = value;
-                        }
+                        const ganttGrid = containers.get('gantt-grid');
+                        if (ganttGrid) ganttGrid.scrollTop = value;
                     }
+
                     if (source !== 'gantt-timeline') {
-                        const ganttTimeline = scrollContainers.current.get('gantt-timeline');
-                        if (ganttTimeline) {
-                            ganttTimeline.scrollTop = value;
-                        }
+                        const ganttTimeline = containers.get('gantt-timeline');
+                        if (ganttTimeline) ganttTimeline.scrollTop = value;
                     }
                 } else if (source === 'scheduler-grid' || source === 'scheduler-timeline') {
                     scrollPosition.current.y.scheduler = value;
 
-                    // Sync scheduler grid and timeline vertical scroll
                     if (source !== 'scheduler-grid') {
-                        const schedulerGrid = scrollContainers.current.get('scheduler-grid');
-                        if (schedulerGrid) {
-                            schedulerGrid.scrollTop = value;
-                        }
+                        const schedulerGrid = containers.get('scheduler-grid');
+                        if (schedulerGrid) schedulerGrid.scrollTop = value;
                     }
+
                     if (source !== 'scheduler-timeline') {
-                        const schedulerTimeline = scrollContainers.current.get('scheduler-timeline');
-                        if (schedulerTimeline) {
-                            schedulerTimeline.scrollTop = value;
-                        }
+                        const schedulerTimeline = containers.get('scheduler-timeline');
+                        if (schedulerTimeline) schedulerTimeline.scrollTop = value;
                     }
                 }
             }
-        } finally {
-            // Use requestAnimationFrame to ensure the update is complete before allowing new updates
-            requestAnimationFrame(() => {
-                isUpdating.current = false;
-            });
-        }
+
+            isSyncing.current.delete(source);
+        });
     }, []);
 
     const getScrollPosition = useCallback(() => {
@@ -132,3 +110,10 @@ export const ScrollSyncProvider: React.FC<ScrollSyncProviderProps> = ({ children
     );
 };
 
+export const useScrollSync = () => {
+    const context = useContext(ScrollSyncContext);
+    if (!context) {
+        throw new Error('useScrollSync must be used within a ScrollSyncProvider');
+    }
+    return context;
+};

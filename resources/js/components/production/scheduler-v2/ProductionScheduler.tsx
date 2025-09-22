@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { ScrollSyncProvider } from './contexts/ScrollSyncContext';
 import { Toolbar } from './components/Toolbar/Toolbar';
 import { GanttView } from './components/GanttView/GanttView';
 import { SchedulerView } from './components/SchedulerView/SchedulerView';
@@ -66,47 +67,49 @@ export const ProductionScheduler: React.FC<Props> = ({
     }, [onUpdate]);
 
     return (
-        <div className="production-scheduler flex flex-col h-full bg-background">
-            <Toolbar
-                currentVersion={currentVersion}
-                publishedVersion={publishedVersion}
-                schedulingAlgorithms={schedulingAlgorithms}
-                alertStats={alertStats}
-                zoomLevel={zoomLevel}
-                onZoomIn={handleZoomIn}
-                onZoomOut={handleZoomOut}
-                onZoomFit={handleZoomFit}
-                viewConfig={viewConfig}
-                onViewConfigChange={setViewConfig}
-            />
+        <ScrollSyncProvider>
+            <div className="production-scheduler flex flex-col h-full bg-background">
+                <Toolbar
+                    currentVersion={currentVersion}
+                    publishedVersion={publishedVersion}
+                    schedulingAlgorithms={schedulingAlgorithms}
+                    alertStats={alertStats}
+                    zoomLevel={zoomLevel}
+                    onZoomIn={handleZoomIn}
+                    onZoomOut={handleZoomOut}
+                    onZoomFit={handleZoomFit}
+                    viewConfig={viewConfig}
+                    onViewConfigChange={setViewConfig}
+                />
 
-            <div className="flex-1 flex flex-col min-h-0">
-                <ResizablePanelGroup direction="vertical" className="h-full">
-                    {/* Gantt View */}
-                    <ResizablePanel defaultSize={60} minSize={30}>
-                        <GanttView
-                            orders={schedulerState.visibleOrders}
-                            viewConfig={viewConfig}
-                            zoomLevel={zoomLevel}
-                            onStepUpdate={handleStepUpdate}
-                        />
-                    </ResizablePanel>
+                <div className="flex-1 flex flex-col min-h-0">
+                    <ResizablePanelGroup direction="vertical" className="h-full">
+                        {/* Gantt View */}
+                        <ResizablePanel defaultSize={60} minSize={30}>
+                            <GanttView
+                                orders={schedulerState.visibleOrders}
+                                viewConfig={viewConfig}
+                                zoomLevel={zoomLevel}
+                                onStepUpdate={handleStepUpdate}
+                            />
+                        </ResizablePanel>
 
-                    <ResizableHandle />
+                        <ResizableHandle />
 
-                    {/* Scheduler View */}
-                    <ResizablePanel defaultSize={40} minSize={20}>
-                        <SchedulerView
-                            workCells={schedulerState.workCells}
-                            allocations={schedulerState.allocations}
-                            viewConfig={viewConfig}
-                            zoomLevel={zoomLevel}
-                            onAllocationUpdate={handleAllocationUpdate}
-                        />
-                    </ResizablePanel>
-                </ResizablePanelGroup>
+                        {/* Scheduler View */}
+                        <ResizablePanel defaultSize={40} minSize={20}>
+                            <SchedulerView
+                                workCells={schedulerState.workCells}
+                                allocations={schedulerState.allocations}
+                                viewConfig={viewConfig}
+                                zoomLevel={zoomLevel}
+                                onAllocationUpdate={handleAllocationUpdate}
+                            />
+                        </ResizablePanel>
+                    </ResizablePanelGroup>
+                </div>
             </div>
-        </div>
+        </ScrollSyncProvider>
     );
 };
 
