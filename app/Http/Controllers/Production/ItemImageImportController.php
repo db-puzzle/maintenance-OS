@@ -144,8 +144,10 @@ class ItemImageImportController extends Controller
         // Update session with validation results
         $sessionData = Cache::get("image_import_session_{$sessionId}");
         if ($sessionData) {
+            $validCount = collect($results)->where('valid', true)->count();
             $sessionData['files'] = $results;
             $sessionData['total'] = count($files);
+            $sessionData['valid_count'] = $validCount;
             Cache::put("image_import_session_{$sessionId}", $sessionData, now()->addHours(24));
         }
 
@@ -398,6 +400,8 @@ class ItemImageImportController extends Controller
                         ($upload->total_chunks > 0 ? (count($upload->uploaded_chunks) / $upload->total_chunks) * 100 : 0),
                     'model_id' => $upload->model_id,
                     'error' => $upload->metadata['error'] ?? null,
+                    'assembled' => $upload->status === 'completed',
+                    'assembling' => $upload->status === 'assembling',
                 ];
             });
 
@@ -414,8 +418,85 @@ class ItemImageImportController extends Controller
             Cache::put("image_import_session_{$sessionId}", $sessionData, now()->addHours(24));
         }
 
+        // Get metadata generation job status if in processing or completed phase
+        $metadataJobs = [];
+        $expectedMediaCount = 0;
+
+        // Calculate expected media count from summary if available
+        if (isset($sessionData['summary'])) {
+            $expectedMediaCount = ($sessionData['summary']['imagesImported'] ?? 0) +
+                                ($sessionData['summary']['imagesReplaced'] ?? 0);
+        }
+
+        if (in_array($sessionData['status'], ['processing', 'completed', 'uploads_completed'])) {
+            // Get all media created by this import session
+            $mediaItems = \App\Models\Media::where('custom_properties->import_session', $sessionId)
+                ->get(['id', 'uuid', 'file_name', 'custom_properties', 'file_hash', 'blurhash']);
+
+            $metadataJobs = $mediaItems->map(function ($media) {
+                return [
+                    'media_id' => $media->id,
+                    'filename' => $media->file_name,
+                    'has_blurhash' => ! empty($media->blurhash),
+                    'has_file_hash' => ! empty($media->file_hash),
+                    'completed' => ! empty($media->blurhash) && ! empty($media->file_hash),
+                ];
+            })->toArray();
+
+            // If we have media items but no expected count yet, use actual count
+            if ($expectedMediaCount === 0 && count($metadataJobs) > 0) {
+                $expectedMediaCount = count($metadataJobs);
+            }
+        }
+
+        // Use valid count for accurate phase tracking
+        $validFileCount = $sessionData['valid_count'] ?? collect($sessionData['files'] ?? [])->where('valid', true)->count();
+
+        // For metadata, if we don't have a count from summary yet, use valid file count
+        if ($expectedMediaCount === 0 && $validFileCount > 0) {
+            $expectedMediaCount = $validFileCount;
+        }
+
+        // Calculate phase-specific progress
+        $phases = [
+            'upload' => [
+                'total' => $uploads->count(),
+                'completed' => $uploads->filter(fn ($u) => $u['status'] === 'completed')->count(),
+                'failed' => $uploads->filter(fn ($u) => $u['status'] === 'failed')->count(),
+                'progress' => $uploads->count() > 0
+                    ? ($uploads->filter(fn ($u) => in_array($u['status'], ['completed', 'failed']))->count() / $uploads->count()) * 100
+                    : 0,
+            ],
+            'assembly' => [
+                'total' => $uploads->count(),
+                'completed' => $uploads->filter(fn ($u) => $u['assembled'])->count(),
+                'in_progress' => $uploads->filter(fn ($u) => $u['assembling'])->count(),
+                'progress' => $uploads->count() > 0
+                    ? ($uploads->filter(fn ($u) => $u['assembled'])->count() / $uploads->count()) * 100
+                    : 0,
+            ],
+            'processing' => [
+                'total' => $validFileCount,
+                'completed' => $sessionData['processed'] ?? 0,
+                'progress' => $validFileCount > 0
+                    ? (($sessionData['processed'] ?? 0) / $validFileCount) * 100
+                    : 0,
+                'status' => $sessionData['status'] ?? 'pending',
+            ],
+            'metadata' => [
+                'total' => $expectedMediaCount,
+                'completed' => collect($metadataJobs)->filter(fn ($j) => $j['completed'])->count(),
+                'progress' => $expectedMediaCount > 0
+                    ? (collect($metadataJobs)->filter(fn ($j) => $j['completed'])->count() / $expectedMediaCount) * 100
+                    : 0,
+                'in_progress' => collect($metadataJobs)->filter(fn ($j) => ! $j['completed'])->count(),
+            ],
+        ];
+
         return response()->json(array_merge($sessionData, [
             'uploads' => $uploads,
+            'phases' => $phases,
+            'metadata_jobs' => $metadataJobs,
         ]));
     }
 

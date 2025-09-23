@@ -16,9 +16,18 @@ export interface ImportFile {
     uploadId?: string;
 }
 
+export interface ImportPhase {
+    total: number;
+    completed: number;
+    failed?: number;
+    in_progress?: number;
+    progress: number;
+    status?: string;
+}
+
 export interface ImportSession {
     sessionId: string;
-    status: 'initialized' | 'validating' | 'uploading' | 'processing' | 'completed' | 'failed';
+    status: 'initialized' | 'validating' | 'uploading' | 'uploads_completed' | 'processing' | 'completed' | 'failed';
     files: ImportFile[];
     processed: number;
     total: number;
@@ -27,6 +36,19 @@ export interface ImportSession {
     created_at?: string;
     started_at?: string;
     completed_at?: string;
+    phases?: {
+        upload: ImportPhase;
+        assembly: ImportPhase;
+        processing: ImportPhase;
+        metadata: ImportPhase;
+    };
+    metadata_jobs?: Array<{
+        media_id: number;
+        filename: string;
+        has_blurhash: boolean;
+        has_file_hash: boolean;
+        completed: boolean;
+    }>;
 }
 
 export interface ImportSummary {

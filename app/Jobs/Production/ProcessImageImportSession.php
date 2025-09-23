@@ -90,6 +90,11 @@ class ProcessImageImportSession implements ShouldQueue
                 'validFilesCount' => $validFiles->count(),
             ]);
 
+            // Set total to valid files count for progress tracking
+            $sessionData['total'] = $validFiles->count();
+            $sessionData['processed'] = 0;
+            Cache::put("image_import_session_{$this->sessionId}", $sessionData, now()->addHours(24));
+
             foreach ($validFiles as $index => $fileInfo) {
                 Log::info('[ProcessImageImportSession] Processing file', [
                     'sessionId' => $this->sessionId,
@@ -100,7 +105,7 @@ class ProcessImageImportSession implements ShouldQueue
 
                 $this->processFile($fileInfo, $mediaService, $summary);
 
-                // Update progress
+                // Update progress - always increment even if file was skipped
                 $sessionData['processed'] = $index + 1;
                 $sessionData['summary'] = $summary;
                 Cache::put("image_import_session_{$this->sessionId}", $sessionData, now()->addHours(24));
