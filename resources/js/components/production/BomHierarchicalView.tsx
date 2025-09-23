@@ -28,12 +28,18 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from '@/components/ui/hover-card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { BomItem, Item, ItemCategory, BomVersion } from '@/types/production';
 import { CreateItemSheet } from '@/components/CreateItemSheet';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
+import { ImageWithBlurEffect } from '@/components/production/ImageWithBlurEffect';
 import { GenericHierarchicalTreeView, GenericTreeNode, NodeRenderProps } from './shared/GenericHierarchicalTreeView';
 import { HierarchicalViewHeader } from './shared/HierarchicalViewHeader';
 import { useTreeExpansion } from './shared/useTreeExpansion';
@@ -446,17 +452,58 @@ export default function BomHierarchicalView({
                     )}>
                         {showImages && (
                             <div className="flex items-center justify-center">
-                                <ItemImagePreview
-                                    primaryImageUrl={node.item.primary_image_thumbnail_url || node.item.primary_image_url}
-                                    imageCount={node.item.images?.length || 0}
-                                    className="w-12 h-12 cursor-pointer"
-                                    onClick={(e) => {
-                                        e?.stopPropagation();
-                                        if (node.item.id) {
-                                            router.visit(route('production.items.show', node.item.id));
-                                        }
-                                    }}
-                                />
+                                <HoverCard openDelay={200} closeDelay={100}>
+                                    <HoverCardTrigger asChild>
+                                        <div>
+                                            <ItemImagePreview
+                                                primaryImageUrl={node.item.primary_image_thumbnail_url || node.item.primary_image_url}
+                                                imageCount={node.item.image ? 1 : 0}
+                                                className="w-12 h-12 cursor-pointer"
+                                                onClick={(e) => {
+                                                    e?.stopPropagation();
+                                                    if (node.item.id) {
+                                                        router.visit(route('production.items.show', node.item.id));
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </HoverCardTrigger>
+                                    <HoverCardContent
+                                        className="w-80 p-0 overflow-hidden"
+                                        side="right"
+                                        align="start"
+                                    >
+                                        {node.item.primary_image_url ? (
+                                            <div>
+                                                <ImageWithBlurEffect
+                                                    src={node.item.primary_image_url}
+                                                    alt={`${node.item.name} - imagem ampliada`}
+                                                    containerClassName="w-full h-80"
+                                                />
+                                                <div className="p-3 border-t">
+                                                    <h4 className="font-medium text-sm select-none">{node.item.item_number}</h4>
+                                                    <p className="text-xs text-muted-foreground mt-1 select-none">
+                                                        {node.item.name}
+                                                    </p>
+                                                    {node.quantity && (
+                                                        <p className="text-xs text-muted-foreground mt-2 select-none">
+                                                            Quantidade: <span className="font-medium">{node.quantity} {node.unit_of_measure}</span>
+                                                        </p>
+                                                    )}
+                                                    {node.item.media && node.item.media.length > 1 && (
+                                                        <p className="text-xs text-muted-foreground mt-2 select-none">
+                                                            {node.item.media.length} imagens disponíveis
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="w-full h-80 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 dark:text-gray-500">
+                                                <span className="select-none">Sem imagem disponível</span>
+                                            </div>
+                                        )}
+                                    </HoverCardContent>
+                                </HoverCard>
                             </div>
                         )}
                         <div className={cn(

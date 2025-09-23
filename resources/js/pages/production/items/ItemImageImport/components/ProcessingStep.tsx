@@ -1,12 +1,10 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle, XCircle, Upload, Pause, Play, X } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ImportFile, ImportSession, ImportOptions } from '../types';
-import { formatBytes, formatDuration } from '@/utils/format';
+import { formatBytes } from '@/utils/format';
 import { UploadQueue } from '../services/UploadQueue';
 import axios from 'axios';
 
@@ -30,11 +28,6 @@ export function ProcessingStep({
     // Convert chunkSize from MB to bytes (UploadQueue expects bytes)
     const [uploadQueue] = useState(() => new UploadQueue(concurrentUploads, chunkSize * 1024 * 1024));
     const [processedFiles, setProcessedFiles] = useState<Record<string, ImportFile>>({});
-    const [isPaused, setIsPaused] = useState(false);
-    const [isCancelled, setIsCancelled] = useState(false);
-    const [startTime] = useState(Date.now());
-    const [elapsedTime, setElapsedTime] = useState(0);
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
     const hasStartedUpload = useRef(false);
 
@@ -156,11 +149,6 @@ export function ProcessingStep({
     }, [session.sessionId, onComplete]);
 
     useEffect(() => {
-        // Start elapsed time counter
-        intervalRef.current = setInterval(() => {
-            setElapsedTime(Date.now() - startTime);
-        }, 1000);
-
         // Start upload process only once
         if (!hasStartedUpload.current) {
             startUpload();
@@ -172,60 +160,13 @@ export function ProcessingStep({
         }, 5000); // Check every 5 seconds
 
         return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
             if (statusCheckInterval.current) clearInterval(statusCheckInterval.current);
             // Only cancel if component is unmounting
             if (!hasStartedUpload.current) {
                 uploadQueue.cancelAll();
             }
         };
-    }, [startTime, startUpload, checkSessionStatus, uploadQueue]);
-
-
-
-    const handlePause = () => {
-        if (isPaused) {
-            uploadQueue.resume();
-            setIsPaused(false);
-        } else {
-            uploadQueue.pause();
-            setIsPaused(true);
-        }
-    };
-
-    const handleCancel = async () => {
-        if (confirm('Tem certeza que deseja cancelar a importação?')) {
-            uploadQueue.cancelAll();
-            setIsCancelled(true);
-
-            try {
-                await axios.post(
-                    route('production.items.images.import.cancel-session', {
-                        sessionId: session.sessionId,
-                    })
-                );
-            } catch (error) {
-                console.error('Failed to cancel session:', error);
-            }
-        }
-    };
-
-    const estimatedTimeRemaining = () => {
-        if (completedFiles === 0) return 'Calculando...';
-        const averageTimePerFile = elapsedTime / completedFiles;
-        const remainingFiles = totalFiles - completedFiles;
-        const estimatedTime = averageTimePerFile * remainingFiles;
-        return formatDuration(Math.ceil(estimatedTime / 1000));
-    };
-
-    const uploadSpeed = () => {
-        if (elapsedTime === 0) return '0 MB/s';
-        const totalBytes = Object.values(processedFiles)
-            .filter(f => f.status === 'completed')
-            .reduce((sum, f) => sum + f.size, 0);
-        const bytesPerSecond = totalBytes / (elapsedTime / 1000);
-        return formatBytes(bytesPerSecond) + '/s';
-    };
+    }, [startUpload, checkSessionStatus, uploadQueue]);
 
     return (
         <div className="space-y-6">
@@ -265,43 +206,9 @@ export function ProcessingStep({
                             <p className="text-sm text-gray-600">Pendentes</p>
                         </div>
                     </div>
-
-                    <div className="flex justify-between text-sm text-gray-600">
-                        <span>Tempo decorrido: {formatDuration(Math.floor(elapsedTime / 1000))}</span>
-                        <span>Tempo restante: {estimatedTimeRemaining()}</span>
-                        <span>Velocidade: {uploadSpeed()}</span>
-                    </div>
                 </div>
             </div>
 
-            {/* Controls */}
-            <div className="flex justify-center gap-4">
-                <Button
-                    variant="outline"
-                    onClick={handlePause}
-                    disabled={isCancelled || completedFiles === totalFiles}
-                >
-                    {isPaused ? (
-                        <>
-                            <Play className="h-4 w-4 mr-2" />
-                            Continuar
-                        </>
-                    ) : (
-                        <>
-                            <Pause className="h-4 w-4 mr-2" />
-                            Pausar
-                        </>
-                    )}
-                </Button>
-                <Button
-                    variant="destructive"
-                    onClick={handleCancel}
-                    disabled={isCancelled || completedFiles === totalFiles}
-                >
-                    <X className="h-4 w-4 mr-2" />
-                    Cancelar
-                </Button>
-            </div>
 
             {/* File List */}
             <Card>
@@ -383,14 +290,6 @@ export function ProcessingStep({
                     </div>
                 </CardContent>
             </Card>
-
-            {isCancelled && (
-                <Alert variant="destructive">
-                    <AlertDescription>
-                        Importação cancelada. {completedFiles} arquivo(s) foram importados com sucesso.
-                    </AlertDescription>
-                </Alert>
-            )}
         </div>
     );
 }

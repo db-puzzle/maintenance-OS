@@ -116,6 +116,14 @@ class ProcessImageImportSession implements ShouldQueue
             $sessionData['status'] = 'completed';
             $sessionData['completed_at'] = now();
             $sessionData['summary'] = $summary;
+
+            Log::info('[ProcessImageImportSession] Marking session as completed', [
+                'sessionId' => $this->sessionId,
+                'status' => 'completed',
+                'summary' => $summary,
+                'completed_at' => $sessionData['completed_at'],
+            ]);
+
             Cache::put("image_import_session_{$this->sessionId}", $sessionData, now()->addHours(24));
         } catch (\Exception $e) {
             Log::error("Import session failed: {$this->sessionId}", [

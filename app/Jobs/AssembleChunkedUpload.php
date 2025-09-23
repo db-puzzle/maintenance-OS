@@ -218,6 +218,15 @@ class AssembleChunkedUpload implements ShouldQueue
         // Sort chunks to ensure correct order
         $chunks = $upload->uploaded_chunks;
         sort($chunks);
+        
+        Log::info('[AssembleChunkedUpload] Starting chunk assembly', [
+            'uploadId' => $upload->id,
+            'totalChunks' => $upload->total_chunks,
+            'uploadedChunks' => $chunks,
+            'expectedSize' => $upload->file_size,
+        ]);
+        
+        $totalBytesWritten = 0;
 
         foreach ($chunks as $chunkIndex) {
             $chunkPath = "chunks/{$upload->id}/chunk_{$chunkIndex}";
@@ -229,13 +238,40 @@ class AssembleChunkedUpload implements ShouldQueue
             }
 
             $chunkContent = Storage::disk('local')->get($chunkPath);
-            fwrite($handle, $chunkContent);
+            $chunkSize = strlen($chunkContent);
+            $bytesWritten = fwrite($handle, $chunkContent);
+            $totalBytesWritten += $bytesWritten;
+            
+            Log::info('[AssembleChunkedUpload] Chunk processed', [
+                'uploadId' => $upload->id,
+                'chunkIndex' => $chunkIndex,
+                'chunkSize' => $chunkSize,
+                'bytesWritten' => $bytesWritten,
+                'totalBytesWritten' => $totalBytesWritten,
+            ]);
         }
 
         fclose($handle);
+        
+        $finalFileSize = filesize($tempPath);
+        Log::info('[AssembleChunkedUpload] Assembly complete', [
+            'uploadId' => $upload->id,
+            'expectedSize' => $upload->file_size,
+            'actualSize' => $finalFileSize,
+            'sizeMatch' => $finalFileSize === $upload->file_size,
+        ]);
 
-        // Verify file hash
-        $actualHash = md5_file($tempPath);
+        // Verify file hash using SHA-256 (same as frontend)
+        $actualHash = hash_file('sha256', $tempPath);
+        
+        Log::info('[AssembleChunkedUpload] File hash verification', [
+            'uploadId' => $upload->id,
+            'filename' => $upload->filename,
+            'expectedHash' => $upload->file_hash,
+            'actualHash' => $actualHash,
+            'hashMatch' => $actualHash === $upload->file_hash,
+        ]);
+        
         if ($actualHash !== $upload->file_hash) {
             unlink($tempPath);
             throw new \Exception('File integrity check failed');

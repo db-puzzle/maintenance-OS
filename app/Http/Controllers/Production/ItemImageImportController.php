@@ -379,6 +379,13 @@ class ItemImageImportController extends Controller
             return response()->json(['error' => 'Session not found'], 404);
         }
 
+        Log::info('[ItemImageImport] Getting session status', [
+            'sessionId' => $sessionId,
+            'currentStatus' => $sessionData['status'] ?? 'unknown',
+            'processed' => $sessionData['processed'] ?? 0,
+            'total' => $sessionData['total'] ?? 0,
+        ]);
+
         // Get upload status for this session
         $uploads = ChunkedUpload::where('metadata->sessionId', $sessionId)
             ->get()
@@ -395,11 +402,14 @@ class ItemImageImportController extends Controller
             });
 
         // Check if all uploads are complete
-        $allComplete = $uploads->every(fn ($u) => in_array($u['status'], ['completed', 'failed']));
+        $allUploadsComplete = $uploads->every(fn ($u) => in_array($u['status'], ['completed', 'failed']));
 
-        // Update session status
-        if ($allComplete && $sessionData['status'] !== 'completed') {
-            $sessionData['status'] = 'completed';
+        // Only update session status if it's still in 'uploading' phase
+        // Don't overwrite 'processing' or 'completed' status set by the processing job
+        if ($allUploadsComplete &&
+            in_array($sessionData['status'], ['created', 'uploading', 'validated']) &&
+            ! in_array($sessionData['status'], ['processing', 'completed', 'failed'])) {
+            $sessionData['status'] = 'uploads_completed';
             $sessionData['uploads'] = $uploads->toArray();
             Cache::put("image_import_session_{$sessionId}", $sessionData, now()->addHours(24));
         }
