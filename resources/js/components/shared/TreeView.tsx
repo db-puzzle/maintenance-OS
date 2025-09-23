@@ -124,7 +124,7 @@ function TreeItem<T extends TreeNode>({
                     className={cn(
                         "overflow-hidden transition-all duration-300 ease-in-out",
                         isExpanded
-                            ? "max-h-[10000px] opacity-100"
+                            ? "max-h-none opacity-100"
                             : "max-h-0 opacity-0"
                     )}
                 >

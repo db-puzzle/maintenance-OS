@@ -239,36 +239,38 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                     label: 'Configuração',
                     icon: <Box className="h-4 w-4" />,
                     content: (
-                        <BomConfiguration
-                            bomId={bom?.id || 0}
-                            versionId={bom?.current_version?.id || 0}
-                            bomItems={(bom?.current_version?.items || [])
-                                .filter(item => item.item)
-                                .map(item => {
-                                    const mappedItem: BomItem & { item: Item; children?: (BomItem & { item: Item })[] } = {
-                                        ...item,
-                                        item: item.item!,
-                                        children: item.children?.filter(child => child.item).map(child => ({
-                                            ...child,
-                                            item: child.item!
-                                        }))
-                                    };
-                                    return mappedItem;
-                                })}
-                            availableItems={items}
-                            categories={categories}
-                            canEdit={can.manageItems}
-                            onUpdate={() => router.reload({ only: ['bom'] })}
-                            bom={bom ? {
-                                name: bom.name,
-                                bom_number: bom.bom_number,
-                                current_version: bom.current_version ? {
-                                    version_number: bom.current_version.version_number,
-                                    items: bom.current_version.items
-                                } : undefined,
-                                versions: bom.versions
-                            } : undefined}
-                        />
+                        <div className="h-full py-6">
+                            <BomConfiguration
+                                bomId={bom?.id || 0}
+                                versionId={bom?.current_version?.id || 0}
+                                bomItems={(bom?.current_version?.items || [])
+                                    .filter(item => item.item)
+                                    .map(item => {
+                                        const mappedItem: BomItem & { item: Item; children?: (BomItem & { item: Item })[] } = {
+                                            ...item,
+                                            item: item.item!,
+                                            children: item.children?.filter(child => child.item).map(child => ({
+                                                ...child,
+                                                item: child.item!
+                                            }))
+                                        };
+                                        return mappedItem;
+                                    })}
+                                availableItems={items}
+                                categories={categories}
+                                canEdit={can.manageItems}
+                                onUpdate={() => router.reload({ only: ['bom'] })}
+                                bom={bom ? {
+                                    name: bom.name,
+                                    bom_number: bom.bom_number,
+                                    current_version: bom.current_version ? {
+                                        version_number: bom.current_version.version_number,
+                                        items: bom.current_version.items
+                                    } : undefined,
+                                    versions: bom.versions
+                                } : undefined}
+                            />
+                        </div>
                     ),
                 },
                 {

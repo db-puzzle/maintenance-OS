@@ -28,6 +28,9 @@ export function ProcessingStep({
     // Convert chunkSize from MB to bytes (UploadQueue expects bytes)
     const [uploadQueue] = useState(() => new UploadQueue(concurrentUploads, chunkSize * 1024 * 1024));
     const [processedFiles, setProcessedFiles] = useState<Record<string, ImportFile>>({});
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [processingProgress, setProcessingProgress] = useState(0);
+    const [currentSessionStatus, setCurrentSessionStatus] = useState(session.status);
     const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
     const hasStartedUpload = useRef(false);
 
@@ -36,7 +39,8 @@ export function ProcessingStep({
     const completedFiles = Object.values(processedFiles).filter(f => f.status === 'completed').length;
     const failedFiles = Object.values(processedFiles).filter(f => f.status === 'failed').length;
     const uploadingFiles = Object.values(processedFiles).filter(f => f.status === 'uploading').length;
-    const progress = totalFiles > 0 ? (completedFiles / totalFiles) * 100 : 0;
+    const uploadProgress = totalFiles > 0 ? (completedFiles / totalFiles) * 100 : 0;
+    const allUploadsComplete = completedFiles + failedFiles === totalFiles && totalFiles > 0;
 
     const startUpload = useCallback(async () => {
         // Prevent multiple starts
@@ -111,6 +115,7 @@ export function ProcessingStep({
         // Start processing after all files are queued
         uploadQueue.on('allComplete', async () => {
             console.log('[ProcessingStep] All uploads complete, triggering server processing');
+            setIsProcessing(true);
             // Trigger server-side processing
             try {
                 const response = await axios.post(route('production.items.images.import.process'), {
@@ -137,16 +142,39 @@ export function ProcessingStep({
 
             const sessionData: ImportSession = response.data;
 
+            // Log status updates for debugging
+            if (sessionData.status !== currentSessionStatus || sessionData.processed !== session.processed) {
+                console.log('[ProcessingStep] Session status update', {
+                    sessionId: session.sessionId,
+                    status: sessionData.status,
+                    previousStatus: currentSessionStatus,
+                    processed: sessionData.processed,
+                    total: sessionData.total,
+                    progress: sessionData.processed && sessionData.total ?
+                        ((sessionData.processed / sessionData.total) * 100).toFixed(1) + '%' : '0%'
+                });
+            }
+
+            setCurrentSessionStatus(sessionData.status);
+
+            // Calculate processing progress based on processed files
+            if (sessionData.processed !== undefined && sessionData.total > 0) {
+                const progress = (sessionData.processed / sessionData.total) * 100;
+                setProcessingProgress(progress);
+            }
+
             if (sessionData.status === 'completed') {
+                console.log('[ProcessingStep] Processing completed!');
+                setProcessingProgress(100);
                 onComplete();
             } else if (sessionData.status === 'failed') {
                 // Handle failure
-                console.error('Import failed:', sessionData.error);
+                console.error('[ProcessingStep] Import failed:', sessionData.error);
             }
         } catch (error) {
-            console.error('Failed to check session status:', error);
+            console.error('[ProcessingStep] Failed to check session status:', error);
         }
-    }, [session.sessionId, onComplete]);
+    }, [session.sessionId, onComplete, currentSessionStatus, session.processed]);
 
     useEffect(() => {
         // Start upload process only once
@@ -154,10 +182,14 @@ export function ProcessingStep({
             startUpload();
         }
 
-        // Start status checking
-        statusCheckInterval.current = setInterval(() => {
-            checkSessionStatus();
-        }, 5000); // Check every 5 seconds
+        // Start status checking - more frequent when processing
+        const startStatusChecking = () => {
+            statusCheckInterval.current = setInterval(() => {
+                checkSessionStatus();
+            }, isProcessing ? 1000 : 2000); // Check every 1 second when processing, 2 seconds otherwise
+        };
+
+        startStatusChecking();
 
         return () => {
             if (statusCheckInterval.current) clearInterval(statusCheckInterval.current);
@@ -166,7 +198,7 @@ export function ProcessingStep({
                 uploadQueue.cancelAll();
             }
         };
-    }, [startUpload, checkSessionStatus, uploadQueue]);
+    }, [startUpload, checkSessionStatus, uploadQueue, isProcessing]);
 
     return (
         <div className="space-y-6">
@@ -177,19 +209,77 @@ export function ProcessingStep({
                     Processando {totalFiles} imagens
                 </p>
 
-                <div className="space-y-4">
-                    <div>
-                        <div className="flex justify-between text-sm mb-2">
-                            <span>{completedFiles} de {totalFiles} arquivos</span>
-                            <span>{progress.toFixed(0)}%</span>
+                <div className="space-y-6">
+                    {/* Upload Progress */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-gray-700">Upload de Arquivos</h4>
+                            {!allUploadsComplete && uploadingFiles > 0 && (
+                                <span className="text-xs text-blue-600 flex items-center">
+                                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                    Enviando...
+                                </span>
+                            )}
+                            {allUploadsComplete && (
+                                <span className="text-xs text-green-600 flex items-center">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Concluído
+                                </span>
+                            )}
                         </div>
-                        <Progress value={progress} className="h-3" />
+                        <div>
+                            <div className="flex justify-between text-sm mb-2">
+                                <span>{completedFiles} de {totalFiles} arquivos</span>
+                                <span>{uploadProgress.toFixed(0)}%</span>
+                            </div>
+                            <Progress value={uploadProgress} className="h-3" />
+                        </div>
+                    </div>
+
+                    {/* Processing Progress */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-gray-700">Processamento no Servidor</h4>
+                            {isProcessing && currentSessionStatus === 'processing' && (
+                                <span className="text-xs text-blue-600 flex items-center">
+                                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                    Processando...
+                                </span>
+                            )}
+                            {currentSessionStatus === 'completed' && (
+                                <span className="text-xs text-green-600 flex items-center">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Concluído
+                                </span>
+                            )}
+                        </div>
+                        <div>
+                            <div className="flex justify-between text-sm mb-2">
+                                <span>
+                                    {allUploadsComplete
+                                        ? (currentSessionStatus === 'processing'
+                                            ? `Processando imagens... (${Math.floor(processingProgress)}%)`
+                                            : currentSessionStatus === 'completed'
+                                                ? 'Processamento concluído!'
+                                                : 'Aguardando início do processamento...')
+                                        : 'Aguardando conclusão dos uploads...'}
+                                </span>
+                                <span>{processingProgress.toFixed(0)}%</span>
+                            </div>
+                            <Progress
+                                value={processingProgress}
+                                className={cn("h-3 transition-all duration-300", {
+                                    "opacity-50": !allUploadsComplete,
+                                    "animate-pulse": currentSessionStatus === 'processing' && processingProgress < 100
+                                })}
+                            />
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-4 gap-4">
                         <div className="text-center p-4 bg-green-50 rounded-lg">
                             <p className="text-2xl font-bold text-green-700">{completedFiles}</p>
-                            <p className="text-sm text-gray-600">Concluídos</p>
+                            <p className="text-sm text-gray-600">Uploads Concluídos</p>
                         </div>
                         <div className="text-center p-4 bg-blue-50 rounded-lg">
                             <p className="text-2xl font-bold text-blue-700">{uploadingFiles}</p>

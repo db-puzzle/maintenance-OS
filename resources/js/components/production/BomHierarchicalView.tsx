@@ -614,9 +614,9 @@ export default function BomHierarchicalView({
     );
 
     return (
-        <div className="flex flex-col -mx-6 -my-8 lg:-mx-8">
+        <div className="flex flex-col min-h-0 -m-6 lg:-m-8">
             {/* Header */}
-            <div className="px-6 pt-8 pb-4 lg:px-8">
+            <div className="flex-shrink-0 px-6 lg:px-8 pt-6 lg:pt-8 pb-4">
                 <HierarchicalViewHeader
                     title={bom?.name || 'BOM'}
                     subtitle={`${bom?.current_version?.items?.length || 0} itens na versão`}
@@ -650,7 +650,7 @@ export default function BomHierarchicalView({
             </div>
 
             {/* Tree view */}
-            <div className="px-6 pb-8 lg:px-8">
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 lg:px-8 pb-6 lg:pb-8">
                 <GenericHierarchicalTreeView
                     data={bomItems}
                     renderNode={renderBomNode}
