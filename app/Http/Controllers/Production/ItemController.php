@@ -75,7 +75,7 @@ class ItemController extends BaseSearchController
                     $q->where('is_active', true);
                 }]);
             }, 'createdBy', 'primaryImage', 'primaryBom'])
-            ->withCount('images');
+            ->with('image');
 
         // Apply custom sorting logic
         if ($sortBy === 'capabilities') {
@@ -218,7 +218,24 @@ class ItemController extends BaseSearchController
     {
         $this->authorize('view', $item);
 
-        $item->load(['category', 'createdBy', 'billOfMaterials', 'primaryBom', 'images', 'primaryImage']);
+        $item->load(['category', 'createdBy', 'billOfMaterials', 'primaryBom', 'image', 'media']);
+        
+        // Log media data to check hash values
+        if ($item->media->count() > 0) {
+            foreach ($item->media as $media) {
+                \Log::info('Item media data', [
+                    'item_id' => $item->id,
+                    'media_uuid' => $media->uuid,
+                    'file_hash' => $media->file_hash,
+                    'blurhash' => $media->blurhash,
+                    'has_file_hash' => !empty($media->file_hash),
+                    'has_blurhash' => !empty($media->blurhash),
+                    'timestamp' => now()->toISOString()
+                ]);
+            }
+        } else {
+            \Log::info('No media found for item', ['item_id' => $item->id]);
+        }
 
         // Get BOMs where this item is used as a component (where-used analysis)
         $whereUsedBomsQuery = BillOfMaterial::whereHas('currentVersion.items', function ($query) use ($item) {
@@ -283,7 +300,7 @@ class ItemController extends BaseSearchController
         });
 
         return Inertia::render('production/items/show', [
-            'item' => $item,
+            'item' => $item->load(['image', 'media']),
             'categories' => $categories,
             'whereUsedBoms' => $whereUsedBoms,
             'bomFilters' => $request->only(['bom_search', 'bom_per_page']),
@@ -655,7 +672,7 @@ class ItemController extends BaseSearchController
     {
         $this->authorize('view', $item);
 
-        $item->load(['images', 'primaryImage']);
+        $item->load(['image']);
 
         return response()->json([
             'item' => $item,

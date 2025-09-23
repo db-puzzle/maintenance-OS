@@ -1,11 +1,14 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { ProgressiveImage } from '@/components/media';
+
 interface ImageWithBlurEffectProps {
     src: string;
     alt?: string;
     className?: string;
     containerClassName?: string;
     onClick?: (e?: React.MouseEvent) => void;
+    blurhash?: string;
 }
 export function ImageWithBlurEffect({
     src,
@@ -13,7 +16,23 @@ export function ImageWithBlurEffect({
     className = '',
     containerClassName = '',
     onClick,
+    blurhash,
 }: ImageWithBlurEffectProps) {
+    // If we have a blurhash, use the ProgressiveImage component
+    if (blurhash) {
+        return (
+            <div className={containerClassName} onClick={onClick}>
+                <ProgressiveImage
+                    src={src}
+                    alt={alt}
+                    blurhash={blurhash}
+                    className={cn("w-full h-full object-contain", className)}
+                />
+            </div>
+        );
+    }
+
+    // Fallback to the original blur effect implementation
     return (
         <div className={cn("relative overflow-hidden", containerClassName)}>
             {/* Background with edge blend effect */}

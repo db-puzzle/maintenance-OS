@@ -3,16 +3,18 @@
 namespace App\Models\Production;
 
 use App\Models\User;
+use App\Traits\HasMediaTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Spatie\MediaLibrary\HasMedia;
 
-class Item extends Model
+class Item extends Model implements HasMedia
 {
-    use HasFactory;
+    use HasFactory, HasMediaTrait;
 
     protected $fillable = [
         'item_number',
@@ -65,7 +67,25 @@ class Item extends Model
         'reorder_point' => 'decimal:2',
     ];
 
-    protected $appends = ['primary_image_url'];
+    protected $appends = ['primary_image_url', 'primary_image_data'];
+    
+    /**
+     * Register media collections
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('images')
+            ->singleFile() // Enforce single file
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/heic'])
+            ->useFallbackUrl('/images/no-image.jpg');
+            
+        $this->addMediaCollection('documents')
+            ->acceptsMimeTypes([
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ]);
+    }
 
     // Relationships
     
@@ -78,15 +98,17 @@ class Item extends Model
     }
 
     /**
-     * Get all images associated with this item.
+     * Get the image associated with this item.
+     * @deprecated Use getMedia('images') instead
      */
-    public function images(): HasMany
+    public function image(): HasOne
     {
-        return $this->hasMany(ItemImage::class)->orderBy('display_order');
+        return $this->hasOne(ItemImage::class);
     }
 
     /**
      * Get the primary image for this item.
+     * @deprecated Use getPrimaryMedia('images') instead
      */
     public function primaryImage(): BelongsTo
     {
@@ -193,57 +215,77 @@ class Item extends Model
      */
     public function getPrimaryImageUrlAttribute(): ?string
     {
-        // Check if the primaryImage relationship is loaded
-        if ($this->relationLoaded('primaryImage')) {
-            if ($this->primaryImage) {
-                return $this->primaryImage->getVariantUrl('medium');
-            }
-        } else if ($this->primary_image_id) {
-            // If we have a primary_image_id but the relationship isn't loaded,
-            // load it explicitly
-            $primaryImage = $this->primaryImage()->first();
-            if ($primaryImage) {
-                return $primaryImage->getVariantUrl('medium');
-            }
+        // First check if we have new media library images
+        if ($this->hasMedia('images')) {
+            $media = $this->getFirstMedia('images');
+            return $media ? $media->getUrl('preview') : null;
         }
         
-        // Fall back to finding the first image marked as primary or just the first image
-        $firstImage = $this->images()->where('is_primary', true)->first() 
-            ?? $this->images()->first();
+        // Fall back to old system during migration
+        if ($this->relationLoaded('image') && $this->image) {
+            return $this->image->getVariantUrl('medium');
+        }
         
-        return $firstImage ? $firstImage->getVariantUrl('medium') : null;
+        $image = $this->image()->first();
+        return $image ? $image->getVariantUrl('medium') : null;
     }
 
     /**
-     * Get all image URLs for this item.
+     * Get the primary image data including blurhash.
+     */
+    public function getPrimaryImageDataAttribute(): ?array
+    {
+        // First check if we have new media library images
+        if ($this->hasMedia('images')) {
+            $media = $this->getFirstMedia('images');
+            
+            if ($media) {
+                return [
+                    'url' => $media->getUrl('preview'),
+                    'blurhash' => $media->getCustomProperty('blurhash'),
+                ];
+            }
+        }
+        
+        // Fall back to old system (no blurhash)
+        $url = $this->primary_image_url;
+        return $url ? ['url' => $url, 'blurhash' => null] : null;
+    }
+
+    /**
+     * Get the image URL for this item.
      */
     public function getImageUrlsAttribute(): array
     {
-        // Check if the images relationship is loaded
-        if ($this->relationLoaded('images')) {
-            return $this->images->map(function ($image) {
-                return [
-                    'id' => $image->id,
-                    'url' => $image->url,
-                    'thumbnail' => $image->getVariantUrl('thumbnail'),
-                    'medium' => $image->getVariantUrl('medium'),
-                    'is_primary' => $image->is_primary,
-                    'caption' => $image->caption,
-                ];
-            })->toArray();
+        // First check if we have new media library images
+        if ($this->hasMedia('images')) {
+            $media = $this->getFirstMedia('images');
+            if ($media) {
+                return [[
+                    'id' => $media->uuid,
+                    'url' => $media->getUrl(),
+                    'thumbnail' => $media->getUrl('thumb'),
+                    'medium' => $media->getUrl('preview'),
+                    'blurhash' => $media->getCustomProperty('blurhash'),
+                    'caption' => $media->getCustomProperty('caption'),
+                ]];
+            }
         }
         
-        // If not loaded, query the images
-        return $this->images()->get()->map(function ($image) {
-            return [
+        // Fall back to old system
+        $image = $this->relationLoaded('image') ? $this->image : $this->image()->first();
+        if ($image) {
+            return [[
                 'id' => $image->id,
                 'url' => $image->url,
                 'thumbnail' => $image->getVariantUrl('thumbnail'),
                 'medium' => $image->getVariantUrl('medium'),
-                'is_primary' => $image->is_primary,
+                'blurhash' => null,
                 'caption' => $image->caption,
-            ];
-        })->toArray();
+            ]];
+        }
+        
+        return [];
     }
 
     // Business logic

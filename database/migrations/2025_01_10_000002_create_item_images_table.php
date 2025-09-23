@@ -20,17 +20,19 @@ return new class extends Migration
             $table->integer('file_size');
             $table->integer('width')->nullable();
             $table->integer('height')->nullable();
-            $table->boolean('is_primary')->default(false);
-            $table->integer('display_order')->default(0);
+            $table->string('hash', 64)->nullable()->index(); // SHA-256 hash for duplicate detection
+            $table->string('blurhash')->nullable(); // For progressive loading
             $table->string('alt_text')->nullable();
             $table->text('caption')->nullable();
             $table->json('metadata')->nullable();
             $table->boolean('was_optimized')->default(false);
             $table->foreignId('uploaded_by')->constrained('users');
+            $table->unsignedBigInteger('media_id')->nullable(); // For migration tracking
             $table->timestamps();
             
-            $table->index(['item_id', 'is_primary']);
-            $table->index(['item_id', 'display_order']);
+            // Ensure only one image per item
+            $table->unique('item_id', 'unique_item_image');
+            $table->index('media_id');
         });
     }
 

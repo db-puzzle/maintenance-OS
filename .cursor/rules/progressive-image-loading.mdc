@@ -1,0 +1,270 @@
+---
+description:
+When displaying images in the application, always use the progressive loading pattern with BlurHash for better user experience. This provides instant visual feedback with a blurred placeholder that matches the image colors while the actual image loads.
+
+## Standard Usage:
+
+```typescript
+import { ImageWithBlurEffect } from '@/components/production/ImageWithBlurEffect';
+
+// Basic usage with blurhash
+<ImageWithBlurEffect
+    src={imageUrl}
+    alt="Description"
+    blurhash={blurhashString}
+    className="w-full h-full object-contain"
+    containerClassName="aspect-square"
+    onClick={handleClick}
+/>
+```
+
+## Backend Requirements:
+
+1. **Model Accessor for Primary Image Data**:
+```php
+public function getPrimaryImageDataAttribute(): ?array
+{
+    if ($this->hasMedia('images')) {
+        $primaryMedia = $this->getMedia('images')
+            ->filter(fn($media) => $media->getCustomProperty('is_primary', false))
+            ->first() ?? $this->getFirstMedia('images');
+        
+        if ($primaryMedia) {
+            return [
+                'url' => $primaryMedia->getUrl('preview'),
+                'blurhash' => $primaryMedia->blurhash,
+            ];
+        }
+    }
+    
+    return null;
+}
+```
+
+2. **Include in Model's $appends**:
+```php
+protected $appends = ['primary_image_url', 'primary_image_data'];
+```
+
+3. **For Image Collections**:
+```php
+public function getImagesForGallery(): array
+{
+    return $this->getMedia('images')->map(function ($media) {
+        return [
+            'id' => $media->uuid,
+            'url' => $media->getUrl(),
+            'thumbnail' => $media->getUrl('thumb'),
+            'medium' => $media->getUrl('preview'),
+            'blurhash' => $media->getCustomProperty('blurhash'),
+            // ... other properties
+        ];
+    })->toArray();
+}
+```
+
+## Frontend Implementation:
+
+1. **Update TypeScript Interfaces**:
+```typescript
+export interface Item {
+    // ... existing properties
+    primary_image_url?: string;
+    primary_image_data?: { url: string; blurhash?: string | null };
+}
+
+export interface ItemImage {
+    // ... existing properties
+    blurhash?: string;
+}
+```
+
+2. **List Views (e.g., ItemImagePreview)**:
+```typescript
+interface ItemImagePreviewProps {
+    primaryImageUrl?: string;
+    primaryImageData?: { url: string; blurhash?: string | null };
+    // ... other props
+}
+
+// In the component
+<ImageWithBlurEffect
+    src={primaryImageData?.url || primaryImageUrl || ''}
+    blurhash={primaryImageData?.blurhash || undefined}
+    // ... other props
+/>
+```
+
+3. **Gallery/Carousel Views**:
+```typescript
+<ImageWithBlurEffect
+    src={image.large_url || image.medium_url || image.url}
+    alt={image.alt_text}
+    blurhash={image.blurhash}
+    containerClassName="max-h-[400px] w-full"
+    className="object-contain rounded-lg"
+/>
+```
+
+## Key Benefits:
+
+- **Instant Visual Feedback**: Users see a color-accurate placeholder immediately
+- **No Layout Shift**: Placeholders maintain exact aspect ratios
+- **Improved Perceived Performance**: App feels faster
+- **Graceful Degradation**: Falls back to CSS blur effect for images without blurhash
+
+## DO:
+- Always pass blurhash data when available
+- Use `primaryImageData` for single images, include blurhash in collections
+- Handle null/undefined blurhash gracefully with `|| undefined`
+- Use appropriate container classes for aspect ratio control
+
+## DO NOT:
+- Use plain `<img>` tags for user-uploaded content
+- Forget to add blurhash to TypeScript interfaces
+- Pass null as blurhash (use undefined instead)
+- Modify the ImageWithBlurEffect or ProgressiveImage components directly
+
+## Troubleshooting:
+
+If BlurHash is not working:
+1. Check if migrations for media table were run
+2. Verify GenerateMediaMetadata job is processing
+3. Ensure blurhash column exists in media table
+4. Run `php artisan media:regenerate-metadata --missing --force` to generate missing blurhashes# Progressive Image Loading
+
+When displaying images in the application, always use the progressive loading pattern with BlurHash for better user experience. This provides instant visual feedback with a blurred placeholder that matches the image colors while the actual image loads.
+
+## Standard Usage:
+
+```typescript
+import { ImageWithBlurEffect } from '@/components/production/ImageWithBlurEffect';
+
+// Basic usage with blurhash
+<ImageWithBlurEffect
+    src={imageUrl}
+    alt="Description"
+    blurhash={blurhashString}
+    className="w-full h-full object-contain"
+    containerClassName="aspect-square"
+    onClick={handleClick}
+/>
+```
+
+## Backend Requirements:
+
+1. **Model Accessor for Primary Image Data**:
+```php
+public function getPrimaryImageDataAttribute(): ?array
+{
+    if ($this->hasMedia('images')) {
+        $primaryMedia = $this->getMedia('images')
+            ->filter(fn($media) => $media->getCustomProperty('is_primary', false))
+            ->first() ?? $this->getFirstMedia('images');
+        
+        if ($primaryMedia) {
+            return [
+                'url' => $primaryMedia->getUrl('preview'),
+                'blurhash' => $primaryMedia->blurhash,
+            ];
+        }
+    }
+    
+    return null;
+}
+```
+
+2. **Include in Model's $appends**:
+```php
+protected $appends = ['primary_image_url', 'primary_image_data'];
+```
+
+3. **For Image Collections**:
+```php
+public function getImagesForGallery(): array
+{
+    return $this->getMedia('images')->map(function ($media) {
+        return [
+            'id' => $media->uuid,
+            'url' => $media->getUrl(),
+            'thumbnail' => $media->getUrl('thumb'),
+            'medium' => $media->getUrl('preview'),
+            'blurhash' => $media->getCustomProperty('blurhash'),
+            // ... other properties
+        ];
+    })->toArray();
+}
+```
+
+## Frontend Implementation:
+
+1. **Update TypeScript Interfaces**:
+```typescript
+export interface Item {
+    // ... existing properties
+    primary_image_url?: string;
+    primary_image_data?: { url: string; blurhash?: string | null };
+}
+
+export interface ItemImage {
+    // ... existing properties
+    blurhash?: string;
+}
+```
+
+2. **List Views (e.g., ItemImagePreview)**:
+```typescript
+interface ItemImagePreviewProps {
+    primaryImageUrl?: string;
+    primaryImageData?: { url: string; blurhash?: string | null };
+    // ... other props
+}
+
+// In the component
+<ImageWithBlurEffect
+    src={primaryImageData?.url || primaryImageUrl || ''}
+    blurhash={primaryImageData?.blurhash || undefined}
+    // ... other props
+/>
+```
+
+3. **Gallery/Carousel Views**:
+```typescript
+<ImageWithBlurEffect
+    src={image.large_url || image.medium_url || image.url}
+    alt={image.alt_text}
+    blurhash={image.blurhash}
+    containerClassName="max-h-[400px] w-full"
+    className="object-contain rounded-lg"
+/>
+```
+
+## Key Benefits:
+
+- **Instant Visual Feedback**: Users see a color-accurate placeholder immediately
+- **No Layout Shift**: Placeholders maintain exact aspect ratios
+- **Improved Perceived Performance**: App feels faster
+- **Graceful Degradation**: Falls back to CSS blur effect for images without blurhash
+
+## DO:
+- Always pass blurhash data when available
+- Use `primaryImageData` for single images, include blurhash in collections
+- Handle null/undefined blurhash gracefully with `|| undefined`
+- Use appropriate container classes for aspect ratio control
+
+## DO NOT:
+- Use plain `<img>` tags for user-uploaded content
+- Forget to add blurhash to TypeScript interfaces
+- Pass null as blurhash (use undefined instead)
+- Modify the ImageWithBlurEffect or ProgressiveImage components directly
+
+## Troubleshooting:
+
+If BlurHash is not working:
+1. Check if migrations for media table were run
+2. Verify GenerateMediaMetadata job is processing
+3. Ensure blurhash column exists in media table
+4. Run `php artisan media:regenerate-metadata --missing --force` to generate missing blurhashes
+globs:
+alwaysApply: false
+---

@@ -4,13 +4,16 @@ namespace App\Models\WorkOrders;
 
 use App\Models\Forms\TaskResponse;
 use App\Models\User;
+use App\Traits\HasMediaTrait;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\MediaLibrary\HasMedia;
 
-class WorkOrderExecution extends Model
+class WorkOrderExecution extends Model implements HasMedia
 {
+    use HasMediaTrait;
     protected $fillable = [
         'work_order_id', 'executed_by', 'status',
         'started_at', 'paused_at', 'resumed_at', 'completed_at',
@@ -31,6 +34,26 @@ class WorkOrderExecution extends Model
         'area_cleaned' => 'boolean',
         'tools_returned' => 'boolean',
     ];
+    
+    /**
+     * Register media collections
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('execution-photos')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/heic']);
+            
+        $this->addMediaCollection('execution-documents')
+            ->acceptsMimeTypes([
+                'application/pdf',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ]);
+            
+        $this->addMediaCollection('signatures')
+            ->acceptsMimeTypes(['image/png', 'image/svg+xml'])
+            ->singleFile();
+    }
 
     // Relationships
     public function workOrder(): BelongsTo

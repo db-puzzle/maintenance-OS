@@ -5,12 +5,14 @@ import { cn } from '@/lib/utils';
 import { ImageWithBlurEffect } from './ImageWithBlurEffect';
 interface ItemImagePreviewProps {
     primaryImageUrl?: string;
+    primaryImageData?: { url: string; blurhash?: string | null };
     imageCount: number;
     className?: string;
     onClick?: (e?: React.MouseEvent) => void;
 }
 export function ItemImagePreview({
     primaryImageUrl,
+    primaryImageData,
     imageCount,
     className,
     onClick
@@ -22,14 +24,15 @@ export function ItemImagePreview({
                 className
             )}
         >
-            {primaryImageUrl ? (
+            {(primaryImageData?.url || primaryImageUrl) ? (
                 <>
                     <ImageWithBlurEffect
-                        src={primaryImageUrl}
+                        src={primaryImageData?.url || primaryImageUrl || ''}
                         alt="Prévia do item"
                         containerClassName="w-full h-full"
                         className="group-hover:scale-105 transition-transform"
                         onClick={onClick}
+                        blurhash={primaryImageData?.blurhash || undefined}
                     />
                     {imageCount > 1 && (
                         <Badge

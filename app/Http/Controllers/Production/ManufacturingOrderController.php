@@ -87,6 +87,7 @@ class ManufacturingOrderController extends BaseSearchController
 
         $items = \App\Models\Production\Item::where('can_be_manufactured', true)
             ->where('is_active', true)
+            ->with(['primaryBom', 'category'])
             ->orderBy('item_number')
             ->get();
 
@@ -157,6 +158,7 @@ class ManufacturingOrderController extends BaseSearchController
 
         $items = \App\Models\Production\Item::where('can_be_manufactured', true)
             ->where('is_active', true)
+            ->with(['primaryBom', 'category'])
             ->orderBy('item_number')
             ->get();
 

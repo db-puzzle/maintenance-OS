@@ -13,8 +13,7 @@ import {
     Layers,
     Wrench,
     FileText,
-    Zap,
-    Ban
+    Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +38,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 
 interface Props {
     open: boolean;
@@ -118,6 +118,7 @@ export default function CreateManufacturingOrderDialog({
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [bomsPage, setBomsPage] = useState(1);
     const [bomsPerPage, setBomsPerPage] = useState(10);
+    const [filterItemsWithBOM, setFilterItemsWithBOM] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         order_type: 'bom',
@@ -192,9 +193,23 @@ export default function CreateManufacturingOrderDialog({
         );
     }, [selectedItem, routeTemplates]);
 
-    // Filter items based on search query
+    // Filter items based on search query and BOM filter
     const filteredItems = useMemo(() => {
-        const manufacturableItems = items.filter(i => i.can_be_manufactured);
+        let manufacturableItems = items.filter(i => i.can_be_manufactured);
+
+        // Apply BOM filter if enabled
+        if (filterItemsWithBOM) {
+            manufacturableItems = manufacturableItems.filter(item => {
+                // Check if item has a primary BOM or any active BOMs
+                const hasPrimaryBom = item.primary_bom || (item as Item & { primaryBom?: BillOfMaterial }).primaryBom;
+                const hasActiveBoms = billsOfMaterial.some(bom =>
+                    bom.output_item_id === item.id && bom.is_active
+                );
+                return hasPrimaryBom || hasActiveBoms;
+            });
+        }
+
+        // Apply search filter
         if (!itemSearchQuery.trim()) return manufacturableItems;
 
         const query = itemSearchQuery.toLowerCase();
@@ -204,7 +219,7 @@ export default function CreateManufacturingOrderDialog({
             item.description?.toLowerCase().includes(query) ||
             item.category?.name?.toLowerCase().includes(query)
         );
-    }, [items, itemSearchQuery]);
+    }, [items, itemSearchQuery, filterItemsWithBOM, billsOfMaterial]);
 
     // Paginated items
     const paginatedItems = useMemo(() => {
@@ -486,6 +501,7 @@ export default function CreateManufacturingOrderDialog({
             setBomSearchQuery('');
             setItemsPage(1);
             setBomsPage(1);
+            setFilterItemsWithBOM(false);
         }
         onOpenChange(open);
     };
@@ -513,19 +529,40 @@ export default function CreateManufacturingOrderDialog({
                                     Selecione o Item a ser Manufaturado
                                 </Label>
 
-                                {/* Search Box */}
-                                <div className="relative mb-4">
-                                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        type="text"
-                                        placeholder="Search by item number, name, or category..."
-                                        value={itemSearchQuery}
-                                        onChange={(e) => {
-                                            setItemSearchQuery(e.target.value);
-                                            setItemsPage(1); // Reset to first page on search
-                                        }}
-                                        className="pl-10"
-                                    />
+                                {/* Search and Filter Controls */}
+                                <div className="flex items-center gap-4 mb-4">
+                                    {/* Search Box */}
+                                    <div className="relative flex-1">
+                                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input
+                                            type="text"
+                                            placeholder="Search by item number, name, or category..."
+                                            value={itemSearchQuery}
+                                            onChange={(e) => {
+                                                setItemSearchQuery(e.target.value);
+                                                setItemsPage(1); // Reset to first page on search
+                                            }}
+                                            className="pl-10"
+                                        />
+                                    </div>
+
+                                    {/* BOM Filter Toggle */}
+                                    <div className="flex items-center gap-2">
+                                        <Switch
+                                            id="filter-bom"
+                                            checked={filterItemsWithBOM}
+                                            onCheckedChange={(checked) => {
+                                                setFilterItemsWithBOM(checked);
+                                                setItemsPage(1); // Reset to first page on filter change
+                                            }}
+                                        />
+                                        <Label
+                                            htmlFor="filter-bom"
+                                            className="text-sm font-normal cursor-pointer whitespace-nowrap"
+                                        >
+                                            Mostrar apenas itens com BOM
+                                        </Label>
+                                    </div>
                                 </div>
 
                                 {/* Items Table */}

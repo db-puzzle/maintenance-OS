@@ -34,8 +34,8 @@ export interface ItemImage {
     file_size: number;
     width: number;
     height: number;
-    is_primary: boolean;
-    display_order: number;
+    hash?: string;
+    blurhash?: string;
     alt_text?: string;
     caption?: string;
     metadata?: Record<string, unknown>;
@@ -75,11 +75,28 @@ export interface Item {
     preferred_vendor?: string;
     vendor_item_number?: string;
     primary_bom?: BillOfMaterial;
-    images?: ItemImage[];
-    images_count?: number;
+    image?: ItemImage;  // Single image instead of array
+    media?: Array<{
+        uuid: string;
+        name: string;
+        file_name: string;
+        mime_type: string;
+        size: number;
+        blurhash?: string;
+        responsive_images?: {
+            preview?: {
+                urls: string[];
+            };
+            thumb?: {
+                urls: string[];
+            };
+        };
+        original_url: string;
+        preview_url?: string;
+    }>;
     primary_image_id?: string;
-    primaryImage?: ItemImage;
     primary_image_url?: string;
+    primary_image_data?: { url: string; blurhash?: string | null };
     primary_image_thumbnail_url?: string;
     created_by?: User;
     created_at: string;

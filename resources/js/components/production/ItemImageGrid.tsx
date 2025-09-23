@@ -99,6 +99,7 @@ export function ItemImageGrid({ itemId, images, canEdit, itemName }: ItemImageGr
                             alt={image.alt_text || `Imagem do item ${index + 1}`}
                             containerClassName="w-full h-48"
                             onClick={() => openCarousel(index)}
+                            blurhash={image.blurhash}
                         />
                         {canEdit && (
                             <div className="absolute top-2 left-2 z-20">

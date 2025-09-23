@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Download, Maximize2, Image as ImageIcon, FileImage } from 'lucide-react';
 import { ItemImage } from '@/types/production';
+import { ImageWithBlurEffect } from './ImageWithBlurEffect';
 interface ItemImageCarouselDialogProps {
     images: ItemImage[];
     open: boolean;
@@ -107,11 +108,13 @@ export function ItemImageCarouselDialog({
                             <CarouselContent>
                                 {images.map((image, index) => (
                                     <CarouselItem key={image.id}>
-                                        <div className="flex flex-col items-center">
-                                            <img
+                                        <div className="flex flex-col items-center w-full">
+                                            <ImageWithBlurEffect
                                                 src={image.large_url || image.medium_url || image.url}
                                                 alt={image.alt_text || `Imagem ${index + 1}`}
-                                                className="max-h-[400px] max-w-full object-contain rounded-lg"
+                                                containerClassName="max-h-[400px] w-full"
+                                                className="object-contain rounded-lg"
+                                                blurhash={image.blurhash}
                                             />
                                         </div>
                                     </CarouselItem>

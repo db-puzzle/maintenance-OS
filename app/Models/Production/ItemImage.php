@@ -21,23 +21,22 @@ class ItemImage extends Model
         'file_size',
         'width',
         'height',
-        'is_primary',
-        'display_order',
+        'hash',
+        'blurhash',
         'alt_text',
         'caption',
         'metadata',
         'uploaded_by',
         'was_optimized',
+        'media_id', // For migration tracking
     ];
     
     protected $casts = [
-        'is_primary' => 'boolean',
         'was_optimized' => 'boolean',
         'metadata' => 'array',
         'file_size' => 'integer',
         'width' => 'integer',
         'height' => 'integer',
-        'display_order' => 'integer',
     ];
     
     protected $appends = ['url', 'thumbnail_url', 'medium_url', 'large_url'];

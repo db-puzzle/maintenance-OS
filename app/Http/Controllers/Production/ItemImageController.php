@@ -22,52 +22,29 @@ class ItemImageController extends Controller
     }
     
     /**
-     * Store new images for an item.
+     * Store new image for an item using media library.
      */
     public function store(Request $request, Item $item)
     {
         $this->authorize('update', $item);
         
         $request->validate([
-            'images' => 'required|array|max:5',
-            'images.*' => 'required|image|mimes:jpg,jpeg,png,webp,heic|max:10240', // 10MB max for processing
-            'set_primary' => 'nullable|boolean',
+            'images' => 'required|array|max:1',
+            'images.*' => 'required|image|mimes:jpg,jpeg,png,webp,heic|max:10240', // 10MB max
         ]);
         
-        $uploadedImages = [];
-        $notifications = [];
-        
-        DB::transaction(function () use ($request, $item, &$uploadedImages, &$notifications) {
-            foreach ($request->file('images') as $index => $file) {
-                // Process the image
-                $imageData = $this->imageService->processItemImage($file, $item->id);
-                
-                if ($imageData['was_optimized']) {
-                    $notifications[] = "Image '{$imageData['filename']}' was automatically optimized to meet the 500KB size limit.";
-                }
-                
-                // Create image record
-                $image = $item->images()->create([
-                    ...$imageData,
-                    'uploaded_by' => auth()->id(),
-                    'is_primary' => $request->boolean('set_primary') && $index === 0,
-                ]);
-                
-                // Generate variants in background job
-                dispatch(new GenerateImageVariants($image));
-                
-                $uploadedImages[] = $image;
-            }
+        DB::transaction(function () use ($request, $item) {
+            // Clear existing images from media library
+            $item->clearMediaCollection('images');
             
-            // Set first image as primary if no primary exists
-            if (!$item->images()->where('is_primary', true)->exists() && count($uploadedImages) > 0) {
-                $uploadedImages[0]->update(['is_primary' => true]);
-            }
+            // Add new image to media library
+            $file = $request->file('images')[0];
+            $item->addMedia($file)
+                ->toMediaCollection('images');
         });
         
-        return redirect()->route('production.items.show', ['item' => $item, 'tab' => 'images'])
-            ->with('success', count($uploadedImages) . ' image(s) uploaded successfully.')
-            ->with('notifications', $notifications);
+        return redirect()->route('production.items.show', ['item' => $item->load('media'), 'tab' => 'images'])
+            ->with('success', 'Image uploaded successfully.');
     }
     
     /**
@@ -85,10 +62,9 @@ class ItemImageController extends Controller
         $request->validate([
             'alt_text' => 'nullable|string|max:255',
             'caption' => 'nullable|string|max:1000',
-            'is_primary' => 'nullable|boolean',
         ]);
         
-        $image->update($request->only(['alt_text', 'caption', 'is_primary']));
+        $image->update($request->only(['alt_text', 'caption']));
         
         return redirect()->route('production.items.show', ['item' => $item, 'tab' => 'images'])
             ->with('success', 'Image updated successfully.');
@@ -97,91 +73,22 @@ class ItemImageController extends Controller
     /**
      * Delete an image.
      */
-    public function destroy(Item $item, ItemImage $image)
+    public function destroy(Item $item, $media)
     {
         $this->authorize('update', $item);
         
-        // Verify the image belongs to this item
-        if ($image->item_id !== $item->id) {
+        // Find the media
+        $mediaItem = $item->getMedia('images')->where('uuid', $media)->first();
+        
+        if (!$mediaItem) {
             abort(404);
         }
         
-        $isPrimary = $image->is_primary;
-        
-        DB::transaction(function () use ($image, $item, $isPrimary) {
-            // Delete the image (model will handle file cleanup)
-            $image->delete();
-            
-            // If this was the primary image, set the next one as primary
-            if ($isPrimary) {
-                $nextImage = $item->images()->orderBy('display_order')->first();
-                if ($nextImage) {
-                    $nextImage->update(['is_primary' => true]);
-                }
-            }
-        });
+        // Delete the media
+        $mediaItem->delete();
         
         return redirect()->route('production.items.show', ['item' => $item, 'tab' => 'images'])
             ->with('success', 'Image deleted successfully.');
     }
     
-    /**
-     * Reorder images.
-     */
-    public function reorder(Request $request, Item $item)
-    {
-        $this->authorize('update', $item);
-        
-        $request->validate([
-            'image_ids' => 'required|array',
-            'image_ids.*' => 'exists:item_images,id',
-        ]);
-        
-        DB::transaction(function () use ($request, $item) {
-            foreach ($request->image_ids as $index => $imageId) {
-                ItemImage::where('id', $imageId)
-                    ->where('item_id', $item->id)
-                    ->update(['display_order' => $index + 1]);
-            }
-        });
-        
-        return redirect()->route('production.items.show', ['item' => $item, 'tab' => 'images'])
-            ->with('success', 'Images reordered successfully.');
-    }
-    
-    /**
-     * Bulk delete images.
-     */
-    public function bulkDelete(Request $request, Item $item)
-    {
-        $this->authorize('update', $item);
-        
-        $request->validate([
-            'image_ids' => 'required|array',
-            'image_ids.*' => 'exists:item_images,id',
-        ]);
-        
-        DB::transaction(function () use ($request, $item) {
-            $images = ItemImage::whereIn('id', $request->image_ids)
-                ->where('item_id', $item->id)
-                ->get();
-            
-            $hadPrimary = $images->where('is_primary', true)->count() > 0;
-            
-            foreach ($images as $image) {
-                $image->delete();
-            }
-            
-            // Set new primary if needed
-            if ($hadPrimary) {
-                $nextImage = $item->images()->orderBy('display_order')->first();
-                if ($nextImage) {
-                    $nextImage->update(['is_primary' => true]);
-                }
-            }
-        });
-        
-        return redirect()->route('production.items.show', ['item' => $item, 'tab' => 'images'])
-            ->with('success', count($request->image_ids) . ' image(s) deleted successfully.');
-    }
 }

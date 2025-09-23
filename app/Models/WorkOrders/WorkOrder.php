@@ -7,16 +7,18 @@ use App\Models\Forms\Form;
 use App\Models\Forms\FormVersion;
 use App\Models\Maintenance\Routine;
 use App\Models\User;
+use App\Traits\HasMediaTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
+use Spatie\MediaLibrary\HasMedia;
 
-class WorkOrder extends Model
+class WorkOrder extends Model implements HasMedia
 {
-    use HasFactory;
+    use HasFactory, HasMediaTrait;
     
     protected $fillable = [
         'work_order_number', 'discipline', 'title', 'description', 'work_order_type_id',
@@ -94,6 +96,30 @@ class WorkOrder extends Model
         self::STATUS_CLOSED => [],
         self::STATUS_CANCELLED => [],
     ];
+    
+    /**
+     * Register media collections
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('attachments')
+            ->acceptsMimeTypes([
+                'application/pdf',
+                'image/jpeg', 
+                'image/png',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ]);
+            
+        $this->addMediaCollection('completion-photos')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/heic']);
+            
+        $this->addMediaCollection('reports')
+            ->acceptsMimeTypes(['application/pdf'])
+            ->singleFile();
+    }
 
     protected static function boot()
     {

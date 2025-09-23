@@ -99,4 +99,7 @@ require __DIR__.'/planning.php';
 // QR Scanning (public routes)
 require __DIR__.'/qr.php';
 
+// Media
+require __DIR__.'/media.php';
+
 require __DIR__.'/auth.php';

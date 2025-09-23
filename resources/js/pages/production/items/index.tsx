@@ -203,6 +203,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         width: 'w-[160px]',
         render: (value: unknown, item: Item) => (
             <ItemImagePreview
+                primaryImageData={item.primary_image_data}
                 primaryImageUrl={item.primary_image_url}
                 imageCount={item.images_count || 0}
                 className="w-36 h-36"

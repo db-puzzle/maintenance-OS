@@ -89,15 +89,6 @@ export default function ManufacturingOrderHierarchicalView({
     const auth = props.auth;
     const userPermissions = auth?.permissions || [];
 
-    // Debug logging
-    useEffect(() => {
-        console.log('ManufacturingOrderHierarchicalView - Orders updated:', {
-            ordersCount: orders.length,
-            orders: orders.map(o => ({ id: o.id, number: o.order_number, status: o.status })),
-            selectedOrders: Array.from(selectedOrders)
-        });
-    }, [orders, selectedOrders]);
-
     // State
     const [showImages, setShowImages] = useState(externalShowThumbnails !== undefined ? externalShowThumbnails : false);
     const [templateDialogOpen, setTemplateDialogOpen] = useState(false);

@@ -82,7 +82,17 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     // Item Images - Bulk Import Wizard
     Route::prefix('items/images')->name('items.images.')->group(function () {
         Route::get('/import/wizard', [ItemImageImportController::class, 'wizard'])->name('import.wizard');
-        Route::post('/import', [ItemImageImportController::class, 'import'])->name('import');
+        Route::post('/import', [ItemImageImportController::class, 'import'])->name('import'); // Legacy single-batch import
+        
+        // New bulk import endpoints
+        Route::post('/import/init-session', [ItemImageImportController::class, 'initSession'])->name('import.init-session');
+        Route::post('/import/validate-files', [ItemImageImportController::class, 'validateFiles'])->name('import.validate-files');
+        Route::post('/import/start-chunked-upload', [ItemImageImportController::class, 'startChunkedUpload'])->name('import.start-chunked-upload');
+        Route::post('/import/upload-chunk', [ItemImageImportController::class, 'uploadChunk'])->name('import.upload-chunk');
+        Route::post('/import/process', [ItemImageImportController::class, 'processUploads'])->name('import.process');
+        Route::get('/import/session/{sessionId}/status', [ItemImageImportController::class, 'getSessionStatus'])->name('import.session-status');
+        Route::post('/import/session/{sessionId}/cancel', [ItemImageImportController::class, 'cancelSession'])->name('import.cancel-session');
+        Route::post('/import/check-duplicates', [ItemImageImportController::class, 'checkDuplicates'])->name('import.check-duplicates');
     });
 
     // BOMs Management

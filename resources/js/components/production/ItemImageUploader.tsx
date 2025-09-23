@@ -10,8 +10,9 @@ interface ItemImageUploaderProps {
     maxImages: number;
     currentImageCount: number;
     enableDirectorySelection?: boolean;
+    onUploadComplete?: () => void;
 }
-export function ItemImageUploader({ itemId, maxImages, currentImageCount, enableDirectorySelection = false }: ItemImageUploaderProps) {
+export function ItemImageUploader({ itemId, maxImages, currentImageCount, enableDirectorySelection = false, onUploadComplete }: ItemImageUploaderProps) {
     const [dragActive, setDragActive] = useState(false);
     const [previews, setPreviews] = useState<{ file: File; url: string }[]>([]);
     const { data, setData, post, progress, errors, processing } = useForm({
@@ -83,6 +84,9 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount, enable
             onSuccess: () => {
                 setPreviews([]);
                 setData('images', []);
+                if (onUploadComplete) {
+                    onUploadComplete();
+                }
             },
             onError: (errors: unknown) => {
                 console.error('Upload errors:', errors);

@@ -3,7 +3,7 @@ import { useForm } from '@inertiajs/react';
 import { router, usePage } from '@inertiajs/react';
 import { Head } from '@inertiajs/react';
 import { createFormAdapter } from '@/utils/form-adapters';
-import { ShoppingCart, Factory, Package, Ghost, QrCode, Lightbulb, Camera, Search } from 'lucide-react';
+import { ShoppingCart, Factory, Package, Ghost, QrCode, Lightbulb, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,8 +22,7 @@ import { User } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 
 import CreateItemCategorySheet from '@/components/production/CreateItemCategorySheet';
-import { ItemImageUploader } from '@/components/production/ItemImageUploader';
-import { ItemImageGrid } from '@/components/production/ItemImageGrid';
+import { ItemImageTab } from '@/components/production/ItemImageTab';
 import { toast } from 'sonner';
 import axios from 'axios';
 import {
@@ -1100,41 +1099,17 @@ export default function ItemShow({
                 },
                 {
                     id: 'images',
-                    label: 'Imagens',
+                    label: 'Imagem',
                     content: (
-                        <div className="py-6 space-y-8">
-                            <div>
-                                {item?.images && item.images.length > 0 ? (
-                                    <ItemImageGrid
-                                        itemId={item.id.toString()}
-                                        images={item.images}
-                                        canEdit={can?.update || false}
-                                        itemName={item.name}
-                                    />
-                                ) : (
-                                    <EmptyCard
-                                        icon={Camera}
-                                        title="Nenhuma imagem"
-                                        description="Ainda não há imagens enviadas para este item"
-                                    />
-                                )}
-                            </div>
-
-                            {can?.update && (
-                                <div>
-                                    <h3 className="text-lg font-medium mb-2">Enviar Imagens</h3>
-                                    <p className="text-sm text-gray-600 mb-4">
-                                        Adicione imagens para ajudar a identificar este item. Você pode enviar até 5 imagens.
-                                    </p>
-                                    <ItemImageUploader
-                                        itemId={item?.id.toString() || ''}
-                                        maxImages={5}
-                                        currentImageCount={item?.images?.length || 0}
-                                        enableDirectorySelection
-                                    />
-                                </div>
-                            )}
-                        </div>
+                        <ItemImageTab
+                            itemId={item?.id.toString() || ''}
+                            media={item?.media}
+                            canEdit={can?.update || false}
+                            itemName={item?.name || ''}
+                            onReload={() => {
+                                router.reload({ only: ['item'] });
+                            }}
+                        />
                     ),
                 },
             ]),
