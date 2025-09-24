@@ -3,14 +3,18 @@
 namespace App\Models\Production;
 
 use App\Models\User;
+use App\Traits\HasMediaTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Http\UploadedFile;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class Shipment extends Model
+class Shipment extends Model implements HasMedia
 {
-    use HasFactory;
+    use HasFactory, HasMediaTrait;
 
     protected $fillable = [
         'shipment_number',
@@ -239,5 +243,30 @@ class Shipment extends Model
         }
 
         return null;
+    }
+    
+    /**
+     * Register media collections
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('photos')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png'])
+            ->useFallbackUrl('/images/no-shipment-photo.jpg');
+    }
+    
+    /**
+     * Store shipment photo with GPS data
+     */
+    public function addShipmentPhoto(UploadedFile $file, array $gpsData = []): Media
+    {
+        return $this->addMedia($file)
+            ->withCustomProperties([
+                'gps_latitude' => $gpsData['latitude'] ?? null,
+                'gps_longitude' => $gpsData['longitude'] ?? null,
+                'gps_altitude' => $gpsData['altitude'] ?? null,
+                'captured_at' => $gpsData['captured_at'] ?? now(),
+            ])
+            ->toMediaCollection('photos');
     }
 }

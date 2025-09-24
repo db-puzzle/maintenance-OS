@@ -1,12 +1,20 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { useMediaUpload } from '@/hooks/useMediaUpload';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import axios from 'axios';
-import { MediaUploadOptions, UploadProgress } from '@/types/media';
+import { formatFileSize } from '@/utils/media';
 
-interface MediaUploaderProps extends MediaUploadOptions {
+interface MediaUploaderProps {
+    modelType: string;
+    modelId: number;
+    collection: string;
+    maxFiles?: number;
+    maxFileSize?: number;
+    allowedMimeTypes?: string[];
+    onUploadComplete?: () => void;
     className?: string;
 }
 
@@ -15,162 +23,135 @@ export function MediaUploader({
     modelId,
     collection,
     maxFiles = 10,
-    maxSize = 50 * 1024 * 1024, // 50MB
-    acceptedTypes = ['image/*', 'application/pdf'],
-    checkDuplicates = false,
-    allowDuplicates = true,
+    maxFileSize,
+    allowedMimeTypes,
     onUploadComplete,
-    onError,
-    className,
+    className
 }: MediaUploaderProps) {
-    const [uploads, setUploads] = useState<UploadProgress[]>([]);
+    const [uploadedCount, setUploadedCount] = useState(0);
 
-    const uploadFile = async (file: File) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('model_type', modelType);
-        formData.append('model_id', String(modelId));
-        formData.append('collection', collection);
-        formData.append('check_duplicates', String(checkDuplicates));
-        formData.append('allow_duplicates', String(allowDuplicates));
-
-        const uploadId = Date.now() + Math.random();
-
-        try {
-            // Add to upload queue
-            setUploads(prev => [...prev, {
-                id: uploadId,
-                name: file.name,
-                progress: 0,
-                status: 'uploading',
-            }]);
-
-            const response = await axios.post('/api/media/upload', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-                onUploadProgress: (progressEvent) => {
-                    const progress = progressEvent.total
-                        ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
-                        : 0;
-
-                    setUploads(prev => prev.map(u =>
-                        u.id === uploadId ? { ...u, progress } : u
-                    ));
-                },
-            });
-
-            // Handle duplicate detection
-            if (response.data.duplicate) {
-                setUploads(prev => prev.map(u =>
-                    u.id === uploadId ? {
-                        ...u,
-                        status: 'error',
-                        error: 'Duplicate file detected'
-                    } : u
-                ));
-
-                if (onError) {
-                    onError('Duplicate file: ' + file.name);
-                }
-                return;
-            }
-
-            // Mark as complete
-            setUploads(prev => prev.map(u =>
-                u.id === uploadId ? { ...u, status: 'complete', media: response.data.media } : u
-            ));
-
+    const {
+        uploading,
+        progress,
+        uploadMultiple,
+        clearProgress,
+        removeFromProgress,
+        validateFile: _validateFile
+    } = useMediaUpload({
+        modelType,
+        modelId,
+        collection,
+        maxFileSize,
+        allowedMimeTypes,
+        onSuccess: () => {
+            setUploadedCount(prev => prev + 1);
             if (onUploadComplete) {
-                onUploadComplete([response.data.media]);
-            }
-
-        } catch (error) {
-            // Mark as error
-            const errorMessage = (error as any).response?.data?.message || (error as any).message || 'Upload failed';
-
-            setUploads(prev => prev.map(u =>
-                u.id === uploadId ? { ...u, status: 'error', error: errorMessage } : u
-            ));
-
-            if (onError) {
-                onError(errorMessage);
+                onUploadComplete();
             }
         }
-    };
+    });
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
-        acceptedFiles.forEach(file => uploadFile(file));
-    }, [uploadFile]);
+        if (acceptedFiles.length > maxFiles) {
+            alert(`You can only upload up to ${maxFiles} files at a time.`);
+            return;
+        }
+
+        uploadMultiple(acceptedFiles);
+    }, [uploadMultiple, maxFiles]);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        maxFiles,
-        maxSize,
-        accept: acceptedTypes.reduce((acc, type) => ({ ...acc, [type]: [] }), {}),
+        accept: allowedMimeTypes ?
+            allowedMimeTypes.reduce((acc, mimeType) => {
+                acc[mimeType] = [];
+                return acc;
+            }, {} as Record<string, string[]>)
+            : undefined,
+        maxSize: maxFileSize,
+        multiple: maxFiles > 1
     });
 
-    const removeUpload = (id: string | number) => {
-        setUploads(prev => prev.filter(u => u.id !== id));
-    };
+    const progressItems = Object.entries(progress);
+    const hasUploads = progressItems.length > 0;
 
     return (
-        <div className={`space-y-4 ${className || ''}`}>
+        <div className={cn('space-y-4', className)}>
             <div
                 {...getRootProps()}
-                className={`
-                    border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-                    transition-colors duration-200
-                    ${isDragActive
-                        ? 'border-primary bg-primary/10'
-                        : 'border-gray-300 hover:border-gray-400'
-                    }
-                `}
+                className={cn(
+                    'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
+                    isDragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-gray-400',
+                    uploading && 'pointer-events-none opacity-50'
+                )}
             >
                 <input {...getInputProps()} />
-                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-600">
+                <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-sm text-gray-600">
                     {isDragActive
                         ? 'Drop the files here...'
-                        : 'Drag & drop files here, or click to select'
-                    }
+                        : `Drag & drop files here, or click to select`}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
-                    Max {maxFiles} files, up to {Math.round(maxSize / 1024 / 1024)}MB each
+                <p className="text-xs text-gray-500 mt-2">
+                    {maxFiles > 1 ? `Up to ${maxFiles} files` : 'Single file only'}
+                    {maxFileSize && ` • Max ${formatFileSize(maxFileSize)}`}
                 </p>
+                {allowedMimeTypes && (
+                    <p className="text-xs text-gray-500 mt-1">
+                        Allowed types: {allowedMimeTypes.map(type => type.split('/')[1]).join(', ')}
+                    </p>
+                )}
             </div>
 
-            {uploads.length > 0 && (
+            {hasUploads && (
                 <div className="space-y-2">
-                    {uploads.map(upload => (
-                        <div key={upload.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                            {upload.status === 'uploading' && (
-                                <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
-                            )}
-                            {upload.status === 'complete' && (
-                                <CheckCircle className="h-5 w-5 text-green-500" />
-                            )}
-                            {upload.status === 'error' && (
-                                <AlertCircle className="h-5 w-5 text-red-500" />
-                            )}
+                    <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-sm font-medium">Upload Progress</h4>
+                        {!uploading && uploadedCount > 0 && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={clearProgress}
+                            >
+                                Clear completed
+                            </Button>
+                        )}
+                    </div>
 
-                            <div className="flex-1">
-                                <p className="text-sm font-medium">{upload.name}</p>
-                                {upload.status === 'uploading' && (
-                                    <Progress value={upload.progress} className="h-1 mt-1" />
-                                )}
-                                {upload.status === 'error' && (
-                                    <p className="text-xs text-red-500">{upload.error}</p>
-                                )}
+                    {progressItems.map(([fileId, item]) => (
+                        <div key={fileId} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{item.file.name}</p>
+                                    <p className="text-xs text-gray-500">{formatFileSize(item.file.size)}</p>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="ml-2 -mt-1"
+                                    onClick={() => removeFromProgress(fileId)}
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
                             </div>
 
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => removeUpload(upload.id)}
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
+                            {item.status === 'uploading' && (
+                                <Progress value={item.progress} className="h-2" />
+                            )}
+
+                            {item.status === 'success' && (
+                                <div className="flex items-center text-sm text-green-600">
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Upload complete
+                                </div>
+                            )}
+
+                            {item.status === 'error' && (
+                                <div className="flex items-center text-sm text-red-600">
+                                    <AlertCircle className="h-4 w-4 mr-1" />
+                                    {item.error || 'Upload failed'}
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>

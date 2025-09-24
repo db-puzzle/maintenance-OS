@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Media;
 use App\Services\Media\BlurHashService;
 use App\Services\Media\ImageHashService;
+use App\Services\Media\MediaDiskResolver;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -19,8 +20,8 @@ class MediaService
 
     public function __construct()
     {
-        $this->blurHashService = new BlurHashService();
-        $this->imageHashService = new ImageHashService();
+        $this->blurHashService = new BlurHashService;
+        $this->imageHashService = new ImageHashService;
     }
 
     /**
@@ -32,15 +33,20 @@ class MediaService
         string $collection,
         array $customProperties = []
     ): Media {
+        $originalName = $file->getClientOriginalName();
+        $mimeType = $file->getMimeType();
+        $fileSize = $file->getSize();
+
+
         // Generate file hash
         $fileHash = hash_file('sha256', $file->getRealPath());
-        
+
         // Merge default properties with custom ones
         $properties = array_merge([
             'uploaded_by' => auth()->id(),
             'uploaded_at' => now()->toIso8601String(),
             'ip_address' => request()->ip(),
-            'original_name' => $file->getClientOriginalName(),
+            'original_name' => $originalName,
             'file_hash' => $fileHash,
         ], $customProperties);
 
@@ -48,13 +54,13 @@ class MediaService
         if ($this->isImage($file)) {
             $imageProperties = $this->extractImageProperties($file);
             $properties = array_merge($properties, $imageProperties);
-            
+
             // Generate BlurHash for images
             $blurHash = $this->blurHashService->generateBlurHash($file->getRealPath());
             if ($blurHash) {
                 $properties['blurhash'] = $blurHash;
             }
-            
+
             // Generate perceptual hash for duplicate detection
             $perceptualHash = $this->imageHashService->generatePerceptualHash($file->getRealPath());
             if ($perceptualHash) {
@@ -66,19 +72,24 @@ class MediaService
         $disk = MediaDiskResolver::getDiskForCollection($collection);
 
         // Add the media
+        // Use usingFileName() with the full filename to prevent double extensions
+        // The MediaFileNamer will handle sanitization and unique suffix generation
+        $originalFilename = $file->getClientOriginalName();
+
+
         $media = $model->addMedia($file)
             ->withCustomProperties($properties)
-            ->usingName(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
-            ->usingFileName($this->generateUniqueFileName($file))
+            ->usingFileName($originalFilename)
             ->toMediaCollection($collection, $disk);
-            
+
+
         // Update media record with hash values
         $media->update([
             'file_hash' => $fileHash,
             'blurhash' => $properties['blurhash'] ?? null,
             'perceptual_hash' => $properties['perceptual_hash'] ?? null,
         ]);
-        
+
         return $media;
     }
 
@@ -180,7 +191,6 @@ class MediaService
         // Add to target model
         $newMedia = $targetModel->addMedia($tempFile)
             ->withCustomProperties($customProperties)
-            ->usingName($media->name)
             ->usingFileName($media->file_name)
             ->toMediaCollection($targetCollection, $media->disk);
 

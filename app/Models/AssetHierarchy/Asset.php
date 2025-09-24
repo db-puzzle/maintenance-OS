@@ -5,15 +5,17 @@ namespace App\Models\AssetHierarchy;
 use App\Models\Maintenance\Routine;
 use App\Models\WorkOrders\WorkOrder;
 use App\Traits\AssetRuntimeCalculator;
+use App\Traits\HasMediaTrait;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\MediaLibrary\HasMedia;
 
-class Asset extends Model
+class Asset extends Model implements HasMedia
 {
-    use HasFactory, AssetRuntimeCalculator;
+    use HasFactory, AssetRuntimeCalculator, HasMediaTrait;
 
     protected $table = 'assets';
 
@@ -254,5 +256,16 @@ class Asset extends Model
         }
         
         return round($totalHours / $totalDays, 2);
+    }
+    
+    /**
+     * Register media collections
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('photos')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png'])
+            ->singleFile()
+            ->useFallbackUrl('/images/no-asset-photo.jpg');
     }
 }

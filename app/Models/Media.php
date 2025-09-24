@@ -258,4 +258,73 @@ class Media extends BaseMedia
         $this->last_accessed_at = now();
         $this->save();
     }
+
+    /**
+     * Override getUrl to return authenticated API routes instead of direct storage URLs.
+     * This ensures all media access goes through proper authentication.
+     */
+    public function getUrl(string $conversionName = ''): string
+    {
+        // If it's a conversion, return the conversion API route
+        if ($conversionName !== '' && $this->hasGeneratedConversion($conversionName)) {
+            return route('api.media.show-conversion', [$this->id, $conversionName]);
+        }
+        
+        // Return the original media API route
+        return route('api.media.show', $this->id);
+    }
+
+    /**
+     * Get the download URL for this media.
+     */
+    public function getDownloadUrl(): string
+    {
+        return route('api.media.download', $this->id);
+    }
+
+    /**
+     * Override toArray to ensure URLs are properly generated for API responses.
+     */
+    public function toArray()
+    {
+        $array = parent::toArray();
+        
+        // Add properly formatted URLs
+        $array['original_url'] = $this->getUrl();
+        $array['download_url'] = $this->getDownloadUrl();
+        
+        // Add conversion URLs if they exist
+        if ($this->generated_conversions) {
+            $array['conversion_urls'] = [];
+            foreach (array_keys($this->generated_conversions) as $conversion) {
+                $array['conversion_urls'][$conversion] = $this->getUrl($conversion);
+            }
+            
+            // Add specific conversion URLs for backwards compatibility
+            if (isset($this->generated_conversions['preview'])) {
+                $array['preview_url'] = $this->getUrl('preview');
+            }
+            if (isset($this->generated_conversions['thumb'])) {
+                $array['thumb_url'] = $this->getUrl('thumb');
+            }
+        }
+        
+        // Add responsive images with proper URLs
+        if ($this->responsive_images) {
+            $array['responsive_images'] = $this->responsive_images;
+            
+            // Update URLs in responsive images
+            foreach ($array['responsive_images'] as $conversion => &$data) {
+                if (isset($data['urls']) && is_array($data['urls'])) {
+                    $data['urls'] = array_map(function ($url) {
+                        // Extract the filename from the URL and generate proper API route
+                        // This is a simplified approach - you might need to adjust based on your setup
+                        return $this->getUrl($conversion);
+                    }, $data['urls']);
+                }
+            }
+        }
+        
+        return $array;
+    }
 }

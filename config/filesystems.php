@@ -47,60 +47,33 @@ return [
             'report' => false,
         ],
 
-        's3' => [
+        // Private R2 Storage (all files require authentication)
+        'default' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'region' => env('AWS_DEFAULT_REGION'),
+            'region' => env('AWS_DEFAULT_REGION', 'auto'),
             'bucket' => env('AWS_BUCKET'),
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
-            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', true),
             'throw' => false,
-            'report' => false,
-        ],
-
-        // Media storage disk - configured per environment
-        'media' => [
-            'driver' => env('MEDIA_DRIVER', 'local'),
-            'root' => env('MEDIA_DRIVER', 'local') === 'local' 
-                ? storage_path('app/media') 
-                : null,
-            'key' => env('R2_ACCESS_KEY_ID'),
-            'secret' => env('R2_SECRET_ACCESS_KEY'),
-            'region' => env('R2_REGION', 'auto'),
-            'bucket' => env('R2_BUCKET'),
-            'url' => env('MEDIA_DRIVER', 'local') === 'local' 
-                ? env('APP_URL').'/storage/media' 
-                : env('R2_URL'),
-            'endpoint' => env('R2_ENDPOINT'),
-            'use_path_style_endpoint' => env('R2_USE_PATH_STYLE', true),
-            'visibility' => 'public',
-            'throw' => env('MEDIA_THROW_ERRORS', false),
-        ],
-
-        'media-private' => [
-            'driver' => env('MEDIA_PRIVATE_DRIVER', 'local'),
-            'root' => env('MEDIA_PRIVATE_DRIVER', 'local') === 'local' 
-                ? storage_path('app/media-private') 
-                : null,
-            'key' => env('R2_ACCESS_KEY_ID'),
-            'secret' => env('R2_SECRET_ACCESS_KEY'),
-            'region' => env('R2_REGION', 'auto'),
-            'bucket' => env('R2_PRIVATE_BUCKET'),
-            'url' => env('R2_PRIVATE_URL'),
-            'endpoint' => env('R2_ENDPOINT'),
-            'use_path_style_endpoint' => env('R2_USE_PATH_STYLE', true),
             'visibility' => 'private',
-            'serve' => false,
-            'throw' => env('MEDIA_THROW_ERRORS', false),
         ],
 
-        // Temporary upload disk
-        'media-temp' => [
+        // Local Media Storage (Development) - all private
+        'media-local' => [
             'driver' => 'local',
-            'root' => storage_path('app/media-temp'),
-            'throw' => false,
+            'root' => storage_path('app/media'),
+            'visibility' => 'private',
+            'serve' => false, // All files served through controllers
+        ],
+
+        // Temporary storage (always local)
+        'temp' => [
+            'driver' => 'local',
+            'root' => storage_path('app/temp'),
+            'visibility' => 'private',
         ],
 
     ],
@@ -118,7 +91,6 @@ return [
 
     'links' => [
         public_path('storage') => storage_path('app/public'),
-        public_path('storage/media') => storage_path('app/media'),
     ],
 
 ];

@@ -2,9 +2,7 @@
 
 namespace App\Services\Production;
 
-use App\Jobs\Production\GenerateImageVariants;
 use App\Models\Production\Item;
-use App\Models\Production\ItemImage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -12,7 +10,7 @@ use Illuminate\Support\Facades\Gate;
 
 class ItemImageBulkImportService
 {
-    public function __construct(private ImageProcessingService $imageService)
+    public function __construct()
     {
     }
 
@@ -73,7 +71,7 @@ class ItemImageBulkImportService
                 continue;
             }
 
-            $existingCount = $item->images()->count();
+            $existingCount = $item->getMedia('images')->count();
             $remainingSlots = max(0, 5 - $existingCount);
             if ($remainingSlots === 0) {
                 $summary['errors'][] = "Item '{$item->item_number}' already has 5 images. Skipping.";
@@ -84,7 +82,7 @@ class ItemImageBulkImportService
             usort($images, fn ($a, $b) => ($a['order'] ?? 0) <=> ($b['order'] ?? 0));
 
             $importedForItem = 0;
-            $hadPrimary = $item->images()->where('is_primary', true)->exists();
+            $hadPrimary = $item->getMedia('images')->where('custom_properties->is_primary', true)->exists();
 
             DB::transaction(function () use (
                 $images,
@@ -118,32 +116,25 @@ class ItemImageBulkImportService
                         continue;
                     }
 
-                    $imageData = $this->imageService->processItemImage($file, (string) $item->id);
-
-                    $isPrimary = false;
-                    if (!$hadPrimary && $importedForItem === 0 && ($imageEntry['is_primary'] ?? false)) {
-                        $isPrimary = true;
-                    }
-
-                    /** @var ItemImage $created */
-                    $created = $item->images()->create([
-                        ...$imageData,
-                        'uploaded_by' => auth()->id(),
-                        'is_primary' => $isPrimary,
-                        'display_order' => ($item->images()->max('display_order') ?? 0) + 1,
-                    ]);
-
-                    dispatch(new GenerateImageVariants($created));
+                    // Add image using Spatie Media Library
+                    $media = $item->addMedia($file)
+                        ->withCustomProperties([
+                            'uploaded_by' => auth()->id(),
+                            'is_primary' => !$hadPrimary && $importedForItem === 0 && ($imageEntry['is_primary'] ?? false),
+                            'display_order' => $item->media()->count() + 1,
+                        ])
+                        ->toMediaCollection('images');
 
                     $importedForItem++;
                     $slotLeft--;
                     $summary['imagesImported']++;
                 }
 
-                if (!$item->images()->where('is_primary', true)->exists()) {
-                    $first = $item->images()->orderBy('display_order')->first();
+                if (!$item->getMedia('images')->where('custom_properties->is_primary', true)->exists()) {
+                    $first = $item->getMedia('images')->sortBy('custom_properties.display_order')->first();
                     if ($first) {
-                        $first->update(['is_primary' => true]);
+                        $first->setCustomProperty('is_primary', true);
+                        $first->save();
                     }
                 }
             });

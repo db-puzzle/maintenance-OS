@@ -8,6 +8,7 @@ use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\AssetHierarchy\System;
 use App\Models\Certification;
+use App\Models\Media;
 use App\Models\Part;
 use App\Models\Production\BillOfMaterial;
 use App\Models\Production\Item;
@@ -27,6 +28,7 @@ use App\Models\WorkOrders\WorkOrder;
 use App\Policies\AreaPolicy;
 use App\Policies\AssetPolicy;
 use App\Policies\CertificationPolicy;
+use App\Policies\MediaPolicy;
 use App\Policies\PartPolicy;
 use App\Policies\PlantPolicy;
 use App\Policies\Production\BillOfMaterialPolicy;
@@ -56,6 +58,9 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
+        // Media
+        Media::class => MediaPolicy::class,
+        
         // Asset Hierarchy
         Plant::class => PlantPolicy::class,
         Area::class => AreaPolicy::class,

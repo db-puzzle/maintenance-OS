@@ -865,6 +865,52 @@ class PermissionSeeder extends Seeder
                 ]
             ];
 
+            // Media management permissions
+            $mediaPermissions = [
+                [
+                    'name' => 'media.view',
+                    'display_name' => 'View Media Files',
+                    'description' => 'View media files attached to entities',
+                    'sort_order' => 180
+                ],
+                [
+                    'name' => 'media.create',
+                    'display_name' => 'Upload Media Files',
+                    'description' => 'Upload new media files',
+                    'sort_order' => 181
+                ],
+                [
+                    'name' => 'media.update',
+                    'display_name' => 'Update Media Files',
+                    'description' => 'Update media file information',
+                    'sort_order' => 182
+                ],
+                [
+                    'name' => 'media.delete',
+                    'display_name' => 'Delete Media Files',
+                    'description' => 'Delete media files',
+                    'sort_order' => 183
+                ],
+                [
+                    'name' => 'media.download',
+                    'display_name' => 'Download Media Files',
+                    'description' => 'Download media files',
+                    'sort_order' => 184
+                ],
+                [
+                    'name' => 'media.bulk-upload',
+                    'display_name' => 'Bulk Upload Media',
+                    'description' => 'Bulk upload multiple media files',
+                    'sort_order' => 185
+                ],
+                [
+                    'name' => 'media.manage-conversions',
+                    'display_name' => 'Manage Media Conversions',
+                    'description' => 'Regenerate and manage media conversions',
+                    'sort_order' => 186
+                ]
+            ];
+
             // Create all permissions
             $allPermissions = array_merge(
                 $systemPermissions,
@@ -885,7 +931,8 @@ class PermissionSeeder extends Seeder
                 $productionStepPermissions,
                 $productionBomPermissions,
                 $productionShipmentPermissions,
-                $productionAnalyticsPermissions
+                $productionAnalyticsPermissions,
+                $mediaPermissions
             );
 
             foreach ($allPermissions as $permissionData) {

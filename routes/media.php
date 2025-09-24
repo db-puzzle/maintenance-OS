@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 // API Routes
-Route::prefix('api')->middleware('auth:sanctum')->group(function () {
+Route::prefix('api')->middleware('auth')->group(function () {
     // Media upload
     Route::post('media/upload', [MediaUploadController::class, 'store'])->name('api.media.upload');
     
@@ -30,7 +30,15 @@ Route::prefix('api')->middleware('auth:sanctum')->group(function () {
         Route::delete('cancel/{uploadId}', [AdvancedChunkedUploadController::class, 'cancelUpload'])->name('api.media.upload.cancel');
     });
     
-    // Secure media access
+    // Media access (all require authentication)
+    Route::prefix('media')->group(function () {
+        Route::get('{media}', [\App\Http\Controllers\Api\MediaController::class, 'show'])->name('api.media.show');
+        Route::get('{media}/conversions/{conversion}', [\App\Http\Controllers\Api\MediaController::class, 'showConversion'])->name('api.media.show-conversion');
+        Route::get('{media}/download', [\App\Http\Controllers\Api\MediaController::class, 'download'])->name('api.media.download');
+        Route::delete('{media}', [\App\Http\Controllers\Api\MediaController::class, 'destroy'])->name('api.media.destroy');
+    });
+    
+    // Secure media access (legacy routes for backward compatibility)
     Route::prefix('media/secure')->group(function () {
         Route::get('{media}', [SecureMediaController::class, 'show'])->name('api.media.secure.show');
         Route::get('{media}/download', [SecureMediaController::class, 'download'])->name('api.media.secure.download');

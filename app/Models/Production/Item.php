@@ -75,7 +75,6 @@ class Item extends Model implements HasMedia
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('images')
-            ->singleFile() // Enforce single file
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/heic'])
             ->useFallbackUrl('/images/no-image.jpg');
             
@@ -215,19 +214,14 @@ class Item extends Model implements HasMedia
      */
     public function getPrimaryImageUrlAttribute(): ?string
     {
-        // First check if we have new media library images
+        // Use new media library images
         if ($this->hasMedia('images')) {
             $media = $this->getFirstMedia('images');
-            return $media ? $media->getUrl('preview') : null;
+            // Use the authenticated API route
+            return $media ? route('api.media.show-conversion', [$media->id, 'preview']) : null;
         }
         
-        // Fall back to old system during migration
-        if ($this->relationLoaded('image') && $this->image) {
-            return $this->image->getVariantUrl('medium');
-        }
-        
-        $image = $this->image()->first();
-        return $image ? $image->getVariantUrl('medium') : null;
+        return null;
     }
 
     /**
@@ -235,21 +229,19 @@ class Item extends Model implements HasMedia
      */
     public function getPrimaryImageDataAttribute(): ?array
     {
-        // First check if we have new media library images
+        // Use new media library images
         if ($this->hasMedia('images')) {
             $media = $this->getFirstMedia('images');
             
             if ($media) {
                 return [
-                    'url' => $media->getUrl('preview'),
-                    'blurhash' => $media->getCustomProperty('blurhash'),
+                    'url' => route('api.media.show-conversion', [$media->id, 'preview']),
+                    'blurhash' => $media->getCustomProperty('blurhash') ?? $media->blurhash,
                 ];
             }
         }
         
-        // Fall back to old system (no blurhash)
-        $url = $this->primary_image_url;
-        return $url ? ['url' => $url, 'blurhash' => null] : null;
+        return null;
     }
 
     /**
@@ -257,32 +249,19 @@ class Item extends Model implements HasMedia
      */
     public function getImageUrlsAttribute(): array
     {
-        // First check if we have new media library images
+        // Use new media library images
         if ($this->hasMedia('images')) {
             $media = $this->getFirstMedia('images');
             if ($media) {
                 return [[
                     'id' => $media->uuid,
-                    'url' => $media->getUrl(),
-                    'thumbnail' => $media->getUrl('thumb'),
-                    'medium' => $media->getUrl('preview'),
-                    'blurhash' => $media->getCustomProperty('blurhash'),
+                    'url' => route('api.media.show', $media->id),
+                    'thumbnail' => route('api.media.show-conversion', [$media->id, 'thumb']),
+                    'medium' => route('api.media.show-conversion', [$media->id, 'preview']),
+                    'blurhash' => $media->getCustomProperty('blurhash') ?? $media->blurhash,
                     'caption' => $media->getCustomProperty('caption'),
                 ]];
             }
-        }
-        
-        // Fall back to old system
-        $image = $this->relationLoaded('image') ? $this->image : $this->image()->first();
-        if ($image) {
-            return [[
-                'id' => $image->id,
-                'url' => $image->url,
-                'thumbnail' => $image->getVariantUrl('thumbnail'),
-                'medium' => $image->getVariantUrl('medium'),
-                'blurhash' => null,
-                'caption' => $image->caption,
-            ]];
         }
         
         return [];

@@ -16,7 +16,7 @@ class ChunkedUploadController extends Controller
 
     public function __construct(MediaService $mediaService)
     {
-        $this->middleware('auth:sanctum');
+        $this->middleware('auth');
         $this->mediaService = $mediaService;
     }
 

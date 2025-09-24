@@ -43,9 +43,6 @@ export class UploadQueue {
         // Check if file is already in queue
         const existingItem = this.queue.find(item => item.file.filename === file.filename);
         if (existingItem) {
-            console.log('[UploadQueue] File already in queue, skipping', {
-                filename: file.filename,
-            });
             return;
         }
 
@@ -60,10 +57,6 @@ export class UploadQueue {
     }
 
     start() {
-        console.log('[UploadQueue] Starting queue processing', {
-            queueLength: this.queue.length,
-            sessionId: this.sessionId,
-        });
         this.isPaused = false;
         this.processQueue();
     }
@@ -98,33 +91,19 @@ export class UploadQueue {
 
     private async processQueue() {
         if (this.isPaused) {
-            console.log('[UploadQueue] Queue is paused, skipping processing');
             return;
         }
-
-        console.log('[UploadQueue] Processing queue', {
-            activeUploads: this.activeUploads.size,
-            maxConcurrent: this.concurrentUploads,
-            pendingItems: this.queue.filter(item => item.status === 'pending').length,
-        });
 
         while (this.activeUploads.size < this.concurrentUploads && this.queue.length > 0) {
             const nextItem = this.queue.find(item => item.status === 'pending');
             if (!nextItem) {
-                console.log('[UploadQueue] No pending items found');
                 break;
             }
-
-            console.log('[UploadQueue] Starting upload for file', {
-                filename: nextItem.file.filename,
-                size: nextItem.file.size,
-            });
 
             nextItem.status = 'uploading';
             this.activeUploads.set(nextItem.file.filename, nextItem);
 
             this.uploadFile(nextItem).then(() => {
-                console.log('[UploadQueue] Upload completed', { filename: nextItem.file.filename });
                 this.activeUploads.delete(nextItem.file.filename);
                 this.processQueue();
             }).catch((error) => {
@@ -139,7 +118,6 @@ export class UploadQueue {
 
         // Check if all uploads are complete
         if (this.activeUploads.size === 0 && !this.queue.some(item => item.status === 'pending')) {
-            console.log('[UploadQueue] All uploads complete, calling onAllComplete callback');
             if (this.onAllComplete) {
                 this.onAllComplete();
             }
@@ -150,28 +128,14 @@ export class UploadQueue {
         try {
             const { file, callbacks } = item;
 
-            console.log('[UploadQueue] Calculating file hash', { filename: file.filename });
             // Calculate file hash
             const fileHash = await calculateFileHash(file.file);
-            console.log('[UploadQueue] File hash calculated', {
-                filename: file.filename,
-                hash: fileHash,
-            });
 
             // For small files, upload directly
             if (file.size < this.chunkSize) {
-                console.log('[UploadQueue] Using direct upload', {
-                    filename: file.filename,
-                    size: file.size,
-                });
                 await this.uploadDirect(item, fileHash);
             } else {
                 // For large files, use chunked upload
-                console.log('[UploadQueue] Using chunked upload', {
-                    filename: file.filename,
-                    size: file.size,
-                    chunks: Math.ceil(file.size / this.chunkSize),
-                });
                 await this.uploadChunked(item, fileHash);
             }
 
@@ -196,12 +160,6 @@ export class UploadQueue {
     private async uploadDirect(item: QueueItem, fileHash: string) {
         const { file, callbacks, cancelToken } = item;
 
-        console.log('[UploadQueue] Starting chunked upload session', {
-            filename: file.filename,
-            sessionId: this.sessionId,
-            fileSize: file.size,
-        });
-
         // Start chunked upload session
         const startResponse = await axios.post(
             route('production.items.images.import.start-chunked-upload'),
@@ -216,10 +174,6 @@ export class UploadQueue {
         );
 
         const { uploadId } = startResponse.data;
-        console.log('[UploadQueue] Upload session started', {
-            filename: file.filename,
-            uploadId,
-        });
 
         // Upload the single chunk
         const formData = new FormData();
@@ -227,13 +181,7 @@ export class UploadQueue {
         formData.append('chunkIndex', '0');
         formData.append('chunk', file.file);
 
-        console.log('[UploadQueue] Uploading single chunk', {
-            filename: file.filename,
-            uploadId,
-            chunkIndex: 0,
-        });
-
-        const uploadResponse = await axios.post(
+        await axios.post(
             route('production.items.images.import.upload-chunk'),
             formData,
             {
@@ -246,12 +194,6 @@ export class UploadQueue {
                 },
             }
         );
-
-        console.log('[UploadQueue] Chunk upload response', {
-            filename: file.filename,
-            uploadId,
-            response: uploadResponse.data,
-        });
     }
 
     private async uploadChunked(item: QueueItem, fileHash: string) {
@@ -287,16 +229,7 @@ export class UploadQueue {
             formData.append('chunkIndex', chunkIndex.toString());
             formData.append('chunk', chunk);
 
-            console.log('[UploadQueue] Uploading chunk', {
-                filename: file.filename,
-                uploadId,
-                chunkIndex,
-                chunkStart: start,
-                chunkEnd: end,
-                chunkSize: chunk.size,
-            });
-
-            const chunkResponse = await axios.post(
+            await axios.post(
                 route('production.items.images.import.upload-chunk'),
                 formData,
                 {
@@ -310,13 +243,6 @@ export class UploadQueue {
                     },
                 }
             );
-
-            console.log('[UploadQueue] Chunk uploaded', {
-                filename: file.filename,
-                uploadId,
-                chunkIndex,
-                response: chunkResponse.data,
-            });
         }
     }
 }

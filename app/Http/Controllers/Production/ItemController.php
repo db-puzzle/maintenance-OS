@@ -74,8 +74,7 @@ class ItemController extends BaseSearchController
                 $query->withCount(['routeTemplates' => function ($q) {
                     $q->where('is_active', true);
                 }]);
-            }, 'createdBy', 'primaryImage', 'primaryBom'])
-            ->with('image');
+            }, 'createdBy', 'primaryBom', 'media']);
 
         // Apply custom sorting logic
         if ($sortBy === 'capabilities') {
@@ -218,7 +217,7 @@ class ItemController extends BaseSearchController
     {
         $this->authorize('view', $item);
 
-        $item->load(['category', 'createdBy', 'billOfMaterials', 'primaryBom', 'image', 'media']);
+        $item->load(['category', 'createdBy', 'billOfMaterials', 'primaryBom', 'media']);
         
         // Log media data to check hash values
         if ($item->media->count() > 0) {
@@ -300,7 +299,7 @@ class ItemController extends BaseSearchController
         });
 
         return Inertia::render('production/items/show', [
-            'item' => $item->load(['image', 'media']),
+            'item' => $item->load(['media']),
             'categories' => $categories,
             'whereUsedBoms' => $whereUsedBoms,
             'bomFilters' => $request->only(['bom_search', 'bom_per_page']),
@@ -672,7 +671,7 @@ class ItemController extends BaseSearchController
     {
         $this->authorize('view', $item);
 
-        $item->load(['image']);
+        $item->load(['media']);
 
         return response()->json([
             'item' => $item,

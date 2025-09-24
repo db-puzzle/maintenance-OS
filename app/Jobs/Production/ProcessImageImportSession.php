@@ -49,24 +49,13 @@ class ProcessImageImportSession implements ShouldQueue
      */
     public function handle(MediaService $mediaService, ItemImageBulkImportServiceV2 $bulkService): void
     {
-        Log::info('[ProcessImageImportSession] Starting job', [
-            'sessionId' => $this->sessionId,
-            'options' => $this->options,
-        ]);
 
         $sessionData = Cache::get("image_import_session_{$this->sessionId}");
         if (! $sessionData) {
-            Log::error("[ProcessImageImportSession] Import session not found: {$this->sessionId}");
 
             return;
         }
 
-        Log::info('[ProcessImageImportSession] Session data retrieved', [
-            'sessionId' => $this->sessionId,
-            'status' => $sessionData['status'] ?? 'unknown',
-            'filesCount' => count($sessionData['files'] ?? []),
-            'processed' => $sessionData['processed'] ?? 0,
-        ]);
 
         // Update session status
         $sessionData['status'] = 'processing';
@@ -85,10 +74,6 @@ class ProcessImageImportSession implements ShouldQueue
         try {
             $validFiles = collect($sessionData['files'])->where('valid', true);
 
-            Log::info('[ProcessImageImportSession] Processing valid files', [
-                'sessionId' => $this->sessionId,
-                'validFilesCount' => $validFiles->count(),
-            ]);
 
             // Set total to valid files count for progress tracking
             $sessionData['total'] = $validFiles->count();
@@ -96,12 +81,6 @@ class ProcessImageImportSession implements ShouldQueue
             Cache::put("image_import_session_{$this->sessionId}", $sessionData, now()->addHours(24));
 
             foreach ($validFiles as $index => $fileInfo) {
-                Log::info('[ProcessImageImportSession] Processing file', [
-                    'sessionId' => $this->sessionId,
-                    'fileIndex' => $index,
-                    'filename' => $fileInfo['filename'] ?? 'unknown',
-                    'itemCode' => $fileInfo['itemCode'] ?? 'unknown',
-                ]);
 
                 $this->processFile($fileInfo, $mediaService, $summary);
 
@@ -110,11 +89,6 @@ class ProcessImageImportSession implements ShouldQueue
                 $sessionData['summary'] = $summary;
                 Cache::put("image_import_session_{$this->sessionId}", $sessionData, now()->addHours(24));
 
-                Log::info('[ProcessImageImportSession] File processed', [
-                    'sessionId' => $this->sessionId,
-                    'fileIndex' => $index,
-                    'summary' => $summary,
-                ]);
             }
 
             // Mark session as complete
@@ -122,12 +96,6 @@ class ProcessImageImportSession implements ShouldQueue
             $sessionData['completed_at'] = now();
             $sessionData['summary'] = $summary;
 
-            Log::info('[ProcessImageImportSession] Marking session as completed', [
-                'sessionId' => $this->sessionId,
-                'status' => 'completed',
-                'summary' => $summary,
-                'completed_at' => $sessionData['completed_at'],
-            ]);
 
             Cache::put("image_import_session_{$this->sessionId}", $sessionData, now()->addHours(24));
         } catch (\Exception $e) {
@@ -151,20 +119,10 @@ class ProcessImageImportSession implements ShouldQueue
         $filename = $fileInfo['filename'];
         $itemCode = $fileInfo['itemCode'];
 
-        Log::info('[ProcessImageImportSession] Looking for assembled file', [
-            'sessionId' => $this->sessionId,
-            'filename' => $filename,
-            'itemCode' => $itemCode,
-        ]);
 
         // Find the assembled file
         $filePath = "imports/{$this->sessionId}/{$filename}";
         if (! Storage::disk('local')->exists($filePath)) {
-            Log::error('[ProcessImageImportSession] Assembled file not found', [
-                'sessionId' => $this->sessionId,
-                'filePath' => $filePath,
-                'filename' => $filename,
-            ]);
             $summary['errors'][] = "File not found: {$filename}";
             $summary['imagesSkipped']++;
 
@@ -180,7 +138,7 @@ class ProcessImageImportSession implements ShouldQueue
             return;
         }
 
-        DB::transaction(function () use ($item, $filePath, $filename, $mediaService, &$summary) {
+        DB::transaction(function () use ($item, $filePath, $filename, $mediaService, &$summary, $itemCode) {
             try {
                 // Check if we should replace existing
                 $hasExisting = $item->hasMedia('images');
@@ -200,10 +158,13 @@ class ProcessImageImportSession implements ShouldQueue
 
                 // Create temporary uploaded file
                 $tempPath = Storage::disk('local')->path($filePath);
+                $mimeType = Storage::disk('local')->mimeType($filePath);
+
+
                 $uploadedFile = new \Illuminate\Http\UploadedFile(
                     $tempPath,
                     $filename,
-                    Storage::disk('local')->mimeType($filePath),
+                    $mimeType,
                     null,
                     true
                 );
@@ -241,7 +202,7 @@ class ProcessImageImportSession implements ShouldQueue
                     $summary['itemsAffected']++;
                 }
             } catch (\Exception $e) {
-                Log::error("Failed to import image for item {$item->item_number}", [
+                Log::error("DB Failed to import image for item {$item->item_number}", [
                     'error' => $e->getMessage(),
                     'file' => $filename,
                 ]);

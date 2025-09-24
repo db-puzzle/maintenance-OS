@@ -14,7 +14,6 @@ use App\Models\WorkOrders\WorkOrderExecution;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -39,6 +38,7 @@ class AssetController extends Controller
                 'area.plant:id,name',
                 'sector:id,name',
                 'shift:id,name',
+                'media'
             ])
             ->withCount('routines');
 
@@ -248,12 +248,16 @@ class AssetController extends Controller
             }
         }
 
-        if ($request->hasFile('photo')) {
-            $path = $request->file('photo')->store('asset-photos', 'public');
-            $validated['photo_path'] = $path;
-        }
-
+        // Remove photo_path from validated data as we'll use media library
+        unset($validated['photo_path']);
+        
         $asset = Asset::create($validated);
+        
+        // Handle photo upload using Spatie Media Library
+        if ($request->hasFile('photo')) {
+            $asset->addMediaFromRequest('photo')
+                ->toMediaCollection('photos');
+        }
 
         return redirect()->route('asset-hierarchy.assets.show', ['asset' => $asset, 'tab' => 'rotinas'])
             ->with('success', "Ativo {$asset->tag} criado com sucesso.");
@@ -298,6 +302,7 @@ class AssetController extends Controller
             'routines.lastExecutionFormVersion',
             'routines.asset.shift.schedules.shiftTimes.breaks',
             'latestRuntimeMeasurement.user',
+            'media',
             'shift.schedules.shiftTimes.breaks',
         ]);
 
@@ -528,16 +533,17 @@ class AssetController extends Controller
                 }
             }
 
+            // Remove photo_path from validated data as we'll use media library
+            unset($validated['photo_path']);
+            
+            // Handle photo upload using Spatie Media Library
             if ($request->hasFile('photo')) {
-                // Remove a foto antiga se existir
-                if ($asset->photo_path) {
-                    Storage::disk('public')->delete($asset->photo_path);
-                }
-                $path = $request->file('photo')->store('asset-photos', 'public');
-                $validated['photo_path'] = $path;
-            } else {
-                // Se não há nova foto, mantém a foto antiga
-                unset($validated['photo_path']);
+                // Remove existing photo if any
+                $asset->clearMediaCollection('photos');
+                
+                // Add new photo
+                $asset->addMediaFromRequest('photo')
+                    ->toMediaCollection('photos');
             }
 
             $asset->update($validated);
@@ -558,10 +564,7 @@ class AssetController extends Controller
         
         $assetTag = $asset->tag;
 
-        if ($asset->photo_path) {
-            Storage::disk('public')->delete($asset->photo_path);
-        }
-
+        // Media will be automatically deleted when asset is deleted
         $asset->delete();
 
         return redirect()->route('asset-hierarchy.assets')
@@ -573,10 +576,8 @@ class AssetController extends Controller
         // Check if user can update this asset
         $this->authorize('update', $asset);
         
-        if ($asset->photo_path) {
-            Storage::disk('public')->delete($asset->photo_path);
-            $asset->update(['photo_path' => null]);
-
+        if ($asset->hasMedia('photos')) {
+            $asset->clearMediaCollection('photos');
             return back()->with('success', 'Foto removida com sucesso.');
         }
 

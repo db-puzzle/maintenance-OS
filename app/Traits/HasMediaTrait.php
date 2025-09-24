@@ -2,7 +2,7 @@
 
 namespace App\Traits;
 
-use App\Services\MediaDiskResolver;
+use App\Services\Media\MediaDiskResolver;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 

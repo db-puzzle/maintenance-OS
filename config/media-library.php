@@ -6,7 +6,7 @@ return [
      * The disk on which to store added files and derived images by default. Choose
      * one or more of the disks you've configured in config/filesystems.php.
      */
-    'disk_name' => env('MEDIA_DISK', 'media'),
+    'disk_name' => env('MEDIA_DISK', env('APP_ENV') === 'production' ? 'default' : 'media-local'),
 
     /*
      * The maximum file size of an item in bytes.
@@ -18,7 +18,7 @@ return [
      * This queue connection will be used to generate derived and responsive images.
      * Leave empty to use the default queue connection.
      */
-    'queue_connection_name' => env('QUEUE_CONNECTION', 'database'),
+    'queue_connection_name' => env('MEDIA_QUEUE_CONNECTION', 'database'),
 
     /*
      * This queue will be used to generate derived and responsive images.
@@ -29,7 +29,7 @@ return [
     /*
      * By default all conversions will be performed on a queue.
      */
-    'queue_conversions_by_default' => env('QUEUE_MEDIA_CONVERSIONS', true),
+    'queue_conversions_by_default' => env('MEDIA_QUEUE_CONVERSIONS', true),
 
     /*
      * Should database transactions be run after database commits?
@@ -64,7 +64,7 @@ return [
     /*
      * The disk where temporary files should be stored.
      */
-    'temporary_upload_disk' => env('MEDIA_TEMP_DISK', 'media-temp'),
+    'temporary_upload_disk' => 'temp',
 
     /*
      * When enabled, Media Library Pro will only process temporary uploads that were uploaded
@@ -81,12 +81,12 @@ return [
     /*
      * This is the class that is responsible for naming generated files.
      */
-    'file_namer' => Spatie\MediaLibrary\Support\FileNamer\DefaultFileNamer::class,
+    'file_namer' => App\Services\Media\MediaFileNamer::class,
 
     /*
      * The class that contains the strategy for determining a media file's path.
      */
-    'path_generator' => App\Services\MediaPathGenerator::class,
+    'path_generator' => App\Services\Media\MediaPathGenerator::class,
 
     /*
      * The class that contains the strategy for determining how to remove files.
@@ -269,7 +269,7 @@ return [
      * the Media Library Pro Vue and React components to move uploaded files
      * in a S3 bucket to their right place.
      */
-    'enable_vapor_uploads' => env('ENABLE_MEDIA_LIBRARY_VAPOR_UPLOADS', false),
+    'vapor_uploads' => false,
 
     /*
      * When converting Media instances to response the media library will add
@@ -295,17 +295,7 @@ return [
     'force_lazy_loading' => env('FORCE_MEDIA_LIBRARY_LAZY_LOADING', true),
     
     /*
-     * Private disk for sensitive files
+     * Temporary expiration time in minutes
      */
-    'private_disk_name' => env('MEDIA_PRIVATE_DISK', 'media-private'),
-    
-    /*
-     * Use CDN for serving media files in non-local environments
-     */
-    'use_cdn' => env('MEDIA_USE_CDN', false),
-    
-    /*
-     * Temporary expiration time in hours
-     */
-    'temporary_upload_expiration' => 60 * 24, // 24 hours
+    'temporary_upload_expiration' => 24 * 60, // 24 hours
 ];

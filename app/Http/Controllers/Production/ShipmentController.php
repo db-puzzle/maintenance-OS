@@ -6,7 +6,6 @@ use App\Http\Controllers\BaseSearchController;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\Shipment;
 use App\Models\Production\ShipmentItem;
-use App\Models\Production\ShipmentPhoto;
 use App\Models\Production\Item;
 use App\Services\Production\ShipmentManifestService;
 use Illuminate\Http\Request;
@@ -53,7 +52,7 @@ class ShipmentController extends BaseSearchController
                 $query->whereDate('scheduled_date', '<=', $request->input('date_to'));
             })
             ->with(['createdBy'])
-            ->withCount(['items', 'photos'])
+            ->withCount(['items', 'media'])
             ->orderBy('scheduled_date', 'desc')
             ->paginate($request->input('per_page', 10))
             ->withQueryString();
@@ -197,7 +196,7 @@ class ShipmentController extends BaseSearchController
             'items' => function ($query) {
                 $query->with(['manufacturingOrder.billOfMaterial', 'product']);
             },
-            'photos',
+            'media',
             'createdBy',
         ]);
 
@@ -271,11 +270,7 @@ class ShipmentController extends BaseSearchController
             return back()->with('error', 'Cannot delete shipment in current status.');
         }
 
-        // Delete associated photos from storage
-        foreach ($shipment->photos as $photo) {
-            Storage::delete($photo->file_path);
-        }
-
+        // Media will be automatically deleted when shipment is deleted
         $shipment->delete();
 
         return redirect()->route('production.shipments.index')
@@ -394,24 +389,20 @@ class ShipmentController extends BaseSearchController
 
         DB::transaction(function () use ($request, $shipment, $validated, &$uploadedPhotos) {
             foreach ($request->file('photos') as $photo) {
-                $path = $photo->store('shipment-photos/' . $shipment->id, 'private');
-                
                 // Extract GPS data if available
                 $gpsData = $this->extractGpsData($photo);
                 
-                $uploadedPhoto = ShipmentPhoto::create([
-                    'shipment_id' => $shipment->id,
-                    'file_path' => $path,
-                    'file_name' => $photo->getClientOriginalName(),
-                    'file_size' => $photo->getSize(),
-                    'mime_type' => $photo->getMimeType(),
-                    'photo_type' => $validated['photo_type'],
-                    'description' => $validated['description'],
-                    'gps_coordinates' => $gpsData,
-                    'uploaded_by' => auth()->id(),
-                ]);
+                // Use Spatie Media Library to handle the upload
+                $media = $shipment->addShipmentPhoto($photo, array_merge(
+                    $gpsData,
+                    [
+                        'photo_type' => $validated['photo_type'],
+                        'description' => $validated['description'],
+                        'uploaded_by' => auth()->id(),
+                    ]
+                ));
                 
-                $uploadedPhotos[] = $uploadedPhoto;
+                $uploadedPhotos[] = $media;
             }
         });
 
@@ -425,16 +416,17 @@ class ShipmentController extends BaseSearchController
     /**
      * Delete a shipment photo.
      */
-    public function deletePhoto(Shipment $shipment, ShipmentPhoto $photo)
+    public function deletePhoto(Shipment $shipment, $mediaId)
     {
         $this->authorize('uploadPhotos', $shipment);
 
-        if ($photo->shipment_id !== $shipment->id) {
+        $media = $shipment->getMedia('photos')->find($mediaId);
+        
+        if (!$media) {
             abort(404);
         }
 
-        Storage::delete($photo->file_path);
-        $photo->delete();
+        $media->delete();
 
         return back()->with('success', 'Photo deleted successfully.');
     }
@@ -529,20 +521,20 @@ class ShipmentController extends BaseSearchController
         $data = base64_decode($data);
         
         $fileName = 'signature-' . $shipment->id . '.png';
-        $path = 'shipment-signatures/' . $shipment->id . '/' . $fileName;
         
-        Storage::put($path, $data);
+        // Create a temporary file
+        $tempPath = tempnam(sys_get_temp_dir(), 'signature');
+        file_put_contents($tempPath, $data);
         
-        ShipmentPhoto::create([
-            'shipment_id' => $shipment->id,
-            'file_path' => $path,
-            'file_name' => $fileName,
-            'file_size' => strlen($data),
-            'mime_type' => 'image/png',
-            'photo_type' => 'delivery',
-            'description' => 'Recipient signature',
-            'uploaded_by' => auth()->id(),
-        ]);
+        // Add to media library
+        $shipment->addMedia($tempPath)
+            ->usingFileName($fileName)
+            ->withCustomProperties([
+                'photo_type' => 'delivery',
+                'description' => 'Recipient signature',
+                'uploaded_by' => auth()->id(),
+            ])
+            ->toMediaCollection('photos');
     }
 
     /**

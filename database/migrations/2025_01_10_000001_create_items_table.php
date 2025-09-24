@@ -61,7 +61,7 @@ return new class extends Migration
             $table->json('custom_attributes')->nullable();
             
             // Image relationship
-            $table->uuid('primary_image_id')->nullable();
+            // $table->uuid('primary_image_id')->nullable(); // Removed: Using Spatie Media Library
             
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->timestamps();

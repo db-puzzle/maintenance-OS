@@ -181,15 +181,6 @@ class ItemImageImportController extends Controller
         $filename = $request->input('filename');
         $sessionId = $request->input('sessionId');
 
-        Log::info('[ItemImageImport] Starting chunked upload', [
-            'uploadId' => $uploadId,
-            'sessionId' => $sessionId,
-            'filename' => $filename,
-            'fileSize' => $request->input('fileSize'),
-            'totalChunks' => $request->input('totalChunks'),
-            'fileHash' => $request->input('fileHash'),
-            'userId' => auth()->id(),
-        ]);
 
         // Extract item code using the same method as validation
         $itemCode = $this->extractItemCode($filename);
@@ -222,12 +213,6 @@ class ItemImageImportController extends Controller
             'expires_at' => now()->addHours(24),
         ]);
 
-        Log::info('[ItemImageImport] Chunked upload record created', [
-            'uploadId' => $uploadId,
-            'itemCode' => $itemCode,
-            'itemId' => $item?->id,
-            'itemFound' => $item !== null,
-        ]);
 
         return response()->json([
             'uploadId' => $uploadId,
@@ -251,11 +236,6 @@ class ItemImageImportController extends Controller
         $uploadId = $request->input('uploadId');
         $chunkIndex = $request->input('chunkIndex');
 
-        Log::info('[ItemImageImport] Uploading chunk', [
-            'uploadId' => $uploadId,
-            'chunkIndex' => $chunkIndex,
-            'chunkSize' => $request->file('chunk')->getSize(),
-        ]);
 
         $chunkedUpload = ChunkedUpload::findOrFail($uploadId);
 
@@ -274,22 +254,12 @@ class ItemImageImportController extends Controller
 
         // If all chunks uploaded, assemble the file
         if (count($currentUploadedChunks) === $chunkedUpload->total_chunks) {
-            Log::info('[ItemImageImport] All chunks uploaded, processing assembly', [
-                'uploadId' => $uploadId,
-                'totalChunks' => $chunkedUpload->total_chunks,
-                'modelId' => $chunkedUpload->model_id,
-            ]);
 
             // Update status to processing
             $chunkedUpload->update(['status' => 'processing']);
 
             // If we have a valid model_id, dispatch assembly job
             if ($chunkedUpload->model_id > 0) {
-                Log::info('[ItemImageImport] Dispatching AssembleChunkedUpload job', [
-                    'uploadId' => $chunkedUpload->id,
-                    'modelId' => $chunkedUpload->model_id,
-                    'filename' => $chunkedUpload->filename,
-                ]);
                 dispatch(new \App\Jobs\AssembleChunkedUpload($chunkedUpload->id));
             } else {
                 Log::warning('[ItemImageImport] No item found for upload', [
@@ -334,33 +304,15 @@ class ItemImageImportController extends Controller
         $sessionId = $request->input('sessionId');
         $options = $request->input('options', []);
 
-        Log::info('[ItemImageImport] Processing uploads requested', [
-            'sessionId' => $sessionId,
-            'options' => $options,
-            'userId' => auth()->id(),
-        ]);
 
         $sessionData = Cache::get("image_import_session_{$sessionId}");
         if (! $sessionData) {
-            Log::error('[ItemImageImport] Session not found for processing', [
-                'sessionId' => $sessionId,
-            ]);
 
             return response()->json(['error' => 'Session not found'], 404);
         }
 
-        Log::info('[ItemImageImport] Session data found', [
-            'sessionId' => $sessionId,
-            'status' => $sessionData['status'],
-            'filesCount' => count($sessionData['files'] ?? []),
-            'validFiles' => collect($sessionData['files'] ?? [])->where('valid', true)->count(),
-        ]);
 
         // Start processing in background
-        Log::info('[ItemImageImport] Dispatching ProcessImageImportSession job', [
-            'sessionId' => $sessionId,
-            'options' => $options,
-        ]);
         dispatch(new \App\Jobs\Production\ProcessImageImportSession($sessionId, $options));
 
         return response()->json([
@@ -381,12 +333,6 @@ class ItemImageImportController extends Controller
             return response()->json(['error' => 'Session not found'], 404);
         }
 
-        Log::info('[ItemImageImport] Getting session status', [
-            'sessionId' => $sessionId,
-            'currentStatus' => $sessionData['status'] ?? 'unknown',
-            'processed' => $sessionData['processed'] ?? 0,
-            'total' => $sessionData['total'] ?? 0,
-        ]);
 
         // Get upload status for this session
         $uploads = ChunkedUpload::where('metadata->sessionId', $sessionId)

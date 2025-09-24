@@ -32,7 +32,7 @@ return new class extends Migration
             
             // Documentation
             $table->timestamp('manifest_generated_at')->nullable();
-            $table->string('manifest_path', 500)->nullable();
+            // $table->string('manifest_path', 500)->nullable(); // Removed: Using Spatie Media Library
             
             // Logistics
             $table->string('carrier', 100)->nullable();

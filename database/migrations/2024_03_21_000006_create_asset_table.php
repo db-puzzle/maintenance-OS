@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('plant_id')->constrained()->onDelete('restrict');
             $table->foreignId('area_id')->nullable()->constrained()->onDelete('restrict');
             $table->foreignId('sector_id')->nullable()->constrained()->onDelete('restrict');
-            $table->string('photo_path')->nullable();
+            // $table->string('photo_path')->nullable(); // Removed: Using Spatie Media Library
             $table->foreignId('shift_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
         });

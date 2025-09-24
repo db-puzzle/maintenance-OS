@@ -11,12 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('items', function (Blueprint $table) {
-            $table->foreign('primary_image_id')
-                ->references('id')
-                ->on('item_images')
-                ->nullOnDelete();
-        });
+        // Deprecated: Using Spatie Media Library, no longer need item_images foreign key
+        // Schema::table('items', function (Blueprint $table) {
+        //     $table->foreign('primary_image_id')
+        //         ->references('id')
+        //         ->on('item_images')
+        //         ->nullOnDelete();
+        // });
     }
 
     /**
