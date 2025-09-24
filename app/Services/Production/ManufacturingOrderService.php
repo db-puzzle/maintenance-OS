@@ -382,6 +382,7 @@ class ManufacturingOrderService
     protected function queueFirstSteps(ManufacturingOrder $order): void
     {
         $firstSteps = $order->manufacturingRoute->steps()
+            ->with(['manufacturingRoute.manufacturingOrder', 'dependency'])
             ->where('status', 'pending')
             ->whereNull('depends_on_step_id')
             ->get();
@@ -843,9 +844,7 @@ class ManufacturingOrderService
                 'minimum_percentage' => 100.00, // Default to traditional batch completion
             ]);
         }
-
     }
-
 
     /**
      * Apply template to existing manufacturing order.
@@ -867,7 +866,7 @@ class ManufacturingOrderService
         DB::transaction(function () use ($order, $template) {
             $route = $order->manufacturingRoute;
 
-            if (!$route) {
+            if (! $route) {
                 throw new \Exception('Manufacturing order does not have a route');
             }
 
@@ -894,7 +893,7 @@ class ManufacturingOrderService
         $results = [
             'success' => 0,
             'skipped' => 0,
-            'errors' => []
+            'errors' => [],
         ];
 
         // Validate template exists
@@ -912,7 +911,6 @@ class ManufacturingOrderService
 
                 $this->applyTemplate($order, $templateId);
                 $results['success']++;
-
             } catch (\Exception $e) {
                 $results['errors'][] = "Order ID {$orderId}: {$e->getMessage()}";
             }

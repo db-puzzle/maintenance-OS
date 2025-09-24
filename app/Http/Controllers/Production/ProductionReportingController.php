@@ -34,7 +34,7 @@ class ProductionReportingController extends BaseSearchController
         $baseQuery = ManufacturingOrder::query()
             ->whereIn('status', ['released', 'in_progress', 'on_hold'])
             ->with([
-                'item:id,item_number,name,description,unit_of_measure,primary_image_id',
+                'item:id,item_number,name,description,unit_of_measure',
                 'item.primaryImage',
                 'manufacturingRoute.steps.workCell',
                 'createdBy:id,name',
@@ -65,28 +65,28 @@ class ProductionReportingController extends BaseSearchController
 
         // Apply status filter (within allowed statuses only)
         $allowedStatuses = ['released', 'in_progress', 'on_hold'];
-        
+
         if ($request->statuses) {
             // Handle multi-select status filter
             if ($request->statuses === 'none') {
                 // Special case: no statuses selected - show no orders
                 $baseQuery->whereRaw('1 = 0');
             } else {
-                $statuses = is_array($request->statuses) 
-                    ? $request->statuses 
+                $statuses = is_array($request->statuses)
+                    ? $request->statuses
                     : explode(',', $request->statuses);
-                
+
                 // Filter to only allowed statuses
                 $statuses = array_intersect($statuses, $allowedStatuses);
-                
-                if (!empty($statuses)) {
+
+                if (! empty($statuses)) {
                     $baseQuery->whereIn('status', $statuses);
                 }
             }
         } elseif ($request->status && $request->status !== 'all' && in_array($request->status, $allowedStatuses)) {
             // Fallback to single status filter for backward compatibility
             $baseQuery->where('status', $request->status);
-        } else if (!$request->has('statuses') && !$request->has('status')) {
+        } elseif (! $request->has('statuses') && ! $request->has('status')) {
             // Default behavior: if no status filter is provided, show all allowed statuses
             $baseQuery->whereIn('status', $allowedStatuses);
         }
@@ -194,9 +194,9 @@ class ProductionReportingController extends BaseSearchController
                             LIMIT 1
                         )');
                 })
-                ->orderByRaw("COALESCE(current_steps.available_at, manufacturing_orders.released_at) $sortDirection")
-                ->orderBy('priority', 'desc') // Secondary sort by priority
-                ->select('manufacturing_orders.*');
+                    ->orderByRaw("COALESCE(current_steps.available_at, manufacturing_orders.released_at) $sortDirection")
+                    ->orderBy('priority', 'desc') // Secondary sort by priority
+                    ->select('manufacturing_orders.*');
                 break;
             default:
                 $baseQuery->orderBy($sortField, $sortDirection);
@@ -205,10 +205,10 @@ class ProductionReportingController extends BaseSearchController
         // Paginate results
         $orders = $baseQuery->paginate($request->per_page ?? 20);
 
-                // Add computed attributes to each order
+        // Add computed attributes to each order
         $orders->through(function ($order) {
             $order->append(['progress_percentage', 'has_route']);
-            
+
             // Add current step info
             $currentStep = $order->getCurrentStep();
             if ($currentStep) {
@@ -249,7 +249,7 @@ class ProductionReportingController extends BaseSearchController
                 ->get()
                 ->map(function ($order) {
                     $order->append(['progress_percentage']);
-                    
+
                     // Add current step info
                     $currentStep = $order->getCurrentStep();
                     if ($currentStep) {
@@ -258,7 +258,7 @@ class ProductionReportingController extends BaseSearchController
                     } else {
                         $order->setAttribute('current_step', null);
                     }
-                    
+
                     return $order;
                 });
         }

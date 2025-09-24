@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Production\ProductionSchedule;
 
 class ManufacturingStep extends Model
 {
@@ -129,13 +128,30 @@ class ManufacturingStep extends Model
 
         static::saving(function ($step) {
             // Handle template steps
-            if ($step->manufacturingRoute && $step->manufacturingRoute->is_template) {
+            if ($step->relationLoaded('manufacturingRoute') && $step->manufacturingRoute && $step->manufacturingRoute->is_template) {
                 $step->is_template = true;
                 $step->status = null;
                 $step->actual_start_time = null;
                 $step->actual_end_time = null;
                 $step->cumulative_quantity_completed = 0;
                 $step->cumulative_quantity_scrapped = 0;
+            } elseif ($step->manufacturing_route_id) {
+                // Load the relationship only if needed and not already loaded
+                $route = $step->manufacturingRoute()->first();
+                if ($route && $route->is_template) {
+                    $step->is_template = true;
+                    $step->status = null;
+                    $step->actual_start_time = null;
+                    $step->actual_end_time = null;
+                    $step->cumulative_quantity_completed = 0;
+                    $step->cumulative_quantity_scrapped = 0;
+                } else {
+                    // Production steps
+                    $step->is_template = false;
+                    if (! $step->status) {
+                        $step->status = 'pending';
+                    }
+                }
             } else {
                 // Production steps
                 $step->is_template = false;
@@ -226,15 +242,15 @@ class ManufacturingStep extends Model
     public function canStart(): bool
     {
         // Check step dependencies first
-        if (!$this->checkStepDependencies()) {
+        if (! $this->checkStepDependencies()) {
             return false;
         }
-        
+
         // Then check child order dependencies
-        if (!$this->checkChildOrderDependencies()) {
+        if (! $this->checkChildOrderDependencies()) {
             return false;
         }
-        
+
         return true;
     }
 
@@ -284,34 +300,46 @@ class ManufacturingStep extends Model
         if ($this->child_order_dependency_type === 'none') {
             return true;
         }
-        
-        $manufacturingOrder = $this->manufacturingRoute->manufacturingOrder;
-        
+
+        // Check if manufacturingRoute is already loaded to avoid extra queries
+        if ($this->relationLoaded('manufacturingRoute') && $this->manufacturingRoute) {
+            $manufacturingOrder = $this->manufacturingRoute->manufacturingOrder;
+        } else {
+            // Use direct query to avoid lazy loading
+            $manufacturingOrder = ManufacturingOrder::whereHas('manufacturingRoute', function ($query) {
+                $query->where('id', $this->manufacturing_route_id);
+            })->first();
+
+            if (! $manufacturingOrder) {
+                return true; // If no MO found, allow start
+            }
+        }
+
         // Check if MO has child orders
         if ($manufacturingOrder->child_orders_count === 0) {
             return true; // No children to wait for
         }
-        
+
         switch ($this->child_order_dependency_type) {
             case 'all_children_completed':
-                return $manufacturingOrder->completed_child_orders_count === 
+                return $manufacturingOrder->completed_child_orders_count ===
                        $manufacturingOrder->child_orders_count;
-                       
+
             case 'children_quantity':
                 // Check minimum quantity completed across ALL child orders
                 $childOrders = $manufacturingOrder->children()
                     ->where('status', '!=', 'cancelled')
                     ->get();
-                
+
                 if ($childOrders->isEmpty()) {
                     return true;
                 }
-                
+
                 // Find the minimum quantity completed among all child orders
                 $minQuantityCompleted = $childOrders->min('quantity_completed');
-                
+
                 return $minQuantityCompleted >= $this->child_order_minimum_quantity;
-                
+
             default:
                 return true;
         }
@@ -588,7 +616,8 @@ class ManufacturingStep extends Model
      */
     public function getNextStep(): ?ManufacturingStep
     {
-        return $this->manufacturingRoute->steps()
+        // Use direct query to avoid lazy loading
+        return static::where('manufacturing_route_id', $this->manufacturing_route_id)
             ->where('depends_on_step_id', $this->id)
             ->first();
     }
