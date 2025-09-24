@@ -21,11 +21,10 @@ class MediaObserver
      */
     public function created(Media $media): void
     {
-        // Queue metadata generation for images
-        if ($media->is_image) {
-            dispatch(new GenerateMediaMetadata($media));
-        }
-        
+        // Queue metadata generation for all files
+        // (images get full metadata, other files just get file hash)
+        dispatch(new GenerateMediaMetadata($media));
+
         // Log media creation for audit
         activity()
             ->performedOn($media)

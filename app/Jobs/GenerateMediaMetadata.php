@@ -33,26 +33,27 @@ class GenerateMediaMetadata implements ShouldQueue
 
     public function handle(ImageHashService $hashService, BlurHashService $blurHashService): void
     {
-        try {
-            // Get the file path
-            $path = Storage::disk($this->media->disk)->path($this->media->getPathRelativeToRoot());
+        // Download to temp (same pattern as OptimizeMediaImage)
+        $tempPath = tempnam(sys_get_temp_dir(), 'media_metadata_');
+        file_put_contents($tempPath, Storage::disk($this->media->disk)->get($this->media->getPathRelativeToRoot()));
 
+        try {
             // Generate file hash
-            $this->media->file_hash = $hashService->generateFileHash($path);
+            $this->media->file_hash = $hashService->generateFileHash($tempPath);
 
             // For images, generate additional metadata
             if ($this->media->is_image) {
                 // Generate perceptual hash
-                $this->media->perceptual_hash = $hashService->generatePerceptualHash($path);
+                $this->media->perceptual_hash = $hashService->generatePerceptualHash($tempPath);
 
                 // Generate BlurHash
-                $this->media->blurhash = $blurHashService->generateBlurHash($path);
+                $this->media->blurhash = $blurHashService->generateBlurHash($tempPath);
 
                 // Extract dominant color
-                $this->media->dominant_color = $hashService->extractDominantColor($path);
+                $this->media->dominant_color = $hashService->extractDominantColor($tempPath);
 
                 // Get image dimensions
-                $dimensions = $hashService->getImageDimensions($path);
+                $dimensions = $hashService->getImageDimensions($tempPath);
                 if ($dimensions) {
                     $this->media->width = $dimensions['width'];
                     $this->media->height = $dimensions['height'];
@@ -72,12 +73,17 @@ class GenerateMediaMetadata implements ShouldQueue
         } catch (\Exception $e) {
             Log::error('Failed to generate media metadata', [
                 'media_id' => $this->media->id,
+                'disk' => $this->media->disk,
+                'file_name' => $this->media->file_name,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
             throw $e;
         }
+
+        // Cleanup (same pattern as OptimizeMediaImage)
+        @unlink($tempPath);
     }
 
     public function failed(\Throwable $exception): void
