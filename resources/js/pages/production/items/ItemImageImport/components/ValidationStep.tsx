@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, CheckCircle, XCircle, AlertCircle, FileImage } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, AlertCircle, FileImage, Download } from 'lucide-react';
 // import { cn } from '@/lib/utils';
 import { ImportFile, ImportSession, ValidationResult, ImportOptions } from '../types';
 import { formatBytes } from '@/utils/format';
@@ -101,6 +101,37 @@ export function ValidationStep({ files, onNext, onBack }: Props) {
     // const extractItemCode = (filename: string): string => {
     //     return filename.replace(/\.[^/.]+$/, '');
     // };
+
+    const downloadInvalidFilesCSV = () => {
+        // Create CSV content
+        const headers = ['Filename', 'Size', 'Type', 'Expected Item Number', 'Error'];
+        const rows = invalidFiles.map(file => [
+            file.filename,
+            formatBytes(file.size),
+            file.type,
+            file.itemCode || '',
+            file.errors.join('; ')
+        ]);
+
+        // Convert to CSV format
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        // Create blob and download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+
+        link.setAttribute('href', url);
+        link.setAttribute('download', `arquivos_invalidos_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     return (
         <div className="space-y-6">
@@ -213,13 +244,26 @@ export function ValidationStep({ files, onNext, onBack }: Props) {
                     {invalidFiles.length > 0 && (
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-red-700">
-                                    <XCircle className="inline h-5 w-5 mr-2" />
-                                    Arquivos Inválidos ({invalidFiles.length})
-                                </CardTitle>
-                                <CardDescription>
-                                    Estes arquivos não serão importados
-                                </CardDescription>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="text-red-700">
+                                            <XCircle className="inline h-5 w-5 mr-2" />
+                                            Arquivos Inválidos ({invalidFiles.length})
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Estes arquivos não serão importados
+                                        </CardDescription>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={downloadInvalidFilesCSV}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <Download className="h-4 w-4" />
+                                        Baixar CSV
+                                    </Button>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-2 max-h-64 overflow-y-auto">
