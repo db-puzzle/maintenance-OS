@@ -37,7 +37,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         //Model::preventLazyLoading(! $this->app->isProduction());
-        Model::preventLazyLoading();
+        //Model::preventLazyLoading();
+        Model::automaticallyEagerLoadRelationships();
 
 
         // Route model bindings
