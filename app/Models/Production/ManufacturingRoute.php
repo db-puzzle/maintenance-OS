@@ -304,7 +304,7 @@ class ManufacturingRoute extends Model
                 'createdBy:id,name',
                 'itemCategory:id,name',
             ])
-            ->select('id', 'name', 'description', 'item_category_id', 'created_by', 'created_at');
+            ->select('id', 'name', 'description', 'item_category_id', 'created_by', 'created_at', 'updated_at');
     }
 
     /**

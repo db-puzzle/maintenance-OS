@@ -393,8 +393,8 @@ class PlanningController extends Controller
                         'id' => $template->created_by ?? 1,
                         'name' => $template->createdBy?->name ?? 'System',
                     ],
-                    'created_at' => $template->created_at->toIso8601String(),
-                    'updated_at' => $template->updated_at->toIso8601String(),
+                    'created_at' => $template->created_at ? $template->created_at->toIso8601String() : now()->toIso8601String(),
+                    'updated_at' => $template->updated_at ? $template->updated_at->toIso8601String() : now()->toIso8601String(),
                     'is_default' => false,
                     'item_types' => [],
                 ];
