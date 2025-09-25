@@ -172,150 +172,335 @@ For a typical Parent MO from a BOM with:
 
 ## Optimization Recommendations
 
-### 1. Replace Recursive Descendant Fetching
+### Recommended Eloquent-First Approach
+
+For maintaining consistency with Laravel best practices and your preference for Eloquent over raw SQL, here's the recommended approach:
+
+1. **Use Eloquent's eager loading capabilities to their fullest**
+2. **Minimize the number of queries by loading data in batches**
+3. **Process hierarchical relationships in memory when the dataset size allows**
+4. **Consider using Laravel packages designed for hierarchical data when needed**
+
+The following optimizations prioritize Eloquent methods while still achieving significant performance improvements.
+
+### 1. Replace Recursive Descendant Fetching with Efficient Eloquent Query
+
 ```php
-// Use a single recursive CTE query
-$descendants = DB::select("
-    WITH RECURSIVE descendants AS (
-        SELECT id, parent_id FROM manufacturing_orders WHERE id = ?
-        UNION ALL
-        SELECT mo.id, mo.parent_id 
-        FROM manufacturing_orders mo
-        JOIN descendants d ON mo.parent_id = d.id
-    )
-    SELECT id FROM descendants WHERE id != ?
-", [$parentId, $parentId]);
+private function getAllDescendantIds($parentId)
+{
+    // Get the parent order to use its order_number pattern
+    $parentOrder = ManufacturingOrder::findOrFail($parentId);
+    
+    // Leverage the order number hierarchy pattern (e.g., MO-001, MO-001.1, MO-001.1.1)
+    // This gets all descendants in a single efficient query
+    $descendants = ManufacturingOrder::query()
+        ->select('id', 'parent_id', 'order_number')
+        ->where('order_number', 'like', $parentOrder->order_number . '.%')
+        ->pluck('id')
+        ->toArray();
+    
+    return $descendants;
+}
 ```
 
-### 2. Flatten Hierarchy Loading
-```php
-// Load all orders and their relationships in one go
-$allOrderIds = array_merge([$selectedMO], $descendantIds);
-$orders = ManufacturingOrder::whereIn('id', $allOrderIds)
-    ->with([
-        'item.media',
-        'item.category',
-        'item.primaryBom',
-        'parent',
-        'parent.item',
-        'manufacturingRoute.item.category',
-        'manufacturingRoute.steps.workCell',
-        'children' // Load only direct children
-    ])
-    ->get();
+This approach leverages your existing order numbering scheme to fetch all descendants in a single query, eliminating the N+1 problem entirely.
 
-// Build hierarchy in memory
-$orderMap = $orders->keyBy('id');
-$hierarchy = $this->buildHierarchyFromFlatData($orderMap);
+### 2. Implement Model Relationships with Chaperone
+
+First, update the ManufacturingOrder model to use Laravel 12's `chaperone()` method:
+
+```php
+// In app/Models/Production/ManufacturingOrder.php
+
+public function children(): HasMany
+{
+    return $this->hasMany(ManufacturingOrder::class, 'parent_id')->chaperone();
+}
+
+public function parent(): BelongsTo
+{
+    return $this->belongsTo(ManufacturingOrder::class, 'parent_id')->chaperone();
+}
 ```
 
-### 3. Eager Load Media
+The `chaperone()` method automatically hydrates parent models onto their children, preventing N+1 queries when traversing the hierarchy.
+
+### 3. Flatten Hierarchy Loading with Optimized Eager Loading
+
 ```php
-'item' => function ($query) {
-    $query->with(['media' => function ($mediaQuery) {
-        $mediaQuery->where('collection_name', 'images');
-    }]);
+public function index(Request $request)
+{
+    $this->authorize('viewAny', ManufacturingOrder::class);
+
+    if ($request->has('selectedMO')) {
+        $selectedMO = $request->input('selectedMO');
+        
+        // Step 1: Get all descendant IDs efficiently
+        $descendantIds = $this->getAllDescendantIds($selectedMO);
+        $allOrderIds = array_merge([$selectedMO], $descendantIds);
+        
+        // Step 2: Load all orders with optimized eager loading
+        $orders = ManufacturingOrder::whereIn('id', $allOrderIds)
+            ->with([
+                'item' => function ($query) {
+                    $query->with(['category', 'media', 'primaryBom']);
+                },
+                'parent.item',
+                'manufacturingRoute' => function ($query) {
+                    $query->with([
+                        'item.category',
+                        'steps.workCell'
+                    ]);
+                },
+                'children' // Will use chaperone() from the relationship definition
+            ])
+            ->get();
+        
+        // Step 3: Build hierarchy in memory
+        $hierarchicalOrders = $this->buildHierarchyFromCollection($orders, $selectedMO);
+    } else {
+        // Default behavior for top-level orders
+        $orders = ManufacturingOrder::with([
+            'item.category',
+            'item.media',
+            'item.primaryBom',
+            'manufacturingRoute.item.category',
+            'manufacturingRoute.steps.workCell',
+            'children' // Will use chaperone()
+        ])
+        ->whereNull('parent_id')
+        ->whereIn('status', ['draft', 'planned'])
+        ->get();
+        
+        $hierarchicalOrders = $orders->toArray();
+    }
+
+    // Continue with route templates and other data...
+}
+
+private function buildHierarchyFromCollection($orders, $parentId = null)
+{
+    $orderMap = $orders->keyBy('id');
+    $result = [];
+    
+    foreach ($orders as $order) {
+        if ($order->parent_id == $parentId) {
+            $orderArray = $order->toArray();
+            
+            // Recursively build children from the already-loaded collection
+            $orderArray['children'] = $this->buildHierarchyFromCollection($orders, $order->id);
+            
+            $result[] = $orderArray;
+        }
+    }
+    
+    return $result;
 }
 ```
 
 ### 4. Cache Permission Checks
-```php
-// In constructor or middleware
-$this->userPermissions = Cache::remember(
-    "user.{$user->id}.permissions",
-    300, // 5 minutes
-    fn() => $user->getAllPermissions()->pluck('name')->toArray()
-);
-```
-
-### 5. Use Database Views for Complex Hierarchies
-Consider creating a materialized view for manufacturing order hierarchies:
-
-```sql
-CREATE MATERIALIZED VIEW manufacturing_order_hierarchy AS
-WITH RECURSIVE hierarchy AS (
-    SELECT 
-        id, parent_id, item_id, order_number, status,
-        0 as level,
-        ARRAY[id] as path
-    FROM manufacturing_orders
-    WHERE parent_id IS NULL
-    
-    UNION ALL
-    
-    SELECT 
-        mo.id, mo.parent_id, mo.item_id, mo.order_number, mo.status,
-        h.level + 1,
-        h.path || mo.id
-    FROM manufacturing_orders mo
-    JOIN hierarchy h ON mo.parent_id = h.id
-)
-SELECT * FROM hierarchy;
-```
-
-### 6. Implement Query Result Caching
-```php
-$cacheKey = "planning.orders.{$selectedMO}." . md5(json_encode($request->all()));
-$data = Cache::remember($cacheKey, 60, function () use ($request) {
-    // Current query logic
-});
-```
-
-### 7. Use Laravel's `lazy()` for Large Datasets
-For very large BOMs, consider using lazy loading:
 
 ```php
+// In AppServiceProvider or dedicated middleware
+public function boot()
+{
+    // Cache user permissions to avoid repeated database hits
+    if (auth()->check()) {
+        $user = auth()->user();
+        $this->app->singleton('user.permissions', function () use ($user) {
+            return Cache::remember(
+                "user.{$user->id}.permissions",
+                300, // 5 minutes
+                fn() => $user->getAllPermissions()->pluck('name')->toArray()
+            );
+        });
+    }
+}
+
+// In controller
+$permissions = app('user.permissions');
+```
+
+### 5. Chaperone() Method Usage
+
+After analyzing the codebase, several models with parent-child relationships would benefit from the `chaperone()` method to prevent N+1 queries:
+
+#### 5.1. ManufacturingOrder (Already Identified)
+```php
+// In app/Models/Production/ManufacturingOrder.php
+public function children(): HasMany
+{
+    return $this->hasMany(ManufacturingOrder::class, 'parent_id')->chaperone();
+}
+
+public function parent(): BelongsTo
+{
+    return $this->belongsTo(ManufacturingOrder::class, 'parent_id')->chaperone();
+}
+```
+
+#### 5.2. BomItem - Hierarchical BOM Structure
+```php
+// In app/Models/Production/BomItem.php
+public function parent(): BelongsTo
+{
+    return $this->belongsTo(BomItem::class, 'parent_item_id')->chaperone();
+}
+
+public function children(): HasMany
+{
+    return $this->hasMany(BomItem::class, 'parent_item_id')
+        ->orderBy('sequence_number')
+        ->chaperone();
+}
+```
+
+#### 5.3. ManufacturingStep - Step Dependencies
+```php
+// In app/Models/Production/ManufacturingStep.php
+public function dependency(): BelongsTo
+{
+    return $this->belongsTo(ManufacturingStep::class, 'depends_on_step_id')->chaperone();
+}
+
+public function dependentSteps(): HasMany
+{
+    return $this->hasMany(ManufacturingStep::class, 'depends_on_step_id')->chaperone();
+}
+```
+
+#### 5.4. Role - Role Hierarchy
+```php
+// In app/Models/Role.php
+public function parentRole()
+{
+    return $this->belongsTo(Role::class, 'parent_role_id')->chaperone();
+}
+
+public function childRoles()
+{
+    return $this->hasMany(Role::class, 'parent_role_id')->chaperone();
+}
+```
+
+#### 5.5. WorkOrder - Related Work Orders
+```php
+// In app/Models/WorkOrders/WorkOrder.php
+public function relatedWorkOrders(): HasMany
+{
+    return $this->hasMany(WorkOrder::class, 'related_work_order_id')->chaperone();
+}
+
+public function relatedTo(): BelongsTo
+{
+    return $this->belongsTo(WorkOrder::class, 'related_work_order_id')->chaperone();
+}
+```
+
+#### 5.6. Asset Hierarchy Relationships
+While not self-referencing, these frequently accessed hierarchical relationships benefit from chaperone:
+
+```php
+// In app/Models/AssetHierarchy/Area.php
+public function plant(): BelongsTo
+{
+    return $this->belongsTo(Plant::class)->chaperone();
+}
+
+// In app/Models/AssetHierarchy/Sector.php
+public function area(): BelongsTo
+{
+    return $this->belongsTo(Area::class)->chaperone();
+}
+
+// In app/Models/AssetHierarchy/Asset.php
+public function sector(): BelongsTo
+{
+    return $this->belongsTo(Sector::class)->chaperone();
+}
+
+public function area(): BelongsTo
+{
+    return $this->belongsTo(Area::class)->chaperone();
+}
+
+public function plant(): BelongsTo
+{
+    return $this->belongsTo(Plant::class)->chaperone();
+}
+```
+
+#### 5.7. Media Duplicates
+```php
+// In app/Models/Media.php
+public function originalMedia(): BelongsTo
+{
+    return $this->belongsTo(Media::class, 'duplicate_of')->chaperone();
+}
+
+// Add the missing duplicates relationship
+public function duplicates(): HasMany
+{
+    return $this->hasMany(Media::class, 'duplicate_of')->chaperone();
+}
+```
+
+
+### 6. Additional Performance Optimizations (FUTURE)
+
+**For Very Large Datasets (1000+ items):**
+
+If your BOMs grow beyond typical sizes, consider these additional optimizations:
+
+```php
+// Use chunk loading for memory efficiency
 ManufacturingOrder::whereIn('id', $allOrderIds)
     ->with($eagerLoadRelations)
-    ->lazy(100)
-    ->each(function ($order) use (&$orderCollection) {
-        $orderCollection->push($order);
+    ->chunkById(100, function ($orders) use (&$collection) {
+        $collection = $collection->merge($orders);
     });
+
+// Or implement pagination at the hierarchy level
+$perPage = 50;
+$topLevelOrders = ManufacturingOrder::whereNull('parent_id')
+    ->whereIn('status', ['draft', 'planned'])
+    ->paginate($perPage);
 ```
 
-## Expected Performance Improvement
+## Complete Optimized Implementation Summary
 
-After implementing these optimizations:
+The recommended solution combines all optimizations into a clean, efficient implementation:
 
-**Optimized query count**:
-- Recursive CTE for descendants: 1
-- Flattened hierarchy loading with eager loading: 1-2
-- Route templates: 1
-- Work cells: 1
-- Cached permissions: 0-1
+1. **Model Updates** - Add `chaperone()` to relationships
+2. **Efficient Descendant Query** - Use order number pattern matching  
+3. **Single Batch Load** - Load all data with proper eager loading
+4. **In-Memory Hierarchy Building** - Process relationships in PHP
+5. **Permission Caching** - Reduce repeated permission checks
 
-**Total: ~5-6 queries (93% reduction)**
+## Monitoring Recommendations (FUTURE)
 
-## Implementation Priority
-
-1. **High Priority**: Fix recursive children loading (Issue #2)
-   - Highest impact on performance
-   - Relatively straightforward to implement
-
-2. **High Priority**: Implement CTE for descendants (Issue #1)
-   - Significant performance gain
-   - Requires database-specific SQL
-
-3. **Medium Priority**: Eager load media and BOMs (Issues #3 & #4)
-   - Good performance gain
-   - Easy to implement
-
-4. **Low Priority**: Cache permissions (Issue #5)
-   - Minor performance gain
-   - Easy to implement
-
-5. **Future**: Database views and advanced caching
-   - Best for very large datasets
-   - More complex implementation
-
-## Monitoring Recommendations
-
-1. Add query logging in development:
+1. Add query logging in development using Eloquent events:
 ```php
-DB::enableQueryLog();
-// ... page logic ...
-$queries = DB::getQueryLog();
-\Log::info('Planning page queries', ['count' => count($queries), 'queries' => $queries]);
+// In AppServiceProvider boot method
+if (config('app.debug')) {
+    \Illuminate\Database\Eloquent\Model::getEventDispatcher()->listen('eloquent.*', function ($event, $models) {
+        foreach ($models as $model) {
+            \Log::debug("Eloquent Event: {$event}", [
+                'model' => get_class($model),
+                'attributes' => $model->getAttributes()
+            ]);
+        }
+    });
+}
+
+// Or use Laravel's built-in query logging
+\DB::listen(function ($query) {
+    \Log::info('Query executed', [
+        'sql' => $query->sql,
+        'bindings' => $query->bindings,
+        'time' => $query->time
+    ]);
+});
 ```
 
 2. Use Laravel Debugbar or Telescope to monitor query counts in staging
@@ -324,8 +509,36 @@ $queries = DB::getQueryLog();
 
 4. Track page load times before and after optimization
 
+### Impact on Production Planning Page
+
+For the production planning optimization specifically, the most impactful chaperone() implementations are:
+
+1. **ManufacturingOrder** parent/children - Eliminates N+1 when traversing the MO hierarchy
+2. **BomItem** parent/children - Prevents extra queries when displaying BOM structure
+3. **ManufacturingStep** dependencies - Avoids N+1 when checking step dependencies in routes
+
+These changes alone could reduce queries by an additional 10-20% when navigating complex hierarchies.
+
+## System-Wide Impact of Chaperone Implementation
+
+Beyond the production planning page, implementing `chaperone()` across all identified models will benefit:
+
+1. **BOM Management Pages**: Significant improvement when displaying nested BOM structures
+2. **Work Order Management**: Better performance when showing related work orders
+3. **Asset Hierarchy Views**: Faster loading of plant → area → sector → asset relationships
+4. **Role Management**: Improved performance in permission inheritance checks
+5. **Manufacturing Execution**: Faster step dependency validation during production
+
+The chaperone method is particularly valuable because it:
+- Prevents N+1 queries automatically without code changes in controllers
+- Works transparently with existing eager loading
+- Has zero performance overhead when relationships are already loaded
+- Future-proofs the application against N+1 issues
+
 ## Conclusion
 
 The current implementation suffers from severe N+1 query problems, particularly in the recursive hierarchy loading. A page load that should execute 5-10 queries is instead executing 80+ queries. The recommended optimizations can reduce query count by over 90% while maintaining the same functionality.
 
-The most critical optimization is replacing the recursive `loadAllChildren` method with a flattened eager loading approach. This single change could reduce query count by 50-70% on its own.
+**The most critical optimization is replacing the recursive `loadAllChildren` method with the flattened eager loading approach.** This single change could reduce query count by 50-70% on its own and is validated as the best practice by Laravel standards.
+
+**Secondary but important: Implement `chaperone()` across all parent-child relationships** to prevent N+1 queries throughout the system and future-proof the application.
