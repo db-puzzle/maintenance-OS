@@ -125,7 +125,7 @@ export function ValidationStep({ files, onNext, onBack }: Props) {
         const url = URL.createObjectURL(blob);
 
         link.setAttribute('href', url);
-        link.setAttribute('download', `arquivos_invalidos_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `Invalid_Image_List_${new Date().toISOString().split('T')[0]}.csv`);
         link.style.visibility = 'hidden';
 
         document.body.appendChild(link);

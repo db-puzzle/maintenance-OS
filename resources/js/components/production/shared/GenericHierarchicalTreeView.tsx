@@ -68,7 +68,7 @@ export function GenericHierarchicalTreeView<T extends GenericTreeNode>({
         </div>
     );
 
-    const renderTreeNode = (node: T, isExpanded: boolean, _toggleExpand: () => void) => {
+    const renderTreeNode = (node: T, isExpanded: boolean, _toggleExpand: () => void, depth: number = 0) => {
         const nodeId = String(node.id);
         const isDragging = draggingNodeId !== null && String(draggingNodeId) === nodeId;
         const isDragTarget = draggingNodeId !== null && String(draggingNodeId) !== nodeId;
@@ -79,7 +79,7 @@ export function GenericHierarchicalTreeView<T extends GenericTreeNode>({
             isDragTarget: isDragTarget && draggable,
             isExpanded,
             hasChildren,
-            depth: 0, // We don't have depth info from TreeView
+            depth: depth,
         };
 
         return (

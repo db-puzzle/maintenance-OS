@@ -5,6 +5,12 @@ import {
     HoverCardContent,
     HoverCardTrigger,
 } from '@/components/ui/hover-card';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { formatNumber } from '@/utils/number';
 import { ManufacturingOrderTreeNode } from './types';
@@ -50,16 +56,6 @@ export function OrderCardCompact({
 }: OrderCardCompactProps) {
     // Track priority locally to sync with PriorityEditor after successful save
     const [localPriority, setLocalPriority] = React.useState(order.priority || 50);
-
-    // Debug logging
-    React.useEffect(() => {
-        console.log('OrderCardCompact - Order updated:', {
-            orderId: order.id,
-            orderNumber: order.order_number,
-            status: order.status,
-            priority: order.priority
-        });
-    }, [order]);
 
     // Update local priority when order prop changes
     React.useEffect(() => {
@@ -107,7 +103,7 @@ export function OrderCardCompact({
     return (
         <div
             className={cn(
-                "w-full min-w-[320px] p-2 border rounded-md transition-all hover:bg-muted/50",
+                "w-full p-2 border rounded-md transition-all hover:bg-muted/50",
                 onOrderClick && "cursor-pointer",
                 isSelected && "border-ring ring-ring/10 ring-[2px]",
                 enhancedMode === 'planning' && isSelected && "border-ring ring-ring/10 ring-[2px]"
@@ -119,48 +115,48 @@ export function OrderCardCompact({
                 {/* Thumbnail */}
                 {showThumbnails && order.item && (
                     <div className="flex-shrink-0">
-                        <HoverCard openDelay={200} closeDelay={100}>
+                        <HoverCard openDelay={500} closeDelay={200}>
                             <HoverCardTrigger asChild>
-                                <div>
+                                <div className="pointer-events-none">
                                     <ItemImagePreview
                                         primaryImageUrl={order.item.primary_image_thumbnail_url || order.item.primary_image_url}
-                                        imageCount={order.item.images?.length || 0}
-                                        className="w-10 h-10 cursor-pointer"
-                                        onClick={(e) => {
-                                            e?.stopPropagation();
-                                        }}
+                                        imageCount={order.item.media?.length || 0}
+                                        className="w-10 h-10 pointer-events-auto"
                                     />
                                 </div>
                             </HoverCardTrigger>
                             <HoverCardContent
-                                className="w-80 p-0 overflow-hidden"
+                                className="w-80 p-0 overflow-hidden pointer-events-none"
                                 side="right"
                                 align="start"
                             >
-                                {order.item.primary_image_url ? (
-                                    <div>
-                                        <ImageWithBlurEffect
-                                            src={order.item.primary_image_url}
-                                            alt={`${order.item.name} - imagem ampliada`}
-                                            containerClassName="w-full h-80"
-                                        />
-                                        <div className="p-3 border-t">
-                                            <h4 className="font-medium text-sm select-none">{order.order_number}</h4>
-                                            <p className="text-xs text-muted-foreground mt-1 select-none">
-                                                <span className="font-medium">{order.item.item_number}</span> - {order.item.name}
-                                            </p>
-                                            {order.item.images && order.item.images.length > 1 && (
-                                                <p className="text-xs text-muted-foreground mt-2 select-none">
-                                                    {order.item.images.length} imagens disponíveis
+                                <div className="pointer-events-auto">
+                                    {order.item.primary_image_url ? (
+                                        <div>
+                                            <ImageWithBlurEffect
+                                                src={order.item.primary_image_url}
+                                                alt={`${order.item.name} - imagem ampliada`}
+                                                containerClassName="w-full h-80"
+                                            />
+                                            <div className="p-3 border-t">
+                                                <h4 className="font-medium text-sm select-none">{order.order_number}</h4>
+                                                <p className="text-xs text-muted-foreground mt-1 select-none">
+                                                    {order.item.item_number && <span className="font-medium">{order.item.item_number} - </span>}
+                                                    {order.item.name}
                                                 </p>
-                                            )}
+                                                {order.item.media && order.item.media.length > 1 && (
+                                                    <p className="text-xs text-muted-foreground mt-2 select-none">
+                                                        {order.item.media.length} imagens disponíveis
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ) : (
-                                    <div className="w-full h-80 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 dark:text-gray-500">
-                                        <span className="select-none">Sem imagem disponível</span>
-                                    </div>
-                                )}
+                                    ) : (
+                                        <div className="w-full h-80 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 dark:text-gray-500">
+                                            <span className="select-none">N/A</span>
+                                        </div>
+                                    )}
+                                </div>
                             </HoverCardContent>
                         </HoverCard>
                     </div>
@@ -176,11 +172,41 @@ export function OrderCardCompact({
                             {formatNumber(order.quantity)} {order.unit_of_measure}
                         </Badge>
                     </div>
-                    <div className="text-xs text-muted-foreground truncate mt-0.5 select-none">
-                        {order.item?.item_number && (
-                            <span className="font-medium">{order.item.item_number} - </span>
-                        )}
-                        {order.item?.name}
+                    <div className="text-xs text-muted-foreground mt-0.5 select-none">
+                        {order.item && (() => {
+                            const itemNumber = order.item.item_number || '';
+                            const itemName = order.item.name || '';
+                            const fullText = itemNumber ? `${itemNumber} - ${itemName}` : itemName;
+                            const shouldTruncate = fullText.length > 35;
+
+                            if (shouldTruncate) {
+                                return (
+                                    <TooltipProvider delayDuration={700}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <span className="inline-block">
+                                                    {itemNumber && <span className="font-medium">{itemNumber.substring(0, Math.min(itemNumber.length, 35 - itemName.length - 3))} - </span>}
+                                                    {itemName.substring(0, Math.max(0, 35 - (itemNumber ? itemNumber.length + 3 : 0) - 3))}...
+                                                </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="max-w-sm">
+                                                    {itemNumber && <span className="font-medium">{itemNumber} - </span>}
+                                                    {itemName}
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                );
+                            } else {
+                                return (
+                                    <>
+                                        {itemNumber && <span className="font-medium">{itemNumber} - </span>}
+                                        {itemName}
+                                    </>
+                                );
+                            }
+                        })()}
                     </div>
                 </div>
 

@@ -499,7 +499,7 @@ export default function BomHierarchicalView({
                                             </div>
                                         ) : (
                                             <div className="w-full h-80 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 dark:text-gray-500">
-                                                <span className="select-none">Sem imagem disponível</span>
+                                                <span className="select-none">N/A</span>
                                             </div>
                                         )}
                                     </HoverCardContent>

@@ -49,7 +49,7 @@ export function ItemImagePreview({
                     onClick={onClick}
                 >
                     <Camera className="h-8 w-8 mb-2" />
-                    <span className="text-sm">Sem imagem</span>
+                    <span className="text-xs">N/A</span>
                 </div>
             )}
         </div>

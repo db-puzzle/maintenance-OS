@@ -257,29 +257,65 @@ export default function ManufacturingOrderHierarchicalView({
 
     // Planning mode helpers - removed progress tracking
 
+    // Calculate the maximum depth of the tree
+    const calculateMaxDepth = (nodes: ManufacturingOrderTreeNode[], currentDepth: number = 0): number => {
+        let maxDepth = currentDepth;
+        for (const node of nodes) {
+            if (node.children && node.children.length > 0) {
+                const childDepth = calculateMaxDepth(node.children, currentDepth + 1);
+                maxDepth = Math.max(maxDepth, childDepth);
+            }
+        }
+        return maxDepth;
+    };
+
+    const treeMaxDepth = calculateMaxDepth(sortedOrdersSnapshot);
+
     // Custom node renderer
-    const renderOrderNode = (node: ManufacturingOrderTreeNode, _props: NodeRenderProps) => {
+    const renderOrderNode = (node: ManufacturingOrderTreeNode, props: NodeRenderProps) => {
         const isSelected = selectedOrders.has(node.id);
+        const { depth } = props;
 
         // Compact mode rendering
         if (compactMode) {
+            // Calculate card width based on depth
+            // Each level indents by 24px (w-6 for tree lines) + 20px (w-5 for expand button) + gap
+            // We want the deepest card to reach the container edge, and parent cards to be progressively shorter
+            const treeLineWidth = 24; // w-6 in Tailwind
+            const _expandButtonWidth = 20; // w-5 in Tailwind
+            const _gapWidth = 8; // gap-2 in Tailwind
+            const indentPerLevel = treeLineWidth; // Only count tree line width for indentation
+            const minCardWidth = 500; // Minimum card width to prevent text wrapping
+
+            // For staircase effect: deeper cards should be wider
+            // Calculate offset from the deepest level
+            const depthFromDeepest = treeMaxDepth - depth;
+            const widthOffset = depthFromDeepest * indentPerLevel;
+
             return (
-                <OrderCardCompact
-                    order={node}
-                    isSelected={isSelected}
-                    enhancedMode={enhancedMode}
-                    showThumbnails={showImages}
-                    onOrderClick={onOrderClick}
-                    onOrderSelect={onOrderSelect}
-                    permissions={{
-                        canRelease: canReleaseOrders,
-                        canCancel: canCancelOrders,
-                        canUpdate: canUpdateOrders,
-                        canDelete: canDeleteOrders,
+                <div
+                    style={{
+                        width: `calc(100% - ${widthOffset}px)`,
+                        minWidth: `${minCardWidth}px`,
                     }}
-                    onReleaseOrder={handleReleaseOrder}
-                    onCancelOrder={handleCancelOrder}
-                />
+                >
+                    <OrderCardCompact
+                        order={node}
+                        isSelected={isSelected}
+                        enhancedMode={enhancedMode}
+                        showThumbnails={showImages}
+                        onOrderClick={onOrderClick}
+                        onOrderSelect={onOrderSelect}
+                        permissions={{
+                            canRelease: canReleaseOrders,
+                            canCancel: canCancelOrders,
+                            canUpdate: canUpdateOrders,
+                            canDelete: canDeleteOrders,
+                        }}
+                        onReleaseOrder={handleReleaseOrder}
+                        onCancelOrder={handleCancelOrder}
+                    />
+                </div>
             );
         }
 
@@ -311,7 +347,7 @@ export default function ManufacturingOrderHierarchicalView({
                             {node.item && (
                                 <ItemImagePreview
                                     primaryImageUrl={node.item.primary_image_thumbnail_url || node.item.primary_image_url}
-                                    imageCount={node.item.images?.length || 0}
+                                    imageCount={node.item.media?.length || 0}
                                     className="w-12 h-12 cursor-pointer"
                                     onClick={(e) => {
                                         e?.stopPropagation();
@@ -539,7 +575,7 @@ export default function ManufacturingOrderHierarchicalView({
 
     // Header columns
     const headerColumns = compactMode ? (
-        <div className="bg-muted/50 dark:bg-muted/20 p-2 rounded-md font-semibold text-xs mb-2 flex justify-between items-center min-w-[320px]">
+        <div className="bg-muted/50 dark:bg-muted/20 p-2 rounded-md font-semibold text-xs mb-2 flex justify-between items-center">
             <div>Manufacturing Orders</div>
             <div className="text-muted-foreground">Route / Status</div>
         </div>

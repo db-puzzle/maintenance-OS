@@ -11,7 +11,7 @@ export interface TreeNode {
 }
 export interface TreeViewProps<T extends TreeNode> {
     data: T[];
-    renderNode: (node: T, isExpanded: boolean, toggleExpand: () => void) => React.ReactNode;
+    renderNode: (node: T, isExpanded: boolean, toggleExpand: () => void, depth?: number) => React.ReactNode;
     emptyState?: React.ReactNode;
     className?: string;
     defaultExpanded?: boolean | ((node: T) => boolean);
@@ -26,7 +26,7 @@ interface TreeItemProps<T extends TreeNode> {
     parentConnectorLines: boolean[];
     expanded: Record<string, boolean>;
     toggleExpand: (id: string) => void;
-    renderNode: (node: T, isExpanded: boolean, toggleExpand: () => void) => React.ReactNode;
+    renderNode: (node: T, isExpanded: boolean, toggleExpand: () => void, depth?: number) => React.ReactNode;
     onNodeClick?: (node: T) => void;
 }
 function TreeItem<T extends TreeNode>({
@@ -113,7 +113,7 @@ function TreeItem<T extends TreeNode>({
                         </div>
                         {/* Render custom node content */}
                         <div className="flex-grow">
-                            {renderNode(node, isExpanded, handleToggle)}
+                            {renderNode(node, isExpanded, handleToggle, depth)}
                         </div>
                     </div>
                 </div>

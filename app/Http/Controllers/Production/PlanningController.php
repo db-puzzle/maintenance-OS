@@ -51,13 +51,19 @@ class PlanningController extends Controller
             'canCreateWorkCell' => false,
             'canViewWorkCells' => false,
             'canApplyTemplates' => false,
+            'canSaveAsTemplate' => false,
         ];
 
         // Try to check permissions if they exist
         try {
             $permissions['canCreateRoute'] = $user->can('create', ManufacturingRoute::class);
+            $permissions['canEditRoute'] = $user->hasPermissionTo('production.routes.create'); // Use permission directly instead of policy
+            $permissions['canDeleteRoute'] = $user->hasPermissionTo('production.routes.delete');
+            $permissions['canPlanOrder'] = $user->hasPermissionTo('production.orders.update');
             $permissions['canViewWorkCells'] = $user->can('viewAny', WorkCell::class);
             $permissions['canCreateWorkCell'] = $user->can('create', WorkCell::class);
+            $permissions['canApplyTemplates'] = $user->hasPermissionTo('production.routes.create');
+            $permissions['canSaveAsTemplate'] = $user->hasPermissionTo('production.templates.create') || $user->hasPermissionTo('production.routes.create');
         } catch (\Exception $e) {
             // If permissions don't exist, leave them as false
         }
@@ -117,204 +123,113 @@ class PlanningController extends Controller
         });
 
         // Check if this is an auto-save request (no flash message)
-        if ($request->boolean('is_autosave', false)) {
-            return back();
+        if ($request->boolean('autoSave', false)) {
+            return response()->json(['success' => true]);
         }
 
-        return back()->with('success', 'Route configuration saved successfully.');
+        return redirect()
+            ->route('production.planning.index')
+            ->with('success', 'Route saved successfully.');
     }
 
     /**
-     * Save route as template.
+     * Apply a route template to a manufacturing order.
      */
-    public function saveAsTemplate(Request $request)
+    public function applyTemplate(Request $request, ManufacturingOrder $order)
     {
-        $this->authorize('create', ManufacturingRoute::class);
+        $this->authorize('update', $order);
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'steps' => 'required|array',
-            'item_id' => 'nullable|exists:items,id',
+            'template_id' => 'required|exists:manufacturing_routes,id',
         ]);
 
-        $template = DB::transaction(function () use ($validated, $request) {
-            // Create a template route (is_template = true)
-            $template = ManufacturingRoute::create([
-                'name' => $validated['name'],
-                'description' => $validated['description'],
-                'is_template' => true,
-                'item_id' => $validated['item_id'] ?? null,
-                'created_by' => $request->user()->id,
-                'is_active' => true,
-            ]);
+        // Get the template
+        $template = ManufacturingRoute::where('is_template', true)
+            ->where('id', $validated['template_id'])
+            ->firstOrFail();
 
-            // Create template steps
-            foreach ($validated['steps'] as $index => $stepData) {
-                $template->steps()->create([
-                    'step_number' => $stepData['sequence'] ?? ($index + 1),
-                    'display_order' => $stepData['sequence'] ?? ($index + 1),
-                    'name' => $stepData['name'],
-                    'description' => $stepData['description'] ?? null,
-                    'work_cell_id' => $stepData['work_cell_id'] ?? null,
-                    'setup_time_minutes' => $stepData['setup_time_minutes'] ?? null,
-                    'cycle_time_minutes' => $stepData['cycle_time_minutes'] ?? null,
-                    'step_type' => $stepData['step_type'] ?? 'standard',
-                    'status' => 'pending',
-                ]);
+        // Apply the template
+        DB::transaction(function () use ($order, $template) {
+            // Check if order already has a route
+            $existingRoute = $order->manufacturingRoute;
+
+            if ($existingRoute) {
+                // Delete existing steps
+                $existingRoute->steps()->delete();
+                $route = $existingRoute;
+            } else {
+                // Create new route
+                $route = new ManufacturingRoute;
+                $route->manufacturing_order_id = $order->id;
             }
 
-            return $template;
+            $route->name = "Route for {$order->order_number}";
+            $route->is_active = true;
+            $route->save();
+
+            // Copy steps from template
+            $template->load('steps');
+            foreach ($template->steps as $step) {
+                $route->steps()->create([
+                    'name' => $step->name,
+                    'description' => $step->description,
+                    'work_cell_id' => $step->work_cell_id,
+                    'setup_time_minutes' => $step->setup_time_minutes,
+                    'cycle_time_minutes' => $step->cycle_time_minutes,
+                    'display_order' => $step->display_order,
+                    'step_type' => $step->step_type,
+                    'is_required' => $step->is_required ?? true,
+                    'status' => 'pending',
+                    'child_order_dependency_type' => $step->child_order_dependency_type ?? 'all_children_completed',
+                    'child_order_minimum_quantity' => $step->child_order_minimum_quantity ?? 0,
+                ]);
+            }
         });
 
-        return back()->with('success', 'Route template saved successfully.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Template applied successfully',
+        ]);
     }
 
     /**
-     * Bulk transition manufacturing orders.
+     * Bulk transition manufacturing orders to a new state.
      */
     public function bulkTransition(Request $request)
     {
         $validated = $request->validate([
             'orderIds' => 'required|array',
             'orderIds.*' => 'exists:manufacturing_orders,id',
-            'targetState' => 'required|in:planned,draft',
+            'targetState' => 'required|in:draft,planned,scheduled,released',
         ]);
 
-        $results = [
-            'success' => 0,
-            'failed' => 0,
-            'errors' => [],
-        ];
+        $orderIds = $validated['orderIds'];
+        $targetState = $validated['targetState'];
 
-        foreach ($validated['orderIds'] as $orderId) {
-            try {
-                $order = ManufacturingOrder::findOrFail($orderId);
+        $orders = ManufacturingOrder::whereIn('id', $orderIds)->get();
 
-                if ($validated['targetState'] === 'planned') {
-                    $this->authorize('plan', $order);
+        foreach ($orders as $order) {
+            $this->authorize('update', $order);
 
-                    // Validate order can be planned
-                    if (! $order->manufacturingRoute || $order->manufacturingRoute->steps->count() === 0) {
-                        throw new \Exception('Order must have a configured route to be marked as planned.');
-                    }
-
-                    $order->status = 'planned';
-                } else {
-                    $this->authorize('update', $order);
-                    $order->status = 'draft';
-                }
-
+            // Apply transition rules
+            if ($targetState === 'planned' && $order->status === 'draft') {
+                $order->status = 'planned';
                 $order->save();
-                $results['success']++;
-            } catch (\Exception $e) {
-                $results['failed']++;
-                $results['errors'][] = [
-                    'moId' => $orderId,
-                    'error' => $e->getMessage(),
-                ];
+            } elseif ($targetState === 'draft' && $order->status === 'planned') {
+                $order->status = 'draft';
+                $order->save();
             }
+            // Add other transition rules as needed
         }
 
-        return back()->with('bulkOperationResult', $results);
+        // Reload manufacturing orders after transition
+        return redirect()->route('production.planning', $request->except(['orderIds', 'targetState']))
+            ->with('success', 'Manufacturing orders updated successfully.');
     }
 
     /**
-     * Bulk copy route from source order.
-     */
-    public function bulkCopyRoute(Request $request)
-    {
-        $validated = $request->validate([
-            'orderIds' => 'required|array',
-            'orderIds.*' => 'exists:manufacturing_orders,id',
-            'sourceOrderId' => 'required|exists:manufacturing_orders,id',
-        ]);
-
-        $sourceOrder = ManufacturingOrder::with('manufacturingRoute.steps')->findOrFail($validated['sourceOrderId']);
-
-        if (! $sourceOrder->manufacturingRoute) {
-            return back()->withErrors(['sourceOrderId' => 'Source order does not have a route configured.']);
-        }
-
-        $results = [
-            'success' => 0,
-            'failed' => 0,
-            'errors' => [],
-        ];
-
-        foreach ($validated['orderIds'] as $orderId) {
-            if ($orderId == $validated['sourceOrderId']) {
-                continue; // Skip source order
-            }
-
-            try {
-                $order = ManufacturingOrder::findOrFail($orderId);
-                $this->authorize('update', $order);
-
-                // Copy route
-                $this->routeBuilderService->copyRoute($sourceOrder, $order);
-
-                $results['success']++;
-            } catch (\Exception $e) {
-                $results['failed']++;
-                $results['errors'][] = [
-                    'moId' => $orderId,
-                    'error' => $e->getMessage(),
-                ];
-            }
-        }
-
-        return back()->with('bulkOperationResult', $results);
-    }
-
-    /**
-     * Bulk clear routes.
-     */
-    public function bulkClearRoutes(Request $request)
-    {
-        $validated = $request->validate([
-            'orderIds' => 'required|array',
-            'orderIds.*' => 'exists:manufacturing_orders,id',
-        ]);
-
-        $results = [
-            'success' => 0,
-            'failed' => 0,
-            'errors' => [],
-        ];
-
-        foreach ($validated['orderIds'] as $orderId) {
-            try {
-                $order = ManufacturingOrder::findOrFail($orderId);
-                $this->authorize('update', $order);
-
-                // Delete route if exists
-                if ($order->manufacturingRoute) {
-                    $order->manufacturingRoute->delete();
-                }
-
-                // Revert to draft if needed
-                if ($order->status === 'planned') {
-                    $order->status = 'draft';
-                    $order->save();
-                }
-
-                $results['success']++;
-            } catch (\Exception $e) {
-                $results['failed']++;
-                $results['errors'][] = [
-                    'moId' => $orderId,
-                    'error' => $e->getMessage(),
-                ];
-            }
-        }
-
-        return back()->with('bulkOperationResult', $results);
-    }
-
-    /**
-     * Load manufacturing orders with optimized eager loading to prevent N+1 queries.
-     * This method implements single-pass hierarchical loading strategy.
+     * Load manufacturing orders with optimized queries.
+     * This method loads all necessary data in a single pass to avoid N+1 queries.
      */
     private function loadManufacturingOrdersOptimized(Request $request)
     {
@@ -394,7 +309,8 @@ class PlanningController extends Controller
             // Attach children recursively
             $this->attachChildrenToOrder($root, $grouped);
 
-            return [$root->toArray()];
+            // Convert to array including all loaded relationships
+            return [$this->orderToArrayWithRelationships($root)];
         }
 
         // Get all root orders (parent_id = null)
@@ -405,7 +321,10 @@ class PlanningController extends Controller
             $this->attachChildrenToOrder($order, $grouped);
         });
 
-        return $roots->map->toArray()->values()->all();
+        // Convert to array including all loaded relationships
+        return $roots->map(function ($order) {
+            return $this->orderToArrayWithRelationships($order);
+        })->values()->all();
     }
 
     /**
@@ -422,6 +341,32 @@ class PlanningController extends Controller
         $children->each(function ($child) use ($grouped) {
             $this->attachChildrenToOrder($child, $grouped);
         });
+    }
+
+    /**
+     * Convert order to array ensuring all relationships are included.
+     */
+    private function orderToArrayWithRelationships($order)
+    {
+        // Get the base array
+        $array = $order->toArray();
+
+        // Ensure manufacturing_route is included if loaded
+        if ($order->relationLoaded('manufacturingRoute') && $order->manufacturingRoute) {
+            $array['manufacturing_route'] = $order->manufacturingRoute->toArray();
+        } else {
+            // Always include manufacturing_route key even if null
+            $array['manufacturing_route'] = null;
+        }
+
+        // Recursively convert children
+        if ($order->relationLoaded('children') && $order->children) {
+            $array['children'] = $order->children->map(function ($child) {
+                return $this->orderToArrayWithRelationships($child);
+            })->all();
+        }
+
+        return $array;
     }
 
     /**
@@ -449,6 +394,7 @@ class PlanningController extends Controller
                         'name' => $template->createdBy?->name ?? 'System',
                     ],
                     'created_at' => $template->created_at->toIso8601String(),
+                    'updated_at' => $template->updated_at->toIso8601String(),
                     'is_default' => false,
                     'item_types' => [],
                 ];
