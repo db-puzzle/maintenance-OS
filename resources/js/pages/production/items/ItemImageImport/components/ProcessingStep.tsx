@@ -164,13 +164,14 @@ export function ProcessingStep({
                     sessionData.phases.upload.progress === 100 &&
                     sessionData.phases.assembly.progress === 100 &&
                     sessionData.phases.processing.progress === 100 &&
-                    sessionData.phases.metadata.progress >= 95; // Allow some tolerance for metadata
+                    sessionData.phases.metadata.progress === 100;
 
-                if (allPhasesComplete || sessionData.status === 'completed') {
+                // Only move to complete when ALL phases are done, not just when status is 'completed'
+                // The backend might set status to 'completed' after processing, but metadata generation
+                // happens asynchronously via queued jobs
+                if (allPhasesComplete) {
                     onComplete();
                 }
-            } else if (sessionData.status === 'completed') {
-                onComplete();
             }
 
             if (sessionData.status === 'failed') {
