@@ -9,12 +9,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Spatie\MediaLibrary\HasMedia;
 
 class Item extends Model implements HasMedia
 {
-    use HasFactory, HasMediaTrait;
+    use HasFactory;
+    use HasMediaTrait;
 
     protected $fillable = [
         'item_number',
@@ -68,16 +68,16 @@ class Item extends Model implements HasMedia
     ];
 
     protected $appends = ['primary_image_url', 'primary_image_data'];
-    
+
     /**
-     * Register media collections
+     * Register media collections.
      */
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('images')
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/heic'])
             ->useFallbackUrl('/images/no-image.jpg');
-            
+
         $this->addMediaCollection('documents')
             ->acceptsMimeTypes([
                 'application/pdf',
@@ -87,7 +87,7 @@ class Item extends Model implements HasMedia
     }
 
     // Relationships
-    
+
     /**
      * Get BOMs that produce this item.
      */
@@ -98,6 +98,7 @@ class Item extends Model implements HasMedia
 
     /**
      * Get the image associated with this item.
+     *
      * @deprecated Use getMedia('images') instead
      */
     public function image(): HasOne
@@ -107,6 +108,7 @@ class Item extends Model implements HasMedia
 
     /**
      * Get the primary image for this item.
+     *
      * @deprecated Use getPrimaryMedia('images') instead
      */
     public function primaryImage(): BelongsTo
@@ -170,6 +172,14 @@ class Item extends Model implements HasMedia
         return $query->where('is_active', true)->where('status', 'active');
     }
 
+    /**
+     * Scope to load items with their media for efficient image access.
+     */
+    public function scopeWithImages($query)
+    {
+        return $query->with('media');
+    }
+
     // Helper methods
     public function isSellable(): bool
     {
@@ -194,7 +204,7 @@ class Item extends Model implements HasMedia
     public function getEffectiveBom(?\Carbon\Carbon $date = null): ?BillOfMaterial
     {
         $date = $date ?? now();
-        
+
         $history = $this->bomHistory()
             ->where('effective_from', '<=', $date)
             ->where(function ($query) use ($date) {
@@ -208,19 +218,21 @@ class Item extends Model implements HasMedia
     }
 
     // Image-related accessors
-    
+
     /**
      * Get the primary image URL for this item.
      */
     public function getPrimaryImageUrlAttribute(): ?string
     {
-        // Use new media library images
-        if ($this->hasMedia('images')) {
-            $media = $this->getFirstMedia('images');
+        // Only access media if it's already loaded to avoid N+1 queries
+        if ($this->relationLoaded('media')) {
+            $media = $this->getMedia('images')->first();
+
             // Use the authenticated API route
             return $media ? route('api.media.show-conversion', [$media->id, 'preview']) : null;
         }
-        
+
+        // If media is not loaded, return null
         return null;
     }
 
@@ -229,10 +241,10 @@ class Item extends Model implements HasMedia
      */
     public function getPrimaryImageDataAttribute(): ?array
     {
-        // Use new media library images
-        if ($this->hasMedia('images')) {
-            $media = $this->getFirstMedia('images');
-            
+        // Only access media if it's already loaded to avoid N+1 queries
+        if ($this->relationLoaded('media')) {
+            $media = $this->getMedia('images')->first();
+
             if ($media) {
                 return [
                     'url' => route('api.media.show-conversion', [$media->id, 'preview']),
@@ -240,7 +252,7 @@ class Item extends Model implements HasMedia
                 ];
             }
         }
-        
+
         return null;
     }
 
@@ -263,7 +275,7 @@ class Item extends Model implements HasMedia
                 ]];
             }
         }
-        
+
         return [];
     }
 
@@ -282,7 +294,7 @@ class Item extends Model implements HasMedia
             ->whereNotIn('status', ['completed', 'cancelled'])
             ->exists();
 
-        return !$usedInBoms && !$hasOpenOrders;
+        return ! $usedInBoms && ! $hasOpenOrders;
     }
 
     public function updateBom(BillOfMaterial $bom, array $changeData = []): ItemBomHistory
@@ -307,4 +319,4 @@ class Item extends Model implements HasMedia
 
         return $history;
     }
-} 
+}

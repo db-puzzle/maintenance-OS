@@ -6,6 +6,12 @@ use Spatie\Permission\Models\Role as SpatieRole;
 
 class Role extends SpatieRole
 {
+    /**
+     * Request-scoped cache for administrator role.
+     */
+    protected static ?self $cachedAdministratorRole = null;
+    protected static ?int $cachedAdministratorRoleId = null;
+
     protected $fillable = [
         'name',
         'guard_name',
@@ -13,7 +19,7 @@ class Role extends SpatieRole
         'is_system',
         'is_administrator',
         'display_name',
-        'description'
+        'description',
     ];
 
     protected $casts = [
@@ -22,12 +28,12 @@ class Role extends SpatieRole
     ];
 
     /**
-     * Administrator role ID constant for consistency
+     * Administrator role ID constant for consistency.
      */
-    const ADMINISTRATOR_ROLE_ID = 1;
+    public const ADMINISTRATOR_ROLE_ID = 1;
 
     /**
-     * Parent role relationship
+     * Parent role relationship.
      */
     public function parentRole()
     {
@@ -35,7 +41,7 @@ class Role extends SpatieRole
     }
 
     /**
-     * Child roles relationship
+     * Child roles relationship.
      */
     public function childRoles()
     {
@@ -43,37 +49,37 @@ class Role extends SpatieRole
     }
 
     /**
-     * Get all descendant roles
+     * Get all descendant roles.
      */
     public function descendants()
     {
         $descendants = collect();
-        
+
         foreach ($this->childRoles as $child) {
             $descendants->push($child);
             $descendants = $descendants->merge($child->descendants());
         }
-        
+
         return $descendants;
     }
 
     /**
-     * Get all ancestor roles
+     * Get all ancestor roles.
      */
     public function ancestors()
     {
         $ancestors = collect();
-        
+
         if ($this->parentRole) {
             $ancestors->push($this->parentRole);
             $ancestors = $ancestors->merge($this->parentRole->ancestors());
         }
-        
+
         return $ancestors;
     }
 
     /**
-     * Check if role is a system role that cannot be deleted
+     * Check if role is a system role that cannot be deleted.
      */
     public function isSystem(): bool
     {
@@ -81,7 +87,7 @@ class Role extends SpatieRole
     }
 
     /**
-     * Check if this is the Administrator role
+     * Check if this is the Administrator role.
      */
     public function isAdministrator(): bool
     {
@@ -89,7 +95,7 @@ class Role extends SpatieRole
     }
 
     /**
-     * Get permissions count
+     * Get permissions count.
      */
     public function getPermissionsCountAttribute(): int
     {
@@ -97,7 +103,7 @@ class Role extends SpatieRole
     }
 
     /**
-     * Get users count
+     * Get users count.
      */
     public function getUsersCountAttribute(): int
     {
@@ -105,7 +111,7 @@ class Role extends SpatieRole
     }
 
     /**
-     * Scope to get only system roles
+     * Scope to get only system roles.
      */
     public function scopeSystem($query)
     {
@@ -113,7 +119,7 @@ class Role extends SpatieRole
     }
 
     /**
-     * Scope to get only non-system roles
+     * Scope to get only non-system roles.
      */
     public function scopeCustom($query)
     {
@@ -121,7 +127,7 @@ class Role extends SpatieRole
     }
 
     /**
-     * Scope to get the Administrator role
+     * Scope to get the Administrator role.
      */
     public function scopeAdministrator($query)
     {
@@ -129,7 +135,7 @@ class Role extends SpatieRole
     }
 
     /**
-     * Check if role can be deleted
+     * Check if role can be deleted.
      */
     public function canBeDeleted(): bool
     {
@@ -137,21 +143,21 @@ class Role extends SpatieRole
         if ($this->is_administrator) {
             return false;
         }
-        
-        return !$this->is_system && $this->users()->count() === 0;
+
+        return ! $this->is_system && $this->users()->count() === 0;
     }
 
     /**
-     * Check if role can be modified
+     * Check if role can be modified.
      */
     public function canBeModified(): bool
     {
         // Administrator role permissions cannot be modified
-        return !$this->is_administrator;
+        return ! $this->is_administrator;
     }
 
     /**
-     * Get all effective permissions (including inherited from parent roles)
+     * Get all effective permissions (including inherited from parent roles).
      */
     public function getAllEffectivePermissions()
     {
@@ -159,36 +165,81 @@ class Role extends SpatieRole
         if ($this->is_administrator) {
             return Permission::all();
         }
-        
+
         $permissions = $this->permissions;
-        
+
         // Add permissions from parent roles
         if ($this->parentRole) {
             $permissions = $permissions->merge($this->parentRole->getAllEffectivePermissions());
         }
-        
+
         return $permissions->unique('id');
     }
 
     /**
-     * Get the Administrator role
+     * Get the Administrator role.
      */
     public static function getAdministratorRole(): ?self
     {
-        return self::where('is_administrator', true)->first();
+        // First check request-scoped cache to avoid repeated queries
+        if (self::$cachedAdministratorRole !== null || self::$cachedAdministratorRoleId === 0) {
+            return self::$cachedAdministratorRole;
+        }
+
+        // Check persistent cache for the role ID
+        $adminRoleId = cache()->get('administrator_role_id');
+
+        if ($adminRoleId === null) {
+            // Not in cache, fetch from database
+            $role = self::where('is_administrator', true)->first();
+
+            // Cache the ID (or 0 if no role exists)
+            $adminRoleId = $role ? $role->id : 0;
+            cache()->put('administrator_role_id', $adminRoleId, 3600);
+
+            // Store in request-scoped cache
+            self::$cachedAdministratorRoleId = $adminRoleId;
+            self::$cachedAdministratorRole = $role;
+
+            return $role;
+        }
+
+        // We have a cached ID
+        if ($adminRoleId === 0) {
+            // No administrator role exists
+            self::$cachedAdministratorRoleId = 0;
+            self::$cachedAdministratorRole = null;
+
+            return null;
+        }
+
+        // Fetch the role by ID and cache it
+        self::$cachedAdministratorRole = self::find($adminRoleId);
+        self::$cachedAdministratorRoleId = $adminRoleId;
+
+        return self::$cachedAdministratorRole;
     }
 
     /**
-     * Ensure at least one Administrator exists
+     * Clear the request-scoped administrator role cache.
+     */
+    public static function clearAdministratorRoleCache(): void
+    {
+        self::$cachedAdministratorRole = null;
+        self::$cachedAdministratorRoleId = null;
+    }
+
+    /**
+     * Ensure at least one Administrator exists.
      */
     public static function ensureAdministratorExists(): bool
     {
         $adminRole = self::getAdministratorRole();
-        
-        if (!$adminRole) {
+
+        if (! $adminRole) {
             return false;
         }
-        
+
         return $adminRole->users()->exists();
     }
 }

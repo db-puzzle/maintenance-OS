@@ -88,6 +88,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
         is_active: workCell?.is_active ?? true,
     });
     const [internalSheetOpen, setInternalSheetOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Local state for client-side validation errors
     const [errors, setErrors] = useState<Partial<Record<keyof WorkCellForm, string>>>({});
@@ -223,6 +224,14 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        // Prevent multiple submissions
+        if (isSubmitting || processing) {
+            return;
+        }
+
+        // Set submitting state immediately
+        setIsSubmitting(true);
+
         // Client-side validation
         clearErrors(); // Clear any existing errors first
 
@@ -253,6 +262,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             setErrors(validationErrors);
             const firstError = Object.values(validationErrors)[0];
             toast.error(firstError);
+            setIsSubmitting(false); // Reset submitting state on validation error
             return;
         }
 
@@ -280,6 +290,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             onSuccess: (page) => {
                 // Success message is handled by the backend flash data
                 setSheetOpen(false);
+                setIsSubmitting(false); // Reset submitting state on success
 
                 // Reset form if creating new
                 if (isNew) {
@@ -324,6 +335,11 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                 setErrors(serverErrors as Partial<Record<keyof WorkCellForm, string>>);
                 const firstError = Object.values(serverErrors)[0];
                 toast.error(firstError || 'Erro ao salvar célula de trabalho');
+                setIsSubmitting(false); // Reset submitting state on error
+            },
+            onFinish: () => {
+                // This will run whether the request succeeds or fails
+                // But we're already handling it in onSuccess and onError
             },
         });
     };
@@ -366,6 +382,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             });
         }
         setErrors({});
+        setIsSubmitting(false); // Reset submitting state
         setSheetOpen(false);
     };
 
@@ -388,14 +405,14 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                             label="Nome da Célula"
                             placeholder="Nome da célula de trabalho"
                             required
-                            disabled={processing}
+                            disabled={isSubmitting || processing}
                         />
                         <TextInput
                             form={formAdapter}
                             name="description"
                             label="Descrição"
                             placeholder="Descrição da célula de trabalho"
-                            disabled={processing}
+                            disabled={isSubmitting || processing}
                         />
                     </div>
 
@@ -413,7 +430,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                                     // Clear manufacturer when switching to internal
                                     updateData('manufacturer_id', '');
                                 }}
-                                disabled={processing}
+                                disabled={isSubmitting || processing}
                             />
                             {data.cell_type === 'internal' && (
                                 <div className="border-l border-gray-200">
@@ -473,7 +490,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                                     updateData('area_id', '');
                                     updateData('sector_id', '');
                                 }}
-                                disabled={processing}
+                                disabled={isSubmitting || processing}
                             />
                             {data.cell_type === 'external' && (
                                 <div className="border-l border-gray-200">
@@ -511,7 +528,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                                     updateData('default_setup_time_minutes', '0');
                                     updateData('max_parallel_executions', '1');
                                 }}
-                                disabled={processing}
+                                disabled={isSubmitting || processing}
                             />
                             <StateButton
                                 icon={Building2}
@@ -519,7 +536,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                                 description="A célula tem limitações de capacidade baseadas em turnos e taxas de produção"
                                 selected={data.has_finite_capacity}
                                 onClick={() => updateData('has_finite_capacity', true)}
-                                disabled={processing}
+                                disabled={isSubmitting || processing}
                             />
                             {data.has_finite_capacity && (
                                 <div className="border-l border-gray-200">
@@ -542,7 +559,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                                                         name="default_production_rate_per_hour"
                                                         label="Taxa Padrão de Produção"
                                                         placeholder="100"
-                                                        disabled={processing}
+                                                        disabled={isSubmitting || processing}
                                                     />
                                                 </div>
                                                 <span className="text-sm text-muted-foreground mb-2 whitespace-nowrap">por hora</span>
@@ -552,7 +569,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                                                 <Select
                                                     value={data.default_unit_of_measure}
                                                     onValueChange={(value) => updateData('default_unit_of_measure', value)}
-                                                    disabled={processing}
+                                                    disabled={isSubmitting || processing}
                                                 >
                                                     <SelectTrigger className="w-full">
                                                         <SelectValue placeholder="Selecione uma unidade" />
@@ -595,7 +612,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                                                             type="number"
                                                             min="0"
                                                             max="9999"
-                                                            disabled={processing}
+                                                            disabled={isSubmitting || processing}
                                                         />
                                                     </div>
                                                     <span className="text-sm text-muted-foreground pb-1 whitespace-nowrap">minutos</span>
@@ -612,7 +629,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                                                     min="1"
                                                     max="999"
                                                     required
-                                                    disabled={processing}
+                                                    disabled={isSubmitting || processing}
                                                     validateInput={validateParallelExecutions}
                                                     helperText="Máximo de operações em paralelo"
                                                 />
@@ -634,7 +651,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                                 description="Célula de trabalho está ativa e disponível para uso"
                                 selected={data.is_active}
                                 onClick={() => updateData('is_active', true)}
-                                disabled={processing}
+                                disabled={isSubmitting || processing}
                                 variant="green"
                             />
                             <StateButton
@@ -643,18 +660,18 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                                 description="Célula de trabalho está inativa e não disponível para uso"
                                 selected={!data.is_active}
                                 onClick={() => updateData('is_active', false)}
-                                disabled={processing}
+                                disabled={isSubmitting || processing}
                                 variant="red"
                             />
                         </div>
                     </div>
                 </div>
                 <SheetFooter className="px-6">
-                    <Button type="submit" disabled={processing}>
+                    <Button type="submit" disabled={isSubmitting || processing}>
                         <Save className="mr-2 h-4 w-4" />
-                        {processing ? 'Salvando...' : 'Salvar'}
+                        {isSubmitting || processing ? 'Salvando...' : 'Salvar'}
                     </Button>
-                    <Button type="button" variant="outline" onClick={handleCancel} disabled={processing}>
+                    <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting || processing}>
                         <X className="mr-2 h-4 w-4" />
                         Cancelar
                     </Button>

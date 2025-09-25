@@ -24,22 +24,24 @@ class ProductionOrderFactory extends Factory
     {
         $statuses = ['draft', 'planned', 'released', 'in_progress', 'completed', 'cancelled'];
         $sourceTypes = ['manual', 'sales_order', 'forecast'];
-        
+
         $status = fake()->randomElement($statuses);
         $requestedDate = fake()->dateTimeBetween('now', '+3 months');
-        
+
         // Generate a unique order number
         $year = now()->format('Y');
         $unique = fake()->unique()->numberBetween(1, 99999);
         $orderNumber = sprintf('PO-%s-%05d', $year, $unique);
-        
+
         return [
             'order_number' => $orderNumber,
             'item_id' => Item::factory()->manufacturable(),
             'bill_of_material_id' => function (array $attributes) {
-                // Create a BOM and assign it to the item
-                $bom = BillOfMaterial::factory()->create();
-                Item::find($attributes['item_id'])->update(['current_bom_id' => $bom->id]);
+                // Create a BOM for the item
+                $bom = BillOfMaterial::factory()->create([
+                    'output_item_id' => $attributes['item_id'],
+                ]);
+
                 return $bom->id;
             },
             'quantity' => fake()->numberBetween(1, 1000),
@@ -49,15 +51,15 @@ class ProductionOrderFactory extends Factory
             'requested_date' => $requestedDate,
             'planned_start_date' => $status !== 'draft' ? fake()->dateTimeBetween('now', $requestedDate) : null,
             'planned_end_date' => function (array $attributes) {
-                return $attributes['planned_start_date'] 
+                return $attributes['planned_start_date']
                     ? fake()->dateTimeBetween($attributes['planned_start_date'], $attributes['requested_date'])
                     : null;
             },
-            'actual_start_date' => in_array($status, ['in_progress', 'completed']) 
-                ? fake()->dateTimeBetween('-1 week', 'now') 
+            'actual_start_date' => in_array($status, ['in_progress', 'completed'])
+                ? fake()->dateTimeBetween('-1 week', 'now')
                 : null,
-            'actual_end_date' => $status === 'completed' 
-                ? fake()->dateTimeBetween('-1 day', 'now') 
+            'actual_end_date' => $status === 'completed'
+                ? fake()->dateTimeBetween('-1 day', 'now')
                 : null,
             'source_type' => fake()->randomElement($sourceTypes),
             'source_reference' => fake()->optional(0.7)->regexify('[A-Z]{2}-[0-9]{6}'),
@@ -163,4 +165,4 @@ class ProductionOrderFactory extends Factory
             'requested_date' => fake()->dateTimeBetween('now', '+1 week'),
         ]);
     }
-} 
+}

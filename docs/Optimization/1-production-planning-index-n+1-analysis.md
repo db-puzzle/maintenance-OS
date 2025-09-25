@@ -219,11 +219,11 @@ public function children(): HasMany
 
 public function parent(): BelongsTo
 {
-    return $this->belongsTo(ManufacturingOrder::class, 'parent_id')->chaperone();
+    return $this->belongsTo(ManufacturingOrder::class, 'parent_id');
 }
 ```
 
-The `chaperone()` method automatically hydrates parent models onto their children, preventing N+1 queries when traversing the hierarchy.
+The `chaperone()` method automatically hydrates parent models onto their children when iterating through collections, preventing N+1 queries. Note that `chaperone()` is only available on `HasMany` and `MorphMany` relationships, not on `BelongsTo` relationships.
 
 ### 3. Flatten Hierarchy Loading with Optimized Eager Loading
 
@@ -333,9 +333,10 @@ public function children(): HasMany
     return $this->hasMany(ManufacturingOrder::class, 'parent_id')->chaperone();
 }
 
+// Note: parent() relationship remains unchanged - chaperone() not applicable to BelongsTo
 public function parent(): BelongsTo
 {
-    return $this->belongsTo(ManufacturingOrder::class, 'parent_id')->chaperone();
+    return $this->belongsTo(ManufacturingOrder::class, 'parent_id');
 }
 ```
 
@@ -344,7 +345,7 @@ public function parent(): BelongsTo
 // In app/Models/Production/BomItem.php
 public function parent(): BelongsTo
 {
-    return $this->belongsTo(BomItem::class, 'parent_item_id')->chaperone();
+    return $this->belongsTo(BomItem::class, 'parent_item_id');
 }
 
 public function children(): HasMany
@@ -360,7 +361,7 @@ public function children(): HasMany
 // In app/Models/Production/ManufacturingStep.php
 public function dependency(): BelongsTo
 {
-    return $this->belongsTo(ManufacturingStep::class, 'depends_on_step_id')->chaperone();
+    return $this->belongsTo(ManufacturingStep::class, 'depends_on_step_id');
 }
 
 public function dependentSteps(): HasMany
@@ -374,7 +375,7 @@ public function dependentSteps(): HasMany
 // In app/Models/Role.php
 public function parentRole()
 {
-    return $this->belongsTo(Role::class, 'parent_role_id')->chaperone();
+    return $this->belongsTo(Role::class, 'parent_role_id');
 }
 
 public function childRoles()
@@ -393,40 +394,34 @@ public function relatedWorkOrders(): HasMany
 
 public function relatedTo(): BelongsTo
 {
-    return $this->belongsTo(WorkOrder::class, 'related_work_order_id')->chaperone();
+    return $this->belongsTo(WorkOrder::class, 'related_work_order_id');
 }
 ```
 
 #### 5.6. Asset Hierarchy Relationships
-While not self-referencing, these frequently accessed hierarchical relationships benefit from chaperone:
+While the asset hierarchy has parent-child relationships, the `chaperone()` method is not applicable here because:
+1. The relationships from child to parent are `BelongsTo` relationships
+2. `chaperone()` only works on `HasMany` and `MorphMany` relationships
+
+However, if we were to add inverse relationships, those could benefit from chaperone:
 
 ```php
-// In app/Models/AssetHierarchy/Area.php
-public function plant(): BelongsTo
+// In app/Models/AssetHierarchy/Plant.php
+public function areas(): HasMany
 {
-    return $this->belongsTo(Plant::class)->chaperone();
+    return $this->hasMany(Area::class)->chaperone();
+}
+
+// In app/Models/AssetHierarchy/Area.php
+public function sectors(): HasMany
+{
+    return $this->hasMany(Sector::class)->chaperone();
 }
 
 // In app/Models/AssetHierarchy/Sector.php
-public function area(): BelongsTo
+public function assets(): HasMany
 {
-    return $this->belongsTo(Area::class)->chaperone();
-}
-
-// In app/Models/AssetHierarchy/Asset.php
-public function sector(): BelongsTo
-{
-    return $this->belongsTo(Sector::class)->chaperone();
-}
-
-public function area(): BelongsTo
-{
-    return $this->belongsTo(Area::class)->chaperone();
-}
-
-public function plant(): BelongsTo
-{
-    return $this->belongsTo(Plant::class)->chaperone();
+    return $this->hasMany(Asset::class)->chaperone();
 }
 ```
 
@@ -435,10 +430,10 @@ public function plant(): BelongsTo
 // In app/Models/Media.php
 public function originalMedia(): BelongsTo
 {
-    return $this->belongsTo(Media::class, 'duplicate_of')->chaperone();
+    return $this->belongsTo(Media::class, 'duplicate_of');
 }
 
-// Add the missing duplicates relationship
+// Add the missing duplicates relationship with chaperone
 public function duplicates(): HasMany
 {
     return $this->hasMany(Media::class, 'duplicate_of')->chaperone();
@@ -513,9 +508,11 @@ if (config('app.debug')) {
 
 For the production planning optimization specifically, the most impactful chaperone() implementations are:
 
-1. **ManufacturingOrder** parent/children - Eliminates N+1 when traversing the MO hierarchy
-2. **BomItem** parent/children - Prevents extra queries when displaying BOM structure
-3. **ManufacturingStep** dependencies - Avoids N+1 when checking step dependencies in routes
+1. **ManufacturingOrder** children - Eliminates N+1 when traversing down the MO hierarchy
+2. **BomItem** children - Prevents extra queries when displaying nested BOM structures
+3. **ManufacturingStep** dependentSteps - Avoids N+1 when checking which steps depend on a given step
+
+Note that `chaperone()` only helps when iterating through collections of children (HasMany/MorphMany relationships). When accessing parent relationships (BelongsTo), the parent is already loaded directly without N+1 issues.
 
 These changes alone could reduce queries by an additional 10-20% when navigating complex hierarchies.
 
@@ -523,17 +520,18 @@ These changes alone could reduce queries by an additional 10-20% when navigating
 
 Beyond the production planning page, implementing `chaperone()` across all identified models will benefit:
 
-1. **BOM Management Pages**: Significant improvement when displaying nested BOM structures
-2. **Work Order Management**: Better performance when showing related work orders
-3. **Asset Hierarchy Views**: Faster loading of plant → area → sector → asset relationships
-4. **Role Management**: Improved performance in permission inheritance checks
-5. **Manufacturing Execution**: Faster step dependency validation during production
+1. **BOM Management Pages**: Significant improvement when iterating through child BOM items
+2. **Work Order Management**: Better performance when displaying lists of related work orders
+3. **Asset Hierarchy Views**: Faster loading when displaying all areas in a plant, all sectors in an area, etc.
+4. **Role Management**: Improved performance when checking child roles
+5. **Manufacturing Execution**: Faster loading when showing dependent steps
 
 The chaperone method is particularly valuable because it:
-- Prevents N+1 queries automatically without code changes in controllers
+- Prevents N+1 queries automatically when iterating through HasMany/MorphMany collections
 - Works transparently with existing eager loading
 - Has zero performance overhead when relationships are already loaded
-- Future-proofs the application against N+1 issues
+- Future-proofs the application against N+1 issues in collection iterations
+- Only applies to HasMany and MorphMany relationships, not BelongsTo
 
 ## Conclusion
 
@@ -541,4 +539,4 @@ The current implementation suffers from severe N+1 query problems, particularly 
 
 **The most critical optimization is replacing the recursive `loadAllChildren` method with the flattened eager loading approach.** This single change could reduce query count by 50-70% on its own and is validated as the best practice by Laravel standards.
 
-**Secondary but important: Implement `chaperone()` across all parent-child relationships** to prevent N+1 queries throughout the system and future-proof the application.
+**Secondary but important: Implement `chaperone()` on all HasMany and MorphMany relationships** to prevent N+1 queries when iterating through collections of child models. Remember that `chaperone()` is not available on BelongsTo relationships, as it's designed specifically for optimizing parent model hydration when iterating through collections of children.

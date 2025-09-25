@@ -16,6 +16,14 @@ class ManufacturingOrder extends Model
     use HasFactory;
     use SmartProgressCalculator;
 
+    /**
+     * Get the factory name for the model.
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\Production\ProductionOrderFactory::new();
+    }
+
     public const STATUSES = [
         'draft' => 'Draft',
         'planned' => 'Planned',
@@ -32,7 +40,6 @@ class ManufacturingOrder extends Model
         'sales_order' => 'Sales Order',
         'forecast' => 'Forecast',
     ];
-
 
     protected $fillable = [
         'order_number',
@@ -77,7 +84,7 @@ class ManufacturingOrder extends Model
         'progress_calculated_at' => 'datetime',
     ];
 
-    protected $appends = ['has_route'];
+    protected $appends = [];
 
     /**
      * Get the parent production order.
@@ -236,7 +243,6 @@ class ManufacturingOrder extends Model
                 'created_by' => $this->created_by,
             ];
 
-
             // Create manufacturing order for this BOM item
             $childOrder = ManufacturingOrder::create($childOrderData);
 
@@ -348,7 +354,6 @@ class ManufacturingOrder extends Model
         $this->save();
     }
 
-
     /**
      * Scope for active orders.
      */
@@ -400,6 +405,85 @@ class ManufacturingOrder extends Model
         return $query->where(function ($q) use ($hours) {
             $q->whereNull('progress_calculated_at')
                 ->orWhere('progress_calculated_at', '<', now()->subHours($hours));
+        });
+    }
+
+    /**
+     * Scope for planning view - optimized eager loading.
+     * Loads only necessary data for the planning interface.
+     */
+    public function scopeForPlanningView($query)
+    {
+        return $query->with([
+            // Load item with minimal columns
+            'item:id,item_number,name,item_category_id,description,can_be_manufactured,can_be_purchased,can_be_sold,is_active',
+            'item.category:id,name',
+            'item.media' => function ($q) {
+                $q->where('collection_name', 'images')
+                    ->orderBy('order_column');
+            },
+            'item.primaryBom:id,bom_number,name,output_item_id,is_active',
+
+            // Load parent with minimal data
+            'parent:id,order_number,item_id',
+            'parent.item:id,item_number,name',
+
+            // Load route with steps efficiently
+            'manufacturingRoute' => function ($q) {
+                $q->select('id', 'manufacturing_order_id', 'name', 'is_active')
+                    ->with(['steps' => function ($stepQuery) {
+                        $stepQuery->select(
+                            'id',
+                            'manufacturing_route_id',
+                            'name',
+                            'work_cell_id',
+                            'display_order',
+                            'step_type',
+                            'setup_time_minutes',
+                            'cycle_time_minutes',
+                            'child_order_dependency_type',
+                            'child_order_minimum_quantity',
+                            'status'
+                        )
+                            ->orderBy('display_order')
+                            ->with('workCell:id,name,cell_type,is_active,default_production_rate_per_hour');
+                    }]);
+            },
+        ]);
+    }
+
+    /**
+     * Scope to filter orders for planning status.
+     */
+    public function scopePlanningStatus($query)
+    {
+        return $query->whereIn('status', ['draft', 'planned']);
+    }
+
+    /**
+     * Scope to get orders with their hierarchy using order number pattern.
+     * More efficient than recursive parent/child queries.
+     */
+    public function scopeWithHierarchy($query, $orderNumber)
+    {
+        return $query->where(function ($q) use ($orderNumber) {
+            $q->where('order_number', $orderNumber)
+                ->orWhere('order_number', 'like', $orderNumber . '.%');
+        });
+    }
+
+    /**
+     * Scope for searching orders by text.
+     */
+    public function scopeSearchByText($query, $search)
+    {
+        return $query->where(function ($q) use ($search) {
+            $q->where('order_number', 'like', "%{$search}%")
+                ->orWhere('source_reference', 'like', "%{$search}%")
+                ->orWhereHas('item', function ($itemQuery) use ($search) {
+                    $itemQuery->where('item_number', 'like', "%{$search}%")
+                        ->orWhere('name', 'like', "%{$search}%");
+                });
         });
     }
 
@@ -478,12 +562,6 @@ class ManufacturingOrder extends Model
 
         return true;
     }
-
-
-
-
-
-
 
     /**
      * Get hierarchical Work In Progress.
@@ -699,6 +777,12 @@ class ManufacturingOrder extends Model
      */
     public function getHasRouteAttribute(): bool
     {
+        // If relationship is already loaded, check without query
+        if ($this->relationLoaded('manufacturingRoute')) {
+            return $this->manufacturingRoute !== null;
+        }
+
+        // Otherwise, use exists() which is a single query
         return $this->manufacturingRoute()->exists();
     }
 

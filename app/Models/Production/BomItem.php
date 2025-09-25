@@ -94,12 +94,12 @@ class BomItem extends Model
         if ($this->routing && $this->routing->is_active) {
             return $this->routing;
         }
-        
+
         // Inherited routing
         if ($this->parent) {
             return $this->parent->getEffectiveRouting();
         }
-        
+
         return null;
     }
 
@@ -117,8 +117,8 @@ class BomItem extends Model
     public function isProductionComplete(): bool
     {
         $routing = $this->getEffectiveRouting();
-        
-        if (!$routing) {
+
+        if (! $routing) {
             return true; // No routing means no production needed
         }
 
@@ -134,11 +134,11 @@ class BomItem extends Model
     {
         // Check all children have completed routing
         foreach ($this->children as $child) {
-            if ($child->hasRouting() && !$child->isProductionComplete()) {
+            if ($child->hasRouting() && ! $child->isProductionComplete()) {
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -148,12 +148,12 @@ class BomItem extends Model
     public function descendants()
     {
         $descendants = collect();
-        
+
         foreach ($this->children as $child) {
             $descendants->push($child);
             $descendants = $descendants->merge($child->descendants());
         }
-        
+
         return $descendants;
     }
 
@@ -164,12 +164,12 @@ class BomItem extends Model
     {
         $ancestors = collect();
         $parent = $this->parent;
-        
+
         while ($parent) {
             $ancestors->push($parent);
             $parent = $parent->parent;
         }
-        
+
         return $ancestors;
     }
 
@@ -179,11 +179,11 @@ class BomItem extends Model
     public function calculateTotalQuantity($rootQuantity = 1)
     {
         $totalQuantity = $this->quantity * $rootQuantity;
-        
+
         if ($this->parent) {
             return $this->parent->calculateTotalQuantity($totalQuantity);
         }
-        
+
         return $totalQuantity;
     }
 
@@ -249,12 +249,12 @@ class BomItem extends Model
     public static function validateStructure(BomVersion $version): array
     {
         $errors = [];
-        
+
         // Check for single root item
         $rootItems = $version->items()
             ->whereNull('parent_item_id')
             ->get();
-        
+
         if ($rootItems->count() === 0) {
             $errors[] = 'BOM must have exactly one root item';
         } elseif ($rootItems->count() > 1) {
@@ -262,16 +262,16 @@ class BomItem extends Model
         } else {
             $rootItem = $rootItems->first();
             $bom = $version->billOfMaterial;
-            
+
             if ($rootItem->item_id !== $bom->output_item_id) {
                 $errors[] = 'Root item must match BOM output item';
             }
-            
+
             if ($rootItem->quantity != 1) {
                 $errors[] = 'Root item quantity must be 1';
             }
         }
-        
+
         return $errors;
     }
 }

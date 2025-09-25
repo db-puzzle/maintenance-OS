@@ -9,6 +9,7 @@ use App\Models\AssetHierarchy\Sector;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingRoute;
 use App\Models\Production\ManufacturingStep;
+use App\Models\Role;
 use App\Models\WorkOrders\WorkOrder;
 use App\Models\WorkOrders\WorkOrderExecution;
 use App\Observers\AreaObserver;
@@ -17,10 +18,12 @@ use App\Observers\ManufacturingOrderObserver;
 use App\Observers\ManufacturingRouteObserver;
 use App\Observers\ManufacturingStepObserver;
 use App\Observers\PlantObserver;
+use App\Observers\RoleObserver;
 use App\Observers\SectorObserver;
 use App\Observers\WorkOrderExecutionObserver;
 use App\Observers\WorkOrderObserver;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -36,10 +39,21 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //Model::preventLazyLoading(! $this->app->isProduction());
-        //Model::preventLazyLoading();
-        Model::automaticallyEagerLoadRelationships();
+        // Model::preventLazyLoading(! $this->app->isProduction());
+        // Model::preventLazyLoading();
+        // Model::automaticallyEagerLoadRelationships(); // Disabled to prevent memory issues during imports
 
+        // Cache user permissions to avoid repeated database hits
+        if (auth()->check()) {
+            $user = auth()->user();
+            $this->app->singleton('user.permissions', function () use ($user) {
+                return Cache::remember(
+                    "user.{$user->id}.permissions",
+                    300, // 5 minutes
+                    fn () => $user->getAllPermissions()->pluck('name')->toArray()
+                );
+            });
+        }
 
         // Route model bindings
         Route::model('schedule', ManufacturingStep::class);
@@ -49,6 +63,9 @@ class AppServiceProvider extends ServiceProvider
         Area::observe(AreaObserver::class);
         Sector::observe(SectorObserver::class);
         Asset::observe(AssetObserver::class);
+
+        // Register role observer for cache management
+        Role::observe(RoleObserver::class);
 
         // Register work order observer
         WorkOrder::observe(WorkOrderObserver::class);

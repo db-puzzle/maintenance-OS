@@ -13,13 +13,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
 
 class WorkOrder extends Model implements HasMedia
 {
-    use HasFactory, HasMediaTrait;
-    
+    use HasFactory;
+    use HasMediaTrait;
+
     protected $fillable = [
         'work_order_number', 'discipline', 'title', 'description', 'work_order_type_id',
         'work_order_category_id', 'priority_score', 'status',
@@ -36,7 +36,7 @@ class WorkOrder extends Model implements HasMedia
         'requested_at', 'approved_at', 'planned_at', 'verified_at',
         'closed_at', 'external_reference', 'warranty_claim',
         'attachments', 'tags', 'calibration_due_date', 'certificate_number',
-        'compliance_standard', 'tolerance_specs'
+        'compliance_standard', 'tolerance_specs',
     ];
 
     protected $casts = [
@@ -70,20 +70,20 @@ class WorkOrder extends Model implements HasMedia
     ];
 
     // Status constants
-    const STATUS_REQUESTED = 'requested';
-    const STATUS_APPROVED = 'approved';
-    const STATUS_REJECTED = 'rejected';
-    const STATUS_PLANNED = 'planned';
-    const STATUS_SCHEDULED = 'scheduled';
-    const STATUS_IN_PROGRESS = 'in_progress';
-    const STATUS_ON_HOLD = 'on_hold';
-    const STATUS_COMPLETED = 'completed';
-    const STATUS_VERIFIED = 'verified';
-    const STATUS_CLOSED = 'closed';
-    const STATUS_CANCELLED = 'cancelled';
+    public const STATUS_REQUESTED = 'requested';
+    public const STATUS_APPROVED = 'approved';
+    public const STATUS_REJECTED = 'rejected';
+    public const STATUS_PLANNED = 'planned';
+    public const STATUS_SCHEDULED = 'scheduled';
+    public const STATUS_IN_PROGRESS = 'in_progress';
+    public const STATUS_ON_HOLD = 'on_hold';
+    public const STATUS_COMPLETED = 'completed';
+    public const STATUS_VERIFIED = 'verified';
+    public const STATUS_CLOSED = 'closed';
+    public const STATUS_CANCELLED = 'cancelled';
 
     // Allowed status transitions
-    const STATUS_TRANSITIONS = [
+    public const STATUS_TRANSITIONS = [
         self::STATUS_REQUESTED => [self::STATUS_APPROVED, self::STATUS_REJECTED, self::STATUS_CANCELLED],
         self::STATUS_APPROVED => [self::STATUS_PLANNED, self::STATUS_ON_HOLD, self::STATUS_CANCELLED],
         self::STATUS_PLANNED => [self::STATUS_SCHEDULED, self::STATUS_ON_HOLD],
@@ -96,26 +96,26 @@ class WorkOrder extends Model implements HasMedia
         self::STATUS_CLOSED => [],
         self::STATUS_CANCELLED => [],
     ];
-    
+
     /**
-     * Register media collections
+     * Register media collections.
      */
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('attachments')
             ->acceptsMimeTypes([
                 'application/pdf',
-                'image/jpeg', 
+                'image/jpeg',
                 'image/png',
                 'application/vnd.ms-excel',
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'application/msword',
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             ]);
-            
+
         $this->addMediaCollection('completion-photos')
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/heic']);
-            
+
         $this->addMediaCollection('reports')
             ->acceptsMimeTypes(['application/pdf'])
             ->singleFile();
@@ -203,7 +203,7 @@ class WorkOrder extends Model implements HasMedia
         switch ($this->source_type) {
             case 'routine':
                 return $this->belongsTo(Routine::class, 'source_id');
-            // Add other source types as needed
+                // Add other source types as needed
             default:
                 return null;
         }
@@ -256,7 +256,7 @@ class WorkOrder extends Model implements HasMedia
     {
         return $query->where('discipline', 'maintenance');
     }
-    
+
     public function scopeQuality($query)
     {
         return $query->where('discipline', 'quality');
@@ -281,14 +281,14 @@ class WorkOrder extends Model implements HasMedia
 
     public function scopePreventive($query)
     {
-        return $query->whereHas('workOrderCategory', function($q) {
+        return $query->whereHas('workOrderCategory', function ($q) {
             $q->where('code', 'preventive');
         });
     }
 
     public function scopeCorrective($query)
     {
-        return $query->whereHas('workOrderCategory', function($q) {
+        return $query->whereHas('workOrderCategory', function ($q) {
             $q->where('code', 'corrective');
         });
     }
@@ -298,9 +298,9 @@ class WorkOrder extends Model implements HasMedia
         if (is_numeric($category)) {
             return $query->where('work_order_category_id', $category);
         }
-        
+
         // For backwards compatibility with category codes
-        return $query->whereHas('workOrderCategory', function($q) use ($category) {
+        return $query->whereHas('workOrderCategory', function ($q) use ($category) {
             $q->where('code', $category);
         });
     }
@@ -318,23 +318,23 @@ class WorkOrder extends Model implements HasMedia
             ->pluck('code')
             ->toArray();
     }
-    
+
     public function getAllowedSourceTypes(): array
     {
         // Get allowed source types from the category
         return $this->workOrderCategory?->getAllowedSourceTypes() ?? ['manual'];
     }
-    
+
     public function validateForDiscipline(): bool
     {
-        if ($this->discipline === 'maintenance' && !$this->asset_id) {
+        if ($this->discipline === 'maintenance' && ! $this->asset_id) {
             throw new \Illuminate\Validation\ValidationException('Maintenance work orders require an asset');
         }
-        
-        if ($this->discipline === 'quality' && $this->workOrderCategory?->isCalibration() && !$this->instrument_id) {
+
+        if ($this->discipline === 'quality' && $this->workOrderCategory?->isCalibration() && ! $this->instrument_id) {
             throw new \Illuminate\Validation\ValidationException('Calibration work orders require an instrument');
         }
-        
+
         return true;
     }
 
@@ -367,13 +367,13 @@ class WorkOrder extends Model implements HasMedia
 
     public function transitionTo(string $status, User $user, ?string $reason = null): bool
     {
-        if (!$this->canTransitionTo($status)) {
+        if (! $this->canTransitionTo($status)) {
             return false;
         }
 
         $oldStatus = $this->status;
         $this->status = $status;
-        
+
         // Update relevant timestamps and user references
         switch ($status) {
             case self::STATUS_APPROVED:
@@ -412,7 +412,7 @@ class WorkOrder extends Model implements HasMedia
         if ($this->form_version_id) {
             return $this->formVersion->tasks->toArray();
         }
-        
+
         return $this->custom_tasks ?? [];
     }
 
@@ -421,14 +421,14 @@ class WorkOrder extends Model implements HasMedia
         $year = date('Y');
         $month = date('m');
         $prefix = "WO-{$year}-{$month}-";
-        
+
         // Get the latest work order for this month
         $latestWorkOrder = static::whereYear('created_at', $year)
             ->whereMonth('created_at', $month)
             ->where('work_order_number', 'like', $prefix . '%')
             ->orderBy('work_order_number', 'desc')
             ->first();
-        
+
         if ($latestWorkOrder) {
             // Extract the number from the last work order
             $lastNumber = (int) substr($latestWorkOrder->work_order_number, -5);
@@ -436,7 +436,7 @@ class WorkOrder extends Model implements HasMedia
         } else {
             $nextNumber = 1;
         }
-        
+
         return sprintf('WO-%s-%s-%05d', $year, $month, $nextNumber);
     }
 

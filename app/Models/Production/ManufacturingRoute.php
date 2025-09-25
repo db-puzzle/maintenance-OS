@@ -12,6 +12,14 @@ class ManufacturingRoute extends Model
 {
     use HasFactory;
 
+    /**
+     * Get the factory name for the model.
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\Production\ProductionRoutingFactory::new();
+    }
+
     protected $fillable = [
         'manufacturing_order_id',
         'item_id',
@@ -75,7 +83,6 @@ class ManufacturingRoute extends Model
     {
         return $this->belongsTo(Item::class);
     }
-
 
     /**
      * Get the item category (for templates).
@@ -161,9 +168,25 @@ class ManufacturingRoute extends Model
      */
     public function getTotalEstimatedTimeAttribute(): int
     {
-        return $this->steps->sum(function ($step) {
+        // If this is a template, we don't have a manufacturing order
+        if ($this->is_template) {
+            return $this->steps->sum(function ($step) {
+                return $step->setup_time_minutes + $step->cycle_time_minutes;
+            });
+        }
+
+        // Check if manufacturingOrder is loaded to avoid N+1 queries
+        $quantity = 1;
+        if ($this->relationLoaded('manufacturingOrder') && $this->manufacturingOrder) {
+            $quantity = $this->manufacturingOrder->quantity ?? 1;
+        } elseif ($this->manufacturing_order_id && ! $this->relationLoaded('manufacturingOrder')) {
+            // If we have an order ID but relationship isn't loaded, load just the quantity
+            $quantity = $this->manufacturingOrder()->value('quantity') ?? 1;
+        }
+
+        return $this->steps->sum(function ($step) use ($quantity) {
             return $step->setup_time_minutes +
-                   ($step->cycle_time_minutes * $this->manufacturingOrder->quantity);
+                   ($step->cycle_time_minutes * $quantity);
         });
     }
 
@@ -255,5 +278,56 @@ class ManufacturingRoute extends Model
             $q->whereNull('item_category_id')
                 ->orWhere('item_category_id', $categoryId);
         });
+    }
+
+    /**
+     * Scope for templates with optimized eager loading for planning view.
+     */
+    public function scopeForPlanningTemplates($query)
+    {
+        return $query->templates()
+            ->active()
+            ->with([
+                'steps' => function ($q) {
+                    $q->select(
+                        'id',
+                        'manufacturing_route_id',
+                        'name',
+                        'work_cell_id',
+                        'display_order',
+                        'step_type',
+                        'setup_time_minutes',
+                        'cycle_time_minutes'
+                    )
+                        ->orderBy('display_order');
+                },
+                'createdBy:id,name',
+                'itemCategory:id,name',
+            ])
+            ->select('id', 'name', 'description', 'item_category_id', 'created_by', 'created_at');
+    }
+
+    /**
+     * Scope to load route with optimized steps for execution.
+     */
+    public function scopeWithOptimizedSteps($query)
+    {
+        return $query->with(['steps' => function ($q) {
+            $q->select(
+                'id',
+                'manufacturing_route_id',
+                'name',
+                'work_cell_id',
+                'display_order',
+                'step_type',
+                'setup_time_minutes',
+                'cycle_time_minutes',
+                'child_order_dependency_type',
+                'child_order_minimum_quantity',
+                'status'
+            )
+                ->orderBy('display_order')
+                ->with('workCell:id,name,cell_type,is_active,default_production_rate_per_hour');
+        }]);
     }
 }

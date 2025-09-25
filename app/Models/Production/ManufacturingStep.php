@@ -14,6 +14,14 @@ class ManufacturingStep extends Model
     use HasFactory;
 
     /**
+     * Get the factory name for the model.
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\Production\RoutingStepFactory::new();
+    }
+
+    /**
      * Step Status Constants.
      *
      * State Transitions:

@@ -99,10 +99,10 @@ class Media extends BaseMedia
     public function getFileHashAttribute(): ?string
     {
         // First check if we have it in the database column
-        if (!empty($this->attributes['file_hash'])) {
+        if (! empty($this->attributes['file_hash'])) {
             return $this->attributes['file_hash'];
         }
-        
+
         // Fall back to custom properties for backward compatibility
         return $this->getCustomProperty('file_hash');
     }
@@ -113,10 +113,10 @@ class Media extends BaseMedia
     public function getBlurhashAttribute(): ?string
     {
         // First check if we have it in the database column
-        if (!empty($this->attributes['blurhash'])) {
+        if (! empty($this->attributes['blurhash'])) {
             return $this->attributes['blurhash'];
         }
-        
+
         // Fall back to custom properties for backward compatibility
         return $this->getCustomProperty('blurhash');
     }
@@ -241,11 +241,12 @@ class Media extends BaseMedia
      */
     public function getBlurHashDataUrlAttribute(): ?string
     {
-        if (!$this->blurhash) {
+        if (! $this->blurhash) {
             return null;
         }
 
         $blurHashService = app(BlurHashService::class);
+
         return $blurHashService->decodeBlurHash($this->blurhash);
     }
 
@@ -269,7 +270,7 @@ class Media extends BaseMedia
         if ($conversionName !== '' && $this->hasGeneratedConversion($conversionName)) {
             return route('api.media.show-conversion', [$this->id, $conversionName]);
         }
-        
+
         // Return the original media API route
         return route('api.media.show', $this->id);
     }
@@ -288,18 +289,18 @@ class Media extends BaseMedia
     public function toArray()
     {
         $array = parent::toArray();
-        
+
         // Add properly formatted URLs
         $array['original_url'] = $this->getUrl();
         $array['download_url'] = $this->getDownloadUrl();
-        
+
         // Add conversion URLs if they exist
         if ($this->generated_conversions) {
             $array['conversion_urls'] = [];
             foreach (array_keys($this->generated_conversions) as $conversion) {
                 $array['conversion_urls'][$conversion] = $this->getUrl($conversion);
             }
-            
+
             // Add specific conversion URLs for backwards compatibility
             if (isset($this->generated_conversions['preview'])) {
                 $array['preview_url'] = $this->getUrl('preview');
@@ -308,11 +309,11 @@ class Media extends BaseMedia
                 $array['thumb_url'] = $this->getUrl('thumb');
             }
         }
-        
+
         // Add responsive images with proper URLs
         if ($this->responsive_images) {
             $array['responsive_images'] = $this->responsive_images;
-            
+
             // Update URLs in responsive images
             foreach ($array['responsive_images'] as $conversion => &$data) {
                 if (isset($data['urls']) && is_array($data['urls'])) {
@@ -324,7 +325,7 @@ class Media extends BaseMedia
                 }
             }
         }
-        
+
         return $array;
     }
 }

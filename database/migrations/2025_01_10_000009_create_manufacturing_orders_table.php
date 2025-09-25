@@ -50,6 +50,7 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->timestamps();
 
+            // Existing indexes
             $table->index(['status', 'priority']);
             $table->index(['planned_start_date', 'planned_end_date']);
             $table->index('item_id');
@@ -57,6 +58,17 @@ return new class extends Migration
             $table->index('parent_id');
             $table->index('smart_progress_percentage');
             $table->index(['progress_calculated_at', 'smart_progress_percentage']);
+
+            // Optimization indexes for N+1 query reduction
+            // Composite index for status filtering with parent hierarchy
+            $table->index(['status', 'parent_id'], 'idx_manufacturing_orders_status_parent');
+
+            // Index for order number pattern matching (for hierarchy queries)
+            // PostgreSQL-specific index for pattern matching
+            $table->index('order_number', 'idx_manufacturing_orders_order_number');
+
+            // Composite index for efficient filtering by status and dates
+            $table->index(['status', 'planned_start_date', 'planned_end_date'], 'idx_manufacturing_orders_status_dates');
         });
     }
 

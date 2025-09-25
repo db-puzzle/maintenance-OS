@@ -3,10 +3,10 @@
 namespace Database\Factories\Production;
 
 use App\Models\AssetHierarchy\Area;
+use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\AssetHierarchy\Shift;
-use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\Production\WorkCell;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -26,7 +26,7 @@ class WorkCellFactory extends Factory
     {
         $cellTypes = ['internal', 'external'];
         $departments = ['Machining', 'Assembly', 'Welding', 'Painting', 'Quality', 'Packaging'];
-        
+
         $number = fake()->numberBetween(1, 99);
         $cellType = fake()->randomElement($cellTypes);
 
@@ -34,13 +34,16 @@ class WorkCellFactory extends Factory
             'name' => fake()->randomElement($departments) . ' Cell ' . $number,
             'description' => fake()->optional(0.7)->sentence(),
             'cell_type' => $cellType,
-            'available_hours_per_day' => fake()->randomFloat(2, 4, 24),
-            'efficiency_percentage' => fake()->randomFloat(2, 60, 95),
+            'has_finite_capacity' => fake()->boolean(90),
+            'default_production_rate_per_hour' => fake()->randomFloat(2, 10, 100),
+            'default_unit_of_measure' => fake()->randomElement(['PC', 'KG', 'L', 'M']),
+            'default_setup_time_minutes' => fake()->numberBetween(5, 60),
+            'max_parallel_executions' => fake()->numberBetween(1, 5),
             'shift_id' => null, // Will be set if Shift exists
             'plant_id' => null, // Will be set if Plant exists
             'area_id' => null, // Will be set if Area exists
             'sector_id' => null, // Will be set if Sector exists
-            'manufacturer_id' => $cellType === 'external' ? Manufacturer::inRandomOrder()->first()?->id : null,
+            'manufacturer_id' => $cellType === 'external' ? null : null, // Don't auto-create manufacturer
             'is_active' => fake()->boolean(90),
         ];
     }
@@ -118,4 +121,4 @@ class WorkCellFactory extends Factory
             'shift_id' => $shift->id,
         ]);
     }
-} 
+}
