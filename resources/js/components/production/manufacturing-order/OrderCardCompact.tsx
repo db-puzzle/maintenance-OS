@@ -18,13 +18,9 @@ import { OrderCardActions } from './OrderCardActions';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { ImageWithBlurEffect } from '@/components/production/ImageWithBlurEffect';
 import { PriorityEditor } from './PriorityEditor';
-import { router } from '@inertiajs/react';
 import { toast } from 'sonner';
 import StackIcon from '@/components/stack-icon';
 import { Copy } from 'lucide-react';
-
-// Declare the global route function from Ziggy
-declare const route: (name: string, params?: string | number | Record<string, string | number>) => string;
 
 interface OrderCardCompactProps {
     order: ManufacturingOrderTreeNode;
@@ -41,7 +37,9 @@ interface OrderCardCompactProps {
     };
     onReleaseOrder: (order: ManufacturingOrderTreeNode) => void;
     onCancelOrder: (order: ManufacturingOrderTreeNode) => void;
-    onPriorityUpdateError?: () => void;
+    onPriorityChange?: (orderId: number, priority: number) => void;
+    currentPriority?: number;
+    currentRouteSteps?: Array<{ id: string | number; sequence: number; name: string;[key: string]: unknown }>;
 }
 
 export function OrderCardCompact({
@@ -54,15 +52,12 @@ export function OrderCardCompact({
     permissions,
     onReleaseOrder,
     onCancelOrder,
-    onPriorityUpdateError,
+    onPriorityChange,
+    currentPriority,
+    currentRouteSteps,
 }: OrderCardCompactProps) {
-    // Track priority locally to sync with PriorityEditor after successful save
-    const [localPriority, setLocalPriority] = React.useState(order.priority || 50);
-
-    // Update local priority when order prop changes
-    React.useEffect(() => {
-        setLocalPriority(order.priority || 50);
-    }, [order.priority]);
+    // Use currentPriority if provided (for unsaved changes), otherwise use order priority
+    const displayPriority = currentPriority !== undefined ? currentPriority : (order.priority || 50);
 
     const handleClick = (e: React.MouseEvent) => {
         if (onOrderSelect && enhancedMode === 'planning') {
@@ -80,26 +75,8 @@ export function OrderCardCompact({
             return;
         }
 
-        router.patch(route('production.orders.update', order.id), {
-            priority: newPriority,
-            quantity: order.quantity,
-            unit_of_measure: order.unit_of_measure
-        }, {
-            preserveScroll: true,
-            preserveState: true,
-            only: ['manufacturingOrders'], // Only reload the manufacturing orders data
-            onSuccess: () => {
-                toast.success(`Priority updated to ${newPriority}`);
-                // Update local priority to sync with PriorityEditor
-                setLocalPriority(newPriority);
-            },
-            onError: (errors) => {
-                console.error('Priority update errors:', errors);
-                toast.error('Failed to update priority');
-                // Trigger error callback to allow parent to handle it
-                onPriorityUpdateError?.();
-            }
-        });
+        // Just notify parent of the change
+        onPriorityChange?.(order.id, newPriority);
     };
 
     return (
@@ -191,20 +168,21 @@ export function OrderCardCompact({
                         </TooltipProvider>
 
                         {/* Route Steps Indicator */}
-                        {order.manufacturing_route && order.manufacturing_route.steps && (
+                        {(order.manufacturing_route || currentRouteSteps) && (
                             <TooltipProvider delayDuration={700}>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <div className="flex items-center gap-1 shrink-0">
                                             <StackIcon className="h-3 w-3 text-muted-foreground" />
                                             <span className="text-xs text-muted-foreground select-none">
-                                                {order.manufacturing_route.steps.length}
+                                                {currentRouteSteps?.length ?? order.manufacturing_route?.steps?.length ?? 0}
                                             </span>
                                         </div>
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <p className="text-xs">
-                                            {order.manufacturing_route.steps.length} {order.manufacturing_route.steps.length === 1 ? 'etapa' : 'etapas'} configuradas
+                                            {(currentRouteSteps?.length ?? order.manufacturing_route?.steps?.length ?? 0)} {(currentRouteSteps?.length ?? order.manufacturing_route?.steps?.length ?? 0) === 1 ? 'etapa' : 'etapas'} configuradas
+                                            {currentRouteSteps && ' (unsaved)'}
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -254,7 +232,7 @@ export function OrderCardCompact({
                     {/* Priority Editor */}
                     {permissions.canUpdate && (
                         <PriorityEditor
-                            priority={localPriority}
+                            priority={displayPriority}
                             onChange={handlePriorityChange}
                             disabled={!['draft', 'planned', 'scheduled'].includes(order.status)}
                             compact={false}

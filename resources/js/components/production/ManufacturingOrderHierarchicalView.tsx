@@ -72,6 +72,9 @@ interface ManufacturingOrderHierarchicalViewProps {
     searchQuery?: string;
     enhancedMode?: 'standard' | 'planning';
     compactMode?: boolean;
+    onPriorityChange?: (orderId: number, priority: number) => void;
+    priorityChanges?: Map<number, { priority: number }>;
+    routeChanges?: Map<number, { steps: Array<{ id: string | number; sequence: number; name: string;[key: string]: unknown }> }>;
 }
 
 export default function ManufacturingOrderHierarchicalView({
@@ -84,7 +87,10 @@ export default function ManufacturingOrderHierarchicalView({
     showThumbnails: externalShowThumbnails,
     searchQuery: _searchQuery = '',
     enhancedMode = 'standard',
-    compactMode = false
+    compactMode = false,
+    onPriorityChange,
+    priorityChanges,
+    routeChanges
 }: ManufacturingOrderHierarchicalViewProps) {
     const { props } = usePage<{ auth: { permissions?: string[] } }>();
     const auth = props.auth;
@@ -316,6 +322,9 @@ export default function ManufacturingOrderHierarchicalView({
                         }}
                         onReleaseOrder={handleReleaseOrder}
                         onCancelOrder={handleCancelOrder}
+                        onPriorityChange={onPriorityChange}
+                        currentPriority={priorityChanges?.get(node.id)?.priority}
+                        currentRouteSteps={routeChanges?.get(node.id)?.steps}
                     />
                 </div>
             );

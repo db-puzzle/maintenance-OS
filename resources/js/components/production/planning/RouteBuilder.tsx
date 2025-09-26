@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { router, useForm } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
 import CreateWorkCellSheet from '@/components/production/CreateWorkCellSheet';
 import RouteFlowView from '@/components/production/RouteFlowView';
@@ -7,6 +7,7 @@ import StepPropertiesPanel from '@/components/production/StepPropertiesPanel';
 import GatePropertiesPanel from '@/components/production/GatePropertiesPanel';
 import { ManufacturingStep, WorkCell, ManufacturingOrder } from '@/types/production';
 import { GateConfiguration } from '@/components/production/GateCard';
+import { useRouteChangesStore } from '@/stores/useRouteChangesStore';
 
 // ExtendedManufacturingStep type is defined in StepPropertiesPanel
 
@@ -30,7 +31,8 @@ export interface RouteStep {
 interface RouteBuilderProps {
     manufacturingOrder: ManufacturingOrder;
     workCells: WorkCell[];
-    onDirtyChange: (isDirty: boolean) => void;
+    onDirtyChange?: (isDirty: boolean) => void;
+    onStepsChange: (steps: RouteStep[]) => void;
     onSave?: () => void;
     onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
     onLastSavedAtChange?: (date: Date | null) => void;
@@ -48,11 +50,8 @@ export default function RouteBuilder({
     manufacturingOrder,
     workCells,
     onDirtyChange,
-    onSave,
-    onSaveStatusChange,
-    onLastSavedAtChange,
+    onStepsChange,
     isSaving = false,
-    onSaveAsTemplate,
     permissions,
     onParentMOClick,
 }: RouteBuilderProps) {
@@ -61,10 +60,11 @@ export default function RouteBuilder({
     const [selectedGateId, setSelectedGateId] = useState<string | null>(null);
     const [showCreateWorkCell, setShowCreateWorkCell] = useState(false);
 
-    // Auto-save state
-    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const previousStepsRef = useRef<RouteStep[]>([]);
-    const stepsRef = useRef<RouteStep[]>(steps);
+    // Track original steps for comparison
+    const originalStepsRef = useRef<RouteStep[]>([]);
+
+    // Get route changes store
+    const routeChangesStore = useRouteChangesStore();
 
     // Form for editing step details
     const stepForm = useForm<{
@@ -137,7 +137,14 @@ export default function RouteBuilder({
             previousMOIdRef.current = manufacturingOrder.id;
             previousRouteRef.current = currentRouteData;
 
-            if (manufacturingOrder.manufacturing_route && manufacturingOrder.manufacturing_route.steps) {
+            // Check if we have tracked changes for this MO
+            const trackedChanges = routeChangesStore.getChanges(manufacturingOrder.id);
+
+            if (trackedChanges) {
+                // Use the tracked changes instead of the original data
+                setSteps(trackedChanges.steps);
+                originalStepsRef.current = trackedChanges.originalSteps;
+            } else if (manufacturingOrder.manufacturing_route && manufacturingOrder.manufacturing_route.steps) {
                 const routeSteps: RouteStep[] = manufacturingOrder.manufacturing_route.steps.map((step: ManufacturingStep, index: number) => ({
                     id: step.id?.toString() || `existing-${index}`,
                     sequence: step.step_number || index + 1,
@@ -163,8 +170,8 @@ export default function RouteBuilder({
                     })(),
                 }));
                 setSteps(routeSteps);
-                // Initialize previousStepsRef to prevent auto-save on initial load
-                previousStepsRef.current = routeSteps;
+                // Initialize originalStepsRef to track changes
+                originalStepsRef.current = [...routeSteps];
 
                 // Restore gate selection after route update if sequence was stored
                 if (!moChanged && previousSelectedGateSequence.current !== null) {
@@ -177,9 +184,16 @@ export default function RouteBuilder({
                     previousSelectedGateSequence.current = null;
                 }
             } else {
-                // Clear steps and initialize previousStepsRef for new routes
-                setSteps([]);
-                previousStepsRef.current = [];
+                // Check if we have tracked changes even though there's no route in the MO
+                const trackedChanges = routeChangesStore.getChanges(manufacturingOrder.id);
+                if (trackedChanges) {
+                    setSteps(trackedChanges.steps);
+                    originalStepsRef.current = trackedChanges.originalSteps;
+                } else {
+                    // Clear steps and initialize originalStepsRef for new routes
+                    setSteps([]);
+                    originalStepsRef.current = [];
+                }
             }
             // Clear selected step only when changing manufacturing orders, not when route data updates
             if (moChanged) {
@@ -187,13 +201,29 @@ export default function RouteBuilder({
                 setSelectedGateId(null);
             }
         }
-    }, [manufacturingOrder.id, manufacturingOrder.manufacturing_route]); // Re-run when manufacturing order or its route changes
+    }, [manufacturingOrder.id, manufacturingOrder.manufacturing_route, steps, selectedGateId, routeChangesStore]); // Re-run when manufacturing order or its route changes
 
-    // Track dirty state
+    // Track previous steps to avoid unnecessary updates
+    const previousStepsRef = useRef<RouteStep[]>([]);
+
+    // Notify parent of step changes only when steps actually change
     useEffect(() => {
-        const hasChanges = JSON.stringify(steps) !== JSON.stringify(manufacturingOrder.manufacturing_route?.steps || []);
-        onDirtyChange(hasChanges);
-    }, [steps, manufacturingOrder.manufacturing_route?.steps, onDirtyChange]);
+        const stepsString = JSON.stringify(steps);
+        const previousStepsString = JSON.stringify(previousStepsRef.current);
+
+        if (stepsString !== previousStepsString) {
+            onStepsChange(steps);
+            previousStepsRef.current = steps;
+        }
+    }, [steps, onStepsChange]);
+
+    // Track dirty state if callback provided
+    useEffect(() => {
+        if (onDirtyChange) {
+            const hasChanges = JSON.stringify(steps) !== JSON.stringify(originalStepsRef.current);
+            onDirtyChange(hasChanges);
+        }
+    }, [steps, onDirtyChange]);
 
     // Ensure selectedStep exists in steps array
     useEffect(() => {
@@ -203,6 +233,17 @@ export default function RouteBuilder({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [steps.length, selectedStep?.id]); // Only check when the number of steps changes or selected step ID changes
+
+    // Watch for when tracked changes are cleared (e.g., when user cancels)
+    useEffect(() => {
+        const trackedChanges = routeChangesStore.getChanges(manufacturingOrder.id);
+
+        // If there are no tracked changes but we have modified steps, reset to original
+        if (!trackedChanges && steps.length > 0 && JSON.stringify(steps) !== JSON.stringify(originalStepsRef.current)) {
+            // Reset to original steps
+            setSteps([...originalStepsRef.current]);
+        }
+    }, [routeChangesStore, manufacturingOrder.id, steps]);
 
     // Update form data when selected step changes
     useEffect(() => {
@@ -273,189 +314,12 @@ export default function RouteBuilder({
         });
     }, []);
 
-    // Track the active element to restore focus after save
-    const focusedElementRef = useRef<HTMLElement | null>(null);
-
-    // Auto-save route function - using useRef to capture current steps
-    const saveRoute = useCallback(async () => {
-        // Store current active element before save
-        focusedElementRef.current = document.activeElement as HTMLElement;
-
-        if (!permissions.canEditRoute) {
-            return;
-        }
-
-        onSaveStatusChange?.('saving');
-
-        // Use stepsRef to get the latest steps value
-        const stepsAtSaveTime = [...stepsRef.current];
-
-        try {
-            await router.post(
-                window.route('production.planning.orders.save-route', manufacturingOrder.id),
-                {
-                    steps: stepsAtSaveTime.map(step => {
-                        const saveData = {
-                            sequence: step.sequence,
-                            name: step.name,
-                            description: step.description,
-                            work_cell_id: step.work_cell_id,
-                            setup_time_minutes: step.setup_time_minutes || 0,
-                            cycle_time_minutes: step.cycle_time_minutes || 0,
-                            step_type: step.step_type,
-                            is_required: step.is_required,
-                            // Convert gate_after back to child order dependencies for backend
-                            child_order_dependency_type: step.gate_after?.dependency_type || 'all_children_completed',
-                            child_order_minimum_quantity: step.gate_after?.minimum_quantity || 0,
-                        };
-                        return saveData;
-                    }),
-                    is_autosave: true, // Add flag to indicate this is an auto-save
-                },
-                {
-                    preserveScroll: true,
-                    preserveState: true,
-                    only: [], // Don't reload any data to preserve focus
-                    replace: false, // Don't replace browser history
-                    onSuccess: () => {
-                        // Update previousStepsRef with the steps that were just saved
-                        // This ensures subsequent changes are detected properly
-                        previousStepsRef.current = [...stepsAtSaveTime];
-
-                        onSaveStatusChange?.('saved');
-                        onLastSavedAtChange?.(new Date());
-
-                        if (onSave) onSave();
-
-                        // Restore selected step if it was cleared during save
-                        if (selectedStepIdRef.current && !selectedStep) {
-                            const stepToReselect = steps.find(s => String(s.id) === String(selectedStepIdRef.current));
-                            if (stepToReselect) {
-                                setSelectedStep(stepToReselect);
-                            }
-                        }
-
-                        // Restore selected gate if it was cleared during save
-                        if (selectedGateIdRef.current && !selectedGateId) {
-                            setSelectedGateId(selectedGateIdRef.current);
-                        }
-
-                        // Update selectedGateId if the step IDs have changed
-                        if (selectedGateIdRef.current) {
-                            const match = selectedGateIdRef.current.match(/gate-after-(.+)/);
-                            if (match) {
-                                const oldStepId = match[1];
-                                // Find the step that had this ID in the saved data
-                                const oldStep = stepsAtSaveTime.find(s => String(s.id) === oldStepId);
-                                if (oldStep) {
-                                    // Find the corresponding step in the current data by sequence
-                                    const currentStep = stepsRef.current.find(s => s.sequence === oldStep.sequence);
-                                    if (currentStep && String(currentStep.id) !== oldStepId) {
-                                        // IDs have changed, update the selectedGateId
-                                        const newGateId = `gate-after-${currentStep.id}`;
-                                        setSelectedGateId(newGateId);
-                                        selectedGateIdRef.current = newGateId;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Focus should be maintained automatically since we're not reloading any data
-                        // But check just in case
-                        const activeElementAfter = document.activeElement;
-
-                        if (focusedElementRef.current && focusedElementRef.current !== activeElementAfter && document.contains(focusedElementRef.current)) {
-                            focusedElementRef.current.focus();
-                        }
-
-                        // Reset to idle after 2 seconds
-                        setTimeout(() => {
-                            onSaveStatusChange?.('idle');
-                        }, 2000);
-                    },
-                    onError: () => {
-                        onSaveStatusChange?.('error');
-
-                        // Reset to idle after 3 seconds
-                        setTimeout(() => {
-                            onSaveStatusChange?.('idle');
-                        }, 1500);
-                    },
-                }
-            );
-        } catch {
-            onSaveStatusChange?.('error');
-            setTimeout(() => {
-                onSaveStatusChange?.('idle');
-            }, 1500);
-        }
-    }, [permissions.canEditRoute, manufacturingOrder.id, onSave, onSaveStatusChange, onLastSavedAtChange, selectedStep, selectedGateId, steps]);
-
-    // Keep stepsRef updated
-    useEffect(() => {
-        stepsRef.current = steps;
+    // Update original steps after successful save
+    const _updateOriginalSteps = useCallback(() => {
+        originalStepsRef.current = [...steps];
     }, [steps]);
 
-    // Debounced auto-save effect
-    useEffect(() => {
-        // Skip if user doesn't have permission
-        if (!permissions.canEditRoute) {
-            return;
-        }
-
-        // Check if steps have actually changed by comparing content, not IDs
-        const normalizeStep = (step: RouteStep) => ({
-            sequence: step.sequence,
-            name: step.name,
-            description: step.description,
-            work_cell_id: step.work_cell_id,
-            setup_time_minutes: step.setup_time_minutes,
-            cycle_time_minutes: step.cycle_time_minutes,
-            step_type: step.step_type,
-            is_required: step.is_required,
-            quality_check_mode: step.quality_check_mode,
-            sampling_size: step.sampling_size,
-            form_id: step.form_id,
-            gate_after: step.gate_after
-        });
-
-        const currentStepsNormalized = steps.map(normalizeStep);
-        const previousStepsNormalized = previousStepsRef.current.map(normalizeStep);
-
-        const currentStepsStr = JSON.stringify(currentStepsNormalized);
-        const previousStepsStr = JSON.stringify(previousStepsNormalized);
-        const hasChanges = currentStepsStr !== previousStepsStr;
-
-        if (!hasChanges) {
-            return;
-        }
-
-        // Clear existing timeout
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-        }
-
-        // Set new timeout for auto-save (1500ms after last change)
-        saveTimeoutRef.current = setTimeout(() => {
-            saveRoute();
-        }, 1500); // 1.5 seconds delay for auto-save
-
-        // Cleanup timeout on unmount or when dependencies change
-        return () => {
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [steps, permissions.canEditRoute]); // Remove saveRoute from dependencies
-
-    // Expose steps to parent when save as template is requested
-    useEffect(() => {
-        if (onSaveAsTemplate) {
-            // Make steps available to parent component
-            onSaveAsTemplate(steps);
-        }
-    }, [steps, onSaveAsTemplate]);
+    // No longer needed - parent component will track steps via onStepsChange
 
     // Convert steps to canvas format
     const canvasSteps = useMemo(() => steps.map(step => ({
@@ -654,6 +518,7 @@ export default function RouteBuilder({
                                     setSelectedStep(updatedStep);
                                 }
                             } else {
+                                // Step not found
                             }
                         }}
                         isOpen={!!selectedStep && !selectedGateId}

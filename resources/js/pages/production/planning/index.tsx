@@ -1,17 +1,21 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import {
     FileText,
-    CloudCog,
-    CloudAlert,
-    CloudCheck,
     List,
     SquareMousePointer,
     ArrowBigUp,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { PlanningService } from '@/services/production/planning-service';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
+import { useRouteChangesStore } from '@/stores/useRouteChangesStore';
+import { useMOChangesStore } from '@/stores/useMOChangesStore';
+import { SaveActionBar } from '@/components/production/planning/SaveActionBar';
+import { useNavigationGuard } from '@/hooks/useNavigationGuard';
+import { usePlanningChanges } from '@/hooks/production/usePlanningChanges';
+import { usePlanningKeyboardShortcuts } from '@/hooks/production/usePlanningKeyboardShortcuts';
+import { RouteStep } from '@/stores/useRouteChangesStore';
 
 import { Input } from '@/components/ui/input';
 import {
@@ -30,6 +34,7 @@ import RouteBuilder from '@/components/production/planning/RouteBuilder';
 import ApplyTemplateDialog from '@/components/production/planning/ApplyTemplateDialog';
 import { SaveAsTemplateDialog } from '@/components/production/templates/SaveAsTemplateDialog';
 import { MOSelectionModal } from '@/components/production/planning/MOSelectionModal';
+import { UnsavedChangesDialog } from '@/components/production/planning/UnsavedChangesDialog';
 // import WorkCellManager from '@/components/production/planning/WorkCellManager';
 // import BulkOperationsPanel from '@/components/production/planning/BulkOperationsPanel';
 // import TemplateLibraryPanel from '@/components/production/planning/TemplateLibraryPanel';
@@ -103,12 +108,29 @@ interface PlanningPageProps extends PageProps {
 }
 
 export default function PlanningPage({
-    manufacturingOrders = [],
+    manufacturingOrders: initialManufacturingOrders = [],
     routeTemplates = [],
     workCells = [],
     selectedMO,
     permissions
 }: PlanningPageProps) {
+    // Get the latest props from usePage
+    const { props } = usePage<PlanningPageProps>();
+
+    // State to track manufacturingOrders updates
+    const [localManufacturingOrders, setLocalManufacturingOrders] = useState(initialManufacturingOrders);
+
+    // Update local state when props change
+    useEffect(() => {
+        if (props.manufacturingOrders) {
+            setLocalManufacturingOrders(props.manufacturingOrders);
+        }
+    }, [props.manufacturingOrders]);
+
+    // Use local state which will trigger re-renders
+    const manufacturingOrders = localManufacturingOrders;
+
+
     // Convert selectedMO to number once
     const initialSelectedMO = useMemo(() => selectedMO ? Number(selectedMO) : null, [selectedMO]);
 
@@ -120,9 +142,36 @@ export default function PlanningPage({
     const [showThumbnails] = useState(true);
     const [isCompressed, setIsCompressed] = useState(false);
 
-    // Save status state for RouteBuilder
-    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-    const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+    // Route and MO changes stores (still needed for component props)
+    const routeChangesStore = useRouteChangesStore();
+    const moChangesStore = useMOChangesStore();
+
+    // Navigation guard
+    const { allowNavigation } = useNavigationGuard({
+        hasChanges: routeChangesStore.hasChanges() || moChangesStore.hasChanges(),
+        message: 'You have unsaved changes. Are you sure you want to leave?',
+        onNavigate: async (_url) => {
+            return new Promise((resolve) => {
+                setUnsavedChangesDialog({
+                    open: true,
+                    type: 'navigation',
+                    pendingAction: () => {
+                        resolve(true);
+                    }
+                });
+            });
+        }
+    });
+
+    // Use planning changes hook for save/cancel logic
+    const {
+        routeSaveStatus,
+        moSaveStatus,
+        hasUnsavedChanges,
+        saveAllChanges,
+        cancelAllChanges,
+        findMOInHierarchy,
+    } = usePlanningChanges(activeMO, initialSelectedMO, allowNavigation);
 
     // Save as template state
     const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
@@ -133,42 +182,26 @@ export default function PlanningPage({
     // MO Selection modal state - Start with modal open if no MO is selected
     const [showMOSelectionModal, setShowMOSelectionModal] = useState(() => !initialSelectedMO);
 
-    // Relative time display state
-    const [relativeTime, setRelativeTime] = useState<string | null>(null);
+    // Unsaved changes dialog state
+    const [unsavedChangesDialog, setUnsavedChangesDialog] = useState<{
+        open: boolean;
+        type: 'mo-switch' | 'navigation' | 'discard';
+        pendingAction?: () => void;
+        targetMO?: number;
+    }>({
+        open: false,
+        type: 'mo-switch',
+    });
 
-    // Update relative time display every 30 seconds
-    useEffect(() => {
-        if (lastSavedAt) {
-            const updateRelativeTime = () => {
-                setRelativeTime(formatDistanceToNow(lastSavedAt, { addSuffix: true }));
-            };
 
-            updateRelativeTime(); // Set initial value
-
-            const interval = setInterval(updateRelativeTime, 30000); // Update every 30 seconds
-
-            return () => clearInterval(interval);
-        } else {
-            setRelativeTime(null);
-        }
-    }, [lastSavedAt]);
-
-    // Keyboard shortcut handler
-    useEffect(() => {
-        const handleKeyPress = (e: KeyboardEvent) => {
-            // Cmd/Ctrl + K to open MO selection modal
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                setShowMOSelectionModal(true);
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyPress);
-        return () => window.removeEventListener('keydown', handleKeyPress);
-    }, []);
+    // Use keyboard shortcuts hook
+    usePlanningKeyboardShortcuts({
+        onOpenMOSelection: () => setShowMOSelectionModal(true),
+    });
 
     // Handle MO selection
     const handleMOSelect = useCallback((moId: number, multiSelect: boolean = false) => {
+        // No longer show dialog when switching MOs - we track changes across multiple MOs
         if (multiSelect) {
             const newSelection = new Set(selectedMOs);
             if (newSelection.has(moId)) {
@@ -181,26 +214,10 @@ export default function PlanningPage({
             setSelectedMOs(new Set([moId]));
             setActiveMO(moId);
             setDetailViewMode('route');
-            // No page refresh - just select the MO for editing
         }
     }, [selectedMOs]);
 
 
-    // Helper function to find MO in nested structure
-    const findMOInHierarchy = useCallback((orders: ManufacturingOrder[], targetId: number): ManufacturingOrder | null => {
-        for (const order of orders) {
-            if (order.id === targetId) {
-                return order;
-            }
-            if (order.children && order.children.length > 0) {
-                const found = findMOInHierarchy(order.children, targetId);
-                if (found) {
-                    return found;
-                }
-            }
-        }
-        return null;
-    }, []);
 
 
     // Active MO details
@@ -208,6 +225,47 @@ export default function PlanningPage({
         if (!activeMO) return null;
         return findMOInHierarchy(manufacturingOrders, activeMO);
     }, [activeMO, manufacturingOrders, findMOInHierarchy]);
+
+    // Handle route steps change
+    const handleRouteStepsChange = useCallback((steps: RouteStep[]) => {
+        if (activeMO && activeMODetails) {
+            // Track changes in the store
+            // Convert ManufacturingStep[] to RouteStep[] for the original steps
+            // IMPORTANT: This conversion must match EXACTLY how RouteBuilder converts steps
+            const originalSteps: RouteStep[] = (activeMODetails.manufacturing_route?.steps || []).map((step, index) => ({
+                id: step.id?.toString() || `existing-${index}`,
+                sequence: step.step_number || index + 1,
+                name: step.name,
+                description: step.description || '',
+                work_cell_id: step.work_cell_id ?? null,
+                setup_time_minutes: step.setup_time_minutes || 0,
+                cycle_time_minutes: step.cycle_time_minutes || 0,
+                step_type: step.step_type || 'standard',
+                is_required: true, // Default to true as ManufacturingStep doesn't have this field
+                quality_check_mode: step.quality_check_mode,
+                sampling_size: step.sampling_size,
+                form_id: step.form_id,
+                // Always create gate_after to match RouteBuilder's conversion
+                gate_after: {
+                    dependency_type: step.child_order_dependency_type === 'none'
+                        ? 'none'
+                        : (step.child_order_dependency_type || 'all_children_completed') as 'none' | 'all_children_completed' | 'children_quantity',
+                    minimum_quantity: step.child_order_minimum_quantity || 0
+                }
+            }));
+
+            routeChangesStore.trackChange(activeMO, steps, originalSteps);
+        }
+    }, [activeMO, routeChangesStore, activeMODetails]);
+
+    // Handle priority change
+    const handlePriorityChange = useCallback((orderId: number, priority: number) => {
+        const order = findMOInHierarchy(manufacturingOrders, orderId);
+        if (order) {
+            moChangesStore.trackPriorityChange(orderId, priority, order.priority || 50);
+        }
+    }, [findMOInHierarchy, moChangesStore, manufacturingOrders]);
+
 
     // Handle marking as planned/draft
     const handleToggleStatus = useCallback(() => {
@@ -224,25 +282,29 @@ export default function PlanningPage({
         const currentSelectedMOs = new Set(selectedMOs);
         const currentActiveMO = activeMO;
 
-        router.post(route('production.planning.orders.bulk-transition'), {
-            orderIds: Array.from(selectedMOs),
-            targetState: targetState,
-        }, {
-            onSuccess: () => {
-                toast.success(`${selectedMOs.size} manufacturing order${selectedMOs.size > 1 ? 's have' : ' has'} been ${actionText}.`);
+        // Allow navigation for this request
+        allowNavigation();
 
-                // Restore selection after the update
-                setSelectedMOs(currentSelectedMOs);
-                setActiveMO(currentActiveMO);
+        PlanningService.bulkTransition(
+            {
+                orderIds: Array.from(selectedMOs),
+                targetState: targetState,
             },
-            onError: (errors) => {
-                console.error('handleToggleStatus - Error:', errors);
-            },
-            preserveState: false, // Don't preserve state, we'll manage it manually
-            preserveScroll: true,
-            only: ['manufacturingOrders'], // Only reload the manufacturing orders data
-        });
-    }, [selectedMOs, activeMODetails, activeMO]);
+            {
+                onSuccess: () => {
+                    toast.success(`${selectedMOs.size} manufacturing order${selectedMOs.size > 1 ? 's have' : ' has'} been ${actionText}.`);
+
+                    // Restore selection after the update
+                    setSelectedMOs(currentSelectedMOs);
+                    setActiveMO(currentActiveMO);
+                },
+                onError: () => {
+                    // Handle error silently
+                },
+                preserveState: false,
+            }
+        );
+    }, [selectedMOs, activeMODetails, activeMO, allowNavigation]);
 
     // Handle MO selection from modal
     const handleModalMOSelect = useCallback((orderIds: number[]) => {
@@ -252,12 +314,10 @@ export default function PlanningPage({
             setSelectedMOs(new Set([selectedId]));
             setActiveMO(selectedId);
             setDetailViewMode('route');
+            setShowMOSelectionModal(false); // Close the modal
 
             // Always reload the page with the new selected MO to get proper hierarchy
-            router.visit(route('production.planning.index', { selectedMO: selectedId }), {
-                preserveState: false,
-                preserveScroll: true
-            });
+            PlanningService.navigateToMO(selectedId);
         }
     }, []);
 
@@ -309,10 +369,7 @@ export default function PlanningPage({
                                                             const parentId = manufacturingOrders[0].parent_id;
                                                             if (parentId) {
                                                                 handleMOSelect(parentId, false);
-                                                                router.visit(route('production.planning.index', { selectedMO: parentId }), {
-                                                                    preserveState: false,
-                                                                    preserveScroll: true
-                                                                });
+                                                                PlanningService.navigateToMO(parentId);
                                                             }
                                                         }}
                                                     >
@@ -357,6 +414,21 @@ export default function PlanningPage({
                                             searchQuery={searchQuery}
                                             enhancedMode="planning"
                                             compactMode={true}
+                                            onPriorityChange={handlePriorityChange}
+                                            priorityChanges={(() => {
+                                                const map = new Map<number, { priority: number }>();
+                                                moChangesStore.getAllChanges().forEach(change => {
+                                                    map.set(change.orderId, { priority: change.priority });
+                                                });
+                                                return map;
+                                            })()}
+                                            routeChanges={(() => {
+                                                const map = new Map<number, { steps: Array<{ [key: string]: unknown; id: string | number; sequence: number; name: string; }> }>();
+                                                routeChangesStore.getAllChanges().forEach(change => {
+                                                    map.set(change.orderId, { steps: change.steps as unknown as Array<{ [key: string]: unknown; id: string | number; sequence: number; name: string; }> });
+                                                });
+                                                return map;
+                                            })()}
                                         />
                                     </div>
                                 ) : (
@@ -385,48 +457,18 @@ export default function PlanningPage({
                     <ResizableHandle withHandle />
 
                     {/* Right Panel - Detail/Action Panel */}
-                    <ResizablePanel defaultSize={65}>
+                    <ResizablePanel defaultSize={60}>
                         <div className="h-full flex flex-col bg-background">
                             {/* Global Actions Toolbar */}
                             <div className="border-b bg-card dark:bg-card/95">
                                 <div className="flex items-center justify-between px-4 py-2">
                                     <div className="flex items-center space-x-4">
-                                        {/* Save status indicator on the left */}
-                                        {detailViewMode === 'route' && activeMODetails && permissions.canEditRoute && (
+                                        {/* Item title on the left */}
+                                        {detailViewMode === 'route' && activeMODetails && (
                                             <div className="flex items-center gap-3">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="text-sm font-medium">
-                                                        {activeMODetails.item?.item_number} - {activeMODetails.item?.name}
-                                                    </h3>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-sm">
-                                                    {saveStatus === 'saving' && (
-                                                        <>
-                                                            <CloudCog className="h-4 w-4 animate-spin text-muted-foreground" />
-                                                            <span className="text-muted-foreground">Saving...</span>
-                                                        </>
-                                                    )}
-                                                    {saveStatus === 'saved' && (
-                                                        <>
-                                                            <CloudCheck className="h-4 w-4 text-green-600" />
-                                                            <span className="text-green-600">Saved</span>
-                                                        </>
-                                                    )}
-                                                    {saveStatus === 'error' && (
-                                                        <>
-                                                            <CloudAlert className="h-4 w-4 text-red-600" />
-                                                            <span className="text-red-600">Save failed</span>
-                                                        </>
-                                                    )}
-                                                    {saveStatus === 'idle' && (
-                                                        <>
-                                                            <CloudCheck className="h-4 w-4 text-muted-foreground" />
-                                                            <span className="text-muted-foreground">
-                                                                {relativeTime ? `Saved ${relativeTime}` : 'Ready'}
-                                                            </span>
-                                                        </>
-                                                    )}
-                                                </div>
+                                                <h3 className="text-sm font-medium">
+                                                    {activeMODetails.item?.item_number} - {activeMODetails.item?.name}
+                                                </h3>
                                             </div>
                                         )}
                                     </div>
@@ -498,20 +540,22 @@ export default function PlanningPage({
                             </div>
 
                             {/* Content Area */}
-                            <div className="flex-1 overflow-hidden">
+                            <div className="flex-1 overflow-hidden flex flex-col">
+                                {/* Route Builder */}
                                 {detailViewMode === 'route' && activeMODetails && (
-                                    <RouteBuilder
-                                        manufacturingOrder={activeMODetails}
-                                        workCells={workCells}
-                                        permissions={permissions}
-                                        onDirtyChange={() => { }}
-                                        onSaveStatusChange={setSaveStatus}
-                                        onLastSavedAtChange={setLastSavedAt}
-                                        isSaving={saveStatus === 'saving'}
-                                        onParentMOClick={(parentId) => {
-                                            handleMOSelect(parentId, false);
-                                        }}
-                                    />
+                                    <div className="flex-1">
+                                        <RouteBuilder
+                                            manufacturingOrder={activeMODetails}
+                                            workCells={workCells}
+                                            permissions={permissions}
+                                            onStepsChange={handleRouteStepsChange}
+                                            onSaveStatusChange={() => { }} // No longer needed, handled by hook
+                                            isSaving={routeSaveStatus === 'saving'}
+                                            onParentMOClick={(parentId) => {
+                                                handleMOSelect(parentId, false);
+                                            }}
+                                        />
+                                    </div>
                                 )}
                                 {detailViewMode === 'work-cell' && (
                                     <div className="p-4">
@@ -592,12 +636,7 @@ export default function PlanningPage({
                     routeTemplates={routeTemplates}
                     onTemplateApplied={() => {
                         // Small delay to ensure backend has completed processing
-                        setTimeout(() => {
-                            // Force a page refresh to get updated data including all nested relationships
-                            router.reload({
-                                only: ['manufacturingOrders']
-                            });
-                        }, 100);
+                        PlanningService.reloadData({ delay: 100 });
                     }}
                 />
             )}
@@ -613,6 +652,52 @@ export default function PlanningPage({
                 )}
                 multiSelect={false}
             />
+
+            {/* Unsaved Changes Dialog */}
+            <UnsavedChangesDialog
+                open={unsavedChangesDialog.open}
+                onOpenChange={(open) => setUnsavedChangesDialog(prev => ({ ...prev, open }))}
+                type={unsavedChangesDialog.type}
+                changeDetails={{
+                    routeChanges: routeChangesStore.getAllChanges().length,
+                    priorityChanges: moChangesStore.getAllChanges().length,
+                }}
+                onSaveAndContinue={async () => {
+                    if (unsavedChangesDialog.type === 'navigation') {
+                        // Save all changes
+                        await saveAllChanges();
+                        unsavedChangesDialog.pendingAction?.();
+                    }
+                    setUnsavedChangesDialog({ open: false, type: 'mo-switch' });
+                }}
+                onDiscardChanges={() => {
+                    if (unsavedChangesDialog.type === 'navigation') {
+                        cancelAllChanges();
+                    }
+                    unsavedChangesDialog.pendingAction?.();
+                    setUnsavedChangesDialog({ open: false, type: 'mo-switch' });
+                }}
+                onCancel={() => {
+                    setUnsavedChangesDialog({ open: false, type: 'mo-switch' });
+                }}
+            />
+
+            {/* Combined Save Action Bar */}
+            {(hasUnsavedChanges) && (
+                <SaveActionBar
+                    changeCount={
+                        routeChangesStore.getAllChanges().length +
+                        moChangesStore.getAllChanges().length
+                    }
+                    changeType="combined"
+                    routeChangeCount={routeChangesStore.getAllChanges().length}
+                    moChangeCount={moChangesStore.getAllChanges().length}
+                    onCancel={cancelAllChanges}
+                    onSave={saveAllChanges}
+                    isSaving={routeSaveStatus === 'saving' || moSaveStatus === 'saving'}
+                    position="top"
+                />
+            )}
         </AppLayout>
     );
 }

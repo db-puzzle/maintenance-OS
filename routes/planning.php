@@ -15,6 +15,7 @@ Route::middleware(['auth', 'verified'])->prefix('production/planning')->name('pr
     Route::post('/orders/bulk-transition', [PlanningController::class, 'bulkTransition'])->name('orders.bulk-transition');
     Route::post('/orders/bulk-copy-route', [PlanningController::class, 'bulkCopyRoute'])->name('orders.bulk-copy-route');
     Route::post('/orders/bulk-clear-routes', [PlanningController::class, 'bulkClearRoutes'])->name('orders.bulk-clear-routes');
+    Route::post('/orders/bulk-update-priorities', [PlanningController::class, 'bulkUpdatePriorities'])->name('orders.bulk-update-priorities');
 
     // Template Management
     Route::delete('/routes/templates/{template}', [PlanningController::class, 'deleteTemplate'])->name('routes.templates.destroy');

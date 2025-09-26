@@ -123,14 +123,13 @@ class PlanningController extends Controller
             // not automatically when saving route steps
         });
 
-        // Check if this is an auto-save request (no flash message)
-        if ($request->boolean('autoSave', false)) {
-            return response()->json(['success' => true]);
+        // Return success - Inertia will handle the response properly based on the 'only' parameter
+        if ($request->boolean('autoSave', false) || $request->boolean('is_autosave', false)) {
+            // For autosave, just return back without a flash message
+            return back();
         }
 
-        return redirect()
-            ->route('production.planning.index')
-            ->with('success', 'Route saved successfully.');
+        return back()->with('success', 'Route saved successfully.');
     }
 
     /**
@@ -396,7 +395,18 @@ class PlanningController extends Controller
 
         // Ensure manufacturing_route is included if loaded
         if ($order->relationLoaded('manufacturingRoute') && $order->manufacturingRoute) {
-            $array['manufacturing_route'] = $order->manufacturingRoute->toArray();
+            // Make sure to include the steps relationship
+            $routeArray = $order->manufacturingRoute->toArray();
+
+            // Always include steps array, even if empty
+            if ($order->manufacturingRoute->relationLoaded('steps')) {
+                $routeArray['steps'] = $order->manufacturingRoute->steps->toArray();
+            } else {
+                // Ensure steps is at least an empty array
+                $routeArray['steps'] = $routeArray['steps'] ?? [];
+            }
+
+            $array['manufacturing_route'] = $routeArray;
         } else {
             // Always include manufacturing_route key even if null
             $array['manufacturing_route'] = null;
@@ -700,5 +710,93 @@ class PlanningController extends Controller
             });
 
         return response()->json($recentOrders);
+    }
+
+    /**
+     * Helper method to find an order in the hierarchical array structure.
+     */
+    private function findOrderInHierarchy($orders, $orderId)
+    {
+        foreach ($orders as $order) {
+            if ($order['id'] == $orderId) {
+                return $order;
+            }
+            if (isset($order['children']) && is_array($order['children'])) {
+                $found = $this->findOrderInHierarchy($order['children'], $orderId);
+                if ($found) {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Bulk update priorities for multiple manufacturing orders.
+     */
+    public function bulkUpdatePriorities(Request $request)
+    {
+        $validated = $request->validate([
+            'updates' => 'required|array',
+            'updates.*.id' => 'required|exists:manufacturing_orders,id',
+            'updates.*.priority' => 'required|integer|min:0|max:100',
+        ]);
+
+        $results = [];
+        $errors = [];
+
+        DB::transaction(function () use ($validated, &$results, &$errors) {
+            foreach ($validated['updates'] as $update) {
+                try {
+                    $order = ManufacturingOrder::find($update['id']);
+
+                    // Check authorization
+                    if (! auth()->user()->can('update', $order)) {
+                        $errors[] = [
+                            'id' => $update['id'],
+                            'success' => false,
+                            'error' => 'Unauthorized to update this order',
+                        ];
+                        continue;
+                    }
+
+                    // Check if order can be updated
+                    if (! in_array($order->status, ['draft', 'planned', 'scheduled'])) {
+                        $errors[] = [
+                            'id' => $update['id'],
+                            'success' => false,
+                            'error' => 'Only draft, planned, or scheduled orders can be updated',
+                        ];
+                        continue;
+                    }
+
+                    $order->priority = $update['priority'];
+                    $order->save();
+
+                    $results[] = [
+                        'id' => $update['id'],
+                        'success' => true,
+                        'priority' => $order->priority,
+                    ];
+                } catch (\Exception $e) {
+                    $errors[] = [
+                        'id' => $update['id'],
+                        'success' => false,
+                        'error' => $e->getMessage(),
+                    ];
+                }
+            }
+        });
+
+        // If there were any errors, return back with errors
+        if (! empty($errors)) {
+            return back()->withErrors(['updates' => 'Some priority updates failed.']);
+        }
+
+        // Return success and let Inertia handle the partial reload
+        // The 'only' parameter in the request will ensure only manufacturingOrders are updated
+        // The backend will use the selectedMO from the URL query string to maintain the same hierarchy
+        return back()->with('success', count($results) . ' priority update' . (count($results) > 1 ? 's' : '') . ' applied successfully.');
     }
 }

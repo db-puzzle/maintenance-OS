@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,16 +28,10 @@ export function PriorityEditor({
     const [isHovered, setIsHovered] = useState(false);
     const [localPriority, setLocalPriority] = useState(priority);
     const inputRef = useRef<HTMLInputElement>(null);
-    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         setValue(priority.toString());
         setLocalPriority(priority);
-        // Clear any pending debounce when priority changes (e.g., after successful update or on error)
-        if (debounceTimerRef.current) {
-            clearTimeout(debounceTimerRef.current);
-            debounceTimerRef.current = null;
-        }
     }, [priority]);
 
     const handleSave = () => {
@@ -53,34 +47,12 @@ export function PriorityEditor({
         setIsEditing(false);
     };
 
-    // Debounced onChange callback
-    const debouncedOnChange = useCallback((newValue: number) => {
-        // Clear any existing timer
-        if (debounceTimerRef.current) {
-            clearTimeout(debounceTimerRef.current);
-        }
-
-        // Set a new timer
-        debounceTimerRef.current = setTimeout(() => {
-            onChange(newValue);
-        }, 800); // 500ms delay
-    }, [onChange]);
-
     const handleIncrement = (amount: number) => {
         const newValue = Math.max(0, Math.min(100, localPriority + amount));
         setLocalPriority(newValue);
         setValue(newValue.toString());
-        debouncedOnChange(newValue);
+        onChange(newValue); // Immediate callback, no debounce
     };
-
-    // Cleanup timer on unmount
-    useEffect(() => {
-        return () => {
-            if (debounceTimerRef.current) {
-                clearTimeout(debounceTimerRef.current);
-            }
-        };
-    }, []);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {

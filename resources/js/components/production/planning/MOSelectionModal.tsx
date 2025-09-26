@@ -3,6 +3,9 @@ import { useForm } from '@inertiajs/react';
 import {
     Dialog,
     DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +30,7 @@ import {
     CheckCircle2,
     Circle,
     Layers,
-    Hash,
+    Copy,
 } from 'lucide-react';
 import { formatNumber } from '@/utils/number';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
@@ -320,6 +323,15 @@ export function MOSelectionModal({
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium">{order.order_number}</span>
+
+                        {/* Quantity with Copy icon */}
+                        <div className="flex items-center gap-1">
+                            <Copy className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                                {formatNumber(order.quantity)}
+                            </span>
+                        </div>
+
                         {order.is_root && (
                             <Badge variant="secondary" className="text-xs">
                                 <Layers className="h-3 w-3 mr-1" />
@@ -349,10 +361,6 @@ export function MOSelectionModal({
                                 {order.item.category.name}
                             </span>
                         )}
-                        <span className="flex items-center gap-1">
-                            <Hash className="h-3 w-3" />
-                            {formatNumber(order.quantity)}
-                        </span>
                         {order.due_date && (
                             <span className="flex items-center gap-1">
                                 <CalendarIcon className="h-3 w-3" />
@@ -394,16 +402,21 @@ export function MOSelectionModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="!max-w-[90vw] w-[90vw] h-[85vh] p-0 gap-0 sm:!max-w-[90vw] flex flex-col">
-                {/* Custom header without DialogHeader component */}
-                <div className="px-6 py-4 border-b shrink-0">
+            <DialogContent className="!max-w-[90vw] w-[80vw] h-[85vh] p-0 gap-0 sm:!max-w-[90vw] flex flex-col">
+                {/* Hidden title for accessibility */}
+                <DialogTitle className="sr-only">Selecionar Ordem de Produção</DialogTitle>
+                <DialogDescription className="sr-only">
+                    Pesquise e filtre ordens de produção para adicionar à sua visão de planejamento.
+                </DialogDescription>
+
+                <DialogHeader className="px-6 py-4 border-b shrink-0">
                     <h2 className="text-lg font-semibold leading-none tracking-tight">
                         Selecionar Ordem de Produção
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1.5">
                         Pesquise e filtre ordens de produção para adicionar à sua visão de planejamento.
                     </p>
-                </div>
+                </DialogHeader>
 
                 <div className="flex flex-1 overflow-hidden min-h-0">
                     {/* Left Panel - Filters */}
