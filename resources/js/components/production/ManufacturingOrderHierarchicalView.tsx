@@ -45,6 +45,7 @@ import { useTreeExpansion } from './shared/useTreeExpansion';
 import { toast } from 'sonner';
 import { OrderCardCompact } from './manufacturing-order/OrderCardCompact';
 import { formatNumber } from '@/utils/number';
+import { naturalCompare } from '@/utils/natural-sort';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: string | number | Record<string, string | number>) => string;
@@ -126,7 +127,7 @@ export default function ManufacturingOrderHierarchicalView({
             if (sortField === 'priority') {
                 comparison = a.priority - b.priority;
             } else if (sortField === 'order_number') {
-                comparison = a.order_number.localeCompare(b.order_number);
+                comparison = naturalCompare(a.order_number, b.order_number);
             }
 
             return sortDirection === 'asc' ? comparison : -comparison;
@@ -146,6 +147,7 @@ export default function ManufacturingOrderHierarchicalView({
     useEffect(() => {
         setSortedOrdersSnapshot(sortOrders(orders));
         setHasUnsortedChanges(false);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sortField, sortDirection, lastSortTimestamp]); // Deliberately exclude orders and sortOrders
 
     // Track changes to orders that might affect sorting
@@ -573,28 +575,28 @@ export default function ManufacturingOrderHierarchicalView({
         );
     };
 
-    // Header columns
-    const headerColumns = compactMode ? (
-        <div className="bg-muted/50 dark:bg-muted/20 p-2 rounded-md font-semibold text-xs mb-2 flex justify-between items-center">
-            <div>Manufacturing Orders</div>
-            <div className="text-muted-foreground">Route / Status</div>
-        </div>
-    ) : (
-        <div className={cn(
-            "bg-muted/50 dark:bg-muted/20 p-3 rounded-lg grid gap-2 font-semibold text-sm mb-2 min-w-[640px]",
-            showImages ? "grid-cols-[60px_3fr_3fr_1fr_1fr_1fr_2fr_1fr_1fr]" : "grid-cols-[3fr_3fr_1fr_1fr_1fr_2fr_1fr_1fr]"
-        )}>
-            {showImages && <div className="text-center">Imagem</div>}
-            <div className={showImages ? "" : ""}>Order Number</div>
-            <div className={showImages ? "" : ""}>Item</div>
-            <div className={cn("text-right", !showImages && "")}>Qty</div>
-            <div className="">Unit</div>
-            <div className="text-center">Priority</div>
-            <div className={cn("text-center", !showImages && "")}>Route Name</div>
-            <div className={cn("text-center", !showImages && "")}>Status</div>
-            <div className={cn("text-center", !showImages && "")}>Actions</div>
-        </div>
-    );
+    // Header columns - removed as requested
+    // const headerColumns = compactMode ? (
+    //     <div className="bg-muted/50 dark:bg-muted/20 p-2 rounded-md font-semibold text-xs mb-2 flex justify-between items-center">
+    //         <div>Manufacturing Orders</div>
+    //         <div className="text-muted-foreground">Route / Status</div>
+    //     </div>
+    // ) : (
+    //     <div className={cn(
+    //         "bg-muted/50 dark:bg-muted/20 p-3 rounded-lg grid gap-2 font-semibold text-sm mb-2 min-w-[640px]",
+    //         showImages ? "grid-cols-[60px_3fr_3fr_1fr_1fr_1fr_2fr_1fr_1fr]" : "grid-cols-[3fr_3fr_1fr_1fr_1fr_2fr_1fr_1fr]"
+    //     )}>
+    //         {showImages && <div className="text-center">Imagem</div>}
+    //         <div className={showImages ? "" : ""}>Order Number</div>
+    //         <div className={showImages ? "" : ""}>Item</div>
+    //         <div className={cn("text-right", !showImages && "")}>Qty</div>
+    //         <div className="">Unit</div>
+    //         <div className="text-center">Priority</div>
+    //         <div className={cn("text-center", !showImages && "")}>Route Name</div>
+    //         <div className={cn("text-center", !showImages && "")}>Status</div>
+    //         <div className={cn("text-center", !showImages && "")}>Actions</div>
+    //     </div>
+    // );
 
     // Empty state
     const emptyState = (
@@ -709,10 +711,11 @@ export default function ManufacturingOrderHierarchicalView({
         )}>
             {/* Header */}
             <div className={cn(
-                compactMode ? "-mt-4 px-4 py-2" : "px-6 pt-8 pb-4 lg:px-8"
+                compactMode ? "-mt-4 -mx-4 px-4 mb-6 border-b" : "px-6 pt-8 pb-4 lg:px-8 mb-4 border-b",
+                compactMode && "py-[0.57rem]"
             )}>
                 <HierarchicalViewHeader
-                    title={compactMode ? `Orders (${totalOrdersCount})` : `Child Orders (${totalOrdersCount})`}
+                    title={compactMode ? `Orders (${totalOrdersCount})` : `Orders (${totalOrdersCount})`}
                     subtitle=""
                     maxDepth={maxDepth}
                     currentLevel={currentLevel}
@@ -732,7 +735,6 @@ export default function ManufacturingOrderHierarchicalView({
                 <GenericHierarchicalTreeView
                     data={sortedOrdersSnapshot}
                     renderNode={renderOrderNode}
-                    headerColumns={headerColumns}
                     emptyState={emptyState}
                     expanded={expanded}
                     onToggleExpand={toggleNode}

@@ -5,6 +5,9 @@ import {
     CloudCog,
     CloudAlert,
     CloudCheck,
+    List,
+    SquareMousePointer,
+    ArrowBigUp,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import AppLayout from '@/layouts/app-layout';
@@ -26,6 +29,7 @@ import ManufacturingOrderHierarchicalView from '@/components/production/Manufact
 import RouteBuilder from '@/components/production/planning/RouteBuilder';
 import ApplyTemplateDialog from '@/components/production/planning/ApplyTemplateDialog';
 import { SaveAsTemplateDialog } from '@/components/production/templates/SaveAsTemplateDialog';
+import { MOSelectionModal } from '@/components/production/planning/MOSelectionModal';
 // import WorkCellManager from '@/components/production/planning/WorkCellManager';
 // import BulkOperationsPanel from '@/components/production/planning/BulkOperationsPanel';
 // import TemplateLibraryPanel from '@/components/production/planning/TemplateLibraryPanel';
@@ -66,6 +70,20 @@ interface RouteTemplate {
     item_types?: string[];
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Home',
+        href: '/home',
+    },
+    {
+        title: 'Produção',
+        href: '#',
+    },
+    {
+        title: 'Planejar',
+        href: '/production/planning',
+    },
+];
 
 interface PlanningPageProps extends PageProps {
     manufacturingOrders: ManufacturingOrder[];
@@ -84,21 +102,6 @@ interface PlanningPageProps extends PageProps {
     };
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Home',
-        href: '/home',
-    },
-    {
-        title: 'Produção',
-        href: '#',
-    },
-    {
-        title: 'Planejar',
-        href: '/production/planning',
-    },
-];
-
 export default function PlanningPage({
     manufacturingOrders = [],
     routeTemplates = [],
@@ -106,20 +109,12 @@ export default function PlanningPage({
     selectedMO,
     permissions
 }: PlanningPageProps) {
-    // Debug initial props and re-renders
-    useEffect(() => {
-        console.log('PlanningPage - Props updated:', {
-            manufacturingOrdersCount: manufacturingOrders.length,
-            manufacturingOrders: manufacturingOrders.map(o => ({ id: o.id, order_number: o.order_number, status: o.status })),
-            selectedMO,
-            timestamp: new Date().toISOString()
-        });
-    }, [manufacturingOrders]);
-
+    // Convert selectedMO to number once
+    const initialSelectedMO = useMemo(() => selectedMO ? Number(selectedMO) : null, [selectedMO]);
 
     // State management
-    const [selectedMOs, setSelectedMOs] = useState<Set<number>>(new Set(selectedMO ? [selectedMO] : []));
-    const [activeMO, setActiveMO] = useState<number | null>(selectedMO || null);
+    const [selectedMOs, setSelectedMOs] = useState<Set<number>>(() => new Set(initialSelectedMO ? [initialSelectedMO] : []));
+    const [activeMO, setActiveMO] = useState<number | null>(initialSelectedMO);
     const [detailViewMode, setDetailViewMode] = useState<DetailViewMode>('route');
     const [searchQuery, setSearchQuery] = useState('');
     const [showThumbnails] = useState(true);
@@ -135,19 +130,42 @@ export default function PlanningPage({
     // Apply template dialog state
     const [showApplyTemplateDialog, setShowApplyTemplateDialog] = useState(false);
 
-    // Force re-render to update relative time display
-    const [, forceUpdate] = useState({});
+    // MO Selection modal state - Start with modal open if no MO is selected
+    const [showMOSelectionModal, setShowMOSelectionModal] = useState(() => !initialSelectedMO);
+
+    // Relative time display state
+    const [relativeTime, setRelativeTime] = useState<string | null>(null);
 
     // Update relative time display every 30 seconds
     useEffect(() => {
         if (lastSavedAt) {
-            const interval = setInterval(() => {
-                forceUpdate({});
-            }, 30000); // Update every 30 seconds
+            const updateRelativeTime = () => {
+                setRelativeTime(formatDistanceToNow(lastSavedAt, { addSuffix: true }));
+            };
+
+            updateRelativeTime(); // Set initial value
+
+            const interval = setInterval(updateRelativeTime, 30000); // Update every 30 seconds
 
             return () => clearInterval(interval);
+        } else {
+            setRelativeTime(null);
         }
     }, [lastSavedAt]);
+
+    // Keyboard shortcut handler
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            // Cmd/Ctrl + K to open MO selection modal
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setShowMOSelectionModal(true);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, []);
 
     // Handle MO selection
     const handleMOSelect = useCallback((moId: number, multiSelect: boolean = false) => {
@@ -163,6 +181,7 @@ export default function PlanningPage({
             setSelectedMOs(new Set([moId]));
             setActiveMO(moId);
             setDetailViewMode('route');
+            // No page refresh - just select the MO for editing
         }
     }, [selectedMOs]);
 
@@ -183,16 +202,11 @@ export default function PlanningPage({
         return null;
     }, []);
 
+
     // Active MO details
     const activeMODetails = useMemo(() => {
         if (!activeMO) return null;
-        const found = findMOInHierarchy(manufacturingOrders, activeMO);
-        console.log('activeMODetails - computed:', {
-            activeMOId: activeMO,
-            found: found,
-            status: found?.status
-        });
-        return found;
+        return findMOInHierarchy(manufacturingOrders, activeMO);
     }, [activeMO, manufacturingOrders, findMOInHierarchy]);
 
     // Handle marking as planned/draft
@@ -206,14 +220,6 @@ export default function PlanningPage({
         const targetState = activeMODetails?.status === 'planned' ? 'draft' : 'planned';
         const actionText = targetState === 'planned' ? 'marked as planned' : 'reverted to draft';
 
-        console.log('handleToggleStatus - Before transition:', {
-            selectedMOs: Array.from(selectedMOs),
-            currentStatus: activeMODetails?.status,
-            targetState,
-            activeMOId: activeMO,
-            activeMODetails
-        });
-
         // Store current selection and active MO before the request
         const currentSelectedMOs = new Set(selectedMOs);
         const currentActiveMO = activeMO;
@@ -222,12 +228,7 @@ export default function PlanningPage({
             orderIds: Array.from(selectedMOs),
             targetState: targetState,
         }, {
-            onSuccess: (page) => {
-                console.log('handleToggleStatus - Success:', {
-                    pageProps: page.props,
-                    manufacturingOrders: page.props.manufacturingOrders,
-                    selectedMOs: Array.from(selectedMOs)
-                });
+            onSuccess: () => {
                 toast.success(`${selectedMOs.size} manufacturing order${selectedMOs.size > 1 ? 's have' : ' has'} been ${actionText}.`);
 
                 // Restore selection after the update
@@ -237,14 +238,28 @@ export default function PlanningPage({
             onError: (errors) => {
                 console.error('handleToggleStatus - Error:', errors);
             },
-            onFinish: () => {
-                console.log('handleToggleStatus - Finished');
-            },
             preserveState: false, // Don't preserve state, we'll manage it manually
             preserveScroll: true,
             only: ['manufacturingOrders'], // Only reload the manufacturing orders data
         });
-    }, [selectedMOs, activeMODetails]);
+    }, [selectedMOs, activeMODetails, activeMO]);
+
+    // Handle MO selection from modal
+    const handleModalMOSelect = useCallback((orderIds: number[]) => {
+        if (orderIds.length > 0) {
+            const selectedId = orderIds[0];
+
+            setSelectedMOs(new Set([selectedId]));
+            setActiveMO(selectedId);
+            setDetailViewMode('route');
+
+            // Always reload the page with the new selected MO to get proper hierarchy
+            router.visit(route('production.planning.index', { selectedMO: selectedId }), {
+                preserveState: false,
+                preserveScroll: true
+            });
+        }
+    }, []);
 
     return (
         <AppLayout
@@ -267,36 +282,101 @@ export default function PlanningPage({
                 >
                     {/* Left Panel - MO Tree */}
                     <ResizablePanel
-                        defaultSize={35}
+                        defaultSize={40}
                         minSize={25}
-                        maxSize={50}
+                        maxSize={60}
                         className="bg-muted/20 dark:bg-muted/10"
                     >
                         <div className="h-full flex flex-col">
                             {/* Search and Filter Bar */}
                             <div className="px-4 py-2 border-b bg-background/50 dark:bg-background/30">
-                                <Input
-                                    placeholder="Search manufacturing orders..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full h-8 text-sm"
-                                />
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        placeholder="Search manufacturing orders..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="flex-1 h-7 text-sm"
+                                    />
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <span>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={manufacturingOrders.length === 0 || !manufacturingOrders[0].parent_id}
+                                                        onClick={() => {
+                                                            const parentId = manufacturingOrders[0].parent_id;
+                                                            if (parentId) {
+                                                                handleMOSelect(parentId, false);
+                                                                router.visit(route('production.planning.index', { selectedMO: parentId }), {
+                                                                    preserveState: false,
+                                                                    preserveScroll: true
+                                                                });
+                                                            }
+                                                        }}
+                                                    >
+                                                        <ArrowBigUp className="h-4 w-4 mr-2" />
+                                                        Abrir MO-Pai
+                                                    </Button>
+                                                </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>
+                                                    {manufacturingOrders.length === 0
+                                                        ? "No manufacturing order selected"
+                                                        : !manufacturingOrders[0].parent_id
+                                                            ? "Essa é a MO Raiz"
+                                                            : "Navegar para MO-Pai"}
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setShowMOSelectionModal(true);
+                                        }}
+                                    >
+                                        <SquareMousePointer className="h-4 w-4 mr-2" />
+                                        Abrir MO
+                                    </Button>
+                                </div>
                             </div>
 
                             {/* MO Tree View */}
                             <div className="flex-1 overflow-auto bg-background/30 dark:bg-background/10 [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-corner]:bg-transparent">
-                                {/* Add a wrapper div with min-width to enable horizontal scroll and padding */}
-                                <div className="min-w-fit p-4 pb-8">
-                                    <ManufacturingOrderHierarchicalView
-                                        orders={manufacturingOrders as ManufacturingOrderTreeNode[]}
-                                        onOrderSelect={handleMOSelect}
-                                        selectedOrders={selectedMOs}
-                                        showThumbnails={showThumbnails}
-                                        searchQuery={searchQuery}
-                                        enhancedMode="planning"
-                                        compactMode={true}
-                                    />
-                                </div>
+                                {manufacturingOrders.length > 0 ? (
+                                    <div className="min-w-fit p-4 pb-8">
+                                        <ManufacturingOrderHierarchicalView
+                                            orders={manufacturingOrders as ManufacturingOrderTreeNode[]}
+                                            onOrderSelect={handleMOSelect}
+                                            selectedOrders={selectedMOs}
+                                            showThumbnails={showThumbnails}
+                                            searchQuery={searchQuery}
+                                            enhancedMode="planning"
+                                            compactMode={true}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                                        <List className="h-12 w-12 text-muted-foreground mb-4" />
+                                        <h3 className="text-lg font-medium mb-2">No Manufacturing Order Selected</h3>
+                                        <p className="text-sm text-muted-foreground mb-4">
+                                            Select a manufacturing order to start planning
+                                        </p>
+                                        <Button
+                                            onClick={() => {
+                                                setShowMOSelectionModal(true);
+                                            }}
+                                            variant="default"
+                                        >
+                                            <List className="h-4 w-4 mr-2" />
+                                            Select Manufacturing Order
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </ResizablePanel>
@@ -342,10 +422,7 @@ export default function PlanningPage({
                                                         <>
                                                             <CloudCheck className="h-4 w-4 text-muted-foreground" />
                                                             <span className="text-muted-foreground">
-                                                                {lastSavedAt
-                                                                    ? `Saved ${formatDistanceToNow(lastSavedAt, { addSuffix: true })}`
-                                                                    : 'Ready'
-                                                                }
+                                                                {relativeTime ? `Saved ${relativeTime}` : 'Ready'}
                                                             </span>
                                                         </>
                                                     )}
@@ -455,8 +532,17 @@ export default function PlanningPage({
                                     </div>
                                 )}
                                 {!activeMODetails && detailViewMode === 'route' && (
-                                    <div className="flex items-center justify-center h-full text-muted-foreground bg-muted/10 dark:bg-muted/5">
-                                        Select a manufacturing order to view its route configuration
+                                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground bg-muted/10 dark:bg-muted/5">
+                                        <List className="h-12 w-12 mb-4 opacity-50" />
+                                        <p className="text-lg mb-2">No Manufacturing Order Selected</p>
+                                        <p className="text-sm mb-4">Select a manufacturing order to view its route configuration</p>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setShowMOSelectionModal(true)}
+                                        >
+                                            <List className="h-4 w-4 mr-2" />
+                                            Select Order
+                                        </Button>
                                     </div>
                                 )}
                             </div>
@@ -464,6 +550,26 @@ export default function PlanningPage({
                     </ResizablePanel>
                 </ResizablePanelGroup>
             </div>
+
+            {/* Floating Action Button */}
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
+                            size="icon"
+                            onClick={() => {
+                                setShowMOSelectionModal(true);
+                            }}
+                        >
+                            <List className="h-6 w-6" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                        <p>Select Manufacturing Orders (Cmd/Ctrl+K)</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
 
             {/* Save as Template Dialog */}
             {activeMODetails?.manufacturing_route && (
@@ -495,6 +601,18 @@ export default function PlanningPage({
                     }}
                 />
             )}
+
+            {/* MO Selection Modal */}
+            <MOSelectionModal
+                open={showMOSelectionModal}
+                onOpenChange={setShowMOSelectionModal}
+                onSelect={handleModalMOSelect}
+                selectedIds={useMemo(() =>
+                    activeMO ? new Set<number>([activeMO]) : new Set<number>(),
+                    [activeMO]
+                )}
+                multiSelect={false}
+            />
         </AppLayout>
     );
 }

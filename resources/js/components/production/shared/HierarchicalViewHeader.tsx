@@ -47,29 +47,11 @@ export function HierarchicalViewHeader({
 }: HierarchicalViewHeaderProps) {
     return (
         <div className={cn(
-            "flex justify-between items-center",
+            "flex items-center gap-4",
             compact ? "py-1" : "pt-4",
             className
         )}>
-            {/* Title section */}
-            <div className="flex flex-wrap items-baseline gap-3">
-                <div className="flex flex-wrap items-baseline">
-                    {subtitle && !compact && (
-                        <p className="mt-1 ml-2 truncate text-sm text-gray-500">
-                            {subtitle}
-                        </p>
-                    )}
-                    <h3 className={cn(
-                        "text-gray-900",
-                        compact ? "text-sm font-medium" : "mt-2 ml-2 text-base font-semibold"
-                    )}>
-                        {title}
-                    </h3>
-                </div>
-                {badge}
-            </div>
-
-            {/* Controls section */}
+            {/* Controls section - now first */}
             <div className="flex gap-2">
                 {/* Level controls */}
                 {showLevelControls && maxDepth > 0 && (
@@ -116,6 +98,24 @@ export function HierarchicalViewHeader({
 
                 {/* Additional actions */}
                 {actions}
+            </div>
+
+            {/* Title section - now after controls */}
+            <div className="flex flex-wrap items-baseline gap-3">
+                <div className="flex flex-wrap items-baseline">
+                    {subtitle && !compact && (
+                        <p className="mt-1 ml-2 truncate text-sm text-gray-500">
+                            {subtitle}
+                        </p>
+                    )}
+                    <h3 className={cn(
+                        "text-gray-900",
+                        compact ? "text-sm font-medium" : "mt-2 ml-2 text-base font-semibold"
+                    )}>
+                        {title}
+                    </h3>
+                </div>
+                {badge}
             </div>
         </div>
     );

@@ -60,7 +60,9 @@ class ProductionRoutingController extends Controller
             'orders' => ManufacturingOrder::with('item')
                 ->whereIn('status', ['draft', 'planned'])
                 ->whereDoesntHave('manufacturingRoute')
-                ->orderBy('order_number')
+                ->orderByRaw("SUBSTRING(order_number FROM '^[^0-9]*'), 
+                             CAST(SUBSTRING(order_number FROM '[0-9]+') AS INTEGER),
+                             SUBSTRING(order_number FROM '[^0-9]+$')")
                 ->get(),
             'routeTemplates' => ManufacturingRoute::templates()->where('is_active', true)->get(),
             'itemCategories' => ItemCategory::where('is_active', true)->orderBy('name')->get(),
@@ -84,7 +86,9 @@ class ProductionRoutingController extends Controller
             'orders' => ManufacturingOrder::with('item')
                 ->whereIn('status', ['draft', 'planned'])
                 ->whereDoesntHave('manufacturingRoute')
-                ->orderBy('order_number')
+                ->orderByRaw("SUBSTRING(order_number FROM '^[^0-9]*'), 
+                             CAST(SUBSTRING(order_number FROM '[0-9]+') AS INTEGER),
+                             SUBSTRING(order_number FROM '[^0-9]+$')")
                 ->get(),
             'workCells' => WorkCell::where('is_active', true)->get(),
             'routeTemplates' => ManufacturingRoute::templates()->where('is_active', true)->get(),
@@ -200,6 +204,18 @@ class ProductionRoutingController extends Controller
                 });
         }
 
+        // Get item categories for the form
+        $itemCategories = ItemCategory::where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'description' => $category->description,
+                ];
+            });
+
         return Inertia::render('production/routing/show', [
             'routing' => $routing,
             'effectiveSteps' => $routing->steps,
@@ -210,6 +226,7 @@ class ProductionRoutingController extends Controller
             'plants' => \App\Models\AssetHierarchy\Plant::all(['id', 'name']),
             'shifts' => \App\Models\AssetHierarchy\Shift::all(['id', 'name']),
             'manufacturers' => \App\Models\AssetHierarchy\Manufacturer::all(['id', 'name']),
+            'itemCategories' => $itemCategories,
             'can' => [
                 'update' => auth()->user()->can('update', $routing),
                 'delete' => auth()->user()->can('delete', $routing),
@@ -247,6 +264,7 @@ class ProductionRoutingController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
+            'item_category_id' => 'nullable|exists:item_categories,id',
         ]);
 
         $routing->update($validated);

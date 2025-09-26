@@ -3,11 +3,11 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { createFormAdapter } from '@/utils/form-adapters';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
-import { Badge } from '@/components/ui/badge';
 import { TextInput } from '@/components/TextInput';
 import { ItemSelect } from '@/components/ItemSelect';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
     Workflow,
@@ -16,7 +16,6 @@ import {
     Timer
 } from 'lucide-react';
 import RoutingStepsTab from '@/components/production/RoutingStepsTab';
-import RoutingStepsTableTab from '@/components/production/RoutingStepsTableTab';
 import { WorkCell, ManufacturingRoute, ManufacturingStep, RouteTemplate } from '@/types/production';
 import { Form as WorkOrderForm } from '@/types/work-order';
 
@@ -39,6 +38,11 @@ interface Props {
         id: number;
         name: string;
     }[];
+    itemCategories?: {
+        id: number;
+        name: string;
+        description?: string;
+    }[];
     openRouteBuilder?: string | null;
     can: {
         update: boolean;
@@ -47,14 +51,15 @@ interface Props {
         execute_steps: boolean;
     };
 }
-export default function RoutingShow({ routing, effectiveSteps, templates, workCells, stepTypes, forms, plants, shifts, manufacturers, openRouteBuilder, can }: Props) {
+export default function RoutingShow({ routing, effectiveSteps, templates, workCells, stepTypes, forms, plants, shifts, manufacturers, itemCategories, openRouteBuilder, can }: Props) {
     const [activeTab, setActiveTab] = useState('overview');
-    const form = useForm<FormDataType>({
+    const { data, setData, errors, processing, patch, clearErrors } = useForm<FormDataType>({
         name: routing.name || '',
         description: routing.description || '',
         manufacturing_order_id: routing.manufacturing_order?.id?.toString() || '',
         item_id: routing.item?.id?.toString() || '',
         route_template_id: routing.route_template?.id?.toString() || '',
+        item_category_id: routing.item_category_id?.toString() || '',
         is_active: routing.is_active
     });
     // Calculate route progress
@@ -80,23 +85,22 @@ export default function RoutingShow({ routing, effectiveSteps, templates, workCe
             content: <RoutingOverviewTab
                 routing={routing}
                 effectiveSteps={effectiveSteps}
-                form={form}
+                form={{
+                    data,
+                    setData,
+                    errors,
+                    clearErrors,
+                    processing,
+                    patch
+                }}
                 progressPercentage={progressPercentage}
                 completedSteps={completedSteps}
                 totalSteps={totalSteps}
                 totalEstimatedTime={totalEstimatedTime}
                 totalActualTime={totalActualTime}
                 onTabChange={setActiveTab}
-            />
-        },
-        {
-            id: 'steps-table',
-            label: 'Lista de Etapas',
-            content: <RoutingStepsTableTab
-                steps={effectiveSteps}
-                canManage={can.manage_steps}
-                canExecute={can.execute_steps}
-                routingId={routing.id}
+                canUpdate={can.update}
+                itemCategories={itemCategories}
             />
         },
         {
@@ -130,18 +134,13 @@ export default function RoutingShow({ routing, effectiveSteps, templates, workCe
             <ShowLayout
                 title={routing.name}
                 subtitle={
-                    <div className="flex items-center gap-4">
-                        {routing.manufacturing_order && (
-                            <span>
-                                Ordem: <Link href={route('production.orders.show', routing.manufacturing_order.id)} className="text-primary hover:underline">
-                                    {routing.manufacturing_order.order_number}
-                                </Link>
-                            </span>
-                        )}
-                        <Badge variant={routing.is_active ? 'default' : 'secondary'}>
-                            {routing.is_active ? 'Ativo' : 'Inativo'}
-                        </Badge>
-                    </div>
+                    routing.manufacturing_order && (
+                        <span>
+                            Ordem: <Link href={route('production.orders.show', routing.manufacturing_order.id)} className="text-primary hover:underline">
+                                {routing.manufacturing_order.order_number}
+                            </Link>
+                        </span>
+                    )
                 }
                 editRoute=""
                 tabs={tabs}
@@ -158,6 +157,7 @@ type FormDataType = {
     manufacturing_order_id: string;
     item_id: string;
     route_template_id: string;
+    item_category_id: string;
     is_active: boolean;
 };
 
@@ -169,6 +169,8 @@ interface RoutingOverviewTabProps {
         setData: <K extends keyof FormDataType>(key: K, value: FormDataType[K]) => void;
         errors: Partial<Record<keyof FormDataType, string>>;
         clearErrors: (...fields: (keyof FormDataType)[]) => void;
+        processing?: boolean;
+        patch?: (url: string, options?: { onSuccess?: () => void }) => void;
     };
     progressPercentage?: number;
     completedSteps?: number;
@@ -176,6 +178,12 @@ interface RoutingOverviewTabProps {
     totalEstimatedTime?: number;
     totalActualTime?: number;
     onTabChange: (tab: string) => void;
+    canUpdate?: boolean;
+    itemCategories?: {
+        id: number;
+        name: string;
+        description?: string;
+    }[];
 }
 
 function RoutingOverviewTab({
@@ -187,8 +195,12 @@ function RoutingOverviewTab({
     totalSteps: _totalSteps = 0,
     totalEstimatedTime: _totalEstimatedTime = 0,
     totalActualTime: _totalActualTime = 0,
-    onTabChange
+    onTabChange,
+    canUpdate = false,
+    itemCategories = []
 }: RoutingOverviewTabProps) {
+    const [isEditMode, setIsEditMode] = useState(false);
+
     const formatDuration = (minutes: number) => {
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
@@ -209,8 +221,19 @@ function RoutingOverviewTab({
         clearErrors: form.clearErrors
     });
 
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (form.patch) {
+            form.patch(route('production.routing.update', routing.id), {
+                onSuccess: () => {
+                    setIsEditMode(false);
+                },
+            });
+        }
+    };
+
     return (
-        <div className="space-y-6 py-6">
+        <form onSubmit={handleSubmit} className="space-y-6 py-6">
             {/* Process Summary Section */}
             <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -218,7 +241,7 @@ function RoutingOverviewTab({
                         icon={<Workflow className="h-5 w-5" />}
                         label="Total de Etapas"
                         value={effectiveSteps?.length || 0}
-                        onClick={() => onTabChange('steps-table')}
+                        onClick={() => onTabChange('steps')}
                         clickable={true}
                     />
                     <SummaryCard
@@ -246,7 +269,9 @@ function RoutingOverviewTab({
                         name="name"
                         label="Nome do Roteiro"
                         placeholder="Nome do roteiro"
-                        view={true}
+                        view={!isEditMode}
+                        disabled={!isEditMode || form.processing}
+                        required
                     />
                     <ItemSelect
                         label="Status"
@@ -254,9 +279,12 @@ function RoutingOverviewTab({
                             { id: 1, name: 'Ativo', value: 'true' },
                             { id: 0, name: 'Inativo', value: 'false' }
                         ]}
-                        value={routing.is_active ? '1' : '0'}
-                        onValueChange={() => { }}
-                        view={true}
+                        value={form.data.is_active ? '1' : '0'}
+                        onValueChange={(value: string) => {
+                            form.setData('is_active', value === '1');
+                        }}
+                        view={!isEditMode}
+                        disabled={!isEditMode || form.processing}
                     />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -293,12 +321,18 @@ function RoutingOverviewTab({
                 </div>
                 {/* Item Category Section */}
                 <div className="grid gap-2">
-                    <Label>Categoria de Item</Label>
-                    <div className="bg-background">
-                        <div className="rounded-md border bg-muted/20 p-2 text-sm">
-                            {routing.item_category ? routing.item_category.name : 'Todos os itens'}
-                        </div>
-                    </div>
+                    <ItemSelect
+                        label="Categoria de Item"
+                        items={itemCategories}
+                        value={form.data.item_category_id}
+                        onValueChange={(value) => form.setData('item_category_id', value)}
+                        placeholder={!isEditMode && !form.data.item_category_id ? "Aplicável a todos os itens" : "Selecione a categoria (opcional)"}
+                        error={form.errors.item_category_id}
+                        disabled={!isEditMode || form.processing}
+                        view={!isEditMode}
+                        canClear={isEditMode}
+                        searchable={true}
+                    />
                 </div>
                 {routing.route_template && (
                     <div className="grid gap-2">
@@ -310,19 +344,28 @@ function RoutingOverviewTab({
                         </div>
                     </div>
                 )}
-                {routing.description && (
-                    <div className="grid gap-2">
-                        <Label>Descrição</Label>
-                        <div className="bg-background">
+                <div className="grid gap-2">
+                    <Label>Descrição</Label>
+                    <div className="bg-background">
+                        {!isEditMode ? (
+                            <div className="rounded-md border bg-muted/20 p-2 text-sm min-h-[80px]">
+                                {form.data.description || 'Sem descrição'}
+                            </div>
+                        ) : (
                             <Textarea
-                                value={routing.description}
-                                readOnly
-                                className="bg-muted/20 resize-none"
-                                rows={3}
+                                placeholder="Descrição do roteiro"
+                                value={form.data.description}
+                                onChange={(e) => form.setData('description', e.target.value)}
+                                onBlur={() => form.clearErrors('description')}
+                                className="min-h-[80px] resize-none"
+                                disabled={form.processing}
                             />
-                        </div>
+                        )}
                     </div>
-                )}
+                    {form.errors.description && (
+                        <p className="text-sm text-destructive">{form.errors.description}</p>
+                    )}
+                </div>
             </div>
             {/* Metadata Section */}
             <div className="space-y-4">
@@ -351,7 +394,31 @@ function RoutingOverviewTab({
                     </div>
                 </div>
             </div>
-        </div>
+
+            {isEditMode && (
+                <div className="flex justify-end gap-4 pt-4">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsEditMode(false)}
+                        disabled={form.processing}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button type="submit" disabled={form.processing}>
+                        {form.processing ? 'Salvando...' : 'Salvar Alterações'}
+                    </Button>
+                </div>
+            )}
+
+            {!isEditMode && canUpdate && (
+                <div className="flex justify-end mt-6">
+                    <Button onClick={() => setIsEditMode(true)}>
+                        Editar Informações
+                    </Button>
+                </div>
+            )}
+        </form>
     );
 }
 // Steps Tab Component

@@ -20,6 +20,8 @@ import { ImageWithBlurEffect } from '@/components/production/ImageWithBlurEffect
 import { PriorityEditor } from './PriorityEditor';
 import { router } from '@inertiajs/react';
 import { toast } from 'sonner';
+import StackIcon from '@/components/stack-icon';
+import { Copy } from 'lucide-react';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: string | number | Record<string, string | number>) => string;
@@ -168,9 +170,46 @@ export function OrderCardCompact({
                         <span className="font-medium text-sm text-primary truncate select-none">
                             {order.order_number}
                         </span>
-                        <Badge variant="outline" className="text-xs shrink-0 select-none">
-                            {formatNumber(order.quantity)} {order.unit_of_measure}
-                        </Badge>
+
+                        {/* Quantity Indicator */}
+                        <TooltipProvider delayDuration={700}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                        <Copy className="h-3 w-3 text-muted-foreground" />
+                                        <span className="text-xs text-muted-foreground select-none">
+                                            {formatNumber(order.quantity)} {order.unit_of_measure}
+                                        </span>
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p className="text-xs">
+                                        Quantidade: {formatNumber(order.quantity)} {order.unit_of_measure}
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        {/* Route Steps Indicator */}
+                        {order.manufacturing_route && order.manufacturing_route.steps && (
+                            <TooltipProvider delayDuration={700}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <StackIcon className="h-3 w-3 text-muted-foreground" />
+                                            <span className="text-xs text-muted-foreground select-none">
+                                                {order.manufacturing_route.steps.length}
+                                            </span>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="text-xs">
+                                            {order.manufacturing_route.steps.length} {order.manufacturing_route.steps.length === 1 ? 'etapa' : 'etapas'} configuradas
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5 select-none">
                         {order.item && (() => {

@@ -218,23 +218,6 @@ class ItemController extends BaseSearchController
         $this->authorize('view', $item);
 
         $item->load(['category', 'createdBy', 'billOfMaterials', 'primaryBom', 'media']);
-        
-        // Log media data to check hash values
-        if ($item->media->count() > 0) {
-            foreach ($item->media as $media) {
-                \Log::info('Item media data', [
-                    'item_id' => $item->id,
-                    'media_uuid' => $media->uuid,
-                    'file_hash' => $media->file_hash,
-                    'blurhash' => $media->blurhash,
-                    'has_file_hash' => !empty($media->file_hash),
-                    'has_blurhash' => !empty($media->blurhash),
-                    'timestamp' => now()->toISOString()
-                ]);
-            }
-        } else {
-            \Log::info('No media found for item', ['item_id' => $item->id]);
-        }
 
         // Get BOMs where this item is used as a component (where-used analysis)
         $whereUsedBomsQuery = BillOfMaterial::whereHas('currentVersion.items', function ($query) use ($item) {

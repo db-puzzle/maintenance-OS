@@ -8,6 +8,7 @@ use App\Models\Production\ManufacturingRoute;
 use App\Models\Production\WorkCell;
 use App\Services\Production\ManufacturingOrderService;
 use App\Services\Production\RouteBuilderService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -237,11 +238,16 @@ class PlanningController extends Controller
         $selectedMO = $request->input('selectedMO');
 
         if ($selectedMO) {
-            // Load specific MO and its hierarchy using optimized scope
-            $parentOrder = ManufacturingOrder::findOrFail($selectedMO);
+            // Load specific MO and determine if we need to load from root
+            $selectedOrder = ManufacturingOrder::find($selectedMO);
 
-            // Use the withHierarchy scope for efficient loading
-            $query = ManufacturingOrder::withHierarchy($parentOrder->order_number);
+            if (! $selectedOrder) {
+                throw new \Exception("Manufacturing order not found: {$selectedMO}");
+            }
+
+            // Load the hierarchy using the order number pattern
+            // This will load the selected order and ALL its descendants
+            $query = ManufacturingOrder::withHierarchy($selectedOrder->order_number);
         } else {
             // Get root orders first using scopes
             $rootOrderIds = ManufacturingOrder::rootOrders()
@@ -274,11 +280,48 @@ class PlanningController extends Controller
             $query->searchByText($search);
         }
 
-        // Use the optimized scope for planning view
+        // Use the optimized scope for planning view with natural sorting
         $orders = $query
             ->forPlanningView()
-            ->orderBy('order_number')
+            ->orderByRaw("SUBSTRING(order_number FROM '^[^0-9]*'), 
+                         CAST(SUBSTRING(order_number FROM '[0-9]+') AS INTEGER),
+                         SUBSTRING(order_number FROM '[^0-9]+$')")
             ->get();
+
+        // If we have a selected MO, ensure its parent hierarchy is also loaded if needed
+        if ($selectedMO) {
+            $selectedOrder = $orders->firstWhere('id', $selectedMO);
+            if ($selectedOrder && $selectedOrder->parent_id) {
+                // Check if parent is already in the collection
+                if (! $orders->contains('id', $selectedOrder->parent_id)) {
+                    // We need to load the parent hierarchy
+                    // Find the root by traversing up
+                    $currentOrder = $selectedOrder;
+                    $parentIds = [];
+
+                    while ($currentOrder->parent_id && ! $orders->contains('id', $currentOrder->parent_id)) {
+                        $parentIds[] = $currentOrder->parent_id;
+                        $parentOrder = ManufacturingOrder::find($currentOrder->parent_id);
+                        if (! $parentOrder) {
+                            break;
+                        }
+                        $currentOrder = $parentOrder;
+                    }
+
+                    // Load all parent orders that are missing
+                    if (! empty($parentIds)) {
+                        $parentOrders = ManufacturingOrder::query()
+                            ->whereIn('id', $parentIds)
+                            ->forPlanningView()
+                            ->get();
+
+                        foreach ($parentOrders as $parentOrder) {
+                            $orders->push($parentOrder);
+                        }
+                    }
+                }
+            }
+        }
 
         // Add has_route attribute efficiently
         $orders->each(function ($order) {
@@ -286,7 +329,7 @@ class PlanningController extends Controller
                                $order->manufacturingRoute !== null;
         });
 
-        // Build hierarchy in memory
+        // Build hierarchy in memory - pass the originally selected MO ID
         return $this->buildOptimizedHierarchy($orders, $selectedMO);
     }
 
@@ -469,5 +512,193 @@ class PlanningController extends Controller
         }
 
         return $result;
+    }
+
+    /**
+     * Search manufacturing orders with advanced filtering for the selection modal.
+     */
+    public function searchOrders(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', ManufacturingOrder::class);
+
+        $query = ManufacturingOrder::query()
+            ->with([
+                'item:id,item_number,name,description',
+                'item.category:id,name',
+                'item.media',
+                'parent:id,order_number',
+                'children:id,parent_id',
+            ]);
+
+        // Search filter
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                    ->orWhereHas('item', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                            ->orWhere('item_number', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        // Root only filter (father-most)
+        if ($request->boolean('rootOnly')) {
+            $query->whereNull('parent_id');
+        }
+
+        // Status filter
+        if ($status = $request->input('status')) {
+            if (is_array($status)) {
+                $query->whereIn('status', $status);
+            } else {
+                $query->where('status', $status);
+            }
+        }
+
+        // Date range filters
+        if ($dateFrom = $request->input('createdFrom')) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo = $request->input('createdTo')) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+        if ($dueDateFrom = $request->input('dueDateFrom')) {
+            $query->whereDate('due_date', '>=', $dueDateFrom);
+        }
+        if ($dueDateTo = $request->input('dueDateTo')) {
+            $query->whereDate('due_date', '<=', $dueDateTo);
+        }
+
+        // Category filter
+        if ($categoryId = $request->input('categoryId')) {
+            $query->whereHas('item.category', function ($q) use ($categoryId) {
+                $q->where('id', $categoryId);
+            });
+        }
+
+        // Priority filter
+        if ($priority = $request->input('priority')) {
+            $query->where('priority', $priority);
+        }
+
+        // Has unplanned children filter
+        if ($request->boolean('hasUnplannedChildren')) {
+            $query->whereHas('children', function ($q) {
+                $q->whereIn('status', ['draft', 'pending']);
+            });
+        }
+
+        // Recently modified filter (last 7 days)
+        if ($request->boolean('recentlyModified')) {
+            $query->where('updated_at', '>=', now()->subDays(7));
+        }
+
+        // Sorting
+        $sortBy = $request->input('sortBy', 'created_at');
+        $sortOrder = $request->input('sortOrder', 'desc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        // Pagination
+        $perPage = $request->input('perPage', 20);
+        $results = $query->paginate($perPage);
+
+        // Transform results to include useful computed properties
+        $results->getCollection()->transform(function ($order) {
+            return [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'status' => $order->status,
+                'priority' => $order->priority,
+                'quantity' => $order->quantity,
+                'due_date' => $order->due_date,
+                'created_at' => $order->created_at,
+                'updated_at' => $order->updated_at,
+                'item' => $order->item ? [
+                    'id' => $order->item->id,
+                    'item_number' => $order->item->item_number,
+                    'name' => $order->item->name,
+                    'description' => $order->item->description,
+                    'category' => $order->item->category,
+                    'primary_image_url' => $order->item->primary_image_url,
+                    'primary_image_thumbnail_url' => $order->item->getMedia('images')->first() ? route('api.media.show-conversion', [$order->item->getMedia('images')->first()->id, 'thumb']) : null,
+                    'media' => $order->item->getMedia('images')->map(function ($media) {
+                        return [
+                            'id' => $media->id,
+                            'url' => route('api.media.show', $media->id),
+                            'thumbnail_url' => route('api.media.show-conversion', [$media->id, 'thumb']),
+                        ];
+                    }),
+                ] : null,
+                'parent' => $order->parent ? [
+                    'id' => $order->parent->id,
+                    'order_number' => $order->parent->order_number,
+                ] : null,
+                'has_children' => $order->children->isNotEmpty(),
+                'children_count' => $order->children->count(),
+                'is_root' => is_null($order->parent_id),
+                'has_route' => ! is_null($order->manufacturing_route_id),
+            ];
+        });
+
+        return response()->json($results);
+    }
+
+    /**
+     * Get recent manufacturing orders for quick access.
+     */
+    public function recentOrders(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', ManufacturingOrder::class);
+
+        $userId = $request->user()->id;
+
+        // Get recently viewed/edited orders by this user
+        // For now, we'll use recently updated orders as a proxy
+        // In a real implementation, you might track user interactions separately
+        $recentOrders = ManufacturingOrder::query()
+            ->with([
+                'item:id,item_number,name',
+                'item.category:id,name',
+                'item.media',
+            ])
+            ->whereIn('status', ['draft', 'planned'])
+            ->orderBy('updated_at', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($order) {
+                return [
+                    'id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'status' => $order->status,
+                    'priority' => $order->priority,
+                    'quantity' => $order->quantity,
+                    'due_date' => $order->due_date,
+                    'created_at' => $order->created_at,
+                    'updated_at' => $order->updated_at,
+                    'item' => $order->item ? [
+                        'id' => $order->item->id,
+                        'item_number' => $order->item->item_number,
+                        'name' => $order->item->name,
+                        'description' => $order->item->description,
+                        'category' => $order->item->category,
+                        'primary_image_url' => $order->item->primary_image_url,
+                        'primary_image_thumbnail_url' => $order->item->getMedia('images')->first() ? route('api.media.show-conversion', [$order->item->getMedia('images')->first()->id, 'thumb']) : null,
+                        'media' => $order->item->getMedia('images')->map(function ($media) {
+                            return [
+                                'id' => $media->id,
+                                'url' => route('api.media.show', $media->id),
+                                'thumbnail_url' => route('api.media.show-conversion', [$media->id, 'thumb']),
+                            ];
+                        }),
+                    ] : null,
+                    'parent' => null, // Recent orders don't need parent info for now
+                    'has_children' => false, // Simplified for recent orders
+                    'children_count' => 0,
+                    'is_root' => is_null($order->parent_id),
+                    'has_route' => ! is_null($order->manufacturing_route_id),
+                ];
+            });
+
+        return response()->json($recentOrders);
     }
 }
