@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import {
     FileText,
@@ -95,6 +95,10 @@ interface PlanningPageProps extends PageProps {
     routeTemplates: RouteTemplate[];
     workCells: WorkCell[];
     selectedMO?: number;
+    userSelection?: number[];
+    activeMO?: number | null;
+    sortField?: string;
+    sortDirection?: string;
     permissions: {
         canCreateRoute: boolean;
         canEditRoute: boolean;
@@ -105,42 +109,74 @@ interface PlanningPageProps extends PageProps {
         canApplyTemplates: boolean;
         canSaveAsTemplate: boolean;
     };
+    preservedSelection?: {
+        userSelection: number[];
+        activeMO: number | null;
+    };
+    preservedSorting?: {
+        sortField: string;
+        sortDirection: string;
+    };
 }
 
 export default function PlanningPage({
-    manufacturingOrders: initialManufacturingOrders = [],
+    manufacturingOrders = [],
     routeTemplates = [],
     workCells = [],
     selectedMO,
-    permissions
+    userSelection = [],
+    activeMO: initialActiveMO = null,
+    sortField: initialSortField = 'order_number',
+    sortDirection: initialSortDirection = 'asc',
+    permissions,
+    preservedSelection,
+    preservedSorting
 }: PlanningPageProps) {
     // Get the latest props from usePage
     const { props } = usePage<PlanningPageProps>();
 
-    // State to track manufacturingOrders updates
-    const [localManufacturingOrders, setLocalManufacturingOrders] = useState(initialManufacturingOrders);
-
-    // Update local state when props change
-    useEffect(() => {
-        if (props.manufacturingOrders) {
-            setLocalManufacturingOrders(props.manufacturingOrders);
-        }
-    }, [props.manufacturingOrders]);
-
-    // Use local state which will trigger re-renders
-    const manufacturingOrders = localManufacturingOrders;
+    // Use manufacturingOrders directly from props if available, otherwise use initial props
+    const currentManufacturingOrders = props.manufacturingOrders || manufacturingOrders;
 
 
     // Convert selectedMO to number once
     const initialSelectedMO = useMemo(() => selectedMO ? Number(selectedMO) : null, [selectedMO]);
 
+    // Initialize state from URL params or preserved selection
+    const getInitialSelectedMOs = () => {
+        if (preservedSelection?.userSelection && preservedSelection.userSelection.length > 0) {
+            return new Set(preservedSelection.userSelection.map(id => Number(id)));
+        }
+        if (userSelection && userSelection.length > 0) {
+            return new Set(userSelection.map(id => Number(id)));
+        }
+        if (initialSelectedMO) {
+            return new Set([initialSelectedMO]);
+        }
+        return new Set<number>();
+    };
+
+    const getInitialActiveMO = () => {
+        if (preservedSelection?.activeMO !== undefined) {
+            return preservedSelection.activeMO;
+        }
+        if (initialActiveMO !== null) {
+            return initialActiveMO;
+        }
+        return initialSelectedMO;
+    };
+
     // State management
-    const [selectedMOs, setSelectedMOs] = useState<Set<number>>(() => new Set(initialSelectedMO ? [initialSelectedMO] : []));
-    const [activeMO, setActiveMO] = useState<number | null>(initialSelectedMO);
+    const [selectedMOs, setSelectedMOs] = useState<Set<number>>(getInitialSelectedMOs);
+    const [activeMO, setActiveMO] = useState<number | null>(getInitialActiveMO);
     const [detailViewMode, setDetailViewMode] = useState<DetailViewMode>('route');
     const [searchQuery, setSearchQuery] = useState('');
     const [showThumbnails] = useState(true);
     const [isCompressed, setIsCompressed] = useState(false);
+
+    // Sorting state - lifted from ManufacturingOrderHierarchicalView
+    const [sortField, setSortField] = useState<string>(preservedSorting?.sortField || initialSortField);
+    const [sortDirection, setSortDirection] = useState<string>(preservedSorting?.sortDirection || initialSortDirection);
 
     // Route and MO changes stores (still needed for component props)
     const routeChangesStore = useRouteChangesStore();
@@ -163,6 +199,18 @@ export default function PlanningPage({
         }
     });
 
+    // Get current state callback
+    const getCurrentState = useCallback(() => ({
+        selectedMOs: new Set(selectedMOs),
+        activeMO: activeMO
+    }), [selectedMOs, activeMO]);
+
+    // Restore state callback
+    const restoreState = useCallback((state: { selectedMOs: Set<number>; activeMO: number | null }) => {
+        setSelectedMOs(state.selectedMOs);
+        setActiveMO(state.activeMO);
+    }, []);
+
     // Use planning changes hook for save/cancel logic
     const {
         routeSaveStatus,
@@ -171,7 +219,7 @@ export default function PlanningPage({
         saveAllChanges,
         cancelAllChanges,
         findMOInHierarchy,
-    } = usePlanningChanges(activeMO, initialSelectedMO, allowNavigation);
+    } = usePlanningChanges(activeMO, initialSelectedMO || undefined, allowNavigation, getCurrentState, restoreState, sortField, sortDirection);
 
     // Save as template state
     const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
@@ -202,20 +250,54 @@ export default function PlanningPage({
     // Handle MO selection
     const handleMOSelect = useCallback((moId: number, multiSelect: boolean = false) => {
         // No longer show dialog when switching MOs - we track changes across multiple MOs
+        let newSelection: Set<number>;
+        let newActiveMO: number | null;
+
         if (multiSelect) {
-            const newSelection = new Set(selectedMOs);
+            newSelection = new Set(selectedMOs);
             if (newSelection.has(moId)) {
                 newSelection.delete(moId);
             } else {
                 newSelection.add(moId);
             }
             setSelectedMOs(newSelection);
+            newActiveMO = activeMO;
         } else {
-            setSelectedMOs(new Set([moId]));
+            newSelection = new Set([moId]);
+            newActiveMO = moId;
+            setSelectedMOs(newSelection);
             setActiveMO(moId);
             setDetailViewMode('route');
         }
-    }, [selectedMOs]);
+
+        // Update URL with new selection and preserve sorting parameters
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // Update selection parameters
+        if (newSelection.size > 0) {
+            urlParams.set('userSelection', Array.from(newSelection).join(','));
+        } else {
+            urlParams.delete('userSelection');
+        }
+
+        if (newActiveMO !== null) {
+            urlParams.set('activeMO', newActiveMO.toString());
+        } else {
+            urlParams.delete('activeMO');
+        }
+
+        // Preserve sorting parameters
+        if (sortField) {
+            urlParams.set('sortField', sortField);
+        }
+        if (sortDirection) {
+            urlParams.set('sortDirection', sortDirection);
+        }
+
+        // Update URL without page reload
+        const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+        window.history.replaceState({}, '', newUrl);
+    }, [selectedMOs, activeMO, sortField, sortDirection]);
 
 
 
@@ -223,8 +305,8 @@ export default function PlanningPage({
     // Active MO details
     const activeMODetails = useMemo(() => {
         if (!activeMO) return null;
-        return findMOInHierarchy(manufacturingOrders, activeMO);
-    }, [activeMO, manufacturingOrders, findMOInHierarchy]);
+        return findMOInHierarchy(currentManufacturingOrders, activeMO);
+    }, [activeMO, currentManufacturingOrders, findMOInHierarchy]);
 
     // Handle route steps change
     const handleRouteStepsChange = useCallback((steps: RouteStep[]) => {
@@ -260,11 +342,11 @@ export default function PlanningPage({
 
     // Handle priority change
     const handlePriorityChange = useCallback((orderId: number, priority: number) => {
-        const order = findMOInHierarchy(manufacturingOrders, orderId);
+        const order = findMOInHierarchy(currentManufacturingOrders, orderId);
         if (order) {
             moChangesStore.trackPriorityChange(orderId, priority, order.priority || 50);
         }
-    }, [findMOInHierarchy, moChangesStore, manufacturingOrders]);
+    }, [findMOInHierarchy, moChangesStore, currentManufacturingOrders]);
 
 
     // Handle marking as planned/draft
@@ -302,6 +384,10 @@ export default function PlanningPage({
                     // Handle error silently
                 },
                 preserveState: false,
+                userSelection: Array.from(currentSelectedMOs),
+                activeMO: currentActiveMO,
+                sortField: sortField,
+                sortDirection: sortDirection
             }
         );
     }, [selectedMOs, activeMODetails, activeMO, allowNavigation]);
@@ -317,7 +403,14 @@ export default function PlanningPage({
             setShowMOSelectionModal(false); // Close the modal
 
             // Always reload the page with the new selected MO to get proper hierarchy
-            PlanningService.navigateToMO(selectedId);
+            // Pass current selection state to preserve it
+            PlanningService.navigateToMO(
+                selectedId,
+                [selectedId], // User selection becomes just the newly selected MO
+                selectedId,   // Active MO is also the newly selected MO
+                sortField,
+                sortDirection
+            );
         }
     }, []);
 
@@ -364,12 +457,18 @@ export default function PlanningPage({
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        disabled={manufacturingOrders.length === 0 || !manufacturingOrders[0].parent_id}
+                                                        disabled={currentManufacturingOrders.length === 0 || !currentManufacturingOrders[0].parent_id}
                                                         onClick={() => {
-                                                            const parentId = manufacturingOrders[0].parent_id;
+                                                            const parentId = currentManufacturingOrders[0].parent_id;
                                                             if (parentId) {
                                                                 handleMOSelect(parentId, false);
-                                                                PlanningService.navigateToMO(parentId);
+                                                                PlanningService.navigateToMO(
+                                                                    parentId,
+                                                                    Array.from(selectedMOs),
+                                                                    activeMO,
+                                                                    sortField,
+                                                                    sortDirection
+                                                                );
                                                             }
                                                         }}
                                                     >
@@ -380,9 +479,9 @@ export default function PlanningPage({
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 <p>
-                                                    {manufacturingOrders.length === 0
+                                                    {currentManufacturingOrders.length === 0
                                                         ? "No manufacturing order selected"
-                                                        : !manufacturingOrders[0].parent_id
+                                                        : !currentManufacturingOrders[0].parent_id
                                                             ? "Essa é a MO Raiz"
                                                             : "Navegar para MO-Pai"}
                                                 </p>
@@ -404,10 +503,10 @@ export default function PlanningPage({
 
                             {/* MO Tree View */}
                             <div className="flex-1 overflow-auto bg-background/30 dark:bg-background/10 [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-corner]:bg-transparent">
-                                {manufacturingOrders.length > 0 ? (
+                                {currentManufacturingOrders.length > 0 ? (
                                     <div className="min-w-fit p-4 pb-8">
                                         <ManufacturingOrderHierarchicalView
-                                            orders={manufacturingOrders as ManufacturingOrderTreeNode[]}
+                                            orders={currentManufacturingOrders as ManufacturingOrderTreeNode[]}
                                             onOrderSelect={handleMOSelect}
                                             selectedOrders={selectedMOs}
                                             showThumbnails={showThumbnails}
@@ -422,6 +521,29 @@ export default function PlanningPage({
                                                 });
                                                 return map;
                                             })()}
+                                            sortField={sortField as 'priority' | 'order_number'}
+                                            sortDirection={sortDirection as 'asc' | 'desc'}
+                                            onSortChange={(field, direction) => {
+                                                setSortField(field);
+                                                setSortDirection(direction);
+
+                                                // Update URL with new sorting parameters
+                                                const urlParams = new URLSearchParams(window.location.search);
+                                                urlParams.set('sortField', field);
+                                                urlParams.set('sortDirection', direction);
+
+                                                // Preserve other parameters
+                                                if (selectedMOs.size > 0) {
+                                                    urlParams.set('userSelection', Array.from(selectedMOs).join(','));
+                                                }
+                                                if (activeMO !== null) {
+                                                    urlParams.set('activeMO', activeMO.toString());
+                                                }
+
+                                                // Update URL without page reload
+                                                const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+                                                window.history.replaceState({}, '', newUrl);
+                                            }}
                                             routeChanges={(() => {
                                                 const map = new Map<number, { steps: Array<{ [key: string]: unknown; id: string | number; sequence: number; name: string; }> }>();
                                                 routeChangesStore.getAllChanges().forEach(change => {
@@ -636,7 +758,10 @@ export default function PlanningPage({
                     routeTemplates={routeTemplates}
                     onTemplateApplied={() => {
                         // Small delay to ensure backend has completed processing
-                        PlanningService.reloadData({ delay: 100 });
+                        PlanningService.reloadData({
+                            delay: 100,
+                            only: ['manufacturingOrders']
+                        });
                     }}
                 />
             )}

@@ -75,6 +75,10 @@ class PlanningController extends Controller
             'workCells' => $workCells,
             'permissions' => $permissions,
             'selectedMO' => $request->input('selectedMO'),
+            'userSelection' => $request->input('userSelection') ? explode(',', $request->input('userSelection')) : [],
+            'activeMO' => $request->input('activeMO') ? (int) $request->input('activeMO') : null,
+            'sortField' => $request->input('sortField', 'order_number'),
+            'sortDirection' => $request->input('sortDirection', 'asc'),
         ]);
     }
 
@@ -222,8 +226,25 @@ class PlanningController extends Controller
             // Add other transition rules as needed
         }
 
-        // Reload manufacturing orders after transition
-        return redirect()->route('production.planning', $request->except(['orderIds', 'targetState']))
+        // Reload manufacturing orders after transition, preserving selection state
+        $routeParams = $request->except(['orderIds', 'targetState']);
+
+        // Preserve user selection state if provided
+        if ($request->has('userSelection')) {
+            $routeParams['userSelection'] = $request->input('userSelection');
+        }
+        if ($request->has('activeMO')) {
+            $routeParams['activeMO'] = $request->input('activeMO');
+        }
+        // Preserve sorting state
+        if ($request->has('sortField')) {
+            $routeParams['sortField'] = $request->input('sortField');
+        }
+        if ($request->has('sortDirection')) {
+            $routeParams['sortDirection'] = $request->input('sortDirection');
+        }
+
+        return redirect()->route('production.planning', $routeParams)
             ->with('success', 'Manufacturing orders updated successfully.');
     }
 
@@ -236,43 +257,22 @@ class PlanningController extends Controller
         $search = $request->input('search');
         $selectedMO = $request->input('selectedMO');
 
-        if ($selectedMO) {
-            // Load specific MO and determine if we need to load from root
-            $selectedOrder = ManufacturingOrder::find($selectedMO);
-
-            if (! $selectedOrder) {
-                throw new \Exception("Manufacturing order not found: {$selectedMO}");
-            }
-
-            // Load the hierarchy using the order number pattern
-            // This will load the selected order and ALL its descendants
-            $query = ManufacturingOrder::withHierarchy($selectedOrder->order_number);
-        } else {
-            // Get root orders first using scopes
-            $rootOrderIds = ManufacturingOrder::rootOrders()
-                ->planningStatus()
-                ->when($search, function ($q) use ($search) {
-                    $q->searchByText($search);
-                })
-                ->pluck('id');
-
-            if ($rootOrderIds->isEmpty()) {
-                return [];
-            }
-
-            // Get all descendant IDs using order number patterns
-            $allOrderNumbers = ManufacturingOrder::whereIn('id', $rootOrderIds)
-                ->pluck('order_number');
-
-            // Build query for all orders (roots and descendants)
-            $query = ManufacturingOrder::query()
-                ->where(function ($q) use ($rootOrderIds, $allOrderNumbers) {
-                    $q->whereIn('id', $rootOrderIds);
-                    foreach ($allOrderNumbers as $orderNumber) {
-                        $q->orWhere('order_number', 'like', $orderNumber . '.%');
-                    }
-                });
+        // If no MO is selected, return empty array to prevent loading data
+        // The frontend will show the MO selection dialog
+        if (! $selectedMO) {
+            return [];
         }
+
+        // Load specific MO and determine if we need to load from root
+        $selectedOrder = ManufacturingOrder::find($selectedMO);
+
+        if (! $selectedOrder) {
+            throw new \Exception("Manufacturing order not found: {$selectedMO}");
+        }
+
+        // Load the hierarchy using the order number pattern
+        // This will load the selected order and ALL its descendants
+        $query = ManufacturingOrder::withHierarchy($selectedOrder->order_number);
 
         // Apply search filter if not already applied
         if ($search && $selectedMO) {
@@ -797,6 +797,24 @@ class PlanningController extends Controller
         // Return success and let Inertia handle the partial reload
         // The 'only' parameter in the request will ensure only manufacturingOrders are updated
         // The backend will use the selectedMO from the URL query string to maintain the same hierarchy
-        return back()->with('success', count($results) . ' priority update' . (count($results) > 1 ? 's' : '') . ' applied successfully.');
+        // Also preserve user selection state
+        $response = back()->with('success', count($results) . ' priority update' . (count($results) > 1 ? 's' : '') . ' applied successfully.');
+
+        // If userSelection, activeMO, or sorting are in the request, ensure they're preserved in the response
+        if ($request->has('userSelection') || $request->has('activeMO') || $request->has('sortField') || $request->has('sortDirection')) {
+            //dd($request->input('sortField'), $request->input('sortDirection'));
+            $response = $response->with([
+                'preservedSelection' => [
+                    'userSelection' => $request->input('userSelection') ? explode(',', $request->input('userSelection')) : [],
+                    'activeMO' => $request->input('activeMO') ? (int) $request->input('activeMO') : null,
+                ],
+                'preservedSorting' => [
+                    'sortField' => $request->input('sortField'),
+                    'sortDirection' => $request->input('sortDirection'),
+                ],
+            ]);
+        }
+
+        return $response;
     }
 }

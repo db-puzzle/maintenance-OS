@@ -104,23 +104,63 @@ export class PlanningService {
             onSuccess?: () => void;
             onError?: () => void;
             selectedMO?: number | null;
+            userSelection?: number[];
+            activeMO?: number | null;
+            sortField?: string;
+            sortDirection?: string;
+            preserveState?: boolean;
+            stateToRestore?: { selectedMOs: Set<number>; activeMO: number | null };
+            onRestoreState?: (state: { selectedMOs: Set<number>; activeMO: number | null }) => void;
         } = {}
     ): Promise<void> {
         return new Promise((resolve, reject) => {
-            const url = window.route('production.planning.orders.bulk-update-priorities');
+            // Build URL with selectedMO parameter to maintain hierarchy
+            let url = window.route('production.planning.orders.bulk-update-priorities');
+            if (options.selectedMO) {
+                // Append selectedMO as query parameter
+                const urlObj = new URL(url, window.location.origin);
+                urlObj.searchParams.set('selectedMO', options.selectedMO.toString());
+
+                // Add user selection state to URL
+                if (options.userSelection && options.userSelection.length > 0) {
+                    urlObj.searchParams.set('userSelection', options.userSelection.join(','));
+                }
+
+                if (options.activeMO !== null && options.activeMO !== undefined) {
+                    urlObj.searchParams.set('activeMO', options.activeMO.toString());
+                }
+
+                // Add sorting state to URL
+                if (options.sortField) {
+                    urlObj.searchParams.set('sortField', options.sortField);
+                }
+
+                if (options.sortDirection) {
+                    urlObj.searchParams.set('sortDirection', options.sortDirection);
+                }
+
+                url = urlObj.toString();
+            }
 
             router.post(
                 url,
                 {
                     ...params,
-                    // Don't send selectedMO in the body - let the backend use the URL parameter
-                    // This ensures we get the same hierarchy back
+                    // Include selection state in body as well for backend processing
+                    userSelection: options.userSelection?.join(','),
+                    activeMO: options.activeMO,
+                    sortField: options.sortField,
+                    sortDirection: options.sortDirection
                 },
                 {
                     preserveScroll: true,
-                    preserveState: true, // Preserve component state (including selection)
-                    only: ['manufacturingOrders'], // Only update this specific prop
+                    preserveState: options.preserveState ?? false, // Default to false like bulkTransition
+                    only: ['manufacturingOrders', 'selectedMO', 'userSelection', 'activeMO', 'preservedSelection', 'sortField', 'sortDirection', 'preservedSorting'], // Include selection and sorting state in the response
                     onSuccess: () => {
+                        // Restore state if provided
+                        if (options.stateToRestore && options.onRestoreState) {
+                            options.onRestoreState(options.stateToRestore);
+                        }
                         options.onSuccess?.();
                         resolve();
                     },
@@ -142,17 +182,40 @@ export class PlanningService {
             onSuccess?: () => void;
             onError?: () => void;
             preserveState?: boolean;
+            userSelection?: number[];
+            activeMO?: number | null;
+            sortField?: string;
+            sortDirection?: string;
         } = {}
     ): Promise<void> {
+        const requestData: any = { ...params };
+
+        // Include selection state if provided
+        if (options.userSelection && options.userSelection.length > 0) {
+            requestData.userSelection = options.userSelection.join(',');
+        }
+
+        if (options.activeMO !== null && options.activeMO !== undefined) {
+            requestData.activeMO = options.activeMO;
+        }
+
+        if (options.sortField) {
+            requestData.sortField = options.sortField;
+        }
+
+        if (options.sortDirection) {
+            requestData.sortDirection = options.sortDirection;
+        }
+
         router.post(
             route('production.planning.orders.bulk-transition'),
-            params,
+            requestData,
             {
                 onSuccess: options.onSuccess,
                 onError: options.onError,
                 preserveState: options.preserveState ?? false,
                 preserveScroll: true,
-                only: ['manufacturingOrders'],
+                only: ['manufacturingOrders', 'userSelection', 'activeMO', 'sortField', 'sortDirection'],
             }
         );
     }
@@ -160,8 +223,32 @@ export class PlanningService {
     /**
      * Navigate to planning page with selected MO
      */
-    static navigateToMO(moId: number): void {
-        router.visit(route('production.planning.index', { selectedMO: moId }), {
+    static navigateToMO(
+        moId: number,
+        userSelection?: number[],
+        activeMO?: number | null,
+        sortField?: string,
+        sortDirection?: string
+    ): void {
+        const params: any = { selectedMO: moId };
+
+        if (userSelection && userSelection.length > 0) {
+            params.userSelection = userSelection.join(',');
+        }
+
+        if (activeMO !== null && activeMO !== undefined) {
+            params.activeMO = activeMO;
+        }
+
+        if (sortField) {
+            params.sortField = sortField;
+        }
+
+        if (sortDirection) {
+            params.sortDirection = sortDirection;
+        }
+
+        router.visit(route('production.planning.index', params), {
             preserveState: false,
             preserveScroll: true
         });

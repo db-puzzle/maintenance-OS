@@ -23,7 +23,11 @@ interface UsePlanningChangesReturn {
 export function usePlanningChanges(
     activeMO: number | null,
     selectedMO: number | undefined,
-    allowNavigation: () => void
+    allowNavigation: () => void,
+    getCurrentState: () => { selectedMOs: Set<number>; activeMO: number | null },
+    restoreState: (state: { selectedMOs: Set<number>; activeMO: number | null }) => void,
+    sortField?: string,
+    sortDirection?: string
 ): UsePlanningChangesReturn {
     // Save status state
     const [routeSaveStatus, setRouteSaveStatus] = useState<SaveStatus>('idle');
@@ -88,6 +92,9 @@ export function usePlanningChanges(
 
         setMOSaveStatus('saving');
 
+        // Capture current state before the request
+        const stateToRestore = getCurrentState();
+
         try {
             // Allow navigation for the save request
             allowNavigation();
@@ -101,6 +108,13 @@ export function usePlanningChanges(
                 },
                 {
                     selectedMO: activeMO || selectedMO,
+                    userSelection: Array.from(stateToRestore.selectedMOs),
+                    activeMO: stateToRestore.activeMO,
+                    sortField: sortField,
+                    sortDirection: sortDirection,
+                    preserveState: false, // Use manual state management
+                    stateToRestore: stateToRestore,
+                    onRestoreState: restoreState,
                     onSuccess: () => {
                         // Clear changes after successful save
                         moChangesStore.clearChanges();
@@ -120,7 +134,7 @@ export function usePlanningChanges(
             toast.error('Failed to update priorities');
             setTimeout(() => setMOSaveStatus('idle'), 3000);
         }
-    }, [moChangesStore, allowNavigation, activeMO, selectedMO]);
+    }, [moChangesStore, allowNavigation, activeMO, selectedMO, getCurrentState, restoreState]);
 
     // Save all changes
     const saveAllChanges = useCallback(async () => {

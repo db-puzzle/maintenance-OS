@@ -8,7 +8,6 @@ import {
     XCircle,
     Eye,
     List,
-    RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -75,6 +74,9 @@ interface ManufacturingOrderHierarchicalViewProps {
     onPriorityChange?: (orderId: number, priority: number) => void;
     priorityChanges?: Map<number, { priority: number }>;
     routeChanges?: Map<number, { steps: Array<{ id: string | number; sequence: number; name: string;[key: string]: unknown }> }>;
+    sortField?: SortField;
+    sortDirection?: SortDirection;
+    onSortChange?: (field: SortField, direction: SortDirection) => void;
 }
 
 export default function ManufacturingOrderHierarchicalView({
@@ -90,7 +92,10 @@ export default function ManufacturingOrderHierarchicalView({
     compactMode = false,
     onPriorityChange,
     priorityChanges,
-    routeChanges
+    routeChanges,
+    sortField: externalSortField,
+    sortDirection: externalSortDirection,
+    onSortChange
 }: ManufacturingOrderHierarchicalViewProps) {
     const { props } = usePage<{ auth: { permissions?: string[] } }>();
     const auth = props.auth;
@@ -104,11 +109,11 @@ export default function ManufacturingOrderHierarchicalView({
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [selectedOrderForAction, setSelectedOrderForAction] = useState<ManufacturingOrderTreeNode | null>(null);
 
-    // Sorting state
-    const [sortField, setSortField] = useState<SortField>('priority');
-    const [sortDirection, setSortDirection] = useState<SortDirection>('desc'); // Higher priority first by default
-    const [hasUnsortedChanges, setHasUnsortedChanges] = useState(false);
-    const [lastSortTimestamp, setLastSortTimestamp] = useState(Date.now());
+    // Sorting state - use external props if provided, otherwise use internal state
+    const [internalSortField, setInternalSortField] = useState<SortField>('priority');
+    const [internalSortDirection, setInternalSortDirection] = useState<SortDirection>('desc');
+    const sortField = externalSortField ?? internalSortField;
+    const sortDirection = externalSortDirection ?? internalSortDirection;
 
     // Use tree expansion hook
     const {
@@ -149,39 +154,25 @@ export default function ManufacturingOrderHierarchicalView({
     // Store the initial orders when component mounts or when sort is applied
     const [sortedOrdersSnapshot, setSortedOrdersSnapshot] = useState<ManufacturingOrderTreeNode[]>(() => sortOrders(orders));
 
-    // Apply sorting only when explicitly triggered
+    // Apply sorting when sort field/direction changes or orders change
     useEffect(() => {
         setSortedOrdersSnapshot(sortOrders(orders));
-        setHasUnsortedChanges(false);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sortField, sortDirection, lastSortTimestamp]); // Deliberately exclude orders and sortOrders
-
-    // Track changes to orders that might affect sorting
-    useEffect(() => {
-        // When orders change, check if we need to indicate unsorted changes
-        // This will be triggered when priorities are updated
-        // Don't re-sort automatically, just indicate that changes exist
-        setHasUnsortedChanges(true);
-    }, [orders]);
+    }, [sortField, sortDirection, orders, sortOrders]);
 
     // Sorting handlers
     const handleSortChange = (field: SortField) => {
-        if (field === sortField) {
-            // Toggle direction if same field
-            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-        } else {
-            // Set new field with default direction
-            setSortField(field);
-            setSortDirection(field === 'priority' ? 'desc' : 'asc');
-        }
-        setLastSortTimestamp(Date.now());
-        setHasUnsortedChanges(false);
-    };
+        const newDirection = field === sortField
+            ? (sortDirection === 'asc' ? 'desc' : 'asc')
+            : (field === 'priority' ? 'desc' : 'asc');
 
-    const handleRefreshSort = () => {
-        setLastSortTimestamp(Date.now());
-        setHasUnsortedChanges(false);
-        toast.success('Sort order refreshed');
+        if (onSortChange) {
+            // If external handler provided, use it
+            onSortChange(field, newDirection);
+        } else {
+            // Otherwise use internal state
+            setInternalSortField(field);
+            setInternalSortDirection(newDirection);
+        }
     };
 
     // Handlers
@@ -633,84 +624,50 @@ export default function ManufacturingOrderHierarchicalView({
 
     // Sorting controls component
     const sortingControls = (
-        <div className="flex items-center gap-1">
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                            "h-8 gap-1",
-                            compactMode && "h-7 text-xs"
-                        )}
-                    >
-                        <span>
-                            {sortField === 'priority' ? 'Priority' : 'Order Number'}
-                            {' '}
-                            {sortDirection === 'asc' ? '↑' : '↓'}
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                        "h-8 gap-1",
+                        compactMode && "h-7 text-xs"
+                    )}
+                >
+                    <span>
+                        {sortField === 'priority' ? 'Priority' : 'Order Number'}
+                        {' '}
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                    </span>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
+                    Sort by
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleSortChange('priority')}>
+                    <span className={cn(sortField === 'priority' && "font-semibold")}>
+                        Priority
+                    </span>
+                    {sortField === 'priority' && (
+                        <span className="ml-auto text-xs">
+                            {sortDirection === 'desc' ? 'High → Low' : 'Low → High'}
                         </span>
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
-                        Sort by
-                    </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleSortChange('priority')}>
-                        <span className={cn(sortField === 'priority' && "font-semibold")}>
-                            Priority
+                    )}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSortChange('order_number')}>
+                    <span className={cn(sortField === 'order_number' && "font-semibold")}>
+                        Order Number
+                    </span>
+                    {sortField === 'order_number' && (
+                        <span className="ml-auto text-xs">
+                            {sortDirection === 'asc' ? 'A → Z' : 'Z → A'}
                         </span>
-                        {sortField === 'priority' && (
-                            <span className="ml-auto text-xs">
-                                {sortDirection === 'desc' ? 'High → Low' : 'Low → High'}
-                            </span>
-                        )}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleSortChange('order_number')}>
-                        <span className={cn(sortField === 'order_number' && "font-semibold")}>
-                            Order Number
-                        </span>
-                        {sortField === 'order_number' && (
-                            <span className="ml-auto text-xs">
-                                {sortDirection === 'asc' ? 'A → Z' : 'Z → A'}
-                            </span>
-                        )}
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className={cn(
-                                "h-8 w-8 relative",
-                                compactMode && "h-7 w-7"
-                            )}
-                            onClick={handleRefreshSort}
-                        >
-                            <RefreshCw className={cn(
-                                "h-3.5 w-3.5",
-                                compactMode && "h-3 w-3"
-                            )} />
-                            {hasUnsortedChanges && (
-                                <span className="absolute -top-1 -right-1 h-2 w-2 bg-destructive rounded-full" />
-                            )}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>
-                            {hasUnsortedChanges
-                                ? "Priority changes detected. Click to re-apply sort."
-                                : "Refresh sort order"
-                            }
-                        </p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-        </div>
+                    )}
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 
     return (
