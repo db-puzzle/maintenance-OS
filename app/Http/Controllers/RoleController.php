@@ -27,7 +27,8 @@ class RoleController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Role::with(['users']);
+        $query = Role::with(['users'])
+            ->withCount(['users', 'permissions']);
 
         // Apply filters
         if ($request->filled('search')) {
@@ -37,19 +38,38 @@ class RoleController extends Controller
         if ($request->filled('type')) {
             if ($request->type === 'system') {
                 $query->system();
-            } else {
+            } elseif ($request->type === 'custom') {
                 $query->custom();
             }
         }
 
-        $roles = $query->orderBy('is_system', 'desc')
-            ->orderBy('name')
-            ->paginate(20)
+        // Apply sorting
+        $sortField = $request->get('sort', 'name');
+        $sortDirection = $request->get('direction', 'asc');
+
+        // Map frontend sort fields to database columns
+        $sortableFields = [
+            'name' => 'name',
+            'type' => 'is_system',
+            'users_count' => 'users_count',
+            'permissions_count' => 'permissions_count',
+            'assignments_count' => 'assignments_count',
+        ];
+
+        if (isset($sortableFields[$sortField])) {
+            $query->orderBy($sortableFields[$sortField], $sortDirection);
+        } else {
+            $query->orderBy('is_system', 'desc')
+                ->orderBy('name');
+        }
+
+        $perPage = $request->get('per_page', 10);
+        $roles = $query->paginate($perPage)
             ->withQueryString();
 
         return Inertia::render('settings/roles/index', [
             'roles' => RoleResource::collection($roles),
-            'filters' => $request->only(['search', 'type']),
+            'filters' => $request->only(['search', 'type', 'sort', 'direction', 'per_page']),
             'can' => [
                 'create' => auth()->user()->can('roles.create'),
                 'viewAny' => auth()->user()->can('roles.viewAny'),
@@ -124,14 +144,18 @@ class RoleController extends Controller
     /**
      * Show role details.
      */
-    public function show(Role $role)
+    public function show(Request $request, Role $role)
     {
         $this->authorize('view', $role);
 
         $role->load(['permissions', 'users']);
 
+        // Create a new request with include parameter for the resource
+        $resourceRequest = request()->duplicate();
+        $resourceRequest->query->set('include', 'permissions,users');
+
         return Inertia::render('settings/roles/show', [
-            'role' => new RoleResource($role->loadMissing('permissions', 'users')),
+            'role' => (new RoleResource($role))->toArray($resourceRequest),
             'can' => [
                 'update' => auth()->user()->can('update', $role),
                 'delete' => auth()->user()->can('delete', $role),

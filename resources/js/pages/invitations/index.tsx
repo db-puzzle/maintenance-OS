@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Link, router, Head } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, MoreHorizontal, XCircle, RefreshCw, Copy, Eye, Trash2 } from 'lucide-react';
+import { MoreHorizontal, XCircle, RefreshCw, Copy, Eye, Trash2, Users } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
-import PermissionGuard from '@/components/PermissionGuard';
+import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityPagination } from '@/components/shared/EntityPagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,15 +39,19 @@ import { toast } from 'sonner';
 import { ColumnConfig } from '@/types/shared';
 import CreateInvitationDialog from '@/components/users/CreateInvitationDialog';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
+
+// Declare the global route function from Ziggy
+declare const route: (name: string, params?: Record<string, string | number>) => string;
+
 interface Invitation extends Record<string, unknown> {
     id: number;
     email: string;
     token: string;
     url: string;
-    invited_by: {
+    inviter: {
         id: number;
         name: string;
-    };
+    } | null;
     accepted_at: string | null;
     revoked_at: string | null;
     expires_at: string;
@@ -142,10 +147,8 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
         open: false,
         invitation: null,
     });
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        router.get(route('invitations.index'), { search, status }, { preserveState: true });
-    };
+    const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
+
     const handleStatusChange = (value: string) => {
         setStatus(value);
         router.get(route('invitations.index'), { search, status: value }, { preserveState: true });
@@ -192,11 +195,11 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
             sortable: true,
         },
         {
-            key: 'invited_by',
+            key: 'inviter',
             label: 'Convidado por',
             render: (value: unknown) => {
-                const invitedBy = value as { name: string } | null;
-                return invitedBy?.name || '-';
+                const inviter = value as { name: string } | null;
+                return inviter?.name || '-';
             },
         },
         {
@@ -224,7 +227,10 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
     const renderActions = (row: Invitation) => {
         const invitation = row;
         return (
-            <DropdownMenu>
+            <DropdownMenu
+                open={dropdownOpen === invitation.id}
+                onOpenChange={(open) => setDropdownOpen(open ? invitation.id : null)}
+            >
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon">
                         <MoreHorizontal className="h-4 w-4" />
@@ -232,7 +238,10 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => setSelectedInvitation(invitation)}>
+                    <DropdownMenuItem onClick={() => {
+                        setDropdownOpen(null); // Close dropdown first
+                        setSelectedInvitation(invitation);
+                    }}>
                         <Eye className="mr-2 h-4 w-4" />
                         Ver detalhes
                     </DropdownMenuItem>
@@ -240,18 +249,30 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
                         <>
                             <DropdownMenuSeparator />
                             {invitation.can.resend && (
-                                <DropdownMenuItem onClick={() => handleResend(invitation)}>
+                                <DropdownMenuItem onClick={() => {
+                                    setDropdownOpen(null); // Close dropdown first
+                                    handleResend(invitation);
+                                }}>
                                     <RefreshCw className="mr-2 h-4 w-4" />
                                     Reenviar email
                                 </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onClick={() => copyInvitationLink(invitation)}>
+                            <DropdownMenuItem onClick={() => {
+                                setDropdownOpen(null); // Close dropdown first
+                                copyInvitationLink(invitation);
+                            }}>
                                 <Copy className="mr-2 h-4 w-4" />
                                 Copiar link
                             </DropdownMenuItem>
                             {invitation.can.revoke && (
                                 <DropdownMenuItem
-                                    onClick={() => setRevokeDialog({ open: true, invitation })}
+                                    onClick={() => {
+                                        setDropdownOpen(null); // Close dropdown first
+                                        // Use setTimeout to ensure dropdown is fully closed before opening dialog
+                                        setTimeout(() => {
+                                            setRevokeDialog({ open: true, invitation });
+                                        }, 0);
+                                    }}
                                     className="text-destructive"
                                 >
                                     <XCircle className="mr-2 h-4 w-4" />
@@ -264,7 +285,13 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
                         <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                                onClick={() => setDeleteDialog({ open: true, invitation })}
+                                onClick={() => {
+                                    setDropdownOpen(null); // Close dropdown first
+                                    // Use setTimeout to ensure dropdown is fully closed before opening dialog
+                                    setTimeout(() => {
+                                        setDeleteDialog({ open: true, invitation });
+                                    }, 0);
+                                }}
                                 className="text-destructive"
                             >
                                 <Trash2 className="mr-2 h-4 w-4" />
@@ -278,62 +305,88 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
     };
     const breadcrumbs = [
         { title: 'Home', href: '/home' },
-        { title: 'Usuários', href: '#' },
+        { title: 'Usuários', href: '/users' },
         { title: 'Convites', href: '/invitations' },
     ];
+
+    // Prepare pagination data
+    const pagination = invitations.meta ? {
+        current_page: invitations.meta.current_page as number,
+        last_page: invitations.meta.last_page as number,
+        per_page: invitations.meta.per_page as number,
+        total: invitations.meta.total as number,
+        from: invitations.meta.from as number | null,
+        to: invitations.meta.to as number | null,
+    } : {
+        current_page: 1,
+        last_page: 1,
+        per_page: 10,
+        total: invitations.data.length,
+        from: 1,
+        to: invitations.data.length,
+    };
+
+    const handlePageChange = (page: number) => {
+        router.get(route('invitations.index'), { search, status, page }, { preserveState: true, preserveScroll: true });
+    };
+
+    const handlePerPageChange = (perPage: number) => {
+        router.get(route('invitations.index'), { search, status, per_page: perPage, page: 1 }, { preserveState: true, preserveScroll: true });
+    };
+
+    const handleSearchChange = (value: string) => {
+        setSearch(value);
+        router.get(route('invitations.index'), { search: value, status }, { preserveState: true });
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Convites de Usuário" />
-            <div className="bg-background flex-shrink-0 border-b">
-                <div className="px-6 py-4">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h2 className="text-2xl font-semibold">Convites de Usuário</h2>
-                            <p className="text-sm text-muted-foreground">
-                                Gerencie convites para novos usuários do sistema
-                            </p>
+
+            <ListLayout
+                title="Convites de Usuário"
+                description="Gerencie convites para novos usuários do sistema"
+                searchPlaceholder="Buscar por email..."
+                searchValue={search}
+                onSearchChange={handleSearchChange}
+                onCreateClick={() => setShowCreateDialog(true)}
+                createButtonText="Convidar Novo Usuário"
+                actions={
+                    <div className="flex items-center gap-2">
+                        <Button asChild variant="outline" size="sm">
+                            <Link href={route('users.index')}>
+                                <Users className="mr-2 h-4 w-4" />
+                                Gerenciar Usuários
+                            </Link>
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="-mt-4 space-y-4">
+                    {/* Stats */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                        <div className="rounded-lg bg-white p-4 shadow">
+                            <div className="text-2xl font-bold">{stats.total}</div>
+                            <div className="text-sm text-gray-500">Total de convites</div>
                         </div>
-                        <PermissionGuard permission="users.invite">
-                            <Button onClick={() => setShowCreateDialog(true)}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Convidar Novo Usuário
-                            </Button>
-                        </PermissionGuard>
+                        <div className="rounded-lg bg-white p-4 shadow">
+                            <div className="text-2xl font-bold text-blue-600">{stats.pending}</div>
+                            <div className="text-sm text-gray-500">Pendentes</div>
+                        </div>
+                        <div className="rounded-lg bg-white p-4 shadow">
+                            <div className="text-2xl font-bold text-green-600">{stats.accepted}</div>
+                            <div className="text-sm text-gray-500">Aceitos</div>
+                        </div>
+                        <div className="rounded-lg bg-white p-4 shadow">
+                            <div className="text-2xl font-bold text-yellow-600">{stats.expired}</div>
+                            <div className="text-sm text-gray-500">Expirados</div>
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div className="container mx-auto py-6 px-6">
-                {/* Stats */}
-                <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
-                    <div className="rounded-lg bg-white p-4 shadow">
-                        <div className="text-2xl font-bold">{stats.total}</div>
-                        <div className="text-sm text-gray-500">Total de convites</div>
-                    </div>
-                    <div className="rounded-lg bg-white p-4 shadow">
-                        <div className="text-2xl font-bold text-blue-600">{stats.pending}</div>
-                        <div className="text-sm text-gray-500">Pendentes</div>
-                    </div>
-                    <div className="rounded-lg bg-white p-4 shadow">
-                        <div className="text-2xl font-bold text-green-600">{stats.accepted}</div>
-                        <div className="text-sm text-gray-500">Aceitos</div>
-                    </div>
-                    <div className="rounded-lg bg-white p-4 shadow">
-                        <div className="text-2xl font-bold text-yellow-600">{stats.expired}</div>
-                        <div className="text-sm text-gray-500">Expirados</div>
-                    </div>
-                </div>
-                {/* Filters */}
-                <div className="mb-6">
-                    <form onSubmit={handleSearch} className="flex flex-col gap-4 sm:flex-row">
-                        <Input
-                            type="search"
-                            placeholder="Buscar por email..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="sm:max-w-xs"
-                        />
+
+                    {/* Filters */}
+                    <div className="grid gap-4 md:grid-cols-2">
                         <Select value={status} onValueChange={handleStatusChange}>
-                            <SelectTrigger className="sm:max-w-xs">
+                            <SelectTrigger>
                                 <SelectValue placeholder="Filtrar por status" />
                             </SelectTrigger>
                             <SelectContent>
@@ -344,38 +397,28 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
                                 <SelectItem value="revoked">Revogados</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Button type="submit">Buscar</Button>
-                    </form>
-                </div>
-                {/* Table */}
-                <div className="rounded-lg bg-white shadow">
+                    </div>
+
+                    {/* Table */}
                     <EntityDataTable
                         data={invitations.data}
                         columns={columns}
                         actions={renderActions}
                         emptyMessage="Nenhum convite encontrado."
+                        maxHeight="calc(100vh - 400px)"
                     />
+
+                    {/* Pagination */}
+                    {pagination.last_page > 1 && (
+                        <EntityPagination
+                            pagination={pagination}
+                            onPageChange={handlePageChange}
+                            onPerPageChange={handlePerPageChange}
+                            perPageOptions={[10, 20, 30, 50, 100]}
+                        />
+                    )}
                 </div>
-                {/* Pagination */}
-                {invitations.links && invitations.links.length > 3 && (
-                    <div className="mt-4 flex justify-center">
-                        <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm">
-                            {invitations.links.map((link, index) => (
-                                <Link
-                                    key={index}
-                                    href={link.url || '#'}
-                                    className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${link.active
-                                        ? 'z-10 bg-primary text-white'
-                                        : 'bg-white text-gray-500 hover:bg-gray-50'
-                                        } ${index === 0 ? 'rounded-l-md' : ''} ${index === invitations.links.length - 1 ? 'rounded-r-md' : ''
-                                        } ${!link.url ? 'cursor-not-allowed opacity-50' : ''}`}
-                                    dangerouslySetInnerHTML={{ __html: link.label }}
-                                />
-                            ))}
-                        </nav>
-                    </div>
-                )}
-            </div>
+            </ListLayout>
             {/* Revoke Dialog */}
             <AlertDialog open={revokeDialog.open} onOpenChange={(open) => setRevokeDialog({ open, invitation: null })}>
                 <AlertDialogContent>
@@ -431,7 +474,7 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
 
                     return new Promise((resolve, reject) => {
                         router.delete(
-                            route('invitations.destroy', deleteDialog.invitation.id),
+                            route('invitations.destroy', deleteDialog.invitation!.id),
                             {
                                 onSuccess: () => {
                                     setDeleteDialog({ open: false, invitation: null });
@@ -481,7 +524,7 @@ function InvitationDetailsModal({
                     </div>
                     <div>
                         <div className="text-sm font-medium text-gray-500">Convidado por</div>
-                        <div className="mt-1">{invitation.invited_by.name}</div>
+                        <div className="mt-1">{invitation.inviter?.name || 'Sistema'}</div>
                     </div>
                     <div>
                         <div className="text-sm font-medium text-gray-500">Status</div>

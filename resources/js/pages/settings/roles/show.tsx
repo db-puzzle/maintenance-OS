@@ -1,14 +1,12 @@
 import { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
+import ShowLayout from '@/layouts/show-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import {
-    ArrowLeft,
     Edit,
     Copy,
     Shield,
@@ -17,11 +15,12 @@ import {
     Building,
     MapPin,
     Grid3X3,
-    Package
+    Package,
+    History
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { type BreadcrumbItem } from '@/types';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import EmptyCard from '@/components/ui/empty-card';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
@@ -83,7 +82,7 @@ interface Props {
 
 export default function RoleShow({ role, can }: Props) {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState('overview');
+    const [isCompressed, setIsCompressed] = useState(false);
 
     if (!role) {
         return (
@@ -110,7 +109,7 @@ export default function RoleShow({ role, can }: Props) {
         },
         {
             title: role.display_name || role.name,
-            href: '#', // Current page, no need to link
+            href: '',
         },
     ];
 
@@ -136,115 +135,92 @@ export default function RoleShow({ role, can }: Props) {
         });
     };
 
-    const additionalActions = [];
-    if (can.duplicate) {
-        additionalActions.push({
-            label: 'Duplicate',
-            icon: <Copy className="h-4 w-4" />,
-            onClick: handleDuplicate,
-        });
-    }
-
     const globalPermissions = role.permissions?.filter(p => p.is_global) || [];
     const scopedPermissions = role.permissions?.filter(p => p.is_scoped) || [];
+
+    const tabs = [
+        {
+            id: 'overview',
+            label: 'Overview',
+            content: <RoleOverview role={role} />,
+        },
+        {
+            id: 'permissions',
+            label: `Permissions (${role.permissions_count})`,
+            content: (
+                <RolePermissions
+                    role={role}
+                    globalPermissions={globalPermissions}
+                    scopedPermissions={scopedPermissions}
+                    canUpdate={can.update && role.can_be_modified}
+                />
+            ),
+        },
+        {
+            id: 'users',
+            label: `Users (${role.users_count})`,
+            content: (
+                <RoleUsers
+                    role={role}
+                    users={role.users || []}
+                    canAssign={can.assign}
+                />
+            ),
+        },
+        {
+            id: 'history',
+            label: 'History',
+            content: <RoleHistory roleId={role.id} />,
+        },
+    ];
+
+    const actions = (
+        <>
+            {can.update && role.can_be_modified && (
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.visit(route('roles.edit', { role: role.id }))}
+                >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Role
+                </Button>
+            )}
+            {can.duplicate && (
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDuplicate}
+                >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Duplicate
+                </Button>
+            )}
+            {can.delete && role.can_be_deleted && (
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDeleteDialogOpen(true)}
+                >
+                    Delete
+                </Button>
+            )}
+        </>
+    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Role: ${role.display_name || role.name}`} />
 
-            <div className="px-4 sm:px-6 lg:px-8">
-                <div className="space-y-6">
-                    {/* Header */}
-                    <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                asChild
-                            >
-                                <Link href={route('roles.index')}>
-                                    <ArrowLeft className="h-4 w-4" />
-                                </Link>
-                            </Button>
-                            <div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-3xl">{role.icon || '👤'}</span>
-                                    <h1 className="text-2xl font-semibold">
-                                        {role.display_name || role.name}
-                                    </h1>
-                                    {role.is_administrator && (
-                                        <Badge variant="secondary">Administrator</Badge>
-                                    )}
-                                    {role.is_system && (
-                                        <Badge variant="outline">System Role</Badge>
-                                    )}
-                                </div>
-                                {role.description && (
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        {role.description}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {can.update && role.can_be_modified && (
-                                <Button asChild>
-                                    <Link href={route('roles.edit', { role: role.id })}>
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        Edit Role
-                                    </Link>
-                                </Button>
-                            )}
-                            {(can.update || can.delete || can.duplicate) && (
-                                <EntityActionDropdown
-                                    onEdit={can.update && role.can_be_modified ? () => router.visit(route('roles.edit', { role: role.id })) : undefined}
-                                    onDelete={can.delete && role.can_be_deleted ? () => setDeleteDialogOpen(true) : undefined}
-                                    additionalActions={additionalActions}
-                                />
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Content */}
-                    <Tabs value={activeTab} onValueChange={setActiveTab}>
-                        <TabsList>
-                            <TabsTrigger value="overview">Overview</TabsTrigger>
-                            <TabsTrigger value="permissions">
-                                Permissions ({role.permissions_count})
-                            </TabsTrigger>
-                            <TabsTrigger value="users">
-                                Users ({role.users_count})
-                            </TabsTrigger>
-                            <TabsTrigger value="history">History</TabsTrigger>
-                        </TabsList>
-
-                        <TabsContent value="overview" className="mt-6">
-                            <RoleOverview role={role} />
-                        </TabsContent>
-
-                        <TabsContent value="permissions" className="mt-6">
-                            <RolePermissions
-                                role={role}
-                                globalPermissions={globalPermissions}
-                                scopedPermissions={scopedPermissions}
-                                canUpdate={can.update && role.can_be_modified}
-                            />
-                        </TabsContent>
-
-                        <TabsContent value="users" className="mt-6">
-                            <RoleUsers
-                                role={role}
-                                users={role.users || []}
-                                canAssign={can.assign}
-                            />
-                        </TabsContent>
-
-                        <TabsContent value="history" className="mt-6">
-                            <RoleHistory roleId={role.id} />
-                        </TabsContent>
-                    </Tabs>
-                </div>
-            </div>
+            <ShowLayout
+                title={role.display_name || role.name}
+                subtitle={`${role.is_system ? 'System Role' : 'Custom Role'} • ${role.is_administrator ? 'Administrator' : 'Regular Role'} • ${role.requires_entity ? 'Entity-based' : 'Global'}`}
+                editRoute=""
+                tabs={tabs}
+                defaultCompressed={isCompressed}
+                onCompressedChange={setIsCompressed}
+                actions={actions}
+            />
 
             <EntityDeleteDialog
                 open={deleteDialogOpen}
@@ -258,13 +234,12 @@ export default function RoleShow({ role, can }: Props) {
 
 function RoleOverview({ role }: { role: Role }) {
     return (
-        <div className="grid gap-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Role Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+        <div className="py-8">
+            <div className="space-y-6">
+                {/* Role Information */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Role Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <p className="text-sm text-muted-foreground">Role Type</p>
                             <p className="font-medium">{role.is_system ? 'System Role' : 'Custom Role'}</p>
@@ -288,50 +263,42 @@ function RoleOverview({ role }: { role: Role }) {
                             </p>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Permissions Summary</CardTitle>
-                    <CardDescription>
-                        This role has {role.permissions_count} permissions in total
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <Card>
-                            <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-2xl font-semibold">{role.global_permissions_count}</p>
-                                        <p className="text-sm text-muted-foreground">Global Permissions</p>
-                                    </div>
-                                    <Key className="h-8 w-8 text-muted-foreground" />
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-2xl font-semibold">{role.scoped_permissions_count}</p>
-                                        <p className="text-sm text-muted-foreground">Entity-Scoped Permissions</p>
-                                    </div>
-                                    <MapPin className="h-8 w-8 text-muted-foreground" />
-                                </div>
-                            </CardContent>
-                        </Card>
+                {/* Permissions Summary */}
+                <div className="space-y-4">
+                    <div>
+                        <h3 className="text-lg font-semibold">Permissions Summary</h3>
+                        <p className="text-sm text-muted-foreground">
+                            This role has {role.permissions_count} permissions in total
+                        </p>
                     </div>
-                </CardContent>
-            </Card>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-6 border rounded-lg">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-2xl font-semibold">{role.global_permissions_count}</p>
+                                    <p className="text-sm text-muted-foreground">Global Permissions</p>
+                                </div>
+                                <Key className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                        </div>
+                        <div className="p-6 border rounded-lg">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-2xl font-semibold">{role.scoped_permissions_count}</p>
+                                    <p className="text-sm text-muted-foreground">Entity-Scoped Permissions</p>
+                                </div>
+                                <MapPin className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Usage Statistics</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                {/* Usage Statistics */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Usage Statistics</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <p className="text-sm text-muted-foreground">Total Users</p>
                             <p className="text-2xl font-semibold">{role.users_count}</p>
@@ -342,44 +309,42 @@ function RoleOverview({ role }: { role: Role }) {
                         </div>
                     </div>
 
-                    {role.entity_coverage && (
-                        <>
-                            <div className="border-t pt-4">
-                                <p className="font-medium mb-3">Entity Coverage</p>
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Building className="h-4 w-4 text-muted-foreground" />
-                                            <span className="text-sm">Plants</span>
-                                        </div>
-                                        <span className="text-sm font-medium">
-                                            {role.entity_coverage.plants.covered} / {role.entity_coverage.plants.total}
-                                        </span>
+                    {role.entity_coverage && role.entity_coverage.plants && (
+                        <div className="pt-4 space-y-3">
+                            <p className="font-medium">Entity Coverage</p>
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Building className="h-4 w-4 text-muted-foreground" />
+                                        <span className="text-sm">Plants</span>
                                     </div>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Grid3X3 className="h-4 w-4 text-muted-foreground" />
-                                            <span className="text-sm">Areas</span>
-                                        </div>
-                                        <span className="text-sm font-medium">
-                                            {role.entity_coverage.areas.covered} / {role.entity_coverage.areas.total}
-                                        </span>
+                                    <span className="text-sm font-medium">
+                                        {role.entity_coverage.plants.covered} / {role.entity_coverage.plants.total}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Grid3X3 className="h-4 w-4 text-muted-foreground" />
+                                        <span className="text-sm">Areas</span>
                                     </div>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Package className="h-4 w-4 text-muted-foreground" />
-                                            <span className="text-sm">Sectors</span>
-                                        </div>
-                                        <span className="text-sm font-medium">
-                                            {role.entity_coverage.sectors.covered} / {role.entity_coverage.sectors.total}
-                                        </span>
+                                    <span className="text-sm font-medium">
+                                        {role.entity_coverage.areas.covered} / {role.entity_coverage.areas.total}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Package className="h-4 w-4 text-muted-foreground" />
+                                        <span className="text-sm">Sectors</span>
                                     </div>
+                                    <span className="text-sm font-medium">
+                                        {role.entity_coverage.sectors.covered} / {role.entity_coverage.sectors.total}
+                                    </span>
                                 </div>
                             </div>
-                        </>
+                        </div>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 }
@@ -396,82 +361,122 @@ function RolePermissions({
     canUpdate: boolean;
 }) {
     return (
-        <div className="space-y-6">
-            {canUpdate && (
-                <div className="flex justify-end">
-                    <Button asChild>
-                        <Link href={route('roles.edit', { role: role.id })}>
+        <div className="py-6">
+            <div className="space-y-6">
+                {canUpdate && (
+                    <div className="flex justify-end">
+                        <Button
+                            onClick={() => router.visit(route('roles.edit', { role: role.id }))}
+                        >
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Permissions
-                        </Link>
-                    </Button>
+                        </Button>
+                    </div>
+                )}
+
+                <div className="space-y-6">
+                    {/* Global Permissions */}
+                    <div className="space-y-4">
+                        <div>
+                            <h3 className="text-lg font-semibold">Global Permissions ({globalPermissions.length})</h3>
+                            <p className="text-sm text-muted-foreground">
+                                These permissions are granted regardless of entity assignment
+                            </p>
+                        </div>
+                        {globalPermissions.length > 0 ? (
+                            <EntityDataTable
+                                data={globalPermissions as unknown as Array<Record<string, unknown>>}
+                                columns={[
+                                    {
+                                        key: 'name',
+                                        label: 'Permission',
+                                        render: (value: unknown, row: unknown) => {
+                                            const permission = row as Permission;
+                                            return (
+                                                <div>
+                                                    <p className="font-medium">{permission.name}</p>
+                                                    {permission.display_name && (
+                                                        <p className="text-sm text-muted-foreground">{permission.display_name}</p>
+                                                    )}
+                                                </div>
+                                            );
+                                        },
+                                    },
+                                    {
+                                        key: 'resource',
+                                        label: 'Resource',
+                                        render: (value: unknown, row: unknown) => {
+                                            const permission = row as Permission;
+                                            return <Badge variant="secondary">{permission.resource}</Badge>;
+                                        },
+                                        headerAlign: 'right' as const,
+                                    },
+                                ]}
+                                emptyMessage="No global permissions assigned"
+                            />
+                        ) : (
+                            <EmptyCard
+                                icon={Key}
+                                title="No global permissions"
+                                description="This role has no global permissions assigned"
+                            />
+                        )}
+                    </div>
+
+                    {/* Entity-Scoped Permissions */}
+                    <div className="space-y-4">
+                        <div>
+                            <h3 className="text-lg font-semibold">Entity-Scoped Permissions ({scopedPermissions.length})</h3>
+                            <p className="text-sm text-muted-foreground">
+                                These permissions are granted when role is assigned to specific entities
+                            </p>
+                        </div>
+                        {scopedPermissions.length > 0 ? (
+                            <EntityDataTable
+                                data={scopedPermissions as unknown as Array<Record<string, unknown>>}
+                                columns={[
+                                    {
+                                        key: 'name',
+                                        label: 'Permission',
+                                        render: (value: unknown, row: unknown) => {
+                                            const permission = row as Permission;
+                                            return (
+                                                <div>
+                                                    <p className="font-medium">{permission.name}</p>
+                                                    {permission.display_name && (
+                                                        <p className="text-sm text-muted-foreground">{permission.display_name}</p>
+                                                    )}
+                                                </div>
+                                            );
+                                        },
+                                    },
+                                    {
+                                        key: 'scope',
+                                        label: 'Scope',
+                                        render: (value: unknown, row: unknown) => {
+                                            const permission = row as Permission;
+                                            return (
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="outline">{permission.scope || 'entity'}</Badge>
+                                                    <Badge variant="secondary">{permission.resource}</Badge>
+                                                </div>
+                                            );
+                                        },
+                                        headerAlign: 'right' as const,
+                                    },
+                                ]}
+                                emptyMessage="No entity-scoped permissions assigned"
+                            />
+                        ) : (
+                            <EmptyCard
+                                icon={MapPin}
+                                title="No entity-scoped permissions"
+                                description="This role has no entity-scoped permissions assigned"
+                            />
+                        )}
+                    </div>
                 </div>
-            )}
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Global Permissions ({globalPermissions.length})</CardTitle>
-                    <CardDescription>
-                        These permissions are granted regardless of entity assignment
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ScrollArea className="h-[300px]">
-                        <div className="space-y-2">
-                            {globalPermissions.map((permission) => (
-                                <div key={permission.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                                    <div>
-                                        <p className="font-medium">{permission.name}</p>
-                                        {permission.display_name && (
-                                            <p className="text-sm text-muted-foreground">{permission.display_name}</p>
-                                        )}
-                                    </div>
-                                    <Badge variant="secondary">{permission.resource}</Badge>
-                                </div>
-                            ))}
-                            {globalPermissions.length === 0 && (
-                                <p className="text-sm text-muted-foreground text-center py-4">
-                                    No global permissions assigned
-                                </p>
-                            )}
-                        </div>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Entity-Scoped Permissions ({scopedPermissions.length})</CardTitle>
-                    <CardDescription>
-                        These permissions are granted when role is assigned to specific entities
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ScrollArea className="h-[300px]">
-                        <div className="space-y-2">
-                            {scopedPermissions.map((permission) => (
-                                <div key={permission.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                                    <div>
-                                        <p className="font-medium">{permission.name}</p>
-                                        {permission.display_name && (
-                                            <p className="text-sm text-muted-foreground">{permission.display_name}</p>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant="outline">{permission.scope || 'entity'}</Badge>
-                                        <Badge variant="secondary">{permission.resource}</Badge>
-                                    </div>
-                                </div>
-                            ))}
-                            {scopedPermissions.length === 0 && (
-                                <p className="text-sm text-muted-foreground text-center py-4">
-                                    No entity-scoped permissions assigned
-                                </p>
-                            )}
-                        </div>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
+            </div>
         </div>
     );
 }
@@ -486,71 +491,83 @@ function RoleUsers({
     canAssign: boolean;
 }) {
     return (
-        <div className="space-y-6">
-            {canAssign && (
-                <div className="flex justify-end">
-                    <Button asChild>
-                        <Link href={route('roles.users.index', { role: role.id })}>
+        <div className="py-6">
+            <div className="space-y-6">
+                {canAssign && (
+                    <div className="flex justify-end">
+                        <Button
+                            onClick={() => router.visit(route('roles.users.index', { role: role.id }))}
+                        >
                             <Users className="mr-2 h-4 w-4" />
                             Manage Users
-                        </Link>
-                    </Button>
-                </div>
-            )}
+                        </Button>
+                    </div>
+                )}
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Users with this Role</CardTitle>
-                    <CardDescription>
-                        {users.length} users have been assigned this role
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ScrollArea className="h-[400px]">
-                        <div className="space-y-2">
-                            {users.map((user) => (
-                                <div key={user.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                                    <div className="flex items-center gap-3">
-                                        {user.avatar ? (
-                                            <img
-                                                src={user.avatar}
-                                                alt={user.name}
-                                                className="h-8 w-8 rounded-full"
-                                            />
-                                        ) : (
-                                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                                                <Users className="h-4 w-4 text-muted-foreground" />
+                {users.length > 0 ? (
+                    <EntityDataTable
+                        data={users as unknown as Array<Record<string, unknown>>}
+                        columns={[
+                            {
+                                key: 'name',
+                                label: 'User',
+                                render: (value: unknown, row: unknown) => {
+                                    const user = row as User;
+                                    return (
+                                        <div className="flex items-center gap-3">
+                                            {user.avatar ? (
+                                                <img
+                                                    src={user.avatar}
+                                                    alt={user.name}
+                                                    className="h-8 w-8 rounded-full"
+                                                />
+                                            ) : (
+                                                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                                                    <Users className="h-4 w-4 text-muted-foreground" />
+                                                </div>
+                                            )}
+                                            <div>
+                                                <p className="font-medium">{user.name}</p>
+                                                <p className="text-sm text-muted-foreground">{user.email}</p>
                                             </div>
-                                        )}
-                                        <div>
-                                            <p className="font-medium">{user.name}</p>
-                                            <p className="text-sm text-muted-foreground">{user.email}</p>
                                         </div>
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        asChild
-                                    >
-                                        <Link href={route('users.show', { user: user.id })}>
+                                    );
+                                },
+                            },
+                            {
+                                key: 'actions',
+                                label: '',
+                                render: (value: unknown, row: unknown) => {
+                                    const user = row as User;
+                                    return (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => router.visit(route('users.show', { user: user.id }))}
+                                        >
                                             View User
-                                        </Link>
-                                    </Button>
-                                </div>
-                            ))}
-                            {users.length === 0 && (
-                                <p className="text-sm text-muted-foreground text-center py-4">
-                                    No users assigned to this role
-                                </p>
-                            )}
-                        </div>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
+                                        </Button>
+                                    );
+                                },
+                                headerAlign: 'right' as const,
+                            },
+                        ]}
+                        onRowClick={(row: unknown) => {
+                            const user = row as User;
+                            router.visit(route('users.show', { user: user.id }));
+                        }}
+                        emptyMessage="No users assigned to this role"
+                    />
+                ) : (
+                    <EmptyCard
+                        icon={Users}
+                        title="No users assigned"
+                        description="This role has not been assigned to any users yet"
+                    />
+                )}
 
-            {role.requires_entity && (
-                <Card>
-                    <CardContent className="pt-6">
+                {role.requires_entity && (
+                    <div className="p-4 bg-muted/50 rounded-lg">
                         <div className="flex items-start gap-3">
                             <Shield className="h-5 w-5 text-amber-600 dark:text-amber-500 mt-0.5" />
                             <div>
@@ -561,9 +578,9 @@ function RoleUsers({
                                 </p>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
-            )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
@@ -571,18 +588,12 @@ function RoleUsers({
 function RoleHistory({ roleId: _roleId }: { roleId: number }) {
     // This would typically fetch audit logs from an API endpoint
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Audit History</CardTitle>
-                <CardDescription>
-                    Recent changes and activities for this role
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-sm text-muted-foreground text-center py-8">
-                    Audit history will be displayed here
-                </p>
-            </CardContent>
-        </Card>
+        <div className="py-6">
+            <EmptyCard
+                icon={History}
+                title="Audit history coming soon"
+                description="Recent changes and activities for this role will be displayed here"
+            />
+        </div>
     );
 }

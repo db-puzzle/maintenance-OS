@@ -54,6 +54,15 @@ class UserInvitation extends Model
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'status',
+    ];
+
+    /**
      * The "booted" method of the model.
      */
     protected static function booted()
@@ -153,7 +162,7 @@ class UserInvitation extends Model
      */
     public function getUrlAttribute(): string
     {
-        return route('invitations.accept', ['token' => $this->token]);
+        return route('invitations.show', ['token' => $this->token]);
     }
 
     /**
@@ -304,7 +313,7 @@ class UserInvitation extends Model
     public function generateSignedUrl(): string
     {
         return URL::temporarySignedRoute(
-            'invitations.accept',
+            'invitations.show',
             $this->expires_at,
             ['token' => $this->token]
         );

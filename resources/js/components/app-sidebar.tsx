@@ -185,10 +185,6 @@ const sistemaNavItems: NavGroup = {
                     title: 'Funções',
                     href: '/settings/roles',
                 },
-                {
-                    title: 'Permissões',
-                    href: '/permissions',
-                },
             ],
         },
         {

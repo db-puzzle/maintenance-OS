@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Spatie\Permission\Models\Permission as SpatiePermission;
 use Illuminate\Database\Eloquent\Builder;
+use Spatie\Permission\Models\Permission as SpatiePermission;
 
 class Permission extends SpatiePermission
 {
@@ -16,39 +16,39 @@ class Permission extends SpatiePermission
         'entity_type',
         'entity_id',
         'is_dynamic',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
         'sort_order' => 'integer',
         'entity_id' => 'integer',
         'is_dynamic' => 'boolean',
-        'metadata' => 'array'
+        'metadata' => 'array',
     ];
 
     /**
-     * Valid entity types for permissions
+     * Valid entity types for permissions.
      */
-    const ENTITY_TYPES = ['plant', 'area', 'sector', 'asset', 'system'];
+    public const ENTITY_TYPES = ['plant', 'area', 'sector', 'asset', 'system'];
 
     /**
-     * Valid permission actions
+     * Valid permission actions.
      */
-    const VALID_ACTIONS = ['view', 'create', 'update', 'delete', 'manage', 'execute', 'export', 'import', 'invite', 'execute-routines'];
+    public const VALID_ACTIONS = ['view', 'create', 'update', 'delete', 'manage', 'execute', 'export', 'import', 'invite', 'execute-routines'];
 
     /**
-     * Permission naming regex pattern
+     * Permission naming regex pattern.
      */
-    const PERMISSION_REGEX = '/^[a-z-]+\.(view|create|update|delete|manage|execute|export|import|invite|execute-routines)(\.[a-z]+\.[0-9]+)?$/';
+    public const PERMISSION_REGEX = '/^[a-z-]+\.(view|create|update|delete|manage|execute|export|import|invite|execute-routines)(\.[a-z]+\.[0-9]+)?$/';
 
     /**
      * Parse the permission name to extract components
-     * Example: 'assets.create.plant.123' => ['resource' => 'assets', 'action' => 'create', 'scope' => 'plant', 'scope_id' => '123']
+     * Example: 'assets.create.plant.123' => ['resource' => 'assets', 'action' => 'create', 'scope' => 'plant', 'scope_id' => '123'].
      */
     public function parsePermission(): array
     {
         $parts = explode('.', $this->name);
-        
+
         return [
             'resource' => $parts[0] ?? null,
             'action' => $parts[1] ?? null,
@@ -58,7 +58,7 @@ class Permission extends SpatiePermission
     }
 
     /**
-     * Validate permission name format
+     * Validate permission name format.
      */
     public function validateName(): bool
     {
@@ -66,7 +66,7 @@ class Permission extends SpatiePermission
     }
 
     /**
-     * Check if this is a system-level permission
+     * Check if this is a system-level permission.
      */
     public function isSystemPermission(): bool
     {
@@ -74,16 +74,16 @@ class Permission extends SpatiePermission
     }
 
     /**
-     * Get permissions for a specific entity
+     * Get permissions for a specific entity.
      */
     public function scopeForEntity(Builder $query, string $entityType, int $entityId): Builder
     {
         return $query->where('entity_type', $entityType)
-                    ->where('entity_id', $entityId);
+            ->where('entity_id', $entityId);
     }
 
     /**
-     * Get dynamic permissions only
+     * Get dynamic permissions only.
      */
     public function scopeDynamic(Builder $query): Builder
     {
@@ -91,7 +91,7 @@ class Permission extends SpatiePermission
     }
 
     /**
-     * Get static permissions only
+     * Get static permissions only.
      */
     public function scopeStatic(Builder $query): Builder
     {
@@ -141,16 +141,18 @@ class Permission extends SpatiePermission
 
     public function isGlobal(): bool
     {
-        // In V2, only system.create-plants is global
-        return $this->name === 'system.create-plants' || 
-               $this->name === 'system.bulk-import-assets' || 
-               $this->name === 'system.bulk-export-assets';
+        // Permissions without entity scope are global
+        // They have format: resource.action (no third segment)
+        $parts = explode('.', $this->name);
+
+        return count($parts) === 2;
     }
 
     public function isScoped(): bool
     {
-        return str_contains($this->name, '.plant.') || 
-               str_contains($this->name, '.area.') || 
+        // Permissions with entity scope have format: resource.action.entity_type.entity_id
+        return str_contains($this->name, '.plant.') ||
+               str_contains($this->name, '.area.') ||
                str_contains($this->name, '.sector.') ||
                str_contains($this->name, '.asset.');
     }
@@ -161,12 +163,12 @@ class Permission extends SpatiePermission
     }
 
     /**
-     * Generate permissions for a newly created entity
+     * Generate permissions for a newly created entity.
      */
     public static function generateEntityPermissions(string $entityType, int $entityId, ?int $parentId = null): array
     {
         $permissions = [];
-        
+
         switch ($entityType) {
             case 'plant':
                 $permissions = [
@@ -191,10 +193,10 @@ class Permission extends SpatiePermission
                     "asset-types.viewAny.plant.{$entityId}",
                     "asset-types.create.plant.{$entityId}",
                     "manufacturers.viewAny.plant.{$entityId}",
-                    "manufacturers.create.plant.{$entityId}"
+                    "manufacturers.create.plant.{$entityId}",
                 ];
                 break;
-                
+
             case 'area':
                 $permissions = [
                     "areas.view.{$entityId}",
@@ -207,10 +209,10 @@ class Permission extends SpatiePermission
                     "assets.create.area.{$entityId}",
                     "assets.manage.area.{$entityId}",
                     "assets.execute-routines.area.{$entityId}",
-                    "assets.export.area.{$entityId}"
+                    "assets.export.area.{$entityId}",
                 ];
                 break;
-                
+
             case 'sector':
                 $permissions = [
                     "sectors.view.{$entityId}",
@@ -221,20 +223,20 @@ class Permission extends SpatiePermission
                     "assets.create.sector.{$entityId}",
                     "assets.manage.sector.{$entityId}",
                     "assets.execute-routines.sector.{$entityId}",
-                    "assets.export.sector.{$entityId}"
+                    "assets.export.sector.{$entityId}",
                 ];
                 break;
-                
+
             case 'asset':
                 $permissions = [
                     "assets.view.{$entityId}",
                     "assets.update.{$entityId}",
                     "assets.manage.{$entityId}",
-                    "assets.execute-routines.{$entityId}"
+                    "assets.execute-routines.{$entityId}",
                 ];
                 break;
         }
-        
+
         $created = [];
         foreach ($permissions as $permissionName) {
             $created[] = self::create([
@@ -246,20 +248,20 @@ class Permission extends SpatiePermission
                 'metadata' => [
                     'parent_type' => $parentId ? self::getParentType($entityType) : null,
                     'parent_id' => $parentId,
-                    'created_at' => now()->toIso8601String()
-                ]
+                    'created_at' => now()->toIso8601String(),
+                ],
             ]);
         }
-        
+
         return $created;
     }
 
     /**
-     * Get parent entity type
+     * Get parent entity type.
      */
     private static function getParentType(string $entityType): ?string
     {
-        return match($entityType) {
+        return match ($entityType) {
             'area' => 'plant',
             'sector' => 'area',
             'asset' => 'sector',
@@ -268,18 +270,18 @@ class Permission extends SpatiePermission
     }
 
     /**
-     * Delete all permissions for an entity
+     * Delete all permissions for an entity.
      */
     public static function deleteEntityPermissions(string $entityType, int $entityId): int
     {
         return self::where('entity_type', $entityType)
-                   ->where('entity_id', $entityId)
-                   ->where('is_dynamic', true)
-                   ->delete();
+            ->where('entity_id', $entityId)
+            ->where('is_dynamic', true)
+            ->delete();
     }
 
     /**
-     * Get roles count for this permission
+     * Get roles count for this permission.
      */
     public function getRolesCountAttribute(): int
     {
@@ -287,11 +289,11 @@ class Permission extends SpatiePermission
     }
 
     /**
-     * Get users count for this permission (direct assignments + through roles)
+     * Get users count for this permission (direct assignments + through roles).
      */
     public function getUsersCountAttribute(): int
     {
-        return $this->users()->count() + 
-               $this->roles()->with('users')->get()->sum(fn($role) => $role->users->count());
+        return $this->users()->count() +
+               $this->roles()->with('users')->get()->sum(fn ($role) => $role->users->count());
     }
 }

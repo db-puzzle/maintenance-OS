@@ -29,12 +29,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // User Invitations (public routes for accepting invitations - must come after specific routes)
-    Route::get('/invitations/{token}', [UserInvitationController::class, 'show'])->name('invitations.show')->withoutMiddleware(['auth', 'verified']);
+    Route::get('/invitations/{token}', [UserInvitationController::class, 'show'])->name('invitations.show')->middleware('signed')->withoutMiddleware(['auth', 'verified']);
     Route::post('/invitations/{token}/accept', [UserInvitationController::class, 'accept'])->name('invitations.accept')->withoutMiddleware(['auth', 'verified']);
 
     // Permission Management (Admin only)
     Route::middleware('can:users.manage-permissions')->group(function () {
-        // Route::resource('permissions', PermissionController::class); // Temporarily disabled - pages not implemented
+        // Route::resource('permissions', PermissionController::class); // Deprecated - use roles page instead
         Route::post('permissions/sync-matrix', [PermissionController::class, 'syncMatrix'])->name('permissions.sync-matrix');
         Route::post('permissions/check', [PermissionController::class, 'check'])->name('permissions.check');
         Route::post('permissions/check-bulk', [PermissionController::class, 'checkBulk'])->name('permissions.check-bulk');

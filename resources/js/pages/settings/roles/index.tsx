@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
+import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Select,
     SelectContent,
@@ -11,13 +11,17 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
-import { Shield, Plus, ChevronRight, Settings } from 'lucide-react';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityPagination } from '@/components/shared/EntityPagination';
+import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
+import { useEntityOperations } from '@/hooks/useEntityOperations';
+import { useSorting } from '@/hooks/useSorting';
+import { Copy, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { type BreadcrumbItem } from '@/types';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { type ColumnConfig, type PaginationMeta } from '@/types/shared';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
@@ -78,10 +82,19 @@ interface Props {
             to: number;
             total: number;
         };
+        current_page?: number;
+        last_page?: number;
+        per_page?: number;
+        total?: number;
+        from?: number | null;
+        to?: number | null;
     };
     filters: {
         search?: string;
         type?: string;
+        sort?: string;
+        direction?: 'asc' | 'desc';
+        per_page?: number;
     };
     can: {
         create: boolean;
@@ -89,16 +102,59 @@ interface Props {
     };
 }
 
-export default function RoleIndex({ roles, filters, can }: Props) {
-    const [searchTerm, setSearchTerm] = useState(filters.search || '');
-    const [selectedType, setSelectedType] = useState(filters.type || 'all');
-    const [deleteRole, setDeleteRole] = useState<Role | null>(null);
+export default function RoleIndex({ roles, filters = {}, can }: Props) {
+    // Ensure filters has default values
+    const safeFilters = {
+        search: filters?.search || '',
+        type: filters?.type || 'all',
+        sort: filters?.sort || 'name',
+        direction: filters?.direction || 'asc',
+        per_page: filters?.per_page || 10,
+    };
+
+    const [searchTerm, setSearchTerm] = useState(safeFilters.search);
+    const [selectedType, setSelectedType] = useState(safeFilters.type);
+
+    // Prepare pagination meta first (needed for other hooks)
+    const pagination: PaginationMeta = {
+        current_page: roles.current_page || roles.meta?.current_page || 1,
+        last_page: roles.last_page || roles.meta?.last_page || 1,
+        per_page: roles.per_page || roles.meta?.per_page || safeFilters.per_page,
+        total: roles.total || roles.meta?.total || 0,
+        from: roles.from || roles.meta?.from || null,
+        to: roles.to || roles.meta?.to || null,
+    };
+
+    // Use entity operations hook
+    const entityOps = useEntityOperations<Role>({
+        entityName: 'role',
+        entityLabel: 'Role',
+        routes: {
+            index: 'roles.index',
+            show: 'roles.show',
+            destroy: 'roles.destroy',
+            checkDependencies: 'roles.check-dependencies',
+        },
+        routeParameterName: 'role',
+    });
+
+    // Use sorting hook
+    const { sort, direction, handleSort } = useSorting({
+        routeName: 'roles.index',
+        initialSort: safeFilters.sort,
+        initialDirection: safeFilters.direction as 'asc' | 'desc',
+        additionalParams: {
+            search: searchTerm,
+            type: selectedType,
+            per_page: pagination.per_page,
+        },
+    });
 
     const handleSearch = (value: string) => {
         setSearchTerm(value);
         router.get(
             route('roles.index'),
-            { search: value, type: selectedType },
+            { search: value, type: selectedType, sort, direction, per_page: pagination.per_page },
             { preserveState: true, preserveScroll: true }
         );
     };
@@ -107,23 +163,25 @@ export default function RoleIndex({ roles, filters, can }: Props) {
         setSelectedType(value);
         router.get(
             route('roles.index'),
-            { search: searchTerm, type: value },
+            { search: searchTerm, type: value, sort, direction, per_page: pagination.per_page },
             { preserveState: true, preserveScroll: true }
         );
     };
 
-    const handleDelete = async () => {
-        if (!deleteRole) return;
+    const handlePageChange = (page: number) => {
+        router.get(
+            route('roles.index'),
+            { ...filters, search: searchTerm, type: selectedType, sort, direction, page },
+            { preserveState: true, preserveScroll: true }
+        );
+    };
 
-        router.delete(route('roles.destroy', { role: deleteRole.id }), {
-            onSuccess: () => {
-                toast.success('Role deleted successfully');
-                setDeleteRole(null);
-            },
-            onError: (errors) => {
-                toast.error(Object.values(errors).join(', '));
-            },
-        });
+    const handlePerPageChange = (perPage: number) => {
+        router.get(
+            route('roles.index'),
+            { ...filters, search: searchTerm, type: selectedType, sort, direction, per_page: perPage, page: 1 },
+            { preserveState: true, preserveScroll: true }
+        );
     };
 
     const handleDuplicate = (role: Role) => {
@@ -137,254 +195,197 @@ export default function RoleIndex({ roles, filters, can }: Props) {
         });
     };
 
-    const systemRoles = roles.data.filter(role => role.is_system);
-    const customRoles = roles.data.filter(role => !role.is_system);
+    // Filter roles based on selected type
+    const filteredRoles = selectedType === 'system'
+        ? roles.data.filter(role => role.is_system)
+        : selectedType === 'custom'
+            ? roles.data.filter(role => !role.is_system)
+            : roles.data;
+
+    // Define columns for EntityDataTable
+    const columns: ColumnConfig[] = [
+        {
+            key: 'name',
+            label: 'Role',
+            sortable: true,
+            width: 'w-[300px]',
+            render: (_, row) => {
+                const role = row as unknown as Role;
+                return (
+                    <div className="font-medium">
+                        {role.display_name || role.name}
+                    </div>
+                );
+            },
+        },
+        {
+            key: 'type',
+            label: 'Type',
+            sortable: true,
+            width: 'w-[250px]',
+            render: (_, row) => {
+                const role = row as unknown as Role;
+                return (
+                    <div className="flex items-center gap-2">
+                        {role.is_administrator && (
+                            <Badge variant="secondary">Administrator</Badge>
+                        )}
+                        {role.is_system && (
+                            <Badge variant="outline">System Role</Badge>
+                        )}
+                        <span className="text-sm text-muted-foreground">
+                            {role.requires_entity ? 'Entity-based' : 'Global'}
+                        </span>
+                    </div>
+                );
+            },
+        },
+        {
+            key: 'users_count',
+            label: 'Users',
+            sortable: true,
+            width: 'w-[80px]',
+            render: (_, row) => {
+                const role = row as unknown as Role;
+                return <div className="text-center">{role.users_count || 0}</div>;
+            },
+        },
+        {
+            key: 'assignments_count',
+            label: 'Assignments',
+            sortable: true,
+            width: 'w-[120px]',
+            render: (_, row) => {
+                const role = row as unknown as Role;
+                return <div className="text-center">{role.assignments_count || 0}</div>;
+            },
+        },
+        {
+            key: 'permissions_count',
+            label: 'Permissions',
+            sortable: true,
+            width: 'w-[120px]',
+            render: (_, row) => {
+                const role = row as unknown as Role;
+                return <div className="text-center">{role.permissions_count || 0}</div>;
+            },
+        },
+        {
+            key: 'entity_coverage',
+            label: 'Entity Coverage',
+            sortable: false,
+            width: 'w-[300px]',
+            render: (_, row) => {
+                const role = row as unknown as Role;
+                if (!role.entity_coverage || !role.requires_entity) return '-';
+                return (
+                    <div className="flex gap-4 text-sm">
+                        <span>Plants: {role.entity_coverage.plants.covered}/{role.entity_coverage.plants.total}</span>
+                        <span>Areas: {role.entity_coverage.areas.covered}/{role.entity_coverage.areas.total}</span>
+                        <span>Sectors: {role.entity_coverage.sectors.covered}/{role.entity_coverage.sectors.total}</span>
+                    </div>
+                );
+            },
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Role Management" />
 
-            <div className="px-4 sm:px-6 lg:px-8">
-                <div className="space-y-6">
-                    {/* Header */}
-                    <div className="flex flex-col gap-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h1 className="text-2xl font-semibold">Roles</h1>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    Manage system and custom roles with their permissions
-                                </p>
-                            </div>
-                            {can.create && (
-                                <Button asChild>
-                                    <Link href={route('roles.create')}>
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Create Role
-                                    </Link>
-                                </Button>
-                            )}
-                        </div>
-
-                        {/* Filters */}
-                        <div className="flex gap-4">
-                            <div className="flex-1">
-                                <Input
-                                    placeholder="Search roles..."
-                                    value={searchTerm}
-                                    onChange={(e) => handleSearch(e.target.value)}
-                                    className="max-w-sm"
-                                />
-                            </div>
-                            <Select value={selectedType} onValueChange={handleTypeFilter}>
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Filter by type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Roles</SelectItem>
-                                    <SelectItem value="system">System Roles</SelectItem>
-                                    <SelectItem value="custom">Custom Roles</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+            <ListLayout
+                title="Role Management"
+                description="Manage system and custom roles with their permissions"
+                searchPlaceholder="Search roles..."
+                searchValue={searchTerm}
+                onSearchChange={handleSearch}
+                onCreateClick={can.create ? () => router.visit(route('roles.create')) : undefined}
+                createButtonText="Create Role"
+                actions={
+                    <div className="flex items-center gap-2">
+                        <Button asChild variant="outline" size="sm">
+                            <Link href={route('users.index')}>
+                                <Shield className="mr-2 h-4 w-4" />
+                                Manage Users
+                            </Link>
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="-mt-4 space-y-4">
+                    {/* Additional Filters */}
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <Select value={selectedType} onValueChange={handleTypeFilter}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Filter by type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Roles</SelectItem>
+                                <SelectItem value="system">System Roles</SelectItem>
+                                <SelectItem value="custom">Custom Roles</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
-                    <ScrollArea className="h-[calc(100vh-250px)]">
-                        <div className="space-y-6 pr-4">
-                            {/* System Roles */}
-                            {systemRoles.length > 0 && (
-                                <div className="space-y-4">
-                                    <h2 className="text-lg font-semibold">System Roles</h2>
-                                    <div className="grid gap-4">
-                                        {systemRoles.map((role) => (
-                                            <RoleCard
-                                                key={role.id}
-                                                role={role}
-                                                onDelete={() => setDeleteRole(role)}
-                                                onDuplicate={() => handleDuplicate(role)}
-                                                canUpdate={can.create}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                    {/* Data Table */}
+                    <EntityDataTable
+                        data={filteredRoles as unknown as Record<string, unknown>[]}
+                        columns={columns}
+                        loading={false}
+                        onRowClick={(row) => {
+                            router.visit(route('roles.show', { role: (row as unknown as Role).id }));
+                        }}
+                        onSort={handleSort}
+                        maxHeight="calc(100vh - 300px)"
+                        actions={(row) => {
+                            const role = row as unknown as Role;
+                            const additionalActions = [];
 
-                            {/* Custom Roles */}
-                            {customRoles.length > 0 && (
-                                <div className="space-y-4">
-                                    <h2 className="text-lg font-semibold">Custom Roles</h2>
-                                    <div className="grid gap-4">
-                                        {customRoles.map((role) => (
-                                            <RoleCard
-                                                key={role.id}
-                                                role={role}
-                                                onDelete={() => setDeleteRole(role)}
-                                                onDuplicate={() => handleDuplicate(role)}
-                                                canUpdate={can.create}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                            if (can.create) {
+                                additionalActions.push({
+                                    label: 'Duplicate',
+                                    icon: <Copy className="h-4 w-4" />,
+                                    onClick: () => handleDuplicate(role),
+                                });
+                            }
 
-                            {/* Empty State */}
-                            {roles.data.length === 0 && (
-                                <Card>
-                                    <CardContent className="flex flex-col items-center justify-center py-12">
-                                        <Shield className="h-12 w-12 text-muted-foreground mb-4" />
-                                        <p className="text-lg font-medium">No roles found</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {searchTerm ? 'Try adjusting your search criteria' : 'Get started by creating a new role'}
-                                        </p>
-                                        {can.create && !searchTerm && (
-                                            <Button asChild className="mt-4">
-                                                <Link href={route('roles.create')}>
-                                                    <Plus className="mr-2 h-4 w-4" />
-                                                    Create Role
-                                                </Link>
-                                            </Button>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
-                    </ScrollArea>
+                            return (
+                                <EntityActionDropdown
+                                    onEdit={can.create && role.can_be_modified ? () => router.visit(route('roles.edit', { role: role.id })) : undefined}
+                                    onDelete={role.can_be_deleted ? () => entityOps.handleDelete(role) : undefined}
+                                    additionalActions={additionalActions}
+                                />
+                            );
+                        }}
+                        emptyMessage={searchTerm ? 'No roles found matching your criteria' : 'No roles found'}
+                    />
+
+                    {/* Pagination */}
+                    {pagination.last_page > 1 && (
+                        <EntityPagination
+                            pagination={pagination}
+                            onPageChange={handlePageChange}
+                            onPerPageChange={handlePerPageChange}
+                            perPageOptions={[10, 20, 30, 50, 100]}
+                        />
+                    )}
                 </div>
-            </div>
+            </ListLayout>
 
             <EntityDeleteDialog
-                open={!!deleteRole}
-                onOpenChange={(open) => !open && setDeleteRole(null)}
-                onConfirm={handleDelete}
-                entityLabel={deleteRole?.display_name || deleteRole?.name || ''}
+                open={entityOps.isDeleteDialogOpen}
+                onOpenChange={entityOps.setDeleteDialogOpen}
+                entityLabel={`the role ${entityOps.deletingItem?.display_name || entityOps.deletingItem?.name || ''}`}
+                onConfirm={entityOps.confirmDelete}
+            />
+
+            <EntityDependenciesDialog
+                open={entityOps.isDependenciesDialogOpen}
+                onOpenChange={entityOps.setDependenciesDialogOpen}
+                entityName="role"
+                dependencies={entityOps.dependencies}
             />
         </AppLayout>
     );
 }
 
-interface RoleCardProps {
-    role: Role;
-    onDelete: () => void;
-    onDuplicate: () => void;
-    canUpdate: boolean;
-}
-
-function RoleCard({ role, onDelete, onDuplicate, canUpdate }: RoleCardProps) {
-    const additionalActions = [];
-
-    if (canUpdate) {
-        additionalActions.push({
-            label: 'Duplicate',
-            onClick: onDuplicate,
-        });
-    }
-
-    return (
-        <Card>
-            <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                            <span className="text-2xl">{role.icon || '👤'}</span>
-                            <CardTitle className="text-lg">
-                                {role.display_name || role.name}
-                            </CardTitle>
-                            {role.is_administrator && (
-                                <Badge variant="secondary">Administrator</Badge>
-                            )}
-                            {role.is_system && (
-                                <Badge variant="outline">System Role</Badge>
-                            )}
-                        </div>
-                        <CardDescription>
-                            {role.description || `${role.permissions_count} permissions • ${role.users_count} users`}
-                        </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            asChild
-                        >
-                            <Link
-                                href={route('roles.show', { role: role.id })}
-                                onClick={() => console.log('Navigating to role:', role.id, role)}
-                            >
-                                View Details
-                                <ChevronRight className="ml-1 h-4 w-4" />
-                            </Link>
-                        </Button>
-                        {(canUpdate || role.can_be_deleted) && (
-                            <EntityActionDropdown
-                                onEdit={canUpdate && role.can_be_modified ? () => router.visit(route('roles.edit', { role: role.id })) : undefined}
-                                onDelete={role.can_be_deleted ? onDelete : undefined}
-                                additionalActions={additionalActions}
-                            />
-                        )}
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                        <p className="text-muted-foreground">Users</p>
-                        <p className="font-medium">{role.users_count}</p>
-                    </div>
-                    <div>
-                        <p className="text-muted-foreground">Assignments</p>
-                        <p className="font-medium">{role.assignments_count}</p>
-                    </div>
-                    <div>
-                        <p className="text-muted-foreground">Permissions</p>
-                        <p className="font-medium">{role.permissions_count}</p>
-                    </div>
-                    <div>
-                        <p className="text-muted-foreground">Type</p>
-                        <p className="font-medium">
-                            {role.requires_entity ? 'Entity-based' : 'Global'}
-                        </p>
-                    </div>
-                </div>
-
-                {role.entity_coverage && (
-                    <div className="mt-4 pt-4 border-t">
-                        <p className="text-sm font-medium mb-2">Entity Coverage</p>
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                            <div>
-                                <p className="text-muted-foreground">Plants</p>
-                                <p className="font-medium">
-                                    {role.entity_coverage.plants.covered} of {role.entity_coverage.plants.total}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-muted-foreground">Areas</p>
-                                <p className="font-medium">
-                                    {role.entity_coverage.areas.covered} of {role.entity_coverage.areas.total}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-muted-foreground">Sectors</p>
-                                <p className="font-medium">
-                                    {role.entity_coverage.sectors.covered} of {role.entity_coverage.sectors.total}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {role.requires_entity && (
-                    <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-                        <Settings className="h-4 w-4" />
-                        <span>Entity-based role - requires assignment to specific entities</span>
-                    </div>
-                )}
-
-                {role.is_administrator && (
-                    <div className="mt-4 flex items-center gap-2 text-sm text-amber-600 dark:text-amber-500">
-                        <Shield className="h-4 w-4" />
-                        <span>Full system access - no entity assignment required</span>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
-}

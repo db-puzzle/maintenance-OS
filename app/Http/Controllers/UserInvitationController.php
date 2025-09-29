@@ -317,7 +317,13 @@ class UserInvitationController extends Controller
     {
         // Check if the invitation has already been accepted
         if ($invitation->isAccepted()) {
-            return back()->with('error', 'Não é possível excluir um convite que já foi aceito.');
+            $message = 'Não é possível excluir um convite que já foi aceito.';
+
+            if (request()->wantsJson()) {
+                return response()->json(['error' => $message], 422);
+            }
+
+            return back()->with('error', $message);
         }
 
         try {
@@ -330,9 +336,19 @@ class UserInvitationController extends Controller
             // Delete the invitation
             $invitation->delete();
 
+            if (request()->wantsJson()) {
+                return response()->json(['success' => true]);
+            }
+
             return back()->with('success', 'Convite excluído com sucesso.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Não foi possível excluir o convite.');
+            $message = 'Não foi possível excluir o convite.';
+
+            if (request()->wantsJson()) {
+                return response()->json(['error' => $message], 500);
+            }
+
+            return back()->with('error', $message);
         }
     }
 

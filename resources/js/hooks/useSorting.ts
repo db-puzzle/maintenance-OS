@@ -28,9 +28,12 @@ export function useSorting({
     sortParamName = 'sort',
     directionParamName = 'direction'
 }: UseSortingProps): UseSortingReturn {
-    // Ensure initialSort and initialDirection are never null
-    const [currentSortField, setCurrentSortField] = useState(initialSort ?? 'name');
-    const [currentSortDirection, setCurrentSortDirection] = useState<'asc' | 'desc'>(initialDirection ?? 'asc');
+    // Ensure initialSort and initialDirection are valid strings
+    const safeInitialSort = typeof initialSort === 'string' && initialSort ? initialSort : 'name';
+    const safeInitialDirection = (initialDirection === 'asc' || initialDirection === 'desc') ? initialDirection : 'asc';
+
+    const [currentSortField, setCurrentSortField] = useState(safeInitialSort);
+    const [currentSortDirection, setCurrentSortDirection] = useState<'asc' | 'desc'>(safeInitialDirection);
 
     const handleSort = useCallback(
         (columnId: string) => {
@@ -46,7 +49,7 @@ export function useSorting({
 
             // Filter out null/undefined values from additionalParams
             const cleanParams = Object.fromEntries(
-                Object.entries(additionalParams || {}).filter(([, value]) => value !== null && value !== undefined)
+                Object.entries(additionalParams || {}).filter(([, value]) => value !== null && value !== undefined && value !== '')
             );
 
             // Navigate using Inertia
