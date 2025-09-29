@@ -25,7 +25,12 @@ export function useNavigationGuard({
         };
 
         // Inertia navigation handler
-        const handleInertiaNavigate = (event: { detail: { visit: { url: string } } }) => {
+        const handleInertiaNavigate = (event: { detail: { visit: { url: string; prefetch?: boolean } } }) => {
+            // Skip if this is a prefetch request (hover)
+            if (event.detail.visit.prefetch) {
+                return;
+            }
+
             if (hasChanges && !isNavigatingRef.current) {
                 event.preventDefault();
 

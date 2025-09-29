@@ -34,7 +34,7 @@ import RouteBuilder from '@/components/production/planning/RouteBuilder';
 import ApplyTemplateDialog from '@/components/production/planning/ApplyTemplateDialog';
 import { SaveAsTemplateDialog } from '@/components/production/templates/SaveAsTemplateDialog';
 import { MOSelectionModal } from '@/components/production/planning/MOSelectionModal';
-import { UnsavedChangesDialog } from '@/components/production/planning/UnsavedChangesDialog';
+// import { UnsavedChangesDialog } from '@/components/production/planning/UnsavedChangesDialog';
 // import WorkCellManager from '@/components/production/planning/WorkCellManager';
 // import BulkOperationsPanel from '@/components/production/planning/BulkOperationsPanel';
 // import TemplateLibraryPanel from '@/components/production/planning/TemplateLibraryPanel';
@@ -188,7 +188,7 @@ export default function PlanningPage({
         message: 'You have unsaved changes. Are you sure you want to leave?',
         onNavigate: async (_url) => {
             return new Promise((resolve) => {
-                setUnsavedChangesDialog({
+                setModalState({
                     open: true,
                     type: 'navigation',
                     pendingAction: () => {
@@ -230,8 +230,8 @@ export default function PlanningPage({
     // MO Selection modal state - Start with modal open if no MO is selected
     const [showMOSelectionModal, setShowMOSelectionModal] = useState(() => !initialSelectedMO);
 
-    // Unsaved changes dialog state
-    const [unsavedChangesDialog, setUnsavedChangesDialog] = useState<{
+    // Modal state for SaveActionBar
+    const [modalState, setModalState] = useState<{
         open: boolean;
         type: 'mo-switch' | 'navigation' | 'discard';
         pendingAction?: () => void;
@@ -778,37 +778,8 @@ export default function PlanningPage({
                 multiSelect={false}
             />
 
-            {/* Unsaved Changes Dialog */}
-            <UnsavedChangesDialog
-                open={unsavedChangesDialog.open}
-                onOpenChange={(open) => setUnsavedChangesDialog(prev => ({ ...prev, open }))}
-                type={unsavedChangesDialog.type}
-                changeDetails={{
-                    routeChanges: routeChangesStore.getAllChanges().length,
-                    priorityChanges: moChangesStore.getAllChanges().length,
-                }}
-                onSaveAndContinue={async () => {
-                    if (unsavedChangesDialog.type === 'navigation') {
-                        // Save all changes
-                        await saveAllChanges();
-                        unsavedChangesDialog.pendingAction?.();
-                    }
-                    setUnsavedChangesDialog({ open: false, type: 'mo-switch' });
-                }}
-                onDiscardChanges={() => {
-                    if (unsavedChangesDialog.type === 'navigation') {
-                        cancelAllChanges();
-                    }
-                    unsavedChangesDialog.pendingAction?.();
-                    setUnsavedChangesDialog({ open: false, type: 'mo-switch' });
-                }}
-                onCancel={() => {
-                    setUnsavedChangesDialog({ open: false, type: 'mo-switch' });
-                }}
-            />
-
-            {/* Combined Save Action Bar */}
-            {(hasUnsavedChanges) && (
+            {/* Combined Save Action Bar with Modal Mode */}
+            {(hasUnsavedChanges || modalState.open) && (
                 <SaveActionBar
                     changeCount={
                         routeChangesStore.getAllChanges().length +
@@ -818,9 +789,30 @@ export default function PlanningPage({
                     routeChangeCount={routeChangesStore.getAllChanges().length}
                     moChangeCount={moChangesStore.getAllChanges().length}
                     onCancel={cancelAllChanges}
-                    onSave={saveAllChanges}
+                    onSave={async () => {
+                        if (modalState.open && modalState.type === 'navigation') {
+                            // Save all changes
+                            await saveAllChanges();
+                            modalState.pendingAction?.();
+                            setModalState({ open: false, type: 'mo-switch' });
+                        } else {
+                            await saveAllChanges();
+                        }
+                    }}
                     isSaving={routeSaveStatus === 'saving' || moSaveStatus === 'saving'}
                     position="top"
+                    modalMode={modalState.open}
+                    modalType={modalState.type}
+                    onModalDiscardChanges={() => {
+                        if (modalState.type === 'navigation') {
+                            cancelAllChanges();
+                        }
+                        modalState.pendingAction?.();
+                        setModalState({ open: false, type: 'mo-switch' });
+                    }}
+                    onModalCancel={() => {
+                        setModalState({ open: false, type: 'mo-switch' });
+                    }}
                 />
             )}
         </AppLayout>

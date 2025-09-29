@@ -131,7 +131,7 @@ export function MOSelectionModal({
     // Initialize form for filters
     const form = useForm<SearchFilters>({
         search: '',
-        rootOnly: false,
+        rootOnly: true,
         status: [],
         createdFrom: undefined,
         createdTo: undefined,
