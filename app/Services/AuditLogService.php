@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Request;
 class AuditLogService
 {
     /**
-     * Log an audit event
+     * Log an audit event.
      */
     public static function log(
         string $eventType,
@@ -31,12 +31,12 @@ class AuditLogService
             'metadata' => $metadata,
             'ip_address' => Request::ip(),
             'user_agent' => Request::userAgent(),
-            'session_id' => session()->getId()
+            'session_id' => session()->getId(),
         ]);
     }
 
     /**
-     * Log a simple event with details
+     * Log a simple event with details.
      */
     public static function logSimple(string $action, array $details = []): PermissionAuditLog
     {
@@ -56,14 +56,12 @@ class AuditLogService
             'metadata' => $details,
             'ip_address' => Request::ip(),
             'user_agent' => Request::userAgent(),
-            'session_id' => session()->getId()
+            'session_id' => session()->getId(),
         ]);
     }
 
-
-
     /**
-     * Log permission-related changes
+     * Log permission-related changes.
      */
     public static function logPermissionChange(
         string $action,
@@ -81,14 +79,14 @@ class AuditLogService
         $metadata = array_merge([
             'permission' => is_object($permission) ? $permission->name : $permission,
             'model_type' => get_class($model),
-            'model_name' => $model->name ?? $model->email ?? 'Unknown'
+            'model_name' => $model->name ?? $model->email ?? 'Unknown',
         ], $additionalData);
 
         self::log($eventType, $action, $model, [], [], $metadata);
     }
 
     /**
-     * Log user invitation events
+     * Log user invitation events.
      */
     public static function logInvitation(
         string $action,
@@ -97,7 +95,7 @@ class AuditLogService
     ): void {
         $metadata = array_merge([
             'email' => $invitation->email,
-            'invited_by' => $invitation->invitedBy->name,
+            'invited_by' => $invitation->inviter ? $invitation->inviter->name : 'System',
             'initial_role' => $invitation->initial_role,
         ], $additionalData);
 
@@ -105,13 +103,13 @@ class AuditLogService
     }
 
     /**
-     * Log super admin privilege changes
+     * Log super admin privilege changes.
      */
     public static function logSuperAdminChange(
         string $action,
         \App\Models\User $user,
         \App\Models\User $actionBy,
-        string $reason = null
+        ?string $reason = null
     ): void {
         $metadata = [
             'user' => $user->name,
@@ -126,7 +124,7 @@ class AuditLogService
     }
 
     /**
-     * Log role changes
+     * Log role changes.
      */
     public static function logRoleChange(
         string $action,
@@ -144,7 +142,7 @@ class AuditLogService
     }
 
     /**
-     * Log permission changes
+     * Log permission changes.
      */
     public static function logPermissionDirectChange(
         string $action,
@@ -163,7 +161,7 @@ class AuditLogService
     }
 
     /**
-     * Log user changes
+     * Log user changes.
      */
     public static function logUserChange(
         string $action,
@@ -182,7 +180,7 @@ class AuditLogService
     }
 
     /**
-     * Get audit statistics
+     * Get audit statistics.
      */
     public static function getStatistics(int $days = 30): array
     {
@@ -209,17 +207,17 @@ class AuditLogService
                 ->where('created_at', '>=', $startDate)
                 ->latest()
                 ->limit(10)
-                ->get()
+                ->get(),
         ];
     }
 
     /**
-     * Clean up old audit logs
+     * Clean up old audit logs.
      */
     public static function cleanup(int $keepDays = 365): int
     {
         $cutoffDate = now()->subDays($keepDays);
-        
+
         return PermissionAuditLog::where('created_at', '<', $cutoffDate)->delete();
     }
 }

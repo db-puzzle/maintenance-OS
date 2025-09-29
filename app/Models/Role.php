@@ -20,6 +20,7 @@ class Role extends SpatieRole
         'is_administrator',
         'display_name',
         'description',
+        'icon',
     ];
 
     protected $casts = [

@@ -1,12 +1,12 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use App\Http\Controllers\UserInvitationController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\UserInvitationController;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -24,6 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/', [UserInvitationController::class, 'store'])->name('invitations.store');
         Route::post('/{invitation}/revoke', [UserInvitationController::class, 'revoke'])->name('invitations.revoke');
         Route::post('/{invitation}/resend', [UserInvitationController::class, 'resend'])->name('invitations.resend');
+        Route::delete('/{invitation}', [UserInvitationController::class, 'destroy'])->name('invitations.destroy');
         Route::get('/pending', [UserInvitationController::class, 'pending'])->name('invitations.pending');
     });
 
@@ -67,39 +68,39 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // Asset Hierarchy
-require __DIR__.'/asset-hierarchy.php';
+require __DIR__ . '/asset-hierarchy.php';
 
 // Maintenance
-require __DIR__.'/maintenance.php';
+require __DIR__ . '/maintenance.php';
 
 // Work Orders
-require __DIR__.'/work-orders.php';
+require __DIR__ . '/work-orders.php';
 
 // Parts
-require __DIR__.'/parts.php';
+require __DIR__ . '/parts.php';
 
 // Skills and Certifications
-require __DIR__.'/skills-certifications.php';
+require __DIR__ . '/skills-certifications.php';
 
 // Settings
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';
 
 // Scheduler
-require __DIR__.'/scheduler.php';
+require __DIR__ . '/scheduler.php';
 
 // Users
-require __DIR__.'/users.php';
+require __DIR__ . '/users.php';
 
 // Production
-require __DIR__.'/production.php';
+require __DIR__ . '/production.php';
 
 // Planning
-require __DIR__.'/planning.php';
+require __DIR__ . '/planning.php';
 
 // QR Scanning (public routes)
-require __DIR__.'/qr.php';
+require __DIR__ . '/qr.php';
 
 // Media
-require __DIR__.'/media.php';
+require __DIR__ . '/media.php';
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

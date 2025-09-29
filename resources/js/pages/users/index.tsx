@@ -11,7 +11,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Key, Trash2 } from 'lucide-react';
+import { Eye, Key, Trash2, Shield } from 'lucide-react';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
@@ -267,6 +267,12 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                 createButtonText="Add User"
                 actions={
                     <div className="flex items-center gap-2">
+                        <Button asChild variant="outline" size="sm">
+                            <Link href={route('roles.index')}>
+                                <Shield className="mr-2 h-4 w-4" />
+                                Manage Roles
+                            </Link>
+                        </Button>
                         {props.auth?.user?.roles?.some(role => role.name === 'Administrator') && (
                             <Button asChild variant="outline" size="sm">
                                 <Link href={route('users.deleted')}>
@@ -318,14 +324,14 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                     </div>
                     {/* Users Table */}
                     <EntityDataTable
-                         
+
                         data={users.data as unknown as Record<string, unknown>[]}
                         columns={columns}
                         loading={false}
-                         
+
                         onRowClick={(user) => router.visit(`/users/${(user as unknown as User).id}`)}
                         emptyMessage="No users found"
-                         
+
                         actions={(user) => (
                             <EntityActionDropdown
                                 onEdit={() => router.visit(`/users/${(user as unknown as User).id}/edit`)}

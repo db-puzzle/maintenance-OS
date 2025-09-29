@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, router, Head } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, MoreHorizontal, XCircle, RefreshCw, Copy, Eye } from 'lucide-react';
+import { Plus, MoreHorizontal, XCircle, RefreshCw, Copy, Eye, Trash2 } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import PermissionGuard from '@/components/PermissionGuard';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
@@ -36,6 +36,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { ColumnConfig } from '@/types/shared';
+import CreateInvitationDialog from '@/components/users/CreateInvitationDialog';
+import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
 interface Invitation extends Record<string, unknown> {
     id: number;
     email: string;
@@ -54,8 +56,24 @@ interface Invitation extends Record<string, unknown> {
     can: {
         revoke: boolean;
         resend: boolean;
+        delete: boolean;
     };
 }
+interface Role {
+    id: number;
+    name: string;
+    display_name?: string;
+    description?: string;
+    permissions_count?: number;
+    is_system: boolean;
+}
+
+interface Entity {
+    id: number;
+    name: string;
+    type: 'plant' | 'area' | 'sector';
+}
+
 interface Props {
     invitations: {
         data: Invitation[];
@@ -76,6 +94,10 @@ interface Props {
         accepted: number;
         expired: number;
     };
+    roles?: Role[];
+    plants?: Entity[];
+    areas?: Entity[];
+    sectors?: Entity[];
 }
 function InvitationStatusBadge({ status }: { status: string }) {
     switch (status) {
@@ -107,7 +129,7 @@ function InvitationStatusBadge({ status }: { status: string }) {
             return null;
     }
 }
-export default function InvitationsIndex({ invitations, filters, stats }: Props) {
+export default function InvitationsIndex({ invitations, filters, stats, roles = [], plants = [], areas = [], sectors = [] }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'all');
     const [revokeDialog, setRevokeDialog] = useState<{ open: boolean; invitation: Invitation | null }>({
@@ -115,6 +137,11 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
         invitation: null,
     });
     const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
+    const [showCreateDialog, setShowCreateDialog] = useState(false);
+    const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; invitation: Invitation | null }>({
+        open: false,
+        invitation: null,
+    });
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         router.get(route('invitations.index'), { search, status }, { preserveState: true });
@@ -130,11 +157,10 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
             { reason: '' },
             {
                 onSuccess: () => {
-                    toast.success('O convite foi revogado com sucesso.');
                     setRevokeDialog({ open: false, invitation: null });
                 },
                 onError: () => {
-                    toast.error('Não foi possível revogar o convite.');
+                    // Error message will be shown by the backend session flash
                 },
             }
         );
@@ -145,10 +171,10 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
             {},
             {
                 onSuccess: () => {
-                    toast.success(`Convite reenviado para ${invitation.email}`);
+                    // Success message will be shown by the backend session flash
                 },
                 onError: () => {
-                    toast.error('Não foi possível reenviar o convite.');
+                    // Error message will be shown by the backend session flash
                 },
             }
         );
@@ -234,6 +260,18 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
                             )}
                         </>
                     )}
+                    {invitation.can.delete && (
+                        <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={() => setDeleteDialog({ open: true, invitation })}
+                                className="text-destructive"
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir convite
+                            </DropdownMenuItem>
+                        </>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
         );
@@ -256,12 +294,10 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
                             </p>
                         </div>
                         <PermissionGuard permission="users.invite">
-                            <Link href={route('invitations.create')}>
-                                <Button>
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Convidar Novo Usuário
-                                </Button>
-                            </Link>
+                            <Button onClick={() => setShowCreateDialog(true)}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Convidar Novo Usuário
+                            </Button>
                         </PermissionGuard>
                     </div>
                 </div>
@@ -372,6 +408,44 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
                     onResend={handleResend}
                 />
             )}
+            {/* Create Invitation Dialog */}
+            <CreateInvitationDialog
+                open={showCreateDialog}
+                onOpenChange={setShowCreateDialog}
+                roles={roles}
+                plants={plants}
+                areas={areas}
+                sectors={sectors}
+            />
+            {/* Delete Dialog */}
+            <EntityDeleteDialog
+                open={deleteDialog.open}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDeleteDialog({ open: false, invitation: null });
+                    }
+                }}
+                entityLabel={deleteDialog.invitation ? `o convite para ${deleteDialog.invitation.email}` : 'o convite'}
+                onConfirm={async () => {
+                    if (!deleteDialog.invitation) return;
+
+                    return new Promise((resolve, reject) => {
+                        router.delete(
+                            route('invitations.destroy', deleteDialog.invitation.id),
+                            {
+                                onSuccess: () => {
+                                    setDeleteDialog({ open: false, invitation: null });
+                                    resolve();
+                                },
+                                onError: () => {
+                                    reject();
+                                },
+                            }
+                        );
+                    });
+                }}
+                requireConfirmation={false}
+            />
         </AppLayout>
     );
 }

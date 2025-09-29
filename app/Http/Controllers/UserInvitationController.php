@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\UserInvitation;
+use App\Models\AssetHierarchy\Area;
+use App\Models\AssetHierarchy\Plant;
+use App\Models\AssetHierarchy\Sector;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserInvitation;
 use App\Notifications\UserInvitation as UserInvitationNotification;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-use App\Services\AuditLogService;
 
 class UserInvitationController extends Controller
 {
@@ -21,11 +24,11 @@ class UserInvitationController extends Controller
     }
 
     /**
-     * Display invitations list
+     * Display invitations list.
      */
     public function index(Request $request)
     {
-        $query = UserInvitation::with(['invitedBy', 'acceptedBy', 'revokedBy'])
+        $query = UserInvitation::with(['inviter', 'acceptedBy', 'revokedBy'])
             ->latest();
 
         // Apply filters
@@ -57,6 +60,7 @@ class UserInvitationController extends Controller
             $invitation->append(['can', 'url']);
             // Make token visible for generating URLs
             $invitation->makeVisible('token');
+
             return $invitation;
         });
 
@@ -68,48 +72,104 @@ class UserInvitationController extends Controller
                 'pending' => UserInvitation::pending()->count(),
                 'accepted' => UserInvitation::whereNotNull('accepted_at')->count(),
                 'expired' => UserInvitation::expired()->count(),
-            ]
+            ],
+            'roles' => $this->getRolesWithMetadata(),
+            'plants' => Plant::orderBy('name')->get(['id', 'name'])->map(function ($plant) {
+                $plant->type = 'plant';
+
+                return $plant;
+            }),
+            'areas' => Area::orderBy('name')->get(['id', 'name'])->map(function ($area) {
+                $area->type = 'area';
+
+                return $area;
+            }),
+            'sectors' => Sector::orderBy('name')->get(['id', 'name'])->map(function ($sector) {
+                $sector->type = 'sector';
+
+                return $sector;
+            }),
         ]);
     }
 
     /**
-     * Show invitation creation form
+     * Show invitation creation form.
      */
     public function create()
     {
         return Inertia::render('invitations/create', [
-            'roles' => Role::orderBy('name')->get(['id', 'name', 'is_system'])
+            'roles' => $this->getRolesWithMetadata(),
+            'plants' => Plant::orderBy('name')->get(['id', 'name'])->map(function ($plant) {
+                $plant->type = 'plant';
+
+                return $plant;
+            }),
+            'areas' => Area::orderBy('name')->get(['id', 'name'])->map(function ($area) {
+                $area->type = 'area';
+
+                return $area;
+            }),
+            'sectors' => Sector::orderBy('name')->get(['id', 'name'])->map(function ($sector) {
+                $sector->type = 'sector';
+
+                return $sector;
+            }),
         ]);
     }
 
     /**
-     * Store new invitation
+     * Store new invitation.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'email' => [
-                'required', 
-                'email', 
+                'required',
+                'email',
                 'max:255',
                 Rule::unique('users', 'email'),
                 Rule::unique('user_invitations', 'email')->where(function ($query) {
                     return $query->whereNull('accepted_at')
-                                ->whereNull('revoked_at')
-                                ->where('expires_at', '>', now());
-                })
+                        ->whereNull('revoked_at')
+                        ->where('expires_at', '>', now());
+                }),
             ],
-            'initial_role' => 'nullable|string|exists:roles,name',
-            'initial_permissions' => 'nullable|array',
-            'initial_permissions.*' => 'string|exists:permissions,name',
+            'role_assignments' => 'nullable|array',
+            'role_assignments.*.role_id' => 'required|exists:roles,id',
+            'role_assignments.*.entity_type' => 'nullable|in:plant,area,sector',
+            'role_assignments.*.entity_id' => 'nullable|integer',
             'message' => 'nullable|string|max:1000',
         ]);
+
+        // Convert role assignments to the format expected by the model
+        $initialRoles = [];
+        $initialPermissions = [];
+
+        if (! empty($validated['role_assignments'])) {
+            foreach ($validated['role_assignments'] as $assignment) {
+                $role = Role::find($assignment['role_id']);
+                if ($role) {
+                    // Store role assignment information
+                    $roleAssignment = [
+                        'role_id' => $role->id,
+                        'role_name' => $role->name,
+                    ];
+
+                    if (! empty($assignment['entity_type']) && ! empty($assignment['entity_id'])) {
+                        $roleAssignment['entity_type'] = $assignment['entity_type'];
+                        $roleAssignment['entity_id'] = $assignment['entity_id'];
+                    }
+
+                    $initialRoles[] = $roleAssignment;
+                }
+            }
+        }
 
         $invitation = UserInvitation::create([
             'email' => $validated['email'],
             'invited_by' => $request->user()->id,
-            'initial_role' => $validated['initial_role'] ?? null,
-            'initial_permissions' => $validated['initial_permissions'] ?? null,
+            'initial_role' => ! empty($initialRoles) ? json_encode($initialRoles) : null,
+            'initial_permissions' => null, // Permissions will be derived from roles
             'message' => $validated['message'] ?? null,
         ]);
 
@@ -119,21 +179,21 @@ class UserInvitationController extends Controller
 
         // Log the invitation
         AuditLogService::logInvitation('sent', $invitation, [
-            'invited_by' => $request->user()->name
+            'invited_by' => $request->user()->name,
         ]);
 
         return redirect()->route('invitations.index')
-            ->with('success', "Invitation sent to {$validated['email']}");
+            ->with('success', "Convite enviado para {$validated['email']}");
     }
 
     /**
-     * Show invitation acceptance form
+     * Show invitation acceptance form.
      */
     public function show(string $token)
     {
         $invitation = UserInvitation::where('token', $token)->firstOrFail();
 
-        if (!$invitation->isValid()) {
+        if (! $invitation->isValid()) {
             return redirect()->route('login')
                 ->with('error', 'This invitation is no longer valid.');
         }
@@ -144,23 +204,23 @@ class UserInvitationController extends Controller
                 'email' => $invitation->email,
                 'token' => $invitation->token,
                 'invited_by' => [
-                    'name' => $invitation->invitedBy->name
+                    'name' => $invitation->inviter ? $invitation->inviter->name : 'System',
                 ],
                 'initial_role' => $invitation->initial_role,
                 'message' => $invitation->message,
                 'expires_at' => $invitation->expires_at,
-            ]
+            ],
         ]);
     }
 
     /**
-     * Accept invitation and create user
+     * Accept invitation and create user.
      */
     public function accept(Request $request, string $token)
     {
         $invitation = UserInvitation::where('token', $token)->firstOrFail();
 
-        if (!$invitation->isValid()) {
+        if (! $invitation->isValid()) {
             return redirect()->route('login')
                 ->with('error', 'This invitation is no longer valid.');
         }
@@ -189,7 +249,7 @@ class UserInvitationController extends Controller
     }
 
     /**
-     * Revoke invitation
+     * Revoke invitation.
      */
     public function revoke(Request $request, UserInvitation $invitation)
     {
@@ -202,7 +262,7 @@ class UserInvitationController extends Controller
         }
 
         $validated = $request->validate([
-            'reason' => 'nullable|string|max:500'
+            'reason' => 'nullable|string|max:500',
         ]);
 
         $invitation->revoke($request->user(), $validated['reason'] ?? null);
@@ -211,7 +271,7 @@ class UserInvitationController extends Controller
     }
 
     /**
-     * Resend invitation
+     * Resend invitation.
      */
     public function resend(UserInvitation $invitation)
     {
@@ -225,7 +285,7 @@ class UserInvitationController extends Controller
 
         // Update expiration date
         $invitation->update([
-            'expires_at' => now()->addDays(7)
+            'expires_at' => now()->addDays(7),
         ]);
 
         // Send invitation email
@@ -238,7 +298,7 @@ class UserInvitationController extends Controller
     }
 
     /**
-     * Get pending invitations
+     * Get pending invitations.
      */
     public function pending()
     {
@@ -248,5 +308,53 @@ class UserInvitationController extends Controller
             ->get();
 
         return response()->json($invitations);
+    }
+
+    /**
+     * Delete an invitation.
+     */
+    public function destroy(UserInvitation $invitation)
+    {
+        // Check if the invitation has already been accepted
+        if ($invitation->isAccepted()) {
+            return back()->with('error', 'Não é possível excluir um convite que já foi aceito.');
+        }
+
+        try {
+            // Log the deletion
+            AuditLogService::logInvitation('deleted', $invitation, [
+                'deleted_by' => auth()->user()->name,
+                'status_at_deletion' => $invitation->status,
+            ]);
+
+            // Delete the invitation
+            $invitation->delete();
+
+            return back()->with('success', 'Convite excluído com sucesso.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Não foi possível excluir o convite.');
+        }
+    }
+
+    /**
+     * Get roles with metadata.
+     */
+    private function getRolesWithMetadata()
+    {
+        return Role::orderBy('name')->get(['id', 'name', 'is_system', 'display_name', 'description'])
+            ->map(function ($role) {
+                $role->permissions_count = $role->permissions_count;
+
+                // Check if role name suggests entity-scoped permissions
+                $entityScopedRoles = ['Plant Manager', 'Area Manager', 'Sector Manager'];
+                if (in_array($role->name, $entityScopedRoles)) {
+                    $role->requires_entity = true;
+                    $role->entity_type = strtolower(explode(' ', $role->name)[0]);
+                } else {
+                    $role->requires_entity = false;
+                }
+
+                return $role;
+            });
     }
 }

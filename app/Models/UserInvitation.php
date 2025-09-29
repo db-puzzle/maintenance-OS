@@ -5,9 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class UserInvitation extends Model
 {
@@ -30,7 +29,7 @@ class UserInvitation extends Model
         'accepted_by',
         'revoked_at',
         'revoked_by',
-        'revocation_reason'
+        'revocation_reason',
     ];
 
     /**
@@ -62,7 +61,7 @@ class UserInvitation extends Model
         static::creating(function ($invitation) {
             // Generate secure token
             $invitation->token = $invitation->token ?: Str::random(64);
-            
+
             // Set default expiration if not provided
             $invitation->expires_at = $invitation->expires_at ?: now()->addDays(7);
         });
@@ -97,9 +96,9 @@ class UserInvitation extends Model
      */
     public function isValid(): bool
     {
-        return !$this->isExpired() 
-            && !$this->isAccepted() 
-            && !$this->isRevoked();
+        return ! $this->isExpired()
+            && ! $this->isAccepted()
+            && ! $this->isRevoked();
     }
 
     /**
@@ -140,7 +139,7 @@ class UserInvitation extends Model
     /**
      * Revoke the invitation.
      */
-    public function revoke(User $revokedBy, string $reason = null): void
+    public function revoke(User $revokedBy, ?string $reason = null): void
     {
         $this->update([
             'revoked_at' => now(),
@@ -165,15 +164,15 @@ class UserInvitation extends Model
         if ($this->isAccepted()) {
             return 'accepted';
         }
-        
+
         if ($this->isRevoked()) {
             return 'revoked';
         }
-        
+
         if ($this->isExpired()) {
             return 'expired';
         }
-        
+
         return 'pending';
     }
 
@@ -182,7 +181,7 @@ class UserInvitation extends Model
      */
     public function getStatusColorAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'accepted' => 'success',
             'revoked' => 'danger',
             'expired' => 'warning',
@@ -197,8 +196,8 @@ class UserInvitation extends Model
     public function scopePending($query)
     {
         return $query->whereNull('accepted_at')
-                    ->whereNull('revoked_at')
-                    ->where('expires_at', '>', now());
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', now());
     }
 
     /**
@@ -207,16 +206,16 @@ class UserInvitation extends Model
     public function scopeExpired($query)
     {
         return $query->whereNull('accepted_at')
-                    ->whereNull('revoked_at')
-                    ->where('expires_at', '<=', now());
+            ->whereNull('revoked_at')
+            ->where('expires_at', '<=', now());
     }
 
     /**
-     * V2: Get parsed initial permissions with entity scope
+     * V2: Get parsed initial permissions with entity scope.
      */
     public function getParsedPermissionsAttribute(): array
     {
-        if (!$this->initial_permissions) {
+        if (! $this->initial_permissions) {
             return [];
         }
 
@@ -234,7 +233,7 @@ class UserInvitation extends Model
                 'action' => $action,
                 'scope' => $scope,
                 'entity_id' => $entityId,
-                'is_scoped' => $scope && $entityId
+                'is_scoped' => $scope && $entityId,
             ];
         }
 
@@ -242,14 +241,14 @@ class UserInvitation extends Model
     }
 
     /**
-     * V2: Get entities this invitation grants access to
+     * V2: Get entities this invitation grants access to.
      */
     public function getGrantedEntitiesAttribute(): array
     {
         $entities = [
             'plants' => [],
             'areas' => [],
-            'sectors' => []
+            'sectors' => [],
         ];
 
         foreach ($this->parsed_permissions as $perm) {
@@ -267,11 +266,11 @@ class UserInvitation extends Model
     }
 
     /**
-     * V2: Check if invitation is within inviter's permission scope
+     * V2: Check if invitation is within inviter's permission scope.
      */
     public function isWithinInviterScope(): bool
     {
-        if (!$this->inviter) {
+        if (! $this->inviter) {
             return false;
         }
 
@@ -282,14 +281,14 @@ class UserInvitation extends Model
 
         // Check each permission is within inviter's scope
         foreach ($this->initial_permissions as $permission) {
-            if (!$this->inviter->hasPermissionTo($permission)) {
+            if (! $this->inviter->hasPermissionTo($permission)) {
                 // Check if inviter has invitation permission for the entity
                 $parts = explode('.', $permission);
                 if (count($parts) >= 4) {
                     $scope = $parts[2];
                     $entityId = $parts[3];
-                    
-                    if (!$this->inviter->canInviteToEntity($scope, $entityId)) {
+
+                    if (! $this->inviter->canInviteToEntity($scope, $entityId)) {
                         return false;
                     }
                 }
@@ -300,7 +299,7 @@ class UserInvitation extends Model
     }
 
     /**
-     * Generate signed URL for invitation
+     * Generate signed URL for invitation.
      */
     public function generateSignedUrl(): string
     {
@@ -312,24 +311,44 @@ class UserInvitation extends Model
     }
 
     /**
-     * Accept the invitation
+     * Accept the invitation.
      */
     public function accept(User $user): void
     {
-        if (!$this->isValid()) {
+        if (! $this->isValid()) {
             throw new \Exception('Invitation is not valid');
         }
 
         $this->update([
             'accepted_at' => now(),
-            'accepted_by' => $user->id
+            'accepted_by' => $user->id,
         ]);
 
-        // Assign initial role if specified
+        // Assign initial roles if specified
         if ($this->initial_role) {
-            $role = Role::where('name', $this->initial_role)->first();
-            if ($role) {
-                $user->assignRole($role);
+            // Check if it's the new JSON format
+            $roleAssignments = json_decode($this->initial_role, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($roleAssignments)) {
+                // New format: multiple roles with potential entity scopes
+                foreach ($roleAssignments as $assignment) {
+                    if (isset($assignment['role_id'])) {
+                        $role = Role::find($assignment['role_id']);
+                        if ($role) {
+                            $user->assignRole($role);
+
+                            // TODO: Handle entity-scoped permissions
+                            // This would require additional logic to assign permissions
+                            // specific to the entity (plant/area/sector)
+                        }
+                    }
+                }
+            } else {
+                // Legacy format: single role name
+                $role = Role::where('name', $this->initial_role)->first();
+                if ($role) {
+                    $user->assignRole($role);
+                }
             }
         }
 
@@ -352,21 +371,22 @@ class UserInvitation extends Model
             [
                 'email' => $this->email,
                 'user' => $user->name,
-                'invited_by' => $this->inviter->name
+                'invited_by' => $this->inviter->name,
             ]
         );
     }
 
     /**
-     * Get can attribute for authorization
+     * Get can attribute for authorization.
      */
     public function getCanAttribute(): array
     {
         $user = auth()->user();
-        
+
         return [
             'revoke' => $user && ($user->isAdministrator() || $user->can('invitations.revoke')),
             'resend' => $user && ($user->isAdministrator() || $user->can('users.invite')),
+            'delete' => $user && ($user->isAdministrator() || $user->can('users.invite')) && ! $this->isAccepted(),
         ];
     }
 }

@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { ChartGantt, ClipboardList, LayoutGrid, Award, Factory, FileBox, Truck, Wrench, UsersRound } from 'lucide-react';
+import { ChartGantt, ClipboardList, LayoutGrid, Award, Factory, FileBox, Truck, Wrench, UsersRound, Building2, Forklift } from 'lucide-react';
 import AppLogo from './app-logo';
 interface NavGroup {
     title: string;
@@ -127,7 +127,49 @@ const sistemaNavItems: NavGroup = {
     title: 'Configurações',
     items: [
         {
-            title: 'Usuários',
+            title: 'Organização',
+            href: '/asset-hierarchy',
+            icon: Building2,
+            items: [
+                {
+                    title: 'Plantas',
+                    href: '/asset-hierarchy/plants',
+                },
+                {
+                    title: 'Áreas',
+                    href: '/asset-hierarchy/areas',
+                },
+                {
+                    title: 'Setores',
+                    href: '/asset-hierarchy/sectors',
+                },
+                {
+                    title: 'Células de Trabalho',
+                    href: '/production/work-cells',
+                },
+                {
+                    title: 'Turnos',
+                    href: '/asset-hierarchy/shifts',
+                },
+            ],
+        },
+        {
+            title: 'Ativos',
+            href: '/asset-hierarchy',
+            icon: Forklift,
+            items: [
+                {
+                    title: 'Tipos de Ativo',
+                    href: '/asset-hierarchy/asset-types',
+                },
+                {
+                    title: 'Fabricantes',
+                    href: '/asset-hierarchy/manufacturers',
+                },
+            ],
+        },
+        {
+            title: 'Usuários & Permissões',
             href: '#',
             icon: UsersRound,
             items: [
@@ -136,12 +178,16 @@ const sistemaNavItems: NavGroup = {
                     href: '/users',
                 },
                 {
-                    title: 'Permissões',
-                    href: '/permissions',
-                },
-                {
                     title: 'Convites',
                     href: '/invitations',
+                },
+                {
+                    title: 'Funções',
+                    href: '/settings/roles',
+                },
+                {
+                    title: 'Permissões',
+                    href: '/permissions',
                 },
             ],
         },

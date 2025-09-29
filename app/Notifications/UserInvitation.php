@@ -2,11 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Models\UserInvitation as InvitationModel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use App\Models\UserInvitation as InvitationModel;
 
 class UserInvitation extends Notification implements ShouldQueue
 {
@@ -29,7 +29,7 @@ class UserInvitation extends Notification implements ShouldQueue
         $message = (new MailMessage)
             ->subject('Invitation to join ' . config('app.name'))
             ->greeting('Hello!')
-            ->line('You have been invited to join our maintenance management system by ' . $this->invitation->invitedBy->name . '.');
+            ->line('You have been invited to join our maintenance management system by ' . ($this->invitation->inviter ? $this->invitation->inviter->name : 'the system') . '.');
 
         if ($this->invitation->initial_role) {
             $message->line('You will be assigned the role of ' . ucfirst($this->invitation->initial_role) . '.');
@@ -49,7 +49,7 @@ class UserInvitation extends Notification implements ShouldQueue
     /**
      * Get the array representation of the notification.
      *
-     * @param  mixed  $notifiable
+     * @param mixed $notifiable
      * @return array
      */
     public function toArray($notifiable)
@@ -57,7 +57,7 @@ class UserInvitation extends Notification implements ShouldQueue
         return [
             'invitation_id' => $this->invitation->id,
             'email' => $this->invitation->email,
-            'invited_by' => $this->invitation->invitedBy->name,
+            'invited_by' => $this->invitation->inviter ? $this->invitation->inviter->name : 'System',
             'expires_at' => $this->invitation->expires_at,
         ];
     }

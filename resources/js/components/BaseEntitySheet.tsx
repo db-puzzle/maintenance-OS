@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { createFormAdapter } from '@/utils/form-adapters';
+import { PortalProvider } from '@/contexts/PortalContext';
 type FormDataType = Record<string, string | number | boolean | File | null | undefined>;
 export interface BaseEntitySheetProps<TFormData extends FormDataType> {
     // Entity data for edit mode
@@ -65,6 +66,7 @@ export function BaseEntitySheet<TFormData extends FormDataType>({
     const isEditMode = mode === 'edit' && entity;
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm<TFormData>(formConfig.initialData);
     const [internalSheetOpen, setInternalSheetOpen] = React.useState(false);
+    const [sheetContentEl, setSheetContentEl] = React.useState<HTMLDivElement | null>(null);
 
     // Create form adapter for components
     const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
@@ -173,35 +175,38 @@ export function BaseEntitySheet<TFormData extends FormDataType>({
                 </SheetTrigger>
             )}
             <SheetContent
+                ref={setSheetContentEl}
                 className={`${width} overflow-y-auto`}
                 onOpenAutoFocus={(e) => {
                     // Prevent default focus behavior to allow custom focus management
                     e.preventDefault();
                 }}
             >
-                <SheetHeader className="">
-                    <SheetTitle>{sheetTitle}</SheetTitle>
-                    <SheetDescription>{sheetDescription}</SheetDescription>
-                </SheetHeader>
-                <form onSubmit={handleSubmit} className="m-4 space-y-6">
-                    <div className="grid gap-6">{children({
-                        data,
-                        setData: (key: string, value: string | number | boolean | File | null | undefined) =>
-                            setData(key as keyof TFormData, value as TFormData[keyof TFormData]),
-                        errors: errors as Partial<Record<string, string>>,
-                        processing,
-                        clearErrors: (...fields: string[]) => clearErrors(...(fields as (keyof TFormData)[])),
-                        formAdapter
-                    })}</div>
-                    <SheetFooter className="flex justify-end gap-2">
-                        <Button type="submit" disabled={processing}>
-                            {processing ? 'Salvando...' : 'Salvar'}
-                        </Button>
-                        <Button type="button" variant="outline" onClick={handleCancel} disabled={processing}>
-                            Cancelar
-                        </Button>
-                    </SheetFooter>
-                </form>
+                <PortalProvider container={sheetContentEl}>
+                    <SheetHeader className="">
+                        <SheetTitle>{sheetTitle}</SheetTitle>
+                        <SheetDescription>{sheetDescription}</SheetDescription>
+                    </SheetHeader>
+                    <form onSubmit={handleSubmit} className="m-4 space-y-6">
+                        <div className="grid gap-6">{children({
+                            data,
+                            setData: (key: string, value: string | number | boolean | File | null | undefined) =>
+                                setData(key as keyof TFormData, value as TFormData[keyof TFormData]),
+                            errors: errors as Partial<Record<string, string>>,
+                            processing,
+                            clearErrors: (...fields: string[]) => clearErrors(...(fields as (keyof TFormData)[])),
+                            formAdapter
+                        })}</div>
+                        <SheetFooter className="flex justify-end gap-2">
+                            <Button type="submit" disabled={processing}>
+                                {processing ? 'Salvando...' : 'Salvar'}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={handleCancel} disabled={processing}>
+                                Cancelar
+                            </Button>
+                        </SheetFooter>
+                    </form>
+                </PortalProvider>
             </SheetContent>
         </Sheet>
     );

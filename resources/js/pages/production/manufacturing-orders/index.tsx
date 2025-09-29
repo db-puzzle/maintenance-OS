@@ -400,11 +400,11 @@ export default function ManufacturingOrders({
                             size="sm"
                             pressed={parentFilter === 'root'}
                             onPressedChange={(pressed) => handleParentFilter(pressed ? 'root' : 'all')}
-                            className="w-[135px] flex items-center justify-between data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90"
+                            className="w-[145px] flex items-center justify-between data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90"
                             aria-label="Toggle parent filter"
                         >
                             <GitBranch className="ml-1 h-4 w-4" />
-                            <span className="flex-1 ml-1 text-left">{parentFilter === 'root' ? 'Parent Only' : 'All Orders'}</span>
+                            <span className="flex-1 ml-1 text-left">{parentFilter === 'root' ? 'Somente Raiz' : 'Todas as MOs'}</span>
                         </Toggle>
                         <Select value={statusFilter || 'all'} onValueChange={handleStatusFilter}>
                             <SelectTrigger className="w-[135px] h-8">

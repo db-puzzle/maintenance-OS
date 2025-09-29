@@ -5,6 +5,7 @@ import { Link } from '@inertiajs/react';
 import { type SelectProps } from '@radix-ui/react-select';
 import { LucideIcon, PlusCircle, Search } from 'lucide-react';
 import { forwardRef, useEffect, useMemo, useState } from 'react';
+import { usePortalContainer } from '@/contexts/PortalContext';
 export interface ItemSelectProps extends SelectProps {
     label?: string;
     items: ReadonlyArray<{
@@ -51,6 +52,7 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
     ) => {
         const [search, setSearch] = useState('');
         const [isSelectOpen, setIsSelectOpen] = useState(false);
+        const portalContainer = usePortalContainer();
         const showSearch = searchable ?? items.length > 8;
         const filteredItems = useMemo(() => {
             if (!showSearch || !search) return items;
@@ -154,7 +156,7 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                                 )}
                             </SelectValue>
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent container={portalContainer}>
                             <div className="flex flex-col max-h-[300px]">
                                 {showSearch && (
                                     <div className="sticky top-0 z-10 bg-popover border-border flex items-center border-b px-2 pb-1">

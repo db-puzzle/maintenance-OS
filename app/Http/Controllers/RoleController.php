@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Role;
+use App\Http\Resources\RoleResource;
 use App\Models\Permission;
+use App\Models\Role;
 use App\Models\User;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Services\AuditLogService;
 
 class RoleController extends Controller
 {
@@ -22,7 +23,7 @@ class RoleController extends Controller
     }
 
     /**
-     * Display roles list
+     * Display roles list.
      */
     public function index(Request $request)
     {
@@ -46,21 +47,18 @@ class RoleController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        // Add computed attributes
-        $roles->getCollection()->transform(function ($role) {
-            $role->append(['permissions_count', 'users_count']);
-            return $role;
-        });
-
-        // Method temporarily disabled - page not implemented yet
-        return Inertia::render('error/not-implemented', [
-            'status' => 501,
-            'message' => 'This feature is not yet implemented'
+        return Inertia::render('settings/roles/index', [
+            'roles' => RoleResource::collection($roles),
+            'filters' => $request->only(['search', 'type']),
+            'can' => [
+                'create' => auth()->user()->can('roles.create'),
+                'viewAny' => auth()->user()->can('roles.viewAny'),
+            ],
         ]);
     }
 
     /**
-     * Show role creation form
+     * Show role creation form.
      */
     public function create()
     {
@@ -69,31 +67,41 @@ class RoleController extends Controller
             ->get()
             ->groupBy('resource');
 
-        // Method temporarily disabled - page not implemented yet
-        return Inertia::render('error/not-implemented', [
-            'status' => 501,
-            'message' => 'This feature is not yet implemented'
+        return Inertia::render('settings/roles/create', [
+            'permissions' => $permissions,
+            'roles' => Role::all(['id', 'name', 'display_name']), // For parent role selection
+            'can' => [
+                'create' => auth()->user()->can('roles.create'),
+            ],
         ]);
     }
 
     /**
-     * Store new role
+     * Store new role.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:roles',
+            'name' => 'required|string|max:255|unique:roles|regex:/^[a-z0-9_-]+$/',
+            'display_name' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:500',
+            'parent_role_id' => 'nullable|exists:roles,id',
+            'icon' => 'nullable|string|max:10',
             'permissions' => 'nullable|array',
             'permissions.*' => 'exists:permissions,id',
         ]);
 
         $role = Role::create([
             'name' => $validated['name'],
+            'display_name' => $validated['display_name'] ?? null,
+            'description' => $validated['description'] ?? null,
+            'parent_role_id' => $validated['parent_role_id'] ?? null,
+            'icon' => $validated['icon'] ?? null,
             'is_system' => false,
         ]);
 
         // Assign permissions if provided
-        if (!empty($validated['permissions'])) {
+        if (! empty($validated['permissions'])) {
             $permissions = Permission::whereIn('id', $validated['permissions'])->get();
             $role->syncPermissions($permissions);
         }
@@ -105,7 +113,7 @@ class RoleController extends Controller
             $role->toArray(),
             [
                 'created_by' => $request->user()->name,
-                'permissions_assigned' => count($validated['permissions'] ?? [])
+                'permissions_assigned' => count($validated['permissions'] ?? []),
             ]
         );
 
@@ -114,24 +122,27 @@ class RoleController extends Controller
     }
 
     /**
-     * Show role details
+     * Show role details.
      */
     public function show(Role $role)
     {
-        $role->load(['permissions', 'users.roles']);
-        $role->append(['permissions_count', 'users_count']);
+        $this->authorize('view', $role);
 
-        $permissions = $role->permissions->groupBy('resource');
+        $role->load(['permissions', 'users']);
 
-        // Method temporarily disabled - page not implemented yet
-        return Inertia::render('error/not-implemented', [
-            'status' => 501,
-            'message' => 'This feature is not yet implemented'
+        return Inertia::render('settings/roles/show', [
+            'role' => new RoleResource($role->loadMissing('permissions', 'users')),
+            'can' => [
+                'update' => auth()->user()->can('update', $role),
+                'delete' => auth()->user()->can('delete', $role),
+                'assign' => auth()->user()->can('assign', $role),
+                'duplicate' => auth()->user()->can('duplicate', $role),
+            ],
         ]);
     }
 
     /**
-     * Show role edit form
+     * Show role edit form.
      */
     public function edit(Role $role)
     {
@@ -144,20 +155,28 @@ class RoleController extends Controller
 
         $rolePermissionIds = $role->permissions->pluck('id')->toArray();
 
-        // Method temporarily disabled - page not implemented yet
-        return Inertia::render('error/not-implemented', [
-            'status' => 501,
-            'message' => 'This feature is not yet implemented'
+        return Inertia::render('settings/roles/edit', [
+            'role' => new RoleResource($role),
+            'permissions' => $allPermissions,
+            'rolePermissionIds' => $rolePermissionIds,
+            'roles' => Role::where('id', '!=', $role->id)->get(['id', 'name', 'display_name']), // For parent role selection
+            'can' => [
+                'update' => auth()->user()->can('update', $role),
+            ],
         ]);
     }
 
     /**
-     * Update role
+     * Update role.
      */
     public function update(Request $request, Role $role)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:roles,name,' . $role->id,
+            'name' => 'required|string|max:255|regex:/^[a-z0-9_-]+$/|unique:roles,name,' . $role->id,
+            'display_name' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:500',
+            'parent_role_id' => 'nullable|exists:roles,id|different:id',
+            'icon' => 'nullable|string|max:10',
             'permissions' => 'nullable|array',
             'permissions.*' => 'exists:permissions,id',
         ]);
@@ -165,7 +184,13 @@ class RoleController extends Controller
         $oldValues = $role->toArray();
         $oldPermissions = $role->permissions->pluck('id')->toArray();
 
-        $role->update(['name' => $validated['name']]);
+        $role->update([
+            'name' => $validated['name'],
+            'display_name' => $validated['display_name'] ?? $role->display_name,
+            'description' => $validated['description'] ?? $role->description,
+            'parent_role_id' => $validated['parent_role_id'] ?? $role->parent_role_id,
+            'icon' => $validated['icon'] ?? $role->icon,
+        ]);
 
         // Update permissions
         $newPermissions = $validated['permissions'] ?? [];
@@ -179,7 +204,7 @@ class RoleController extends Controller
             array_merge($role->fresh()->toArray(), ['permissions' => $newPermissions]),
             [
                 'updated_by' => $request->user()->name,
-                'permissions_changed' => count(array_diff($oldPermissions, $newPermissions)) + count(array_diff($newPermissions, $oldPermissions))
+                'permissions_changed' => count(array_diff($oldPermissions, $newPermissions)) + count(array_diff($newPermissions, $oldPermissions)),
             ]
         );
 
@@ -188,7 +213,7 @@ class RoleController extends Controller
     }
 
     /**
-     * Delete role
+     * Delete role.
      */
     public function destroy(Role $role)
     {
@@ -218,7 +243,7 @@ class RoleController extends Controller
     }
 
     /**
-     * Get role permissions (API)
+     * Get role permissions (API).
      */
     public function permissions(Role $role)
     {
@@ -236,12 +261,12 @@ class RoleController extends Controller
             });
 
         return response()->json([
-            'permissions' => $permissions
+            'permissions' => $permissions,
         ]);
     }
 
     /**
-     * Assign role to user
+     * Assign role to user.
      */
     public function assignUser(Request $request, Role $role)
     {
@@ -258,32 +283,32 @@ class RoleController extends Controller
         $user->assignRole($role);
 
         AuditLogService::logPermissionChange('attached', $user, $role, [
-            'assigned_by' => $request->user()->name
+            'assigned_by' => $request->user()->name,
         ]);
 
         return back()->with('success', "Role '{$role->name}' assigned to {$user->name}.");
     }
 
     /**
-     * Remove role from user
+     * Remove role from user.
      */
     public function removeUser(Request $request, Role $role, User $user)
     {
-        if (!$user->hasRole($role)) {
+        if (! $user->hasRole($role)) {
             return back()->with('error', 'User does not have this role.');
         }
 
         $user->removeRole($role);
 
         AuditLogService::logPermissionChange('detached', $user, $role, [
-            'removed_by' => $request->user()->name
+            'removed_by' => $request->user()->name,
         ]);
 
         return back()->with('success', "Role '{$role->name}' removed from {$user->name}.");
     }
 
     /**
-     * Duplicate role
+     * Duplicate role.
      */
     public function duplicate(Role $role)
     {
@@ -304,7 +329,7 @@ class RoleController extends Controller
             [
                 'duplicated_from' => $role->name,
                 'duplicated_by' => auth()->user()->name,
-                'permissions_copied' => $permissions->count()
+                'permissions_copied' => $permissions->count(),
             ]
         );
 

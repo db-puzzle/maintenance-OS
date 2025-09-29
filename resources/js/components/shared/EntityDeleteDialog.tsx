@@ -10,6 +10,7 @@ interface EntityDeleteDialogProps {
     onConfirm: () => Promise<void>;
     confirmationValue?: string;
     confirmationLabel?: string;
+    requireConfirmation?: boolean;
 }
 export function EntityDeleteDialog({
     open,
@@ -17,7 +18,8 @@ export function EntityDeleteDialog({
     entityLabel,
     onConfirm,
     confirmationValue = 'EXCLUIR',
-    confirmationLabel
+    confirmationLabel,
+    requireConfirmation = true
 }: EntityDeleteDialogProps) {
     const [loading, setLoading] = useState(false);
     const [confirmationText, setConfirmationText] = useState('');
@@ -39,7 +41,7 @@ export function EntityDeleteDialog({
         }
         onOpenChange(newOpen);
     };
-    const isConfirmationValid = confirmationText === confirmationValue;
+    const isConfirmationValid = !requireConfirmation || confirmationText === confirmationValue;
     const defaultLabel = confirmationValue === 'EXCLUIR'
         ? 'Digite EXCLUIR para confirmar'
         : `Digite ${confirmationValue} para confirmar`;
@@ -48,23 +50,25 @@ export function EntityDeleteDialog({
             <DialogContent>
                 <DialogTitle>Confirmar exclusão</DialogTitle>
                 <DialogDescription>Tem certeza que deseja excluir {entityLabel}? Esta ação não pode ser desfeita.</DialogDescription>
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="confirmation">{confirmationLabel || defaultLabel}</Label>
-                        <Input
-                            id="confirmation"
-                            variant="destructive"
-                            value={confirmationText}
-                            onChange={(e) => setConfirmationText(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && isConfirmationValid && !loading) {
-                                    handleConfirm();
-                                }
-                            }}
-                            disabled={loading}
-                        />
+                {requireConfirmation && (
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="confirmation">{confirmationLabel || defaultLabel}</Label>
+                            <Input
+                                id="confirmation"
+                                variant="destructive"
+                                value={confirmationText}
+                                onChange={(e) => setConfirmationText(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && isConfirmationValid && !loading) {
+                                        handleConfirm();
+                                    }
+                                }}
+                                disabled={loading}
+                            />
+                        </div>
                     </div>
-                </div>
+                )}
                 <DialogFooter>
                     <DialogClose asChild>
                         <Button variant="secondary" disabled={loading}>

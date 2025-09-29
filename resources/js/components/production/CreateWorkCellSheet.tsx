@@ -11,6 +11,7 @@ import { ItemSelect } from '@/components/ItemSelect';
 import { TextInput } from '@/components/TextInput';
 import { createFormAdapter } from '@/utils/form-adapters';
 import { WorkCell } from '@/types/production';
+import { PortalProvider } from '@/contexts/PortalContext';
 
 interface WorkCellForm {
     [key: string]: string | number | boolean | null | undefined;
@@ -89,6 +90,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
     });
     const [internalSheetOpen, setInternalSheetOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [sheetContentEl, setSheetContentEl] = useState<HTMLDivElement | null>(null);
 
     // Local state for client-side validation errors
     const [errors, setErrors] = useState<Partial<Record<keyof WorkCellForm, string>>>({});
@@ -387,296 +389,298 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
     };
 
     const sheetContent = (
-        <SheetContent className="w-full overflow-y-auto sm:max-w-[650px]">
-            <form onSubmit={handleSubmit}>
-                <SheetHeader>
-                    <SheetTitle>{isNew ? 'Nova Célula de Trabalho' : 'Editar Célula de Trabalho'}</SheetTitle>
-                    <SheetDescription>
-                        {isNew ? 'Preencha os dados para criar uma nova célula de trabalho.' : 'Atualize os dados da célula de trabalho.'}
-                    </SheetDescription>
-                </SheetHeader>
-                <div className="space-y-6 px-4">
-                    {/* Basic Information */}
-                    <div className="space-y-4">
-                        <TextInput
-                            ref={nameInputRef}
-                            form={formAdapter}
-                            name="name"
-                            label="Nome da Célula"
-                            placeholder="Nome da célula de trabalho"
-                            required
-                            disabled={isSubmitting || processing}
-                        />
-                        <TextInput
-                            form={formAdapter}
-                            name="description"
-                            label="Descrição"
-                            placeholder="Descrição da célula de trabalho"
-                            disabled={isSubmitting || processing}
-                        />
-                    </div>
-
-                    {/* Tipo de Célula */}
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Tipo de Célula</h3>
-                        <div className="space-y-3">
-                            <StateButton
-                                icon={Building2}
-                                title="Célula Interna"
-                                description="Célula de trabalho operada internamente pela empresa"
-                                selected={data.cell_type === 'internal'}
-                                onClick={() => {
-                                    updateData('cell_type', 'internal');
-                                    // Clear manufacturer when switching to internal
-                                    updateData('manufacturer_id', '');
-                                }}
+        <SheetContent ref={setSheetContentEl} className="w-full overflow-y-auto sm:max-w-[650px]">
+            <PortalProvider container={sheetContentEl}>
+                <form onSubmit={handleSubmit}>
+                    <SheetHeader>
+                        <SheetTitle>{isNew ? 'Nova Célula de Trabalho' : 'Editar Célula de Trabalho'}</SheetTitle>
+                        <SheetDescription>
+                            {isNew ? 'Preencha os dados para criar uma nova célula de trabalho.' : 'Atualize os dados da célula de trabalho.'}
+                        </SheetDescription>
+                    </SheetHeader>
+                    <div className="space-y-6 px-4">
+                        {/* Basic Information */}
+                        <div className="space-y-4">
+                            <TextInput
+                                ref={nameInputRef}
+                                form={formAdapter}
+                                name="name"
+                                label="Nome da Célula"
+                                placeholder="Nome da célula de trabalho"
+                                required
                                 disabled={isSubmitting || processing}
                             />
-                            {data.cell_type === 'internal' && (
-                                <div className="border-l border-gray-200">
-                                    <div className="ml-6 space-y-4">
-                                        <ItemSelect
-                                            label="Planta"
-                                            items={plants}
-                                            value={data.plant_id}
-                                            onValueChange={(value) => {
-                                                updateData('plant_id', value);
-                                                // Clear dependent fields
-                                                updateData('area_id', '');
-                                                updateData('sector_id', '');
-                                            }}
-                                            placeholder="Selecione uma planta"
-                                            error={errors.plant_id}
-                                            canClear
-                                        />
-                                        {data.plant_id && (
-                                            <ItemSelect
-                                                label="Área"
-                                                items={areas}
-                                                value={data.area_id}
-                                                onValueChange={(value) => {
-                                                    updateData('area_id', value);
-                                                    // Clear dependent field
-                                                    updateData('sector_id', '');
-                                                }}
-                                                placeholder="Selecione uma área"
-                                                error={errors.area_id}
-                                                canClear
-                                            />
-                                        )}
-                                        {data.area_id && (
-                                            <ItemSelect
-                                                label="Setor"
-                                                items={sectors}
-                                                value={data.sector_id}
-                                                onValueChange={(value) => updateData('sector_id', value)}
-                                                placeholder="Selecione um setor"
-                                                error={errors.sector_id}
-                                                canClear
-                                            />
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                            <StateButton
-                                icon={Factory}
-                                title="Célula Externa"
-                                description="Célula de trabalho operada por um fornecedor externo"
-                                selected={data.cell_type === 'external'}
-                                onClick={() => {
-                                    updateData('cell_type', 'external');
-                                    // Clear location fields when switching to external
-                                    updateData('plant_id', '');
-                                    updateData('area_id', '');
-                                    updateData('sector_id', '');
-                                }}
+                            <TextInput
+                                form={formAdapter}
+                                name="description"
+                                label="Descrição"
+                                placeholder="Descrição da célula de trabalho"
                                 disabled={isSubmitting || processing}
                             />
-                            {data.cell_type === 'external' && (
-                                <div className="border-l border-gray-200">
-                                    <div className="ml-6 space-y-4">
-                                        <ItemSelect
-                                            label="Fabricante"
-                                            items={manufacturers}
-                                            value={data.manufacturer_id}
-                                            onValueChange={(value) => updateData('manufacturer_id', value)}
-                                            placeholder="Selecione um fabricante"
-                                            error={errors.manufacturer_id}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
-                    </div>
-
-                    {/* Capacidade */}
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Capacidade</h3>
-                        <div className="space-y-3">
-                            <StateButton
-                                icon={InfinityIcon}
-                                title="Capacidade Infinita"
-                                description="A célula tem capacidade ilimitada (ex: operações terceirizadas)"
-                                selected={!data.has_finite_capacity}
-                                onClick={() => {
-                                    updateData('has_finite_capacity', false);
-                                    // Clear finite capacity related fields
-                                    updateData('shift_id', '');
-                                    updateData('default_production_rate_per_hour', '');
-                                    updateData('default_setup_time_minutes', '0');
-                                    updateData('max_parallel_executions', '1');
-                                }}
-                                disabled={isSubmitting || processing}
-                            />
-                            <StateButton
-                                icon={Building2}
-                                title="Capacidade Finita"
-                                description="A célula tem limitações de capacidade baseadas em turnos e taxas de produção"
-                                selected={data.has_finite_capacity}
-                                onClick={() => updateData('has_finite_capacity', true)}
-                                disabled={isSubmitting || processing}
-                            />
-                            {data.has_finite_capacity && (
-                                <div className="border-l border-gray-200">
-                                    <div className="ml-6 space-y-4">
-                                        <ItemSelect
-                                            label="Turno"
-                                            items={shifts}
-                                            value={data.shift_id}
-                                            onValueChange={(value) => updateData('shift_id', value)}
-                                            placeholder="Selecione um turno"
-                                            error={errors.shift_id}
-                                            required
-                                            canClear
-                                        />
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="flex items-end gap-2">
-                                                <div className="flex-1">
-                                                    <TextInput
-                                                        form={formAdapter}
-                                                        name="default_production_rate_per_hour"
-                                                        label="Taxa Padrão de Produção"
-                                                        placeholder="100"
-                                                        disabled={isSubmitting || processing}
-                                                    />
-                                                </div>
-                                                <span className="text-sm text-muted-foreground mb-2 whitespace-nowrap">por hora</span>
-                                            </div>
-                                            <div>
-                                                <Label htmlFor="default_unit_of_measure">Unidade de Medida</Label>
-                                                <Select
-                                                    value={data.default_unit_of_measure}
-                                                    onValueChange={(value) => updateData('default_unit_of_measure', value)}
-                                                    disabled={isSubmitting || processing}
-                                                >
-                                                    <SelectTrigger className="w-full">
-                                                        <SelectValue placeholder="Selecione uma unidade" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {Object.entries(uomByType).map(([type, units]) => (
-                                                            <SelectGroup key={type}>
-                                                                <SelectLabel>
-                                                                    {type === 'COUNT' ? 'Contagem' :
-                                                                        type === 'MASS' ? 'Massa' :
-                                                                            type === 'LENGTH' ? 'Comprimento' :
-                                                                                type === 'AREA' ? 'Área' :
-                                                                                    type === 'VOLUME' ? 'Volume' :
-                                                                                        type === 'TIME' ? 'Tempo' : type}
-                                                                </SelectLabel>
-                                                                {units.map((uom) => (
-                                                                    <SelectItem key={uom.id} value={uom.code}>
-                                                                        {uom.code} - {uom.name}
-                                                                        {uom.symbol && ` (${uom.symbol})`}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectGroup>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                {errors.default_unit_of_measure && (
-                                                    <p className="text-sm text-red-600 mt-1">{errors.default_unit_of_measure}</p>
-                                                )}
-                                            </div>
+                        {/* Tipo de Célula */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium">Tipo de Célula</h3>
+                            <div className="space-y-3">
+                                <StateButton
+                                    icon={Building2}
+                                    title="Célula Interna"
+                                    description="Célula de trabalho operada internamente pela empresa"
+                                    selected={data.cell_type === 'internal'}
+                                    onClick={() => {
+                                        updateData('cell_type', 'internal');
+                                        // Clear manufacturer when switching to internal
+                                        updateData('manufacturer_id', '');
+                                    }}
+                                    disabled={isSubmitting || processing}
+                                />
+                                {data.cell_type === 'internal' && (
+                                    <div className="border-l border-gray-200">
+                                        <div className="ml-6 space-y-4">
+                                            <ItemSelect
+                                                label="Planta"
+                                                items={plants}
+                                                value={data.plant_id}
+                                                onValueChange={(value) => {
+                                                    updateData('plant_id', value);
+                                                    // Clear dependent fields
+                                                    updateData('area_id', '');
+                                                    updateData('sector_id', '');
+                                                }}
+                                                placeholder="Selecione uma planta"
+                                                error={errors.plant_id}
+                                                canClear
+                                            />
+                                            {data.plant_id && (
+                                                <ItemSelect
+                                                    label="Área"
+                                                    items={areas}
+                                                    value={data.area_id}
+                                                    onValueChange={(value) => {
+                                                        updateData('area_id', value);
+                                                        // Clear dependent field
+                                                        updateData('sector_id', '');
+                                                    }}
+                                                    placeholder="Selecione uma área"
+                                                    error={errors.area_id}
+                                                    canClear
+                                                />
+                                            )}
+                                            {data.area_id && (
+                                                <ItemSelect
+                                                    label="Setor"
+                                                    items={sectors}
+                                                    value={data.sector_id}
+                                                    onValueChange={(value) => updateData('sector_id', value)}
+                                                    placeholder="Selecione um setor"
+                                                    error={errors.sector_id}
+                                                    canClear
+                                                />
+                                            )}
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
+                                    </div>
+                                )}
+                                <StateButton
+                                    icon={Factory}
+                                    title="Célula Externa"
+                                    description="Célula de trabalho operada por um fornecedor externo"
+                                    selected={data.cell_type === 'external'}
+                                    onClick={() => {
+                                        updateData('cell_type', 'external');
+                                        // Clear location fields when switching to external
+                                        updateData('plant_id', '');
+                                        updateData('area_id', '');
+                                        updateData('sector_id', '');
+                                    }}
+                                    disabled={isSubmitting || processing}
+                                />
+                                {data.cell_type === 'external' && (
+                                    <div className="border-l border-gray-200">
+                                        <div className="ml-6 space-y-4">
+                                            <ItemSelect
+                                                label="Fabricante"
+                                                items={manufacturers}
+                                                value={data.manufacturer_id}
+                                                onValueChange={(value) => updateData('manufacturer_id', value)}
+                                                placeholder="Selecione um fabricante"
+                                                error={errors.manufacturer_id}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                        </div>
+
+                        {/* Capacidade */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium">Capacidade</h3>
+                            <div className="space-y-3">
+                                <StateButton
+                                    icon={InfinityIcon}
+                                    title="Capacidade Infinita"
+                                    description="A célula tem capacidade ilimitada (ex: operações terceirizadas)"
+                                    selected={!data.has_finite_capacity}
+                                    onClick={() => {
+                                        updateData('has_finite_capacity', false);
+                                        // Clear finite capacity related fields
+                                        updateData('shift_id', '');
+                                        updateData('default_production_rate_per_hour', '');
+                                        updateData('default_setup_time_minutes', '0');
+                                        updateData('max_parallel_executions', '1');
+                                    }}
+                                    disabled={isSubmitting || processing}
+                                />
+                                <StateButton
+                                    icon={Building2}
+                                    title="Capacidade Finita"
+                                    description="A célula tem limitações de capacidade baseadas em turnos e taxas de produção"
+                                    selected={data.has_finite_capacity}
+                                    onClick={() => updateData('has_finite_capacity', true)}
+                                    disabled={isSubmitting || processing}
+                                />
+                                {data.has_finite_capacity && (
+                                    <div className="border-l border-gray-200">
+                                        <div className="ml-6 space-y-4">
+                                            <ItemSelect
+                                                label="Turno"
+                                                items={shifts}
+                                                value={data.shift_id}
+                                                onValueChange={(value) => updateData('shift_id', value)}
+                                                placeholder="Selecione um turno"
+                                                error={errors.shift_id}
+                                                required
+                                                canClear
+                                            />
+                                            <div className="grid grid-cols-2 gap-4">
                                                 <div className="flex items-end gap-2">
                                                     <div className="flex-1">
                                                         <TextInput
                                                             form={formAdapter}
-                                                            name="default_setup_time_minutes"
-                                                            label="Tempo Padrão de Setup"
-                                                            placeholder="30"
-                                                            type="number"
-                                                            min="0"
-                                                            max="9999"
+                                                            name="default_production_rate_per_hour"
+                                                            label="Taxa Padrão de Produção"
+                                                            placeholder="100"
                                                             disabled={isSubmitting || processing}
                                                         />
                                                     </div>
-                                                    <span className="text-sm text-muted-foreground pb-1 whitespace-nowrap">minutos</span>
+                                                    <span className="text-sm text-muted-foreground mb-2 whitespace-nowrap">por hora</span>
                                                 </div>
-                                                <p className="text-sm text-muted-foreground mt-1">Tempo padrão de preparação/setup em minutos</p>
+                                                <div>
+                                                    <Label htmlFor="default_unit_of_measure">Unidade de Medida</Label>
+                                                    <Select
+                                                        value={data.default_unit_of_measure}
+                                                        onValueChange={(value) => updateData('default_unit_of_measure', value)}
+                                                        disabled={isSubmitting || processing}
+                                                    >
+                                                        <SelectTrigger className="w-full">
+                                                            <SelectValue placeholder="Selecione uma unidade" />
+                                                        </SelectTrigger>
+                                                        <SelectContent container={sheetContentEl}>
+                                                            {Object.entries(uomByType).map(([type, units]) => (
+                                                                <SelectGroup key={type}>
+                                                                    <SelectLabel>
+                                                                        {type === 'COUNT' ? 'Contagem' :
+                                                                            type === 'MASS' ? 'Massa' :
+                                                                                type === 'LENGTH' ? 'Comprimento' :
+                                                                                    type === 'AREA' ? 'Área' :
+                                                                                        type === 'VOLUME' ? 'Volume' :
+                                                                                            type === 'TIME' ? 'Tempo' : type}
+                                                                    </SelectLabel>
+                                                                    {units.map((uom) => (
+                                                                        <SelectItem key={uom.id} value={uom.code}>
+                                                                            {uom.code} - {uom.name}
+                                                                            {uom.symbol && ` (${uom.symbol})`}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectGroup>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    {errors.default_unit_of_measure && (
+                                                        <p className="text-sm text-red-600 mt-1">{errors.default_unit_of_measure}</p>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div>
-                                                <TextInput
-                                                    form={formAdapter}
-                                                    name="max_parallel_executions"
-                                                    label="Execuções Paralelas Máximas"
-                                                    placeholder="1"
-                                                    type="number"
-                                                    min="1"
-                                                    max="999"
-                                                    required
-                                                    disabled={isSubmitting || processing}
-                                                    validateInput={validateParallelExecutions}
-                                                    helperText="Máximo de operações em paralelo"
-                                                />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <div className="flex items-end gap-2">
+                                                        <div className="flex-1">
+                                                            <TextInput
+                                                                form={formAdapter}
+                                                                name="default_setup_time_minutes"
+                                                                label="Tempo Padrão de Setup"
+                                                                placeholder="30"
+                                                                type="number"
+                                                                min="0"
+                                                                max="9999"
+                                                                disabled={isSubmitting || processing}
+                                                            />
+                                                        </div>
+                                                        <span className="text-sm text-muted-foreground pb-1 whitespace-nowrap">minutos</span>
+                                                    </div>
+                                                    <p className="text-sm text-muted-foreground mt-1">Tempo padrão de preparação/setup em minutos</p>
+                                                </div>
+                                                <div>
+                                                    <TextInput
+                                                        form={formAdapter}
+                                                        name="max_parallel_executions"
+                                                        label="Execuções Paralelas Máximas"
+                                                        placeholder="1"
+                                                        type="number"
+                                                        min="1"
+                                                        max="999"
+                                                        required
+                                                        disabled={isSubmitting || processing}
+                                                        validateInput={validateParallelExecutions}
+                                                        helperText="Máximo de operações em paralelo"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Status */}
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Status</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            <StateButton
-                                icon={CheckCircle2}
-                                title="Ativa"
-                                description="Célula de trabalho está ativa e disponível para uso"
-                                selected={data.is_active}
-                                onClick={() => updateData('is_active', true)}
-                                disabled={isSubmitting || processing}
-                                variant="green"
-                            />
-                            <StateButton
-                                icon={XCircle}
-                                title="Inativa"
-                                description="Célula de trabalho está inativa e não disponível para uso"
-                                selected={!data.is_active}
-                                onClick={() => updateData('is_active', false)}
-                                disabled={isSubmitting || processing}
-                                variant="red"
-                            />
+                        {/* Status */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium">Status</h3>
+                            <div className="grid grid-cols-2 gap-3">
+                                <StateButton
+                                    icon={CheckCircle2}
+                                    title="Ativa"
+                                    description="Célula de trabalho está ativa e disponível para uso"
+                                    selected={data.is_active}
+                                    onClick={() => updateData('is_active', true)}
+                                    disabled={isSubmitting || processing}
+                                    variant="green"
+                                />
+                                <StateButton
+                                    icon={XCircle}
+                                    title="Inativa"
+                                    description="Célula de trabalho está inativa e não disponível para uso"
+                                    selected={!data.is_active}
+                                    onClick={() => updateData('is_active', false)}
+                                    disabled={isSubmitting || processing}
+                                    variant="red"
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
-                <SheetFooter className="px-6">
-                    <Button type="submit" disabled={isSubmitting || processing}>
-                        <Save className="mr-2 h-4 w-4" />
-                        {isSubmitting || processing ? 'Salvando...' : 'Salvar'}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting || processing}>
-                        <X className="mr-2 h-4 w-4" />
-                        Cancelar
-                    </Button>
-                </SheetFooter>
-            </form>
+                    <SheetFooter className="px-6">
+                        <Button type="submit" disabled={isSubmitting || processing}>
+                            <Save className="mr-2 h-4 w-4" />
+                            {isSubmitting || processing ? 'Salvando...' : 'Salvar'}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting || processing}>
+                            <X className="mr-2 h-4 w-4" />
+                            Cancelar
+                        </Button>
+                    </SheetFooter>
+                </form>
+            </PortalProvider>
         </SheetContent>
     );
 
