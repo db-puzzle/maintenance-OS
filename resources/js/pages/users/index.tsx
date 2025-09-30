@@ -28,7 +28,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/home',
     },
     {
-        title: 'User Management',
+        title: 'Usuários',
         href: '/users',
     },
 ];
@@ -256,17 +256,51 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
     };
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="User Management" />
+            <Head title="Gerenciamento de Usuários" />
             <ListLayout
-                title="User Management"
-                description="Manage users, roles, and permissions"
-                searchPlaceholder="Search by name or email..."
+                title="Gerenciamento de Usuários"
+                description="Gerencie usuários, permissões e funções"
+                searchPlaceholder="Procure por nome ou email..."
                 searchValue={search}
                 onSearchChange={handleSearch}
                 onCreateClick={canCreateUsers ? () => setIsCreateModalOpen(true) : undefined}
                 createButtonText="Add User"
                 actions={
                     <div className="flex items-center gap-2">
+                        <Select
+                            value={filters.role || 'all'}
+                            onValueChange={(value) => handleFilter('role', value === 'all' ? null : value)}
+                        >
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="All Roles" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Roles</SelectItem>
+                                {(filterRoles || roles)?.map((role) => (
+                                    <SelectItem key={role.id} value={role.name}>
+                                        {role.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {plants && plants.length > 0 && (
+                            <Select
+                                value={filters.plant_id || 'all'}
+                                onValueChange={(value) => handleFilter('plant_id', value === 'all' ? null : value)}
+                            >
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="All Plants" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Plants</SelectItem>
+                                    {plants?.map((plant) => (
+                                        <SelectItem key={plant.id} value={plant.id.toString()}>
+                                            {plant.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
                         <Button asChild variant="outline" size="sm">
                             <Link href={route('roles.index')}>
                                 <Shield className="mr-2 h-4 w-4" />
@@ -285,43 +319,6 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                 }
             >
                 <div className="-mt-4 space-y-4">
-                    {/* Additional Filters */}
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <Select
-                            value={filters.role || 'all'}
-                            onValueChange={(value) => handleFilter('role', value === 'all' ? null : value)}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="All Roles" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Roles</SelectItem>
-                                {(filterRoles || roles)?.map((role) => (
-                                    <SelectItem key={role.id} value={role.name}>
-                                        {role.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {plants && plants.length > 0 && (
-                            <Select
-                                value={filters.plant_id || 'all'}
-                                onValueChange={(value) => handleFilter('plant_id', value === 'all' ? null : value)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="All Plants" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Plants</SelectItem>
-                                    {plants?.map((plant) => (
-                                        <SelectItem key={plant.id} value={plant.id.toString()}>
-                                            {plant.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    </div>
                     {/* Users Table */}
                     <EntityDataTable
 

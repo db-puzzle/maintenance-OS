@@ -28,7 +28,7 @@ class UserInvitationController extends Controller
      */
     public function index(Request $request)
     {
-        $query = UserInvitation::with(['inviter', 'acceptedBy', 'revokedBy'])
+        $query = UserInvitation::with(['inviter', 'acceptedBy'])
             ->latest();
 
         // Apply filters
@@ -39,9 +39,6 @@ class UserInvitationController extends Controller
                     break;
                 case 'accepted':
                     $query->whereNotNull('accepted_at');
-                    break;
-                case 'revoked':
-                    $query->whereNotNull('revoked_at');
                     break;
                 case 'expired':
                     $query->expired();
@@ -130,7 +127,6 @@ class UserInvitationController extends Controller
                 Rule::unique('users', 'email'),
                 Rule::unique('user_invitations', 'email')->where(function ($query) {
                     return $query->whereNull('accepted_at')
-                        ->whereNull('revoked_at')
                         ->where('expires_at', '>', now());
                 }),
             ],
@@ -249,38 +245,12 @@ class UserInvitationController extends Controller
     }
 
     /**
-     * Revoke invitation.
-     */
-    public function revoke(Request $request, UserInvitation $invitation)
-    {
-        if ($invitation->isAccepted()) {
-            return back()->with('error', 'Cannot revoke an accepted invitation.');
-        }
-
-        if ($invitation->isRevoked()) {
-            return back()->with('error', 'Invitation is already revoked.');
-        }
-
-        $validated = $request->validate([
-            'reason' => 'nullable|string|max:500',
-        ]);
-
-        $invitation->revoke($request->user(), $validated['reason'] ?? null);
-
-        return back()->with('success', 'Invitation revoked successfully.');
-    }
-
-    /**
      * Resend invitation.
      */
     public function resend(UserInvitation $invitation)
     {
         if ($invitation->isAccepted()) {
             return back()->with('error', 'Cannot resend an accepted invitation.');
-        }
-
-        if ($invitation->isRevoked()) {
-            return back()->with('error', 'Cannot resend a revoked invitation.');
         }
 
         // Update expiration date

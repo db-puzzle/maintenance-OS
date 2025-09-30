@@ -32,10 +32,10 @@ export function ListTableHeader({
     onToggleCompressed,
 }: ListTableHeaderProps) {
     return (
-        <div className="bg-background">
+        <div>
             {/* Title and description section with bottom border */}
             <div className={cn(
-                "border-b border-gray-200 dark:border-gray-800 transition-all duration-200 ease-in-out",
+                "bg-background border-b border-gray-200 dark:border-gray-800 transition-all duration-200 ease-in-out",
                 isCompressed ? "py-2" : "px-6 py-4 lg:px-8"
             )}>
                 <div className={cn(

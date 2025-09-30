@@ -27,9 +27,6 @@ class UserInvitation extends Model
         'expires_at',
         'accepted_at',
         'accepted_by',
-        'revoked_at',
-        'revoked_by',
-        'revocation_reason',
     ];
 
     /**
@@ -41,7 +38,6 @@ class UserInvitation extends Model
         'initial_permissions' => 'array',
         'expires_at' => 'datetime',
         'accepted_at' => 'datetime',
-        'revoked_at' => 'datetime',
     ];
 
     /**
@@ -93,21 +89,12 @@ class UserInvitation extends Model
     }
 
     /**
-     * Get the user who revoked the invitation.
-     */
-    public function revokedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'revoked_by')->withTrashed();
-    }
-
-    /**
      * Check if the invitation is valid.
      */
     public function isValid(): bool
     {
         return ! $this->isExpired()
-            && ! $this->isAccepted()
-            && ! $this->isRevoked();
+            && ! $this->isAccepted();
     }
 
     /**
@@ -127,14 +114,6 @@ class UserInvitation extends Model
     }
 
     /**
-     * Check if the invitation was revoked.
-     */
-    public function isRevoked(): bool
-    {
-        return $this->revoked_at !== null;
-    }
-
-    /**
      * Mark the invitation as accepted.
      */
     public function markAsAccepted(User $user): void
@@ -142,18 +121,6 @@ class UserInvitation extends Model
         $this->update([
             'accepted_at' => now(),
             'accepted_by' => $user->id,
-        ]);
-    }
-
-    /**
-     * Revoke the invitation.
-     */
-    public function revoke(User $revokedBy, ?string $reason = null): void
-    {
-        $this->update([
-            'revoked_at' => now(),
-            'revoked_by' => $revokedBy->id,
-            'revocation_reason' => $reason,
         ]);
     }
 
@@ -174,10 +141,6 @@ class UserInvitation extends Model
             return 'accepted';
         }
 
-        if ($this->isRevoked()) {
-            return 'revoked';
-        }
-
         if ($this->isExpired()) {
             return 'expired';
         }
@@ -192,7 +155,6 @@ class UserInvitation extends Model
     {
         return match ($this->status) {
             'accepted' => 'success',
-            'revoked' => 'danger',
             'expired' => 'warning',
             'pending' => 'info',
             default => 'secondary'
@@ -205,7 +167,6 @@ class UserInvitation extends Model
     public function scopePending($query)
     {
         return $query->whereNull('accepted_at')
-            ->whereNull('revoked_at')
             ->where('expires_at', '>', now());
     }
 
@@ -215,7 +176,6 @@ class UserInvitation extends Model
     public function scopeExpired($query)
     {
         return $query->whereNull('accepted_at')
-            ->whereNull('revoked_at')
             ->where('expires_at', '<=', now());
     }
 
@@ -393,7 +353,6 @@ class UserInvitation extends Model
         $user = auth()->user();
 
         return [
-            'revoke' => $user && ($user->isAdministrator() || $user->can('invitations.revoke')),
             'resend' => $user && ($user->isAdministrator() || $user->can('users.invite')),
             'delete' => $user && ($user->isAdministrator() || $user->can('users.invite')) && ! $this->isAccepted(),
         ];

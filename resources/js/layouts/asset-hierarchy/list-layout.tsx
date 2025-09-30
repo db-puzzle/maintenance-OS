@@ -56,7 +56,7 @@ export function ListLayout({
     return (
         <div className="relative flex h-[calc(100vh-3rem)] flex-col">
             {/* Fixed Header Section */}
-            <div className="bg-background flex-shrink-0">
+            <div className="bg-sidebar-accent/30 flex-shrink-0">
                 <ListTableHeader
                     title={title}
                     description={description}

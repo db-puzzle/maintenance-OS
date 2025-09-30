@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
+import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 // Removed unused imports: Calendar, Popover, PopoverContent, PopoverTrigger, Toggle
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 
 import {
-    Search,
     RefreshCw,
     Play,
     AlertCircle,
@@ -278,7 +277,7 @@ export default function ProductionReporting({
                 return (
                     <ItemImagePreview
                         primaryImageUrl={order.item?.primary_image_thumbnail_url || order.item?.primary_image_url}
-                        imageCount={order.item?.images_count || 0}
+                        imageCount={0}
                         className="w-12 h-12 cursor-pointer"
                         onClick={(e) => {
                             e?.stopPropagation();
@@ -309,18 +308,9 @@ export default function ProductionReporting({
             render: (value: unknown, order: ManufacturingOrder) => {
                 if (!order) return null;
                 return (
-                    <div className="flex items-center gap-3">
-                        {order.item?.primaryImage && (
-                            <img
-                                src={order.item.primaryImage.thumbnail_url || order.item.primaryImage.url}
-                                alt={order.item.name}
-                                className="w-10 h-10 object-cover rounded"
-                            />
-                        )}
-                        <div>
-                            <div className="font-medium">{order.item?.item_number}</div>
-                            <div className="text-sm text-muted-foreground">{order.item?.name}</div>
-                        </div>
+                    <div>
+                        <div className="font-medium">{order.item?.item_number}</div>
+                        <div className="text-sm text-muted-foreground">{order.item?.name}</div>
                     </div>
                 );
             }
@@ -436,226 +426,213 @@ export default function ProductionReporting({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Apontamento de Produção" />
 
-            <div className="flex-1 overflow-y-auto">
-                <div className="space-y-6 p-6">
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h1 className="text-2xl font-bold">Apontamento de Produção</h1>
-                        <div className="flex items-center gap-4">
+            <ListLayout
+                title="Apontamento de Produção"
+                description="Gerencie e acompanhe a produção das ordens de manufatura"
+                searchPlaceholder="Search by order number, item name or SKU..."
+                searchValue={searchValue}
+                onSearchChange={handleSearch}
+                createButtonText=""
+                actions={
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setAutoRefresh(!autoRefresh)}
+                            className={cn(
+                                'w-[160px] flex items-center justify-start',
+                                autoRefresh
+                                    ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400 dark:bg-primary dark:text-primary-foreground dark:border-primary dark:hover:bg-primary/90'
+                                    : 'border hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-accent dark:hover:text-accent-foreground'
+                            )}
+                        >
+                            <Clock className="h-4 w-4 shrink-0" />
+                            <span className="ml-2">Auto-refresh {autoRefresh ? 'ON' : 'OFF'}</span>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.reload()}
+                        >
+                            <RefreshCw className="h-4 w-4 mr-1" />
+                            Refresh
+                        </Button>
+                        <ImageDisplayToggleButton
+                            showImages={showImages}
+                            onToggle={setShowImages}
+                        />
+                        <div className="flex rounded-md shadow-sm">
                             <Button
+                                size="icon"
                                 variant="outline"
-                                size="sm"
-                                onClick={() => setAutoRefresh(!autoRefresh)}
+                                onClick={() => setViewMode('table')}
                                 className={cn(
-                                    'w-[160px] flex items-center justify-start',
-                                    autoRefresh
+                                    'rounded-r-none border-r-0 h-9 w-9',
+                                    viewMode === 'table'
                                         ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400 dark:bg-primary dark:text-primary-foreground dark:border-primary dark:hover:bg-primary/90'
                                         : 'border hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-accent dark:hover:text-accent-foreground'
                                 )}
                             >
-                                <Clock className="h-4 w-4 shrink-0" />
-                                <span className="ml-2">Auto-refresh {autoRefresh ? 'ON' : 'OFF'}</span>
+                                <Rows3 className="h-4 w-4" />
                             </Button>
                             <Button
+                                size="icon"
                                 variant="outline"
-                                size="sm"
-                                onClick={() => router.reload()}
+                                onClick={() => setViewMode('card')}
+                                className={cn(
+                                    'rounded-l-none h-9 w-9',
+                                    viewMode === 'card'
+                                        ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400 dark:bg-primary dark:text-primary-foreground dark:border-primary dark:hover:bg-primary/90'
+                                        : 'border hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-accent dark:hover:text-accent-foreground'
+                                )}
                             >
-                                <RefreshCw className="h-4 w-4 mr-1" />
-                                Refresh
+                                <LayoutGrid className="h-4 w-4" />
                             </Button>
-                            <div className="flex gap-2">
-                                <ImageDisplayToggleButton
-                                    showImages={showImages}
-                                    onToggle={setShowImages}
-                                />
-                                <div className="flex rounded-md shadow-sm">
-                                    <Button
-                                        size="icon"
-                                        variant="outline"
-                                        onClick={() => setViewMode('table')}
-                                        className={cn(
-                                            'rounded-r-none border-r-0 h-9 w-9',
-                                            viewMode === 'table'
-                                                ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400 dark:bg-primary dark:text-primary-foreground dark:border-primary dark:hover:bg-primary/90'
-                                                : 'border hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-accent dark:hover:text-accent-foreground'
-                                        )}
-                                    >
-                                        <Rows3 className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        size="icon"
-                                        variant="outline"
-                                        onClick={() => setViewMode('card')}
-                                        className={cn(
-                                            'rounded-l-none h-9 w-9',
-                                            viewMode === 'card'
-                                                ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400 dark:bg-primary dark:text-primary-foreground dark:border-primary dark:hover:bg-primary/90'
-                                                : 'border hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-accent dark:hover:text-accent-foreground'
-                                        )}
-                                    >
-                                        <LayoutGrid className="h-4 w-4" />
-                                    </Button>
-                                </div>
-
-                            </div>
                         </div>
                     </div>
+                }
+            >
+                {/* Status Summary Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
 
-                    {/* Status Summary Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-                        {/* Work Cell Selector Card */}
-                        <Card
-                            variant="compact"
-                            className={cn(
-                                "cursor-pointer transition-all",
-                                "hover:shadow-md",
-                                filters.work_cell_id && "border-blue-600 hover:bg-accent/50 dark:border-blue-900 dark:bg-blue-950 ring-0.75 ring-blue-600 dark:ring-blue-900"
-                            )}
-                            onClick={() => setShowWorkCellDialog(true)}
-                        >
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium text-muted-foreground">
-                                            Célula de Trabalho                                        </p>
-                                        <p className="text-lg font-bold truncate max-w-[120px]">
-                                            {filters.work_cell_id
-                                                ? workCells.find(wc => wc.id.toString() === filters.work_cell_id)?.name || 'Selected'
-                                                : 'All Cells'
-                                            }
-                                        </p>
-                                    </div>
-                                    <Factory className="h-8 w-8 text-muted-foreground" strokeWidth={1} />
+                    {/* Work Cell Selector Card */}
+                    <Card
+                        variant="compact"
+                        className={cn(
+                            "cursor-pointer transition-all",
+                            "hover:shadow-md",
+                            filters.work_cell_id && "border-blue-600 hover:bg-accent/50 dark:border-blue-900 dark:bg-blue-950 ring-0.75 ring-blue-600 dark:ring-blue-900"
+                        )}
+                        onClick={() => setShowWorkCellDialog(true)}
+                    >
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">
+                                        Célula de Trabalho                                        </p>
+                                    <p className="text-lg font-bold truncate max-w-[120px]">
+                                        {filters.work_cell_id
+                                            ? workCells.find(wc => wc.id.toString() === filters.work_cell_id)?.name || 'Selected'
+                                            : 'All Cells'
+                                        }
+                                    </p>
                                 </div>
-                            </CardContent>
-                        </Card>
+                                <Factory className="h-8 w-8 text-muted-foreground" strokeWidth={1} />
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                        {statusCards.map(card => {
-                            const isSelected = selectedStatuses.includes(card.key);
-                            return (
-                                <Card
-                                    key={card.key}
-                                    variant="compact"
-                                    className={cn(
-                                        "cursor-pointer transition-all",
-                                        "hover:shadow-md",
-                                        isSelected && "border-blue-600 hover:bg-accent/50 dark:border-blue-900 dark:bg-blue-950 ring-0.75 ring-blue-600 dark:ring-blue-900"
-                                    )}
-                                    onClick={() => handleStatusToggle(card.key, !isSelected)}
-                                >
-                                    <CardContent className="p-4">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="text-sm font-medium text-muted-foreground">
-                                                    {card.label}
-                                                </p>
-                                                <p className="text-2xl font-bold">{card.count}</p>
-                                            </div>
-                                            <card.icon className={cn("h-8 w-8", card.color)} strokeWidth={1} />
+                    {statusCards.map(card => {
+                        const isSelected = selectedStatuses.includes(card.key);
+                        return (
+                            <Card
+                                key={card.key}
+                                variant="compact"
+                                className={cn(
+                                    "cursor-pointer transition-all",
+                                    "hover:shadow-md",
+                                    isSelected && "border-blue-600 hover:bg-accent/50 dark:border-blue-900 dark:bg-blue-950 ring-0.75 ring-blue-600 dark:ring-blue-900"
+                                )}
+                                onClick={() => handleStatusToggle(card.key, !isSelected)}
+                            >
+                                <CardContent className="p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-muted-foreground">
+                                                {card.label}
+                                            </p>
+                                            <p className="text-2xl font-bold">{card.count}</p>
                                         </div>
-                                    </CardContent>
-                                </Card>
-                            );
-                        })}
+                                        <card.icon className={cn("h-8 w-8", card.color)} strokeWidth={1} />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
 
-                    </div>
-
-                    {/* Search and Filters */}
-                    <div className="space-y-4">
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                                <Input
-                                    type="text"
-                                    placeholder="Search by order number, item name or SKU..."
-                                    value={searchValue}
-                                    onChange={(e) => handleSearch(e.target.value)}
-                                    className="pl-10"
-                                />
-                            </div>
-                            <Select
-                                value={filters.has_routing || 'all'}
-                                onValueChange={(value) => updateFilters({
-                                    has_routing: value === 'all' ? undefined : value
-                                })}
-                            >
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="All Orders" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Todas as Ordens</SelectItem>
-                                    <SelectItem value="yes">Com Roteiro</SelectItem>
-                                    <SelectItem value="no">Sem Roteiro</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Select
-                                value={filters.sort_by || 'priority'}
-                                onValueChange={(value) => updateFilters({
-                                    sort_by: value as 'priority' | 'due_date' | 'release_date' | 'available_date',
-                                    sort_direction: value === 'priority' ? 'desc' : 'asc'
-                                })}
-                            >
-                                <SelectTrigger className="w-[200px]">
-                                    <SelectValue placeholder="Sort by Priority" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="priority">Sort by Priority</SelectItem>
-                                    <SelectItem value="due_date">Sort by Due Date</SelectItem>
-                                    <SelectItem value="release_date">Sort by Release Date</SelectItem>
-                                    <SelectItem value="available_date">Sort by Available Date</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    {/* Main Content */}
-                    {viewMode === 'table' ? (
-                        <EntityDataTable
-                            data={orders.data || []}
-                            columns={tableColumns}
-                            onSort={handleSort}
-                            onRowClick={(order) => setSelectedOrder(order)}
-                        />
-
-                    ) : (
-                        <MOCardView
-                            orders={orders.data || []}
-                            onOrderClick={setSelectedOrder}
-                            onAction={handleAction}
-                            showImages={showImages}
-                        />
-                    )}
-
-                    {/* Pagination */}
-                    {orders.last_page > 1 && (
-                        <div className="flex justify-center">
-                            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                                {Array.from({ length: orders.last_page }, (_, i) => i + 1).map(page => (
-                                    <button
-                                        key={page}
-                                        onClick={() => {
-                                            router.get(route('production.reporting.index'), {
-                                                ...filters,
-                                                page
-                                            });
-                                        }}
-                                        className={cn(
-                                            "relative inline-flex items-center px-4 py-2 text-sm font-medium",
-                                            page === orders.current_page
-                                                ? "z-10 bg-primary text-primary-foreground"
-                                                : "bg-background border-border text-foreground hover:bg-accent"
-                                        )}
-                                    >
-                                        {page}
-                                    </button>
-                                ))}
-                            </nav>
-                        </div>
-                    )}
                 </div>
-            </div>
+
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                    <Select
+                        value={filters.has_routing || 'all'}
+                        onValueChange={(value) => updateFilters({
+                            has_routing: value === 'all' ? undefined : value
+                        })}
+                    >
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="All Orders" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todas as Ordens</SelectItem>
+                            <SelectItem value="yes">Com Roteiro</SelectItem>
+                            <SelectItem value="no">Sem Roteiro</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Select
+                        value={filters.sort_by || 'priority'}
+                        onValueChange={(value) => updateFilters({
+                            sort_by: value as 'priority' | 'due_date' | 'release_date' | 'available_date',
+                            sort_direction: value === 'priority' ? 'desc' : 'asc'
+                        })}
+                    >
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Sort by Priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="priority">Sort by Priority</SelectItem>
+                            <SelectItem value="due_date">Sort by Due Date</SelectItem>
+                            <SelectItem value="release_date">Sort by Release Date</SelectItem>
+                            <SelectItem value="available_date">Sort by Available Date</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Main Content */}
+                {viewMode === 'table' ? (
+                    <EntityDataTable
+                        data={orders.data || []}
+                        columns={tableColumns}
+                        onSort={handleSort}
+                        onRowClick={(order) => setSelectedOrder(order)}
+                    />
+
+                ) : (
+                    <MOCardView
+                        orders={orders.data || []}
+                        onOrderClick={setSelectedOrder}
+                        onAction={handleAction}
+                        showImages={showImages}
+                    />
+                )}
+
+                {/* Pagination */}
+                {orders.last_page > 1 && (
+                    <div className="flex justify-center mt-6">
+                        <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                            {Array.from({ length: orders.last_page }, (_, i) => i + 1).map(page => (
+                                <button
+                                    key={page}
+                                    onClick={() => {
+                                        router.get(route('production.reporting.index'), {
+                                            ...filters,
+                                            page
+                                        });
+                                    }}
+                                    className={cn(
+                                        "relative inline-flex items-center px-4 py-2 text-sm font-medium",
+                                        page === orders.current_page
+                                            ? "z-10 bg-primary text-primary-foreground"
+                                            : "bg-background border-border text-foreground hover:bg-accent"
+                                    )}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                        </nav>
+                    </div>
+                )}
+            </ListLayout>
 
             {/* Order Detail Dialog */}
             <MODetailsDialog

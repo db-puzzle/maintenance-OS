@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, router, Head } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { MoreHorizontal, XCircle, RefreshCw, Copy, Eye, Trash2, Users } from 'lucide-react';
+import { MoreHorizontal, RefreshCw, Copy, Eye, Trash2, Users } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
@@ -59,7 +59,6 @@ interface Invitation extends Record<string, unknown> {
     initial_role?: string;
     message?: string;
     can: {
-        revoke: boolean;
         resend: boolean;
         delete: boolean;
     };
@@ -136,11 +135,7 @@ function InvitationStatusBadge({ status }: { status: string }) {
 }
 export default function InvitationsIndex({ invitations, filters, stats, roles = [], plants = [], areas = [], sectors = [] }: Props) {
     const [search, setSearch] = useState(filters.search || '');
-    const [status, setStatus] = useState(filters.status || 'all');
-    const [revokeDialog, setRevokeDialog] = useState<{ open: boolean; invitation: Invitation | null }>({
-        open: false,
-        invitation: null,
-    });
+    const [status, setStatus] = useState(filters.status || 'pending');
     const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; invitation: Invitation | null }>({
@@ -153,24 +148,9 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
         setStatus(value);
         router.get(route('invitations.index'), { search, status: value }, { preserveState: true });
     };
-    const handleRevoke = () => {
-        if (!revokeDialog.invitation) return;
-        router.post(
-            route('invitations.revoke', revokeDialog.invitation.id),
-            { reason: '' },
-            {
-                onSuccess: () => {
-                    setRevokeDialog({ open: false, invitation: null });
-                },
-                onError: () => {
-                    // Error message will be shown by the backend session flash
-                },
-            }
-        );
-    };
     const handleResend = (invitation: Invitation) => {
         router.post(
-            route('invitations.resend', invitation.id),
+            route('invitations.resend', { invitation: invitation.id }),
             {},
             {
                 onSuccess: () => {
@@ -262,23 +242,8 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
                                 copyInvitationLink(invitation);
                             }}>
                                 <Copy className="mr-2 h-4 w-4" />
-                                Copiar link
+                                Copiar link de aceite
                             </DropdownMenuItem>
-                            {invitation.can.revoke && (
-                                <DropdownMenuItem
-                                    onClick={() => {
-                                        setDropdownOpen(null); // Close dropdown first
-                                        // Use setTimeout to ensure dropdown is fully closed before opening dialog
-                                        setTimeout(() => {
-                                            setRevokeDialog({ open: true, invitation });
-                                        }, 0);
-                                    }}
-                                    className="text-destructive"
-                                >
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Revogar convite
-                                </DropdownMenuItem>
-                            )}
                         </>
                     )}
                     {invitation.can.delete && (
@@ -353,6 +318,17 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
                 createButtonText="Convidar Novo Usuário"
                 actions={
                     <div className="flex items-center gap-2">
+                        <Select value={status} onValueChange={handleStatusChange}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Filtrar por status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos</SelectItem>
+                                <SelectItem value="pending">Pendentes</SelectItem>
+                                <SelectItem value="accepted">Aceitos</SelectItem>
+                                <SelectItem value="expired">Expirados</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <Button asChild variant="outline" size="sm">
                             <Link href={route('users.index')}>
                                 <Users className="mr-2 h-4 w-4" />
@@ -383,22 +359,6 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
                         </div>
                     </div>
 
-                    {/* Filters */}
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <Select value={status} onValueChange={handleStatusChange}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Filtrar por status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todos</SelectItem>
-                                <SelectItem value="pending">Pendentes</SelectItem>
-                                <SelectItem value="accepted">Aceitos</SelectItem>
-                                <SelectItem value="expired">Expirados</SelectItem>
-                                <SelectItem value="revoked">Revogados</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
                     {/* Table */}
                     <EntityDataTable
                         data={invitations.data}
@@ -419,35 +379,12 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
                     )}
                 </div>
             </ListLayout>
-            {/* Revoke Dialog */}
-            <AlertDialog open={revokeDialog.open} onOpenChange={(open) => setRevokeDialog({ open, invitation: null })}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Revogar convite</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Tem certeza que deseja revogar este convite? Esta ação não pode ser desfeita.
-                            {revokeDialog.invitation && (
-                                <div className="mt-2 font-medium">
-                                    Email: {revokeDialog.invitation.email}
-                                </div>
-                            )}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleRevoke} className="bg-destructive text-destructive-foreground">
-                            Revogar
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
             {/* Invitation Details Modal */}
             {selectedInvitation && (
                 <InvitationDetailsModal
                     invitation={selectedInvitation}
                     open={!!selectedInvitation}
                     onClose={() => setSelectedInvitation(null)}
-                    onRevoke={(invitation) => setRevokeDialog({ open: true, invitation })}
                     onResend={handleResend}
                 />
             )}
@@ -474,7 +411,7 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
 
                     return new Promise((resolve, reject) => {
                         router.delete(
-                            route('invitations.destroy', deleteDialog.invitation!.id),
+                            route('invitations.destroy', { invitation: deleteDialog.invitation!.id }),
                             {
                                 onSuccess: () => {
                                     setDeleteDialog({ open: false, invitation: null });
@@ -497,13 +434,11 @@ function InvitationDetailsModal({
     invitation,
     open,
     onClose,
-    onRevoke,
     onResend,
 }: {
     invitation: Invitation;
     open: boolean;
     onClose: () => void;
-    onRevoke: (invitation: Invitation) => void;
     onResend: (invitation: Invitation) => void;
 }) {
     const copyInvitationLink = () => {
@@ -569,27 +504,11 @@ function InvitationDetailsModal({
                     )}
                 </div>
                 <AlertDialogFooter>
-                    {invitation.status === 'pending' && (
-                        <>
-                            {invitation.can.resend && (
-                                <Button variant="outline" onClick={() => onResend(invitation)}>
-                                    <RefreshCw className="mr-2 h-4 w-4" />
-                                    Reenviar
-                                </Button>
-                            )}
-                            {invitation.can.revoke && (
-                                <Button
-                                    variant="destructive"
-                                    onClick={() => {
-                                        onClose();
-                                        onRevoke(invitation);
-                                    }}
-                                >
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Revogar
-                                </Button>
-                            )}
-                        </>
+                    {invitation.status === 'pending' && invitation.can.resend && (
+                        <Button variant="outline" onClick={() => onResend(invitation)}>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Reenviar
+                        </Button>
                     )}
                     <AlertDialogCancel>Fechar</AlertDialogCancel>
                 </AlertDialogFooter>

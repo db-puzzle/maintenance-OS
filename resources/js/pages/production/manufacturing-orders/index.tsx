@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
 import {
     Factory,
@@ -59,12 +59,19 @@ export default function ManufacturingOrders({
     statusCounts = {},
     summaryTotal = 0
 }: Props) {
+    const page = usePage();
+    const { url } = page;
+
+    // Check if 'create' parameter is in URL
+    const urlParams = new URLSearchParams(url.split('?')[1] || '');
+    const shouldOpenCreate = urlParams.get('create') === '1';
+
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
     const [parentFilter, setParentFilter] = useState(filters.parent_id || '');
     const [loading] = useState(false);
     const [deleteOrder, setDeleteOrder] = useState<ManufacturingOrder | null>(null);
-    const [showCreateDialog, setShowCreateDialog] = useState(false);
+    const [showCreateDialog, setShowCreateDialog] = useState(shouldOpenCreate);
     const [showImages, setShowImages] = useState(false);
     const [clickedCard, setClickedCard] = useState<string | null>(null);
 
@@ -74,6 +81,19 @@ export default function ManufacturingOrders({
         setParentFilter(filters.parent_id || '');
         setSearchValue(filters.search || '');
     }, [filters]);
+
+    // Clean up URL parameter when dialog is closed
+    React.useEffect(() => {
+        if (!showCreateDialog && shouldOpenCreate) {
+            // Remove 'create' parameter from URL
+            const newUrlParams = new URLSearchParams(window.location.search);
+            newUrlParams.delete('create');
+            const newUrl = newUrlParams.toString()
+                ? `${window.location.pathname}?${newUrlParams.toString()}`
+                : window.location.pathname;
+            window.history.replaceState({}, '', newUrl);
+        }
+    }, [showCreateDialog, shouldOpenCreate]);
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.orders.index'), {

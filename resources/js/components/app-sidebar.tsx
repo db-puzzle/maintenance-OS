@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { ChartGantt, ClipboardList, LayoutGrid, Award, Factory, FileBox, Truck, Wrench, UsersRound, Building2, Forklift } from 'lucide-react';
+import { ChartGantt, ClipboardList, LayoutGrid, Award, Factory, FileBox, UsersRound, Building2, Forklift, SquarePen } from 'lucide-react';
 import AppLogo from './app-logo';
 interface NavGroup {
     title: string;
@@ -19,9 +19,9 @@ const gerenciamentoNavItems: NavGroup = {
             icon: LayoutGrid,
         },
         {
-            title: 'Engenharia',
+            title: 'Cadastro',
             href: '#',
-            icon: FileBox,
+            icon: SquarePen,
             items: [
                 {
                     title: 'Itens',
@@ -35,6 +35,10 @@ const gerenciamentoNavItems: NavGroup = {
                     title: 'Categorias de Itens',
                     href: '/production/categories',
                 },
+                {
+                    title: 'Fabricantes',
+                    href: '/asset-hierarchy/manufacturers',
+                },
             ],
         },
         {
@@ -47,16 +51,12 @@ const gerenciamentoNavItems: NavGroup = {
                     href: '/production/orders',
                 },
                 {
-                    title: 'Planejar',
+                    title: 'Planejamento de Ordens',
                     href: '/production/planning',
                 },
                 {
                     title: 'Templates de Rotas',
                     href: '/production/routing',
-                },
-                {
-                    title: 'Turnos',
-                    href: '/asset-hierarchy/shifts',
                 },
                 {
                     title: 'Células de Trabalho',
@@ -83,7 +83,7 @@ const gerenciamentoNavItems: NavGroup = {
                 },
             ],
         },
-        {
+        /*{
             title: 'Expedição',
             href: '#',
             icon: Truck,
@@ -97,8 +97,8 @@ const gerenciamentoNavItems: NavGroup = {
                     href: '/production/tracking',
                 },
             ],
-        },
-        {
+        },*/
+        /*{
             title: 'Manutenção',
             href: '#',
             icon: Wrench,
@@ -119,8 +119,12 @@ const gerenciamentoNavItems: NavGroup = {
                     title: 'Peças',
                     href: '/parts',
                 },
+                {
+                    title: 'Tipos de Ativo',
+                    href: '/asset-hierarchy/asset-types',
+                },
             ],
-        },
+        },*/
     ],
 };
 const sistemaNavItems: NavGroup = {
@@ -154,21 +158,6 @@ const sistemaNavItems: NavGroup = {
             ],
         },
         {
-            title: 'Ativos',
-            href: '/asset-hierarchy',
-            icon: Forklift,
-            items: [
-                {
-                    title: 'Tipos de Ativo',
-                    href: '/asset-hierarchy/asset-types',
-                },
-                {
-                    title: 'Fabricantes',
-                    href: '/asset-hierarchy/manufacturers',
-                },
-            ],
-        },
-        {
             title: 'Usuários & Permissões',
             href: '#',
             icon: UsersRound,
@@ -185,9 +174,13 @@ const sistemaNavItems: NavGroup = {
                     title: 'Funções',
                     href: '/settings/roles',
                 },
+                {
+                    title: 'Logs de Auditoria',
+                    href: '/audit-logs',
+                },
             ],
         },
-        {
+        /*{
             title: 'Qualificações',
             href: '#',
             icon: Award,
@@ -201,8 +194,8 @@ const sistemaNavItems: NavGroup = {
                     href: '/certifications',
                 },
             ],
-        },
-        {
+        },*/
+        /*{
             title: 'Utilidades',
             href: '#',
             icon: ClipboardList,
@@ -215,12 +208,8 @@ const sistemaNavItems: NavGroup = {
                     title: 'Importar Ativos',
                     href: '/asset-hierarchy/assets/importar',
                 },
-                {
-                    title: 'Logs de Auditoria',
-                    href: '/audit-logs',
-                },
             ],
-        },
+        },*/
     ],
 };
 const footerNavItems: NavItem[] = [];

@@ -22,7 +22,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [UserInvitationController::class, 'index'])->name('invitations.index');
         Route::get('/create', [UserInvitationController::class, 'create'])->name('invitations.create');
         Route::post('/', [UserInvitationController::class, 'store'])->name('invitations.store');
-        Route::post('/{invitation}/revoke', [UserInvitationController::class, 'revoke'])->name('invitations.revoke');
         Route::post('/{invitation}/resend', [UserInvitationController::class, 'resend'])->name('invitations.resend');
         Route::delete('/{invitation}', [UserInvitationController::class, 'destroy'])->name('invitations.destroy');
         Route::get('/pending', [UserInvitationController::class, 'pending'])->name('invitations.pending');
