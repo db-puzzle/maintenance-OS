@@ -36,17 +36,19 @@ class InviteUser extends Command
 
         // Validate email
         $validator = Validator::make(['email' => $email], [
-            'email' => 'required|email'
+            'email' => 'required|email',
         ]);
 
         if ($validator->fails()) {
             $this->error('Invalid email address.');
+
             return 1;
         }
 
         // Check if user already exists
         if (User::where('email', $email)->exists()) {
             $this->error('User already exists with this email.');
+
             return 1;
         }
 
@@ -59,6 +61,7 @@ class InviteUser extends Command
 
         if ($existingInvitation) {
             $this->error('There is already a pending invitation for this email.');
+
             return 1;
         }
 
@@ -67,8 +70,9 @@ class InviteUser extends Command
             $query->where('name', 'Administrator');
         })->first();
 
-        if (!$inviter) {
+        if (! $inviter) {
             $this->error('No administrator found. Cannot send invitation.');
+
             return 1;
         }
 
@@ -83,15 +87,16 @@ class InviteUser extends Command
         ]);
 
         // Send notification
-        $invitation->notify(new UserInvitationNotification($invitation));
+        \Illuminate\Support\Facades\Notification::route('mail', $email)
+            ->notify(new UserInvitationNotification($invitation));
 
         $this->info("Invitation sent to {$email}");
         $this->info("Invitation expires at: {$invitation->expires_at}");
-        
+
         if ($role) {
             $this->info("Initial role: {$role}");
         }
 
         return 0;
     }
-} 
+}

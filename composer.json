@@ -22,6 +22,7 @@
         "laravel/nightwatch": "^1.13",
         "laravel/tinker": "^2.10.1",
         "league/flysystem-aws-s3-v3": "^3.0",
+        "resend/resend-laravel": "^0.22.0",
         "simplesoftwareio/simple-qrcode": "^4.2",
         "spatie/laravel-activitylog": "^4.10",
         "spatie/laravel-image-optimizer": "^1.7",
