@@ -338,7 +338,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         ...otherColumns
     ];
     const breadcrumbs = [
-        { title: 'Produção', href: '/' },
+        { title: 'Home', href: '/home' },
         { title: 'Itens', href: '' }
     ];
     return (

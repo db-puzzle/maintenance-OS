@@ -85,10 +85,6 @@ export default function Show({
             href: '/home',
         },
         {
-            title: 'Produção',
-            href: '#',
-        },
-        {
             title: 'Células de Trabalho',
             href: '/production/work-cells',
         },

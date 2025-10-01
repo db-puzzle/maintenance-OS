@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Link, router, Head } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { MoreHorizontal, RefreshCw, Copy, Eye, Trash2, Users } from 'lucide-react';
+import { MoreHorizontal, RefreshCw, Copy, Eye, Trash2, Users, Mail, Clock, CheckCircle, XCircle } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -27,10 +28,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
     AlertDialog,
-    AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
-    AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
@@ -340,23 +339,59 @@ export default function InvitationsIndex({ invitations, filters, stats, roles = 
             >
                 <div className="-mt-4 space-y-4">
                     {/* Stats */}
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-                        <div className="rounded-lg bg-white p-4 shadow">
-                            <div className="text-2xl font-bold">{stats.total}</div>
-                            <div className="text-sm text-gray-500">Total de convites</div>
-                        </div>
-                        <div className="rounded-lg bg-white p-4 shadow">
-                            <div className="text-2xl font-bold text-blue-600">{stats.pending}</div>
-                            <div className="text-sm text-gray-500">Pendentes</div>
-                        </div>
-                        <div className="rounded-lg bg-white p-4 shadow">
-                            <div className="text-2xl font-bold text-green-600">{stats.accepted}</div>
-                            <div className="text-sm text-gray-500">Aceitos</div>
-                        </div>
-                        <div className="rounded-lg bg-white p-4 shadow">
-                            <div className="text-2xl font-bold text-yellow-600">{stats.expired}</div>
-                            <div className="text-sm text-gray-500">Expirados</div>
-                        </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <Card variant="compact">
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-muted-foreground">
+                                            Total de convites
+                                        </p>
+                                        <p className="text-2xl font-bold">{stats.total}</p>
+                                    </div>
+                                    <Mail className="h-8 w-8 text-muted-foreground" strokeWidth={1} />
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card variant="compact">
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-muted-foreground">
+                                            Pendentes
+                                        </p>
+                                        <p className="text-2xl font-bold">{stats.pending}</p>
+                                    </div>
+                                    <Clock className="h-8 w-8 text-muted-foreground" strokeWidth={1} />
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card variant="compact">
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-muted-foreground">
+                                            Aceitos
+                                        </p>
+                                        <p className="text-2xl font-bold">{stats.accepted}</p>
+                                    </div>
+                                    <CheckCircle className="h-8 w-8 text-muted-foreground" strokeWidth={1} />
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card variant="compact">
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-muted-foreground">
+                                            Expirados
+                                        </p>
+                                        <p className="text-2xl font-bold">{stats.expired}</p>
+                                    </div>
+                                    <XCircle className="h-8 w-8 text-muted-foreground" strokeWidth={1} />
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     {/* Table */}

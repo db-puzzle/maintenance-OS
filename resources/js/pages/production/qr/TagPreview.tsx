@@ -43,7 +43,7 @@ export default function TagPreview({ type, resource, template }: Props) {
         ? (resource as Item).item_number
         : (resource as ManufacturingOrder).order_number;
     const breadcrumbs = [
-        { title: 'Produção', href: '/' },
+        { title: 'Home', href: '/home' },
         { title: 'Etiquetas QR', href: route('production.qr-tags.index') },
         { title: 'Visualizar', href: '' }
     ];

@@ -165,7 +165,7 @@ export default function ShipmentCreate({ items }: Props) {
     };
 
     const breadcrumbs = [
-        { title: 'Produção', href: '/' },
+        { title: 'Home', href: '/home' },
         { title: 'Remessas', href: route('production.shipments.index') },
         { title: 'Nova Remessa', href: '' }
     ];

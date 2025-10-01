@@ -28,31 +28,36 @@ class UserInvitationMail extends Mailable implements ShouldQueue
     public function build()
     {
         // Process role display
-        $roleDisplay = '';
+        $roleDisplayList = [];
         if ($this->invitation->initial_role) {
             // Try to decode as JSON first
             $roleAssignments = json_decode($this->invitation->initial_role, true);
 
             if (json_last_error() === JSON_ERROR_NONE && is_array($roleAssignments)) {
                 // New JSON format with role_id
-                $roleNames = [];
+                // Format each assignment separately
                 foreach ($roleAssignments as $assignment) {
                     if (isset($assignment['role_id'])) {
                         $role = \App\Models\Role::find($assignment['role_id']);
                         if ($role) {
                             $roleName = $role->name;
+
                             if (isset($assignment['entity_type']) && isset($assignment['entity_id'])) {
-                                $entityName = str_replace('App\\Models\\', '', $assignment['entity_type']);
-                                $roleName .= " (for {$entityName} #{$assignment['entity_id']})";
+                                // Load the actual entity to get its name
+                                $entityName = $this->getEntityName($assignment['entity_type'], $assignment['entity_id']);
+                                $entityTypeSingular = $this->getEntityTypeInPortuguese($assignment['entity_type']);
+                                if ($entityName) {
+                                    $roleDisplayList[] = "{$roleName} (para {$entityTypeSingular}: {$entityName})";
+                                }
+                            } else {
+                                $roleDisplayList[] = $roleName;
                             }
-                            $roleNames[] = $roleName;
                         }
                     }
                 }
-                $roleDisplay = implode(', ', $roleNames);
             } else {
                 // Legacy format: plain role name
-                $roleDisplay = $this->invitation->initial_role;
+                $roleDisplayList[] = $this->invitation->initial_role;
             }
         }
 
@@ -63,7 +68,43 @@ class UserInvitationMail extends Mailable implements ShouldQueue
                 'invitation' => $this->invitation,
                 'inviterName' => $this->invitation->inviter?->name ?? 'the system',
                 'acceptUrl' => $this->invitation->generateSignedUrl(),
-                'roleDisplay' => $roleDisplay,
+                'roleDisplayList' => $roleDisplayList,
             ]);
+    }
+
+    /**
+     * Get the entity name from the database.
+     */
+    private function getEntityName(string $entityType, int $entityId): ?string
+    {
+        $modelMap = [
+            'plant' => \App\Models\AssetHierarchy\Plant::class,
+            'area' => \App\Models\AssetHierarchy\Area::class,
+            'sector' => \App\Models\AssetHierarchy\Sector::class,
+        ];
+
+        $modelClass = $modelMap[$entityType] ?? null;
+
+        if ($modelClass) {
+            $entity = $modelClass::find($entityId);
+
+            return $entity?->name;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the entity type in Portuguese (singular form).
+     */
+    private function getEntityTypeInPortuguese(string $entityType): string
+    {
+        $typeMap = [
+            'plant' => 'planta',
+            'area' => 'área',
+            'sector' => 'setor',
+        ];
+
+        return $typeMap[$entityType] ?? $entityType;
     }
 }

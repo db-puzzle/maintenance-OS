@@ -13,11 +13,7 @@ interface Item {
     code: string;
     description: string | null;
     is_active: boolean;
-    unit?: {
-        id: number;
-        name: string;
-        abbreviation: string;
-    };
+    unit_of_measure?: string;
 }
 interface Props {
     category: ItemCategory & {
@@ -46,10 +42,6 @@ export default function Show({ category, items, activeTab, filters }: Props) {
         {
             title: 'Home',
             href: '/home',
-        },
-        {
-            title: 'Produção',
-            href: '/production',
         },
         {
             title: 'Categorias de Itens',
@@ -161,18 +153,15 @@ export default function Show({ category, items, activeTab, filters }: Props) {
                                 ),
                             },
                             {
-                                key: 'unit',
+                                key: 'unit_of_measure',
                                 label: 'Unidade',
-                                sortable: true,
+                                sortable: false,
                                 width: 'w-[15%]',
-                                render: (value, row) => {
-                                    const unit = ((row as Record<string, unknown>).unit as Record<string, unknown> | undefined);
-                                    return unit ? (
-                                        <span className="text-muted-foreground text-sm">
-                                            {unit.name as string} ({unit.abbreviation as string})
-                                        </span>
-                                    ) : '-';
-                                },
+                                render: (value) => (
+                                    <span className="text-muted-foreground text-sm">
+                                        {value ? String(value) : '-'}
+                                    </span>
+                                ),
                             },
                             {
                                 key: 'is_active',

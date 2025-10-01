@@ -202,7 +202,7 @@ class UserInvitationController extends Controller
                 'invited_by' => [
                     'name' => $invitation->inviter ? $invitation->inviter->name : 'System',
                 ],
-                'initial_role' => $invitation->initial_role,
+                'initial_roles' => $this->formatRolesForDisplay($invitation->initial_role),
                 'message' => $invitation->message,
                 'expires_at' => $invitation->expires_at,
             ],
@@ -342,5 +342,103 @@ class UserInvitationController extends Controller
 
                 return $role;
             });
+    }
+
+    /**
+     * Format roles for display on the accept page.
+     */
+    private function formatRolesForDisplay(?string $initialRole): array
+    {
+        if (! $initialRole) {
+            return [];
+        }
+
+        // Try to decode as JSON first
+        $roleAssignments = json_decode($initialRole, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($roleAssignments)) {
+            // Legacy format: plain role name
+            return [$initialRole];
+        }
+
+        $formattedRoles = [];
+
+        foreach ($roleAssignments as $assignment) {
+            if (isset($assignment['role_id'])) {
+                $role = Role::find($assignment['role_id']);
+                if (! $role) {
+                    continue;
+                }
+
+                $roleName = $role->display_name ?? $role->name;
+
+                if (isset($assignment['entity_type']) && isset($assignment['entity_id'])) {
+                    // Load the actual entity to get its name
+                    $entityName = $this->getEntityName($assignment['entity_type'], $assignment['entity_id']);
+                    $entityTypeSingular = $this->getEntityTypeInPortuguese($assignment['entity_type']);
+                    if ($entityName) {
+                        $formattedRoles[] = [
+                            'role_name' => $roleName,
+                            'entity_type' => $entityTypeSingular,
+                            'entity_name' => $entityName,
+                            'full_display' => "{$roleName} (para {$entityTypeSingular}: {$entityName})",
+                        ];
+                    }
+                } else {
+                    $formattedRoles[] = [
+                        'role_name' => $roleName,
+                        'entity_type' => null,
+                        'entity_name' => null,
+                        'full_display' => $roleName,
+                    ];
+                }
+            } elseif (isset($assignment['role_name'])) {
+                // Handle legacy format with just role_name
+                $formattedRoles[] = [
+                    'role_name' => $assignment['role_name'],
+                    'entity_type' => null,
+                    'entity_name' => null,
+                    'full_display' => $assignment['role_name'],
+                ];
+            }
+        }
+
+        return $formattedRoles;
+    }
+
+    /**
+     * Get the entity name from the database.
+     */
+    private function getEntityName(string $entityType, int $entityId): ?string
+    {
+        $modelMap = [
+            'plant' => Plant::class,
+            'area' => Area::class,
+            'sector' => Sector::class,
+        ];
+
+        $modelClass = $modelMap[$entityType] ?? null;
+
+        if ($modelClass) {
+            $entity = $modelClass::find($entityId);
+
+            return $entity?->name;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the entity type in Portuguese (singular form).
+     */
+    private function getEntityTypeInPortuguese(string $entityType): string
+    {
+        $typeMap = [
+            'plant' => 'planta',
+            'area' => 'área',
+            'sector' => 'setor',
+        ];
+
+        return $typeMap[$entityType] ?? $entityType;
     }
 }

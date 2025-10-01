@@ -11,7 +11,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Key, Trash2, Shield } from 'lucide-react';
+import { Eye, Key, Trash2, Shield, Mail } from 'lucide-react';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
@@ -301,6 +301,12 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                                 </SelectContent>
                             </Select>
                         )}
+                        <Button asChild variant="outline" size="sm">
+                            <Link href="/invitations">
+                                <Mail className="mr-2 h-4 w-4" />
+                                Invitations
+                            </Link>
+                        </Button>
                         <Button asChild variant="outline" size="sm">
                             <Link href={route('roles.index')}>
                                 <Shield className="mr-2 h-4 w-4" />

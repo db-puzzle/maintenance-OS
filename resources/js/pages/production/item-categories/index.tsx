@@ -23,10 +23,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/home',
     },
     {
-        title: 'Produção',
-        href: '/production',
-    },
-    {
         title: 'Categorias de Itens',
         href: '/production/categories',
     },

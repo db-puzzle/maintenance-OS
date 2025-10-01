@@ -127,7 +127,7 @@ export default function ItemShow({
 
 
     const breadcrumbs = [
-        { title: 'Produção', href: '/' },
+        { title: 'Home', href: '/home' },
         { title: 'Itens', href: route('production.items.index') },
         { title: isCreating ? 'Novo Item' : (item?.item_number || 'Item'), href: '' }
     ];

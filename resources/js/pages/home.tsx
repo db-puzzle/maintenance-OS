@@ -234,7 +234,7 @@ export default function Dashboard() {
                                                 {/* CTA Buttons for Cadastro section */}
                                                 {section.title === 'Cadastro' && (
                                                     <div className="flex gap-2 mt-4">
-                                                        <Button asChild size="sm" className="w-28">
+                                                        <Button asChild size="sm" variant='default' className="w-28">
                                                             <Link href="/production/items/create">
                                                                 Criar Itens
                                                             </Link>

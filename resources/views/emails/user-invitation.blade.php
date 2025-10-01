@@ -31,12 +31,14 @@
                                 Você foi convidado por <strong>{{ $inviterName }}</strong> para entrar no sistema de gerenciamento de manufatura StreamLine-OS.
                             </p>
                             
-                            @if($roleDisplay)
+                            @if(!empty($roleDisplayList))
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 20px 0;">
                                 <tr>
                                     <td style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 20px;">
-                                        <p style="font-size: 14px; color: #666666; margin: 0 0 5px 0;">Função atribuída:</p>
-                                        <p style="font-size: 16px; font-weight: 600; color: #333333; margin: 0;">{{ ucfirst($roleDisplay) }}</p>
+                                        <p style="font-size: 14px; color: #666666; margin: 0 0 10px 0;">{{ count($roleDisplayList) > 1 ? 'Funções atribuídas:' : 'Função atribuída:' }}</p>
+                                        @foreach($roleDisplayList as $roleDisplay)
+                                        <p style="font-size: 16px; font-weight: 600; color: #333333; margin: 0 0 8px 0;">• {{ ucfirst($roleDisplay) }}</p>
+                                        @endforeach
                                     </td>
                                 </tr>
                             </table>

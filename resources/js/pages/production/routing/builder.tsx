@@ -17,7 +17,7 @@ interface Props {
 }
 export default function RouteBuilder({ routing, workCells, stepTypes, forms = [], can }: Props) {
     const breadcrumbs = [
-        { title: 'Produção', href: '/production' },
+        { title: 'Home', href: '/home' },
         { title: 'Roteiros', href: route('production.routing.index') },
         { title: routing.name, href: route('production.routing.show', routing.id) },
         { title: 'Editor', href: '' }

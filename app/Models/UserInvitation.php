@@ -129,7 +129,7 @@ class UserInvitation extends Model
      */
     public function getUrlAttribute(): string
     {
-        return route('invitations.show', ['token' => $this->token]);
+        return $this->generateSignedUrl();
     }
 
     /**

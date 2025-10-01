@@ -33,7 +33,7 @@ export default function TagGenerator({ templates }: Props) {
     const [batchIds, setBatchIds] = useState<string>('');
     const [generatedUrls, setGeneratedUrls] = useState<{ pdf_url?: string; preview_url?: string } | null>(null);
     const breadcrumbs = [
-        { title: 'Produção', href: '/' },
+        { title: 'Home', href: '/home' },
         { title: 'Etiquetas QR', href: route('production.qr-tags.index') },
         { title: 'Gerador', href: '' }
     ];

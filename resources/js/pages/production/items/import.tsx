@@ -88,7 +88,7 @@ export default function ItemImport({ supportedFormats }: Props) {
         update_existing: true as boolean,
     });
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Produção', href: '/home' },
+        { title: 'Home', href: '/home' },
         { title: 'Items', href: route('production.items.index') },
         { title: 'Import Items', href: route('production.items.import.wizard') },
     ];

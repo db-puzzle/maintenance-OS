@@ -69,17 +69,12 @@ class ItemCategoryController extends BaseSearchController
 
         // Get items with pagination
         $itemsQuery = $category->items()
-            ->with(['unit', 'category']);
+            ->with(['category']);
 
         // Handle sorting for items
         switch ($itemsSort) {
             case 'code':
                 $itemsQuery->orderBy('code', $itemsDirection);
-                break;
-            case 'unit':
-                $itemsQuery->leftJoin('units', 'items.unit_id', '=', 'units.id')
-                    ->orderBy('units.name', $itemsDirection)
-                    ->select('items.*');
                 break;
             case 'is_active':
                 $itemsQuery->orderBy('is_active', $itemsDirection);
@@ -109,7 +104,7 @@ class ItemCategoryController extends BaseSearchController
 
         $validated = $request->validated();
         $validated['created_by'] = auth()->id();
-        
+
         $category = ItemCategory::create($validated);
 
         // Se a requisição contém o parâmetro 'stay' (indica que é via Sheet/Modal)
@@ -143,7 +138,7 @@ class ItemCategoryController extends BaseSearchController
     {
         $this->authorize('delete', $category);
 
-        if (!$category->canBeDeleted()) {
+        if (! $category->canBeDeleted()) {
             return back()->with('error', 'Categoria não pode ser excluída pois possui itens vinculados.');
         }
 
@@ -163,7 +158,7 @@ class ItemCategoryController extends BaseSearchController
             ->get();
 
         return response()->json([
-            'has_dependencies' => !$category->canBeDeleted(),
+            'has_dependencies' => ! $category->canBeDeleted(),
             'dependencies' => [
                 'items' => [
                     'count' => $category->items()->count(),
@@ -178,4 +173,4 @@ class ItemCategoryController extends BaseSearchController
             ],
         ]);
     }
-} 
+}

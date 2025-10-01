@@ -191,7 +191,7 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
         });
     };
     const breadcrumbs = [
-        { title: 'Produção', href: '/production' },
+        { title: 'Home', href: '/home' },
         { title: 'Roteiros', href: route('production.routing.index') },
         { title: step.manufacturing_route.name, href: route('production.routing.show', step.manufacturing_route_id) },
         { title: `Etapa ${step.step_number}`, href: '' }

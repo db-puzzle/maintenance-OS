@@ -61,7 +61,7 @@ export default function ItemImageImport({
     const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
 
     const breadcrumbs = [
-        { title: 'Produção', href: '/home' },
+        { title: 'Home', href: '/home' },
         { title: 'Itens', href: route('production.items.index') },
         { title: 'Importar Imagens', href: '#' },
     ];

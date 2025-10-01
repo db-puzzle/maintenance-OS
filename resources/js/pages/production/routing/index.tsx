@@ -196,7 +196,7 @@ export default function RoutingTemplatesIndex({
         }
     ];
     const breadcrumbs = [
-        { title: 'Produção', href: '/production' },
+        { title: 'Home', href: '/home' },
         { title: 'Templates de Rotas de Produção', href: '' }
     ];
     return (

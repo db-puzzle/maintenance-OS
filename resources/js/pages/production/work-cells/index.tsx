@@ -23,10 +23,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/home',
     },
     {
-        title: 'Produção',
-        href: '#',
-    },
-    {
         title: 'Células de Trabalho',
         href: '/production/work-cells',
     },

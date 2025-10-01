@@ -173,7 +173,7 @@ export default function BomIndex({ boms, filters }: Props) {
     ];
 
     const breadcrumbs = [
-        { title: 'Produção', href: '/' },
+        { title: 'Home', href: '/home' },
         { title: 'BOMs', href: '' }
     ];
 

@@ -183,6 +183,20 @@ export default function CreateInvitationDialog({
         const role = roles.find(r => r.id === roleId);
         if (!role) return;
 
+        // Check if this exact role-entity combination already exists
+        const isDuplicate = roleAssignments.some(
+            assignment =>
+                assignment.role_id === roleId &&
+                assignment.entity_type === entityType &&
+                assignment.entity_id === entityId
+        );
+
+        if (isDuplicate) {
+            // Role already assigned to this entity, just close the selector
+            setShowEntitySelector(null);
+            return;
+        }
+
         const entity = getEntityById(entityType, entityId);
         const newAssignment: RoleAssignment = {
             role_id: role.id,
@@ -345,25 +359,88 @@ export default function CreateInvitationDialog({
 
                         {/* Step 2: Role Selection */}
                         {currentStep === 2 && (
-                            <ScrollArea className="h-full">
-                                <div className="space-y-6 pr-4">
+                            <div className="grid grid-cols-2 gap-4 h-full overflow-hidden">
+                                {/* Left Side: Available Roles */}
+                                <div className="border-r pr-4 flex flex-col min-h-0 overflow-hidden">
+                                    <div className="mb-3 flex-shrink-0">
+                                        <Label className="text-base font-medium">Funções Disponíveis</Label>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Selecione as funções para atribuir ao novo usuário
+                                        </p>
+                                    </div>
+                                    <ScrollArea className="flex-1 min-h-0">
+                                        <div className="space-y-3 pr-3">
+                                            {getAvailableRoles().length > 0 ? (
+                                                getAvailableRoles().map((role) => (
+                                                    <div key={role.id} className="relative">
+                                                        <StateButton
+                                                            icon={Shield}
+                                                            title={role.display_name || role.name}
+                                                            description={role.description || `${role.permissions_count || 0} permissões`}
+                                                            selected={false}
+                                                            onClick={() => handleAddRole(role)}
+                                                        />
+                                                        <div className="absolute top-2 right-2 flex gap-2">
+                                                            {role.is_system && (
+                                                                <Badge
+                                                                    variant="secondary"
+                                                                    className="text-xs"
+                                                                >
+                                                                    Sistema
+                                                                </Badge>
+                                                            )}
+                                                            {role.requires_entity && (
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className="text-xs"
+                                                                >
+                                                                    {role.entity_type === 'plant' ? 'Planta' :
+                                                                        role.entity_type === 'area' ? 'Área' :
+                                                                            'Setor'}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="text-center py-8 text-muted-foreground text-sm">
+                                                    {roleAssignments.length > 0
+                                                        ? 'Todas as funções disponíveis foram atribuídas'
+                                                        : 'Nenhuma função disponível'}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </ScrollArea>
+                                </div>
 
-                                    {/* Selected Roles */}
-                                    {roleAssignments.length > 0 && (
-                                        <div className="space-y-3 mb-6">
-                                            <Label className="text-sm font-medium">Funções selecionadas:</Label>
-                                            <div className="space-y-2">
-                                                {roleAssignments.map((assignment, index) => (
-                                                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
-                                                        <div className="flex items-center gap-3">
-                                                            <Shield className="h-4 w-4 text-muted-foreground" />
-                                                            <div>
-                                                                <p className="font-medium text-sm">
+                                {/* Right Side: Selected Roles */}
+                                <div className="pl-4 flex flex-col min-h-0 overflow-hidden">
+                                    <div className="mb-3 flex-shrink-0">
+                                        <Label className="text-base font-medium">Funções Selecionadas</Label>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            {roleAssignments.length > 0
+                                                ? `${roleAssignments.length} função(ões) atribuída(s)`
+                                                : 'Nenhuma função selecionada ainda'}
+                                        </p>
+                                    </div>
+                                    <ScrollArea className="flex-1 min-h-0">
+                                        <div className="space-y-2 pr-3">
+                                            {roleAssignments.length > 0 ? (
+                                                roleAssignments.map((assignment, index) => (
+                                                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-primary/5 hover:bg-primary/10 transition-colors">
+                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                                                <Shield className="h-4 w-4 text-primary" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-sm truncate">
                                                                     {assignment.role.display_name || assignment.role.name}
                                                                 </p>
                                                                 {assignment.entity_name && (
-                                                                    <p className="text-xs text-muted-foreground">
-                                                                        {assignment.entity_type}: {assignment.entity_name}
+                                                                    <p className="text-xs text-muted-foreground truncate">
+                                                                        {assignment.entity_type === 'plant' ? 'Planta' :
+                                                                            assignment.entity_type === 'area' ? 'Área' :
+                                                                                'Setor'}: {assignment.entity_name}
                                                                     </p>
                                                                 )}
                                                             </div>
@@ -373,58 +450,33 @@ export default function CreateInvitationDialog({
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => handleRemoveRole(index)}
+                                                            className="flex-shrink-0 ml-2"
                                                         >
                                                             <X className="h-4 w-4" />
                                                         </Button>
                                                     </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Available Roles */}
-                                    <div>
-                                        <Label className="text-sm font-medium mb-3 block">Funções disponíveis:</Label>
-                                        <div className="grid grid-cols-1 gap-3">
-                                            {getAvailableRoles().map((role) => (
-                                                <div key={role.id} className="relative">
-                                                    <StateButton
-                                                        icon={Shield}
-                                                        title={role.display_name || role.name}
-                                                        description={role.description || `${role.permissions_count || 0} permissões`}
-                                                        selected={false}
-                                                        onClick={() => handleAddRole(role)}
-                                                    />
-                                                    <div className="absolute top-2 right-2 flex gap-2">
-                                                        {role.is_system && (
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="text-xs"
-                                                            >
-                                                                Sistema
-                                                            </Badge>
-                                                        )}
-                                                        {role.requires_entity && (
-                                                            <Badge
-                                                                variant="outline"
-                                                                className="text-xs"
-                                                            >
-                                                                {role.entity_type === 'plant' ? 'Planta' :
-                                                                    role.entity_type === 'area' ? 'Área' :
-                                                                        'Setor'}
-                                                            </Badge>
-                                                        )}
+                                                ))
+                                            ) : (
+                                                <div className="h-full flex items-center justify-center py-12">
+                                                    <div className="text-center space-y-2">
+                                                        <div className="w-12 h-12 rounded-full bg-muted mx-auto flex items-center justify-center">
+                                                            <Shield className="h-6 w-6 text-muted-foreground" />
+                                                        </div>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Selecione funções à esquerda
+                                                        </p>
                                                     </div>
                                                 </div>
-                                            ))}
+                                            )}
                                         </div>
-                                    </div>
-
+                                    </ScrollArea>
                                     {errors.role_assignments && (
-                                        <InputError message={errors.role_assignments} className="mt-2" />
+                                        <div className="mt-2 flex-shrink-0">
+                                            <InputError message={errors.role_assignments} />
+                                        </div>
                                     )}
                                 </div>
-                            </ScrollArea>
+                            </div>
                         )}
 
                         {/* Step 3: Personal Message */}
@@ -633,17 +685,33 @@ export default function CreateInvitationDialog({
                                         </div>
                                         <ScrollArea className="h-[200px] border rounded-md p-2">
                                             <div className="space-y-1">
-                                                {entities.map((entity) => (
-                                                    <Button
-                                                        key={entity.id}
-                                                        variant="ghost"
-                                                        className="w-full justify-start"
-                                                        onClick={() => handleAddRoleWithEntity(role.id, role.entity_type!, entity.id)}
-                                                    >
-                                                        <Icon className="h-4 w-4 mr-2" />
-                                                        {entity.name}
-                                                    </Button>
-                                                ))}
+                                                {entities.map((entity) => {
+                                                    const isAlreadyAssigned = roleAssignments.some(
+                                                        assignment =>
+                                                            assignment.role_id === role.id &&
+                                                            assignment.entity_type === role.entity_type &&
+                                                            assignment.entity_id === entity.id
+                                                    );
+
+                                                    return (
+                                                        <Button
+                                                            key={entity.id}
+                                                            variant={isAlreadyAssigned ? "secondary" : "ghost"}
+                                                            className={cn(
+                                                                "w-full justify-start",
+                                                                isAlreadyAssigned && "opacity-50 cursor-not-allowed"
+                                                            )}
+                                                            onClick={() => handleAddRoleWithEntity(role.id, role.entity_type!, entity.id)}
+                                                            disabled={isAlreadyAssigned}
+                                                        >
+                                                            <Icon className="h-4 w-4 mr-2" />
+                                                            {entity.name}
+                                                            {isAlreadyAssigned && (
+                                                                <Check className="h-4 w-4 ml-auto text-muted-foreground" />
+                                                            )}
+                                                        </Button>
+                                                    );
+                                                })}
                                             </div>
                                         </ScrollArea>
                                     </>

@@ -303,6 +303,16 @@ export default function RoleIndex({ roles, filters = {}, can }: Props) {
                 createButtonText="Create Role"
                 actions={
                     <div className="flex items-center gap-2">
+                        <Select value={selectedType} onValueChange={handleTypeFilter}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Filter by type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Roles</SelectItem>
+                                <SelectItem value="system">System Roles</SelectItem>
+                                <SelectItem value="custom">Custom Roles</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <Button asChild variant="outline" size="sm">
                             <Link href={route('users.index')}>
                                 <Shield className="mr-2 h-4 w-4" />
@@ -313,20 +323,6 @@ export default function RoleIndex({ roles, filters = {}, can }: Props) {
                 }
             >
                 <div className="-mt-4 space-y-4">
-                    {/* Additional Filters */}
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <Select value={selectedType} onValueChange={handleTypeFilter}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Filter by type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Roles</SelectItem>
-                                <SelectItem value="system">System Roles</SelectItem>
-                                <SelectItem value="custom">Custom Roles</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
                     {/* Data Table */}
                     <EntityDataTable
                         data={filteredRoles as unknown as Record<string, unknown>[]}
