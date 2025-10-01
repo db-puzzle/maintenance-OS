@@ -534,35 +534,8 @@ class ItemController extends BaseSearchController
     {
         $this->authorize('import', Item::class);
 
-        $categories = ItemCategory::active()->orderBy('name')->get()->map(function ($category) {
-            return [
-                'id' => $category->id,
-                'name' => $category->name,
-                'description' => $category->description,
-                'is_active' => $category->is_active,
-                'items_count' => $category->items_count ?? 0,
-                'has_route_template' => $category->hasRouteTemplate(),
-                'created_at' => $category->created_at,
-                'updated_at' => $category->updated_at,
-            ];
-        });
-
-        return Inertia::render('production/items/import', [
-            'categories' => $categories,
+        return Inertia::render('production/items/import/index', [
             'supportedFormats' => ['csv', 'txt', 'json'],
-            'csvHeaders' => [
-                'item_number' => 'Item Number',
-                'name' => 'Name',
-                'description' => 'Description',
-                'category_name' => 'Category',
-                'unit_of_measure' => 'Unit of Measure',
-                'can_be_sold' => 'Can Be Sold',
-                'can_be_purchased' => 'Can Be Purchased',
-                'can_be_manufactured' => 'Can Be Manufactured',
-                'weight' => 'Weight',
-                'list_price' => 'List Price',
-                'purchase_price' => 'Purchase Price',
-            ],
         ]);
     }
 
@@ -603,6 +576,16 @@ class ItemController extends BaseSearchController
                 $result = $this->importService->importFromCsv($file, $mapping, $updateExisting);
             }
 
+            // Prepare result data for the new UI
+            $importResult = [
+                'imported' => $result['count'],
+                'updated' => 0, // TODO: Track updates separately in import service
+                'skipped' => $result['skipped'] ?? 0,
+                'failed' => count($result['errors']),
+                'errors' => $result['errors'],
+            ];
+
+            // Handle errors
             if (count($result['errors']) > 0) {
                 $message = "Imported {$result['count']} items with " . count($result['errors']) . ' errors.';
                 if (isset($result['skipped']) && $result['skipped'] > 0) {
@@ -610,6 +593,7 @@ class ItemController extends BaseSearchController
                 }
 
                 return back()->with('warning', $message)
+                    ->with('flash', ['result' => $importResult])
                     ->withErrors($result['errors']);
             }
 
@@ -623,6 +607,7 @@ class ItemController extends BaseSearchController
                         return redirect()->route('production.items.index')
                             ->with('success', "Successfully imported {$result['count']} items and {$summary['imagesImported']} image(s).")
                             ->with('warning', 'Some images could not be imported.')
+                            ->with('flash', ['result' => $importResult])
                             ->with('imageImportSummary', $summary);
                     }
                     $message = "Successfully imported {$result['count']} items and {$summary['imagesImported']} image(s).";
@@ -631,7 +616,8 @@ class ItemController extends BaseSearchController
                     }
 
                     return redirect()->route('production.items.index')
-                        ->with('success', $message);
+                        ->with('success', $message)
+                        ->with('flash', ['result' => $importResult]);
                 }
             }
 
@@ -641,7 +627,8 @@ class ItemController extends BaseSearchController
             }
 
             return redirect()->route('production.items.index')
-                ->with('success', $message);
+                ->with('success', $message)
+                ->with('flash', ['result' => $importResult]);
         } catch (\Exception $e) {
             return back()->withErrors(['file' => 'Import failed: ' . $e->getMessage()]);
         }

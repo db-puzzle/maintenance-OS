@@ -1,0 +1,102 @@
+export interface ImportFile {
+    file: File;
+    headers?: string[];
+    data?: Record<string, unknown>[];
+    totalRows?: number;
+}
+
+export interface FieldMapping {
+    [csvHeader: string]: string;
+}
+
+export interface ImportOptions {
+    updateExisting: boolean;
+    skipDuplicates: boolean;
+}
+
+export interface ImportSession {
+    id: string;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    totalItems: number;
+    processedItems: number;
+    successfulItems: number;
+    failedItems: number;
+    errors?: ImportError[];
+}
+
+export interface ImportError {
+    row: number;
+    field?: string;
+    message: string;
+    data?: Record<string, unknown>;
+}
+
+export interface ImportResult {
+    success: boolean;
+    message: string;
+    imported: number;
+    updated: number;
+    skipped: number;
+    failed: number;
+    errors?: ImportError[];
+}
+
+// CSV field definitions
+export const csvFields = [
+    { value: 'item_number', label: 'Item Number', required: true },
+    { value: 'name', label: 'Name', required: true },
+    { value: 'description', label: 'Description', required: false },
+    { value: 'category_name', label: 'Category', required: false },
+    { value: 'unit_of_measure', label: 'Unit of Measure', required: true },
+    { value: 'can_be_sold', label: 'Can Be Sold', required: false },
+    { value: 'can_be_purchased', label: 'Can Be Purchased', required: false },
+    { value: 'can_be_manufactured', label: 'Can Be Manufactured', required: false },
+    { value: 'is_phantom', label: 'Is Phantom', required: false },
+    { value: 'is_active', label: 'Is Active', required: false },
+    { value: 'weight', label: 'Weight', required: false },
+    { value: 'list_price', label: 'List Price', required: false },
+    { value: 'manufacturing_cost', label: 'Manufacturing Cost', required: false },
+    { value: 'manufacturing_lead_time_days', label: 'Manufacturing Lead Time (Days)', required: false },
+    { value: 'purchase_price', label: 'Purchase Price', required: false },
+    { value: 'purchase_lead_time_days', label: 'Purchase Lead Time (Days)', required: false },
+    { value: 'track_inventory', label: 'Track Inventory', required: false },
+    { value: 'min_stock_level', label: 'Min Stock Level', required: false },
+    { value: 'max_stock_level', label: 'Max Stock Level', required: false },
+    { value: 'reorder_point', label: 'Reorder Point', required: false },
+    { value: 'preferred_vendor', label: 'Preferred Vendor', required: false },
+    { value: 'vendor_item_number', label: 'Vendor Item Number', required: false },
+    { value: 'tags', label: 'Tags', required: false },
+];
+
+// Helper functions
+export const normalizeString = (str: string): string => {
+    return str.toLowerCase().replace(/\s+/g, '').trim();
+};
+
+export const findBestMatch = (header: string): string => {
+    const normalizedHeader = normalizeString(header);
+
+    // Direct matches
+    for (const field of csvFields) {
+        const normalizedFieldLabel = normalizeString(field.label);
+        if (normalizedHeader === normalizedFieldLabel) {
+            return field.value;
+        }
+    }
+
+    // Common variations
+    if (normalizedHeader.includes('number') || normalizedHeader.includes('code')) return 'item_number';
+    if (normalizedHeader.includes('name') || normalizedHeader.includes('title')) return 'name';
+    if (normalizedHeader.includes('description') || normalizedHeader.includes('desc')) return 'description';
+    if (normalizedHeader.includes('category') || normalizedHeader.includes('cat')) return 'category_name';
+    if (normalizedHeader.includes('unit') || normalizedHeader.includes('measure')) return 'unit_of_measure';
+    if (normalizedHeader.includes('weight')) return 'weight';
+    if (normalizedHeader.includes('price') && normalizedHeader.includes('list')) return 'list_price';
+    if (normalizedHeader.includes('price') && normalizedHeader.includes('purchase')) return 'purchase_price';
+    if (normalizedHeader.includes('cost')) return 'manufacturing_cost';
+    if (normalizedHeader.includes('vendor') && !normalizedHeader.includes('number')) return 'preferred_vendor';
+    if (normalizedHeader.includes('vendor') && normalizedHeader.includes('number')) return 'vendor_item_number';
+    if (normalizedHeader.includes('tags')) return 'tags';
+
+    return '';
+};
