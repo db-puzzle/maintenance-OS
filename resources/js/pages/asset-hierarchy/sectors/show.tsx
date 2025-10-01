@@ -45,10 +45,6 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             href: '/home',
         },
         {
-            title: 'Hierarquia de Ativos',
-            href: '/asset-hierarchy',
-        },
-        {
             title: 'Setores',
             href: '/asset-hierarchy/sectors',
         },
@@ -117,7 +113,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 label: 'TAG',
                                 sortable: true,
                                 width: 'w-[25%]',
-                                 
+
                                 render: (value, row) => <div className="font-medium">{(row as { tag?: string }).tag}</div>,
                             },
                             {
@@ -125,7 +121,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 label: 'Tipo',
                                 sortable: true,
                                 width: 'w-[25%]',
-                                 
+
                                 render: (value, row) => <span className="text-muted-foreground text-sm">{(row as { asset_type?: { name?: string } }).asset_type?.name ?? '-'}</span>,
                             },
                             {
@@ -133,7 +129,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 label: 'Fabricante',
                                 sortable: true,
                                 width: 'w-[25%]',
-                                 
+
                                 render: (value, row) => <span className="text-muted-foreground text-sm">{(row as { manufacturer?: { name?: string } }).manufacturer?.name ?? '-'}</span>,
                             },
                             {
@@ -144,7 +140,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
                             },
                         ]}
-                         
+
                         onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as { id?: number }).id))}
                         onSort={(columnKey) => {
                             const columnMap: Record<string, string> = {

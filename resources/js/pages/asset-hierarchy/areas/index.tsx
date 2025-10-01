@@ -22,12 +22,8 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/home',
     },
     {
-        title: 'Hierarquia de Ativos',
-        href: '/asset-hierarchy',
-    },
-    {
         title: 'Áreas',
-        href: '/asset-hierarchy/areas',
+        href: '#',
     },
 ];
 interface Props {

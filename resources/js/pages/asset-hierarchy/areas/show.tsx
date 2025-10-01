@@ -61,14 +61,6 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
             href: '/home',
         },
         {
-            title: 'Hierarquia de Ativos',
-            href: '/asset-hierarchy',
-        },
-        {
-            title: 'Áreas',
-            href: '/asset-hierarchy/areas',
-        },
-        {
             title: area.name,
             href: '#',
         },

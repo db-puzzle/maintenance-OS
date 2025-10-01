@@ -101,20 +101,20 @@ export function HierarchicalViewHeader({
             </div>
 
             {/* Title section - now after controls */}
-            <div className="flex flex-wrap items-baseline gap-3">
-                <div className="flex flex-wrap items-baseline">
-                    {subtitle && !compact && (
-                        <p className="mt-1 ml-2 truncate text-sm text-gray-500">
-                            {subtitle}
-                        </p>
-                    )}
+            <div className="flex items-center gap-2">
+                {title && (
                     <h3 className={cn(
                         "text-gray-900",
-                        compact ? "text-sm font-medium" : "mt-2 ml-2 text-base font-semibold"
+                        compact ? "text-sm font-medium" : "text-base font-semibold"
                     )}>
                         {title}
                     </h3>
-                </div>
+                )}
+                {subtitle && !compact && (
+                    <p className="text-sm text-gray-500">
+                        {subtitle}
+                    </p>
+                )}
                 {badge}
             </div>
         </div>

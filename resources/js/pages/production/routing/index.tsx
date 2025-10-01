@@ -197,7 +197,7 @@ export default function RoutingTemplatesIndex({
     ];
     const breadcrumbs = [
         { title: 'Home', href: '/home' },
-        { title: 'Templates de Rotas de Produção', href: '' }
+        { title: 'Templates de Rotas', href: '' }
     ];
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

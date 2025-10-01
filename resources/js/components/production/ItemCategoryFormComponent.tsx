@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { TextInput } from '@/components/TextInput';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import InputError from '@/components/input-error';
 import { ItemCategory } from '@/types/production';
 import { createFormAdapter } from '@/utils/form-adapters';
+import StateButton from '@/components/StateButton';
+import { CheckCircle2, XCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ItemCategoryFormComponentProps {
     category: ItemCategory;
@@ -78,20 +80,49 @@ const ItemCategoryFormComponent: React.FC<ItemCategoryFormComponentProps> = ({
                         </>
                     )}
                 </div>
-                {/* Status Ativo */}
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="is_active">Status</Label>
-                        <div className="text-sm text-muted-foreground">
-                            {data.is_active ? 'Categoria ativa' : 'Categoria inativa'}
-                        </div>
+                {/* Status Configuration */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold mb-3">Status da Categoria</h3>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <StateButton
+                            icon={CheckCircle2}
+                            title="Ativa"
+                            description="Categoria está ativa e disponível para uso"
+                            selected={data.is_active}
+                            onClick={() => {
+                                if (mode === 'edit') {
+                                    setData('is_active', true);
+                                }
+                            }}
+                            disabled={mode === 'view' || processing}
+                            variant="green"
+                            greyOutWhenDisabled={mode === 'view'}
+                        />
+                        <StateButton
+                            icon={XCircle}
+                            title="Inativa"
+                            description="Categoria está inativa e não disponível para uso"
+                            selected={!data.is_active}
+                            onClick={() => {
+                                if (mode === 'edit') {
+                                    setData('is_active', false);
+                                }
+                            }}
+                            disabled={mode === 'view' || processing}
+                            variant="red"
+                            greyOutWhenDisabled={mode === 'view'}
+                        />
                     </div>
-                    <Switch
-                        id="is_active"
-                        checked={data.is_active}
-                        onCheckedChange={(checked) => setData('is_active', checked)}
-                        disabled={processing || mode === 'view'}
-                    />
+
+                    {!data.is_active && (
+                        <Alert variant="destructive" className="mt-4">
+                            <XCircle className="h-4 w-4" />
+                            <AlertDescription>
+                                Esta categoria está inativa e não pode ser usada em novos itens.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                 </div>
                 {/* Informações adicionais (somente visualização) */}
                 {mode === 'view' && (

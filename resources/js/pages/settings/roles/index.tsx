@@ -32,12 +32,8 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/home',
     },
     {
-        title: 'Settings',
-        href: '/settings',
-    },
-    {
         title: 'Roles',
-        href: '/settings/roles',
+        href: '#',
     },
 ];
 
@@ -291,11 +287,11 @@ export default function RoleIndex({ roles, filters = {}, can }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Role Management" />
+            <Head title="Gerenciamento de Funções" />
 
             <ListLayout
-                title="Role Management"
-                description="Manage system and custom roles with their permissions"
+                title="Gerenciamento de Funções"
+                description="Gerencie funções do sistema e funções personalizadas com suas permissões"
                 searchPlaceholder="Search roles..."
                 searchValue={searchTerm}
                 onSearchChange={handleSearch}

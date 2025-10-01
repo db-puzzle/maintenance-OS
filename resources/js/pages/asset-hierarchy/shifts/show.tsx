@@ -80,10 +80,6 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
             href: '/home',
         },
         {
-            title: 'Hierarquia de Ativos',
-            href: '/asset-hierarchy',
-        },
-        {
             title: 'Turnos',
             href: '/asset-hierarchy/shifts',
         },

@@ -85,10 +85,6 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
             href: '/home',
         },
         {
-            title: 'Hierarquia de Ativos',
-            href: '/asset-hierarchy',
-        },
-        {
             title: 'Fabricantes',
             href: '/asset-hierarchy/manufacturers',
         },

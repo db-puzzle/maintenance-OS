@@ -45,10 +45,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/home',
     },
     {
-        title: 'Hierarquia de Ativos',
-        href: '/asset-hierarchy',
-    },
-    {
         title: 'Turnos',
         href: '/asset-hierarchy/shifts',
     },

@@ -876,16 +876,27 @@ export default function ItemShow({
                                         columns={[
                                             {
                                                 key: 'bom_number',
-                                                label: 'BOM',
+                                                label: 'Número BOM',
                                                 sortable: false,
-                                                render: (bom) => (
-                                                    <span
-                                                        className="text-primary hover:underline cursor-pointer"
-                                                        onClick={() => router.visit(route('production.bom.show', (bom as BillOfMaterial).id))}
-                                                    >
-                                                        {(bom as BillOfMaterial).bom_number}
-                                                    </span>
-                                                )
+                                                render: (value: unknown, row: unknown) => {
+                                                    const bom = row as BillOfMaterial;
+                                                    return (
+                                                        <span
+                                                            className="text-primary hover:underline cursor-pointer"
+                                                            onClick={() => router.visit(route('production.bom.show', bom.id))}
+                                                        >
+                                                            {bom.bom_number}
+                                                        </span>
+                                                    );
+                                                }
+                                            },
+                                            {
+                                                key: 'name',
+                                                label: 'Nome BOM',
+                                                render: (value: unknown, row: unknown) => {
+                                                    const bom = row as BillOfMaterial;
+                                                    return <span>{bom.name}</span>;
+                                                }
                                             },
                                             {
                                                 key: 'output_item',

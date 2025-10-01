@@ -9,7 +9,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
     {
         title: 'Hierarquia de Ativos',
-        href: '/asset-hierarchy',
+        href: '#',
     },
 ];
 interface NavigationCard {

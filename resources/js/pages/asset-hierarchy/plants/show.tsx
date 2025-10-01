@@ -94,10 +94,6 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
             href: '/home',
         },
         {
-            title: 'Hierarquia de Ativos',
-            href: '/asset-hierarchy',
-        },
-        {
             title: 'Plantas',
             href: '/asset-hierarchy/plants',
         },
@@ -249,7 +245,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 sortable: true,
                                 width: 'w-[200px]',
                                 render: (value, row) => {
-                                     
+
                                     const sector = row as { area?: { name?: string } };
                                     return sector.area?.name || '-';
                                 },
@@ -298,7 +294,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 label: 'TAG',
                                 sortable: true,
                                 width: 'w-[300px]',
-                                 
+
                                 render: (value, row) => <div className="font-medium">{(row as { tag?: string }).tag}</div>,
                             },
                             {
@@ -306,7 +302,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 label: 'Tipo',
                                 sortable: true,
                                 width: 'w-[200px]',
-                                 
+
                                 render: (value, row) => <span className="text-muted-foreground text-sm">{(row as { asset_type?: { name?: string } }).asset_type?.name ?? '-'}</span>,
                             },
                             {
@@ -315,7 +311,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 sortable: true,
                                 width: 'w-[250px]',
                                 render: (value, row) => {
-                                     
+
                                     const item = row as { area_name?: string; sector_name?: string };
                                     return (
                                         <span className="text-muted-foreground text-sm">

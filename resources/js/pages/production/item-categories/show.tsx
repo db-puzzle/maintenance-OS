@@ -143,14 +143,21 @@ export default function Show({ category, items, activeTab, filters }: Props) {
                                 label: 'Nome',
                                 sortable: true,
                                 width: 'w-[35%]',
-                                render: (value, row) => (
-                                    <div>
-                                        <div className="font-medium">{(row as Record<string, unknown>).name as string}</div>
-                                        {(row as Record<string, unknown>).description ? (
-                                            <div className="text-muted-foreground text-sm">{String((row as Record<string, unknown>).description)}</div>
-                                        ) : null}
-                                    </div>
-                                ),
+                                render: (value, row) => {
+                                    const name = (row as Record<string, unknown>).name as string;
+                                    const description = (row as Record<string, unknown>).description;
+
+                                    return (
+                                        <div>
+                                            <div className="font-medium">
+                                                {name || <span className="text-muted-foreground italic">Sem nome</span>}
+                                            </div>
+                                            {description ? (
+                                                <div className="text-muted-foreground text-sm">{String(description)}</div>
+                                            ) : null}
+                                        </div>
+                                    );
+                                },
                             },
                             {
                                 key: 'unit_of_measure',

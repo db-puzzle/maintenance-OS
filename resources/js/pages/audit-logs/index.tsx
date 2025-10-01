@@ -86,8 +86,7 @@ interface Props {
 }
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Home', href: '/home' },
-    { title: 'Settings', href: '#' },
-    { title: 'Audit Logs', href: '/audit-logs' },
+    { title: 'Logs de Auditoria', href: '/audit-logs' },
 ];
 
 // Declare the global route function from Ziggy
@@ -277,10 +276,10 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Permission Audit Logs" />
+            <Head title="Logs de Auditoria de Permissões" />
             <ListLayout
-                title="Permission Audit Logs"
-                description="Track all permission-related changes in the system"
+                title="Logs de Auditoria de Permissões"
+                description="Acompanhe todas as alterações relacionadas a permissões no sistema"
                 searchPlaceholder="Search logs..."
                 searchValue={search}
                 onSearchChange={handleSearch}

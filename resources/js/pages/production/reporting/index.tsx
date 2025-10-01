@@ -140,8 +140,8 @@ export default function ProductionReporting({
     }, []);
 
     const breadcrumbs = [
-        { title: 'Production', href: '/production' },
-        { title: 'Reporting', href: '/production/reporting' }
+        { title: 'Home', href: '/home' },
+        { title: 'Apontamento', href: '#' }
     ];
 
     // Handle search with debounce

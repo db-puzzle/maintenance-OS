@@ -190,7 +190,7 @@ export default function BomIndex({ boms, filters }: Props) {
                 actions={
                     <Button variant="outline" onClick={() => router.visit(route('production.bom.import.wizard'))}>
                         <Upload className="h-4 w-4 mr-2" />
-                        Importar
+                        Importar BOM
                     </Button>
                 }
             >

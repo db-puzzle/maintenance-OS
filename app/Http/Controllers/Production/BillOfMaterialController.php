@@ -4,17 +4,19 @@ namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\BaseSearchController;
 use App\Models\Production\BillOfMaterial;
-use App\Models\Production\BomVersion;
 use App\Models\Production\BomItem;
+use App\Models\Production\BomVersion;
 use App\Models\Production\Item;
 use App\Models\Production\ItemCategory;
 use App\Services\Production\BomImportService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Support\Str;
 
 class BillOfMaterialController extends BaseSearchController
 {
@@ -40,18 +42,31 @@ class BillOfMaterialController extends BaseSearchController
                     $query->where('is_active', false);
                 }
             })
-            ->with(['currentVersion.items', 'createdBy'])
+            ->with(['currentVersion', 'createdBy'])
             ->withCount(['versions' => function ($query) {
                 $query->where('is_current', false);
             }])
             ->paginate($request->input('per_page', 10));
 
+        // Load items count for current versions efficiently
+        $currentVersionIds = $boms->getCollection()
+            ->map(fn ($bom) => $bom->currentVersion?->id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        $itemCounts = BomItem::whereIn('bom_version_id', $currentVersionIds)
+            ->groupBy('bom_version_id')
+            ->selectRaw('bom_version_id, COUNT(*) as items_count')
+            ->pluck('items_count', 'bom_version_id');
+
         // Add computed fields for frontend
-        $boms->getCollection()->transform(function ($bom) {
+        $boms->getCollection()->transform(function ($bom) use ($itemCounts) {
             $bom->version = $bom->currentVersion ? $bom->currentVersion->version_number : 1;
             $bom->status = $bom->is_active ? 'active' : 'inactive';
             $bom->effective_date = $bom->currentVersion ? $bom->currentVersion->effective_date : null;
-            $bom->items = $bom->currentVersion ? $bom->currentVersion->items : collect();
+            $bom->items_count = $bom->currentVersion ? ($itemCounts[$bom->currentVersion->id] ?? 0) : 0;
+
             return $bom;
         });
 
@@ -71,6 +86,7 @@ class BillOfMaterialController extends BaseSearchController
 
         $items = Item::where('can_be_manufactured', true)
             ->where('is_active', true)
+            ->with('media')  // Load media for available items
             ->orderBy('item_number')
             ->get(['id', 'item_number', 'name', 'unit_of_measure', 'can_be_manufactured', 'is_active']);
 
@@ -105,22 +121,22 @@ class BillOfMaterialController extends BaseSearchController
 
         // Verify the item can be manufactured
         $item = Item::findOrFail($validated['output_item_id']);
-        if (!$item->can_be_manufactured) {
+        if (! $item->can_be_manufactured) {
             return back()->withErrors(['output_item_id' => 'Selected item cannot be manufactured']);
         }
 
         $validated['created_by'] = auth()->id();
         $validated['is_active'] = $validated['is_active'] ?? true;
-        
+
         // Generate BOM number automatically
         $validated['bom_number'] = BillOfMaterial::generateBomNumber();
-        
+
         DB::transaction(function () use ($validated, &$bom) {
             $bom = BillOfMaterial::create($validated);
-            
+
             // Create initial version
             $version = $bom->createVersion('Initial version', auth()->id());
-            
+
             // Create root BOM item for the output
             $version->items()->create([
                 'item_id' => $bom->output_item_id,
@@ -140,44 +156,99 @@ class BillOfMaterialController extends BaseSearchController
     {
         $this->authorize('view', $bom);
 
+        // Load BOM with all necessary relationships efficiently
         $bom->load([
-            'currentVersion' => function ($query) {
-                $query->with(['items' => function ($itemQuery) {
-                    $itemQuery->with([
-                        'item',
-                        'children' => function ($childQuery) {
-                            $childQuery->with('item');
-                            // Recursive loading of all levels
-                            $childQuery->with('children.item');
-                            $childQuery->with('children.children.item');
-                        }
-                    ]);
-                }]);
-            },
+            'createdBy',
+            'outputItem',
             'versions' => function ($query) {
                 $query->orderBy('version_number', 'desc')->limit(5);
             },
-            'createdBy',
-            'outputItem'
         ]);
 
         // Add computed counts for tab labels
         $bom->versions_count = $bom->versions->count();
+
+        // Efficiently load current version with all nested items
+        if ($bom->currentVersion) {
+            // First, get all BOM items for the current version
+            $allBomItems = BomItem::where('bom_version_id', $bom->currentVersion->id)
+                ->with(['item']) // Load item relationship without media for now
+                ->orderBy('level')
+                ->orderBy('sequence_number')
+                ->get();
+
+            // Group items by parent_item_id for efficient hierarchy building
+            $itemsByParent = $allBomItems->groupBy('parent_item_id');
+
+            // Build the hierarchy in memory
+            foreach ($allBomItems as $bomItem) {
+                $children = $itemsByParent->get($bomItem->id, collect());
+                $bomItem->setRelation('children', $children);
+            }
+
+            // Set all items on the current version (frontend expects all items, not just root)
+            $bom->currentVersion->setRelation('items', $allBomItems);
+        }
 
         // Load available items for BOM configuration
         $items = Item::where('is_active', true)
             ->orderBy('item_number')
             ->get(['id', 'item_number', 'name', 'unit_of_measure', 'can_be_manufactured', 'is_active']);
 
+        // Collect all unique item IDs that need media
+        $allItemIds = collect();
+
+        // Add BOM item IDs
+        if ($bom->currentVersion && $bom->currentVersion->items) {
+            $bomItemIds = $bom->currentVersion->items->pluck('item_id');
+            $allItemIds = $allItemIds->merge($bomItemIds);
+        }
+
+        // Add available item IDs
+        $allItemIds = $allItemIds->merge($items->pluck('id'));
+
+        // Add output item ID
+        if ($bom->output_item_id) {
+            $allItemIds->push($bom->output_item_id);
+        }
+
+        // Get unique IDs
+        $uniqueItemIds = $allItemIds->unique()->values();
+
+        // Load all media in a single query
+        if ($uniqueItemIds->isNotEmpty()) {
+            $media = \Spatie\MediaLibrary\MediaCollections\Models\Media::whereIn('model_id', $uniqueItemIds)
+                ->where('model_type', 'App\Models\Production\Item')
+                ->get()
+                ->groupBy('model_id');
+
+            // Attach media to BOM items
+            if ($bom->currentVersion && $bom->currentVersion->items) {
+                foreach ($bom->currentVersion->items as $bomItem) {
+                    if ($bomItem->item) {
+                        $itemMedia = $media->get($bomItem->item->id, collect());
+                        $bomItem->item->setRelation('media', $itemMedia);
+                    }
+                }
+            }
+
+            // Attach media to available items
+            foreach ($items as $item) {
+                $itemMedia = $media->get($item->id, collect());
+                $item->setRelation('media', $itemMedia);
+            }
+
+            // Attach media to output item if loaded
+            if ($bom->outputItem) {
+                $outputItemMedia = $media->get($bom->output_item_id, collect());
+                $bom->outputItem->setRelation('media', $outputItemMedia);
+            }
+        }
+
         // Load categories for CreateItemSheet
         $categories = ItemCategory::active()
             ->orderBy('name')
             ->get();
-
-        // Ensure currentVersion items are properly loaded and formatted
-        if ($bom->currentVersion) {
-            $bom->currentVersion->load(['items.item', 'items.children.item']);
-        }
 
         return Inertia::render('production/bom/show', [
             'bom' => $bom,
@@ -224,8 +295,6 @@ class BillOfMaterialController extends BaseSearchController
             ->with('success', 'BOM deleted successfully.');
     }
 
-
-
     public function duplicate(BillOfMaterial $bom)
     {
         $this->authorize('create', BillOfMaterial::class);
@@ -234,7 +303,7 @@ class BillOfMaterialController extends BaseSearchController
         $baseBomNumber = $bom->bom_number;
         $counter = 1;
         $newBomNumber = $baseBomNumber . '-COPY';
-        
+
         while (BillOfMaterial::where('bom_number', $newBomNumber)->exists()) {
             $counter++;
             $newBomNumber = $baseBomNumber . '-COPY-' . $counter;
@@ -253,7 +322,7 @@ class BillOfMaterialController extends BaseSearchController
 
         // Create initial version and copy items if current version exists
         $newVersion = $newBom->createVersion('Copied from BOM: ' . $bom->bom_number, auth()->id());
-        
+
         if ($bom->currentVersion && $bom->currentVersion->items) {
             foreach ($bom->currentVersion->items as $item) {
                 BomItem::create([
@@ -279,14 +348,9 @@ class BillOfMaterialController extends BaseSearchController
         $this->authorize('view', $bom);
 
         $format = $request->input('format', 'json');
-        
+
         // Load necessary relationships
-        $bom->load([
-            'currentVersion.items' => function ($query) {
-                $query->with('item')->orderBy('level')->orderBy('sequence_number');
-            },
-            'createdBy'
-        ]);
+        $bom->load(['createdBy']);
 
         $exportData = [
             'bom_number' => $bom->bom_number,
@@ -296,26 +360,25 @@ class BillOfMaterialController extends BaseSearchController
             'version' => $bom->currentVersion ? $bom->currentVersion->version_number : 1,
             'exported_at' => now()->toIso8601String(),
             'exported_by' => auth()->user()->name,
-            'items' => []
+            'items' => [],
         ];
 
         if ($bom->currentVersion) {
-            // Build hierarchical structure for export
-            // Load all BOM items at once to avoid N+1 queries and lazy loading issues
-            $allItems = $bom->currentVersion->items()
+            // Load all BOM items at once with their items to avoid N+1 queries
+            $allItems = BomItem::where('bom_version_id', $bom->currentVersion->id)
                 ->with('item')
                 ->orderBy('sequence_number')
                 ->get();
-            
+
             // Group items by parent_item_id for efficient hierarchy building
             $itemsByParent = $allItems->groupBy('parent_item_id');
-            
+
             // Get root items (where parent_item_id is null)
             $rootItems = $itemsByParent->get(null, collect());
-            
+
             // Attach children to each item recursively
             $this->attachChildren($rootItems, $itemsByParent);
-            
+
             $exportData['items'] = $this->buildExportHierarchy($rootItems);
         }
 
@@ -324,14 +387,14 @@ class BillOfMaterialController extends BaseSearchController
         }
 
         $jsonContent = json_encode($exportData, JSON_PRETTY_PRINT);
-        
+
         return response($jsonContent)
             ->header('Content-Type', 'application/json')
             ->header('Content-Disposition', 'attachment; filename="' . $bom->bom_number . '-' . date('Y-m-d') . '.json"');
     }
 
     /**
-     * Recursively attach children to items for efficient hierarchy building
+     * Recursively attach children to items for efficient hierarchy building.
      */
     private function attachChildren($items, $itemsByParent)
     {
@@ -350,12 +413,12 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Build hierarchical structure for export
+     * Build hierarchical structure for export.
      */
     private function buildExportHierarchy($items): array
     {
         $result = [];
-        
+
         foreach ($items as $item) {
             $exportItem = [
                 'level' => $item->level,
@@ -367,14 +430,14 @@ class BillOfMaterialController extends BaseSearchController
                 'bom_notes' => $item->bom_notes,
                 'sequence_number' => $item->sequence_number,
             ];
-            
+
             if ($item->children->isNotEmpty()) {
                 $exportItem['children'] = $this->buildExportHierarchy($item->children);
             }
-            
+
             $result[] = $exportItem;
         }
-        
+
         return $result;
     }
 
@@ -390,17 +453,17 @@ class BillOfMaterialController extends BaseSearchController
 
         try {
             DB::beginTransaction();
-            
+
             $file = $request->file('file');
             $extension = $file->getClientOriginalExtension();
-            
+
             // Get BOM info from request
             $bomInfo = $request->input('bom_info') ? json_decode($request->input('bom_info'), true) : [];
-            
+
             if ($extension === 'json') {
                 // Handle JSON import
                 $data = json_decode(file_get_contents($file->getRealPath()), true);
-                
+
                 // Check if this is a native export format
                 if (isset($data['bom_number']) && isset($data['items']) && is_array($data['items'])) {
                     // This is our own export format
@@ -414,20 +477,20 @@ class BillOfMaterialController extends BaseSearchController
                 $mapping = $request->input('mapping') ? json_decode($request->input('mapping'), true) : [];
                 $bom = $this->importService->importFromCsv($file, $mapping, $bomInfo);
             }
-            
+
             DB::commit();
-            
+
             return redirect()->route('production.bom.show', $bom)
                 ->with('success', 'BOM importada com sucesso.');
-                
         } catch (\Exception $e) {
             DB::rollback();
+
             return back()->withErrors(['file' => 'Falha na importação: ' . $e->getMessage()]);
         }
     }
 
     /**
-     * Import BOM from Autodesk Inventor
+     * Import BOM from Autodesk Inventor.
      */
     public function importInventor(Request $request)
     {
@@ -441,45 +504,34 @@ class BillOfMaterialController extends BaseSearchController
 
         try {
             $bom = $this->importService->importFromInventor($request->input('data'));
-            
+
             return response()->json([
                 'success' => true,
                 'bom' => $bom->load('currentVersion.items'),
-                'redirect' => route('production.bom.show', $bom)
+                'redirect' => route('production.bom.show', $bom),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 422);
         }
     }
 
     /**
-     * Show import wizard
+     * Show import wizard.
      */
     public function importWizard(): Response
     {
         $this->authorize('import', BillOfMaterial::class);
 
-        return Inertia::render('production/bom/import', [
+        return Inertia::render('production/bom/import/index', [
             'supportedFormats' => ['csv', 'txt', 'json'],
-            'csvHeaders' => [
-                'item_number' => 'Item Number',
-                'name' => 'Name',
-                'description' => 'Description',
-                'quantity' => 'Quantity',
-                'unit_of_measure' => 'Unit of Measure',
-                'level' => 'Level',
-                'parent' => 'Parent Item',
-            ],
         ]);
     }
 
-
-
     /**
-     * Add item to BOM
+     * Add item to BOM.
      */
     public function addItem(Request $request, BillOfMaterial $bom)
     {
@@ -497,15 +549,15 @@ class BillOfMaterialController extends BaseSearchController
         ]);
 
         $currentVersion = $bom->currentVersion;
-        if (!$currentVersion) {
+        if (! $currentVersion) {
             return back()->with('error', 'BOM has no current version.');
         }
 
         // Prevent adding items at root level
-        if (!$validated['parent_item_id']) {
+        if (! $validated['parent_item_id']) {
             return back()->withErrors(['parent_item_id' => 'Items must be added under the root product']);
         }
-        
+
         // Verify parent belongs to this BOM
         $parent = BomItem::findOrFail($validated['parent_item_id']);
         if ($parent->bomVersion->bill_of_material_id !== $bom->id) {
@@ -516,7 +568,7 @@ class BillOfMaterialController extends BaseSearchController
         $level = $parent->level + 1;
 
         // Get next sequence number if not provided
-        if (!isset($validated['sequence_number'])) {
+        if (! isset($validated['sequence_number'])) {
             $validated['sequence_number'] = $currentVersion->items()
                 ->where('parent_item_id', $validated['parent_item_id'])
                 ->max('sequence_number') + 10;
@@ -538,7 +590,7 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Update BOM item
+     * Update BOM item.
      */
     public function updateItem(Request $request, BillOfMaterial $bom, BomItem $item)
     {
@@ -562,7 +614,7 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Remove item from BOM
+     * Remove item from BOM.
      */
     public function removeItem(BillOfMaterial $bom, BomItem $item)
     {
@@ -583,7 +635,7 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Move item in BOM hierarchy
+     * Move item in BOM hierarchy.
      */
     public function moveItem(Request $request, BillOfMaterial $bom, BomItem $item)
     {
@@ -599,7 +651,7 @@ class BillOfMaterialController extends BaseSearchController
 
         // Update the parent item
         $item->parent_item_id = $validated['parent_item_id'];
-        
+
         // Update level based on new parent
         if ($validated['parent_item_id']) {
             $parent = BomItem::find($validated['parent_item_id']);
@@ -607,14 +659,14 @@ class BillOfMaterialController extends BaseSearchController
         } else {
             $item->level = 0;
         }
-        
+
         $item->save();
 
         return back()->with('success', 'Item moved successfully.');
     }
 
     /**
-     * Create new BOM version
+     * Create new BOM version.
      */
     public function createVersion(Request $request, BillOfMaterial $bom)
     {
@@ -631,7 +683,7 @@ class BillOfMaterialController extends BaseSearchController
             // Copy items from previous version if requested
             if ($validated['copy_from_version']) {
                 $sourceVersion = BomVersion::findOrFail($validated['copy_from_version']);
-                
+
                 if ($sourceVersion->bill_of_material_id !== $bom->id) {
                     throw new \Exception('Source version does not belong to this BOM.');
                 }
@@ -648,7 +700,7 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Set version as current
+     * Set version as current.
      */
     public function setCurrentVersion(BillOfMaterial $bom, BomVersion $version)
     {
@@ -664,7 +716,7 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Show BOM comparison
+     * Show BOM comparison.
      */
     public function compare(Request $request, BillOfMaterial $bom): Response
     {
@@ -686,31 +738,33 @@ class BillOfMaterialController extends BaseSearchController
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
-     * Get BOM cost rollup
+     * Get BOM cost rollup.
      */
     public function costRollup(BillOfMaterial $bom): JsonResponse
     {
         $this->authorize('view', $bom);
 
         $currentVersion = $bom->currentVersion;
-        if (!$currentVersion) {
+        if (! $currentVersion) {
             return response()->json(['error' => 'No current version found'], 404);
         }
 
         // Load all items with their relationships efficiently
-        $allItems = $currentVersion->items()->with('item')->get();
+        $allItems = BomItem::where('bom_version_id', $currentVersion->id)
+            ->with('item')
+            ->get();
         $itemsByParent = $allItems->groupBy('parent_item_id');
         $rootItems = $itemsByParent->get(null, collect());
         $this->attachChildren($rootItems, $itemsByParent);
-        
+
         // Temporarily set the relation for cost calculation
         $currentVersion->setRelation('rootItems', $rootItems);
-        
+
         $costData = $this->calculateCostRollup($currentVersion);
 
         return response()->json([
@@ -722,7 +776,7 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Export BOM to Excel
+     * Export BOM to Excel.
      */
     public function exportExcel(BillOfMaterial $bom)
     {
@@ -730,12 +784,14 @@ class BillOfMaterialController extends BaseSearchController
 
         // This would typically use a package like Laravel Excel
         // For now, we'll implement CSV export
-        // Load all items efficiently to avoid lazy loading issues
-        $allItems = $bom->currentVersion->items()->with('item')->get();
+        // Load all items efficiently to avoid N+1 queries
+        $allItems = BomItem::where('bom_version_id', $bom->currentVersion->id)
+            ->with('item')
+            ->get();
         $itemsByParent = $allItems->groupBy('parent_item_id');
         $rootItems = $itemsByParent->get(null, collect());
         $this->attachChildren($rootItems, $itemsByParent);
-        
+
         // Set the relation for the flattening process
         $bom->currentVersion->setRelation('rootItems', $rootItems);
 
@@ -755,11 +811,11 @@ class BillOfMaterialController extends BaseSearchController
 
         $csv = fopen('php://temp', 'r+');
         fputcsv($csv, $headers);
-        
+
         foreach ($data as $row) {
             fputcsv($csv, $row);
         }
-        
+
         rewind($csv);
         $output = stream_get_contents($csv);
         fclose($csv);
@@ -770,19 +826,19 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Generate QR codes for BOM items
+     * Generate QR codes for BOM items.
      */
     public function generateQrCodes(BillOfMaterial $bom)
     {
         $this->authorize('manageItems', $bom);
 
         $currentVersion = $bom->currentVersion;
-        if (!$currentVersion) {
+        if (! $currentVersion) {
             return back()->with('error', 'No current version found.');
         }
 
         $itemsWithoutQr = $currentVersion->items()->whereNull('qr_code')->get();
-        
+
         if ($itemsWithoutQr->isEmpty()) {
             return back()->with('info', 'All items already have QR codes.');
         }
@@ -794,7 +850,7 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Print QR code labels
+     * Print QR code labels.
      */
     public function printLabels(Request $request, BillOfMaterial $bom)
     {
@@ -816,12 +872,12 @@ class BillOfMaterialController extends BaseSearchController
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
-     * Compare two BOM versions
+     * Compare two BOM versions.
      */
     private function compareVersions(BomVersion $version1, BomVersion $version2): array
     {
@@ -836,7 +892,7 @@ class BillOfMaterialController extends BaseSearchController
 
         // Find added and modified items
         foreach ($items2 as $itemId => $item2) {
-            if (!$items1->has($itemId)) {
+            if (! $items1->has($itemId)) {
                 $differences['added'][] = $item2;
             } else {
                 $item1 = $items1->get($itemId);
@@ -851,7 +907,7 @@ class BillOfMaterialController extends BaseSearchController
 
         // Find removed items
         foreach ($items1 as $itemId => $item1) {
-            if (!$items2->has($itemId)) {
+            if (! $items2->has($itemId)) {
                 $differences['removed'][] = $item1;
             }
         }
@@ -860,23 +916,23 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Check if two BOM items are different
+     * Check if two BOM items are different.
      */
     private function itemsAreDifferent(BomItem $item1, BomItem $item2): bool
     {
         $compareFields = ['quantity', 'unit_of_measure', 'parent_item_id', 'level'];
-        
+
         foreach ($compareFields as $field) {
             if ($item1->$field != $item2->$field) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
     /**
-     * Calculate cost rollup for a BOM version
+     * Calculate cost rollup for a BOM version.
      */
     private function calculateCostRollup(BomVersion $version): array
     {
@@ -901,7 +957,7 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Calculate cost for a BOM item including children
+     * Calculate cost for a BOM item including children.
      */
     private function calculateItemCost(BomItem $item): float
     {
@@ -909,7 +965,7 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Flatten BOM items for export
+     * Flatten BOM items for export.
      */
     private function flattenBomItems($items, &$data, $indent = '', $parentItemNumber = '')
     {
@@ -931,4 +987,345 @@ class BillOfMaterialController extends BaseSearchController
         }
     }
 
+    /**
+     * Initialize a new BOM import session.
+     */
+    public function initImportSession(Request $request): JsonResponse
+    {
+        $this->authorize('import', BillOfMaterial::class);
+
+        $sessionId = Str::uuid()->toString();
+        $sessionData = [
+            'user_id' => auth()->id(),
+            'created_at' => now(),
+            'status' => 'initialized',
+            'file_info' => null,
+            'bom_info' => null,
+            'mapping' => null,
+            'data' => null,
+            'validation' => null,
+            'result' => null,
+        ];
+
+        Cache::put("bom_import_session_{$sessionId}", $sessionData, now()->addHours(24));
+
+        return response()->json([
+            'sessionId' => $sessionId,
+            'expiresAt' => now()->addHours(24)->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * Upload and parse import file.
+     */
+    public function uploadImportFile(Request $request): JsonResponse
+    {
+        $this->authorize('import', BillOfMaterial::class);
+
+        $request->validate([
+            'sessionId' => 'required|string|uuid',
+            'file' => 'required|file|mimes:csv,json,txt|max:10240', // 10MB max
+            'bom_info' => 'required|json',
+        ]);
+
+        $sessionId = $request->input('sessionId');
+        $sessionData = Cache::get("bom_import_session_{$sessionId}");
+
+        if (! $sessionData) {
+            return response()->json(['error' => 'Session not found'], 404);
+        }
+
+        $file = $request->file('file');
+        $bomInfo = json_decode($request->input('bom_info'), true);
+
+        // Store file temporarily
+        $tempPath = "temp/bom-imports/{$sessionId}/" . $file->getClientOriginalName();
+        $fullPath = Storage::disk('local')->putFileAs(
+            "temp/bom-imports/{$sessionId}",
+            $file,
+            $file->getClientOriginalName()
+        );
+
+        // Parse file based on type
+        $fileType = strtolower($file->getClientOriginalExtension());
+        $data = [];
+        $headers = [];
+
+        if (in_array($fileType, ['csv', 'txt'])) {
+            $data = $this->importService->parseCsvFile($file);
+            if (! empty($data)) {
+                $headers = array_keys($data[0]);
+            }
+        } elseif ($fileType === 'json') {
+            $content = file_get_contents($file->getRealPath());
+            $data = json_decode($content, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return response()->json(['error' => 'Invalid JSON file'], 422);
+            }
+        }
+
+        // Update session
+        $sessionData['status'] = 'file_uploaded';
+        $sessionData['file_info'] = [
+            'original_name' => $file->getClientOriginalName(),
+            'type' => $fileType,
+            'size' => $file->getSize(),
+            'path' => $tempPath,
+        ];
+        $sessionData['bom_info'] = $bomInfo;
+        $sessionData['data'] = $data;
+
+        if (! empty($headers)) {
+            $sessionData['csv_headers'] = $headers;
+        }
+
+        Cache::put("bom_import_session_{$sessionId}", $sessionData, now()->addHours(24));
+
+        return response()->json([
+            'status' => 'success',
+            'fileType' => $fileType,
+            'headers' => $headers,
+            'rowCount' => is_array($data) ? count($data) : 0,
+        ]);
+    }
+
+    /**
+     * Validate import data - check if all items exist.
+     */
+    public function validateImportData(Request $request): JsonResponse
+    {
+        $this->authorize('import', BillOfMaterial::class);
+
+        $request->validate([
+            'sessionId' => 'required|string|uuid',
+            'mapping' => 'nullable|array', // For CSV only
+        ]);
+
+        $sessionId = $request->input('sessionId');
+        $mapping = $request->input('mapping', []);
+
+        $sessionData = Cache::get("bom_import_session_{$sessionId}");
+        if (! $sessionData) {
+            return response()->json(['error' => 'Session not found'], 404);
+        }
+
+        // Store mapping if provided (CSV)
+        if (! empty($mapping)) {
+            $sessionData['mapping'] = $mapping;
+        }
+
+        $fileType = $sessionData['file_info']['type'] ?? '';
+        $data = $sessionData['data'] ?? [];
+
+        $validationResult = [
+            'total_items' => 0,
+            'valid_items' => 0,
+            'invalid_items' => 0,
+            'missing_items' => [],
+            'errors' => [],
+        ];
+
+        try {
+            if ($fileType === 'json') {
+                // Validate JSON structure
+                $items = $this->extractItemsFromJson($data);
+            } else {
+                // Validate CSV data
+                if (empty($mapping)) {
+                    $validationResult['errors'][] = 'Field mapping is required for CSV files';
+                    $sessionData['validation'] = $validationResult;
+                    Cache::put("bom_import_session_{$sessionId}", $sessionData, now()->addHours(24));
+
+                    return response()->json($validationResult);
+                }
+
+                $items = $this->extractItemsFromCsv($data, $mapping);
+            }
+
+            // Check each item exists in database
+            foreach ($items as $index => $itemData) {
+                $validationResult['total_items']++;
+
+                $itemNumber = $itemData['item_number'] ?? null;
+                if (! $itemNumber) {
+                    $validationResult['invalid_items']++;
+                    $validationResult['errors'][] = 'Row ' . ($index + 1) . ': Missing item number';
+                    continue;
+                }
+
+                $item = Item::where('item_number', $itemNumber)->first();
+                if (! $item) {
+                    $validationResult['invalid_items']++;
+                    $validationResult['missing_items'][] = [
+                        'item_number' => $itemNumber,
+                        'name' => $itemData['name'] ?? 'Unknown',
+                        'row_index' => $index + 1,
+                    ];
+                } else {
+                    $validationResult['valid_items']++;
+                }
+            }
+
+            // Additional validation
+            if ($validationResult['total_items'] === 0) {
+                $validationResult['errors'][] = 'No items found in the file';
+            }
+
+            // Check for required fields in CSV mapping
+            if ($fileType !== 'json' && ! empty($mapping)) {
+                $requiredFields = ['item_number', 'name', 'quantity', 'unit_of_measure'];
+                $mappedFields = array_values($mapping);
+                foreach ($requiredFields as $field) {
+                    if (! in_array($field, $mappedFields)) {
+                        $validationResult['errors'][] = "Required field '{$field}' is not mapped";
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            $validationResult['errors'][] = 'Validation error: ' . $e->getMessage();
+        }
+
+        // Update session with validation results
+        $sessionData['status'] = 'validated';
+        $sessionData['validation'] = $validationResult;
+        Cache::put("bom_import_session_{$sessionId}", $sessionData, now()->addHours(24));
+
+        return response()->json($validationResult);
+    }
+
+    /**
+     * Process the BOM import (queue background job).
+     */
+    public function processImport(Request $request): JsonResponse
+    {
+        $this->authorize('import', BillOfMaterial::class);
+
+        $request->validate([
+            'sessionId' => 'required|string|uuid',
+        ]);
+
+        $sessionId = $request->input('sessionId');
+        $sessionData = Cache::get("bom_import_session_{$sessionId}");
+
+        if (! $sessionData) {
+            return response()->json(['error' => 'Session not found'], 404);
+        }
+
+        // Check validation was successful
+        $validation = $sessionData['validation'] ?? null;
+        if (! $validation || $validation['invalid_items'] > 0 || ! empty($validation['errors'])) {
+            return response()->json(['error' => 'Cannot process import with validation errors'], 422);
+        }
+
+        // Update status to processing
+        $sessionData['status'] = 'processing';
+        Cache::put("bom_import_session_{$sessionId}", $sessionData, now()->addHours(24));
+
+        // Queue the import job
+        dispatch(new \App\Jobs\Production\ProcessBomImportSession($sessionId));
+
+        return response()->json([
+            'status' => 'processing',
+            'message' => 'BOM import processing started',
+        ]);
+    }
+
+    /**
+     * Get import session status.
+     */
+    public function getImportSessionStatus(string $sessionId): JsonResponse
+    {
+        $this->authorize('import', BillOfMaterial::class);
+
+        $sessionData = Cache::get("bom_import_session_{$sessionId}");
+        if (! $sessionData) {
+            return response()->json(['error' => 'Session not found'], 404);
+        }
+
+        return response()->json($sessionData);
+    }
+
+    /**
+     * Cancel import session.
+     */
+    public function cancelImportSession(string $sessionId): JsonResponse
+    {
+        $this->authorize('import', BillOfMaterial::class);
+
+        $sessionData = Cache::get("bom_import_session_{$sessionId}");
+        if (! $sessionData) {
+            return response()->json(['error' => 'Session not found'], 404);
+        }
+
+        // Clean up temporary files
+        Storage::disk('local')->deleteDirectory("temp/bom-imports/{$sessionId}");
+        Cache::forget("bom_import_session_{$sessionId}");
+
+        return response()->json(['message' => 'Import session cancelled']);
+    }
+
+    /**
+     * Extract items from JSON data.
+     */
+    private function extractItemsFromJson(array $data): array
+    {
+        $items = [];
+
+        // Handle native format
+        if (isset($data['items'])) {
+            $this->extractItemsRecursively($data['items'], $items);
+        }
+        // Handle array of items (Inventor format)
+        elseif (isset($data[0]) && is_array($data[0])) {
+            foreach ($data as $item) {
+                if (isset($item['item_number'])) {
+                    $items[] = $item;
+                }
+                if (isset($item['children'])) {
+                    $this->extractItemsRecursively($item['children'], $items);
+                }
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * Extract items recursively from nested structure.
+     */
+    private function extractItemsRecursively(array $nestedItems, array &$items): void
+    {
+        foreach ($nestedItems as $item) {
+            if (isset($item['item_number'])) {
+                $items[] = $item;
+            }
+            if (isset($item['children']) && is_array($item['children'])) {
+                $this->extractItemsRecursively($item['children'], $items);
+            }
+        }
+    }
+
+    /**
+     * Extract items from CSV data using mapping.
+     */
+    private function extractItemsFromCsv(array $data, array $mapping): array
+    {
+        $items = [];
+
+        foreach ($data as $row) {
+            $item = [];
+            foreach ($mapping as $csvHeader => $field) {
+                if (isset($row[$csvHeader])) {
+                    $item[$field] = $row[$csvHeader];
+                }
+            }
+
+            if (! empty($item['item_number'])) {
+                $items[] = $item;
+            }
+        }
+
+        return $items;
+    }
 }

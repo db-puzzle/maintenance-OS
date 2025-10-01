@@ -618,7 +618,7 @@ export default function BomHierarchicalView({
             {/* Header */}
             <div className="flex-shrink-0 px-6 lg:px-8 pt-6 lg:pt-8 pb-4">
                 <HierarchicalViewHeader
-                    title={bom?.name || 'BOM'}
+                    title=""
                     subtitle={`${bom?.current_version?.items?.length || 0} itens na versão`}
                     badge={
                         bom?.current_version && (

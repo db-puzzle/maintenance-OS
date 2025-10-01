@@ -81,7 +81,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/home',
     },
     {
-        title: 'Planejar',
+        title: 'Planejamento',
         href: '/production/planning',
     },
 ];

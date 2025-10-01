@@ -83,7 +83,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::prefix('items/images')->name('items.images.')->group(function () {
         Route::get('/import/wizard', [ItemImageImportController::class, 'wizard'])->name('import.wizard');
         Route::post('/import', [ItemImageImportController::class, 'import'])->name('import'); // Legacy single-batch import
-        
+
         // New bulk import endpoints
         Route::post('/import/init-session', [ItemImageImportController::class, 'initSession'])->name('import.init-session');
         Route::post('/import/validate-files', [ItemImageImportController::class, 'validateFiles'])->name('import.validate-files');
@@ -100,9 +100,26 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('bom/{bom}/duplicate', [BillOfMaterialController::class, 'duplicate'])->name('bom.duplicate');
     Route::get('bom/{bom}/export', [BillOfMaterialController::class, 'export'])->name('bom.export');
     Route::get('bom/{bom}/export-excel', [BillOfMaterialController::class, 'exportExcel'])->name('bom.export-excel');
-    Route::get('bom/import/wizard', [BillOfMaterialController::class, 'importWizard'])->name('bom.import.wizard');
-    Route::post('bom/import', [BillOfMaterialController::class, 'import'])->name('bom.import');
-    Route::post('bom/import/inventor', [BillOfMaterialController::class, 'importInventor'])->name('bom.import.inventor');
+
+    // BOM Import - Session-based wizard
+    Route::prefix('bom')->name('bom.')->group(function () {
+        // Wizard entry point
+        Route::get('/import/wizard', [BillOfMaterialController::class, 'importWizard'])->name('import.wizard');
+
+        // Session management
+        Route::post('/import/init-session', [BillOfMaterialController::class, 'initImportSession'])->name('import.init-session');
+        Route::get('/import/session/{sessionId}/status', [BillOfMaterialController::class, 'getImportSessionStatus'])->name('import.session-status');
+        Route::post('/import/session/{sessionId}/cancel', [BillOfMaterialController::class, 'cancelImportSession'])->name('import.cancel-session');
+
+        // File processing steps
+        Route::post('/import/upload-file', [BillOfMaterialController::class, 'uploadImportFile'])->name('import.upload-file');
+        Route::post('/import/validate-data', [BillOfMaterialController::class, 'validateImportData'])->name('import.validate-data');
+        Route::post('/import/process', [BillOfMaterialController::class, 'processImport'])->name('import.process');
+
+        // Legacy routes (keep for backward compatibility)
+        Route::post('/import', [BillOfMaterialController::class, 'import'])->name('import');
+        Route::post('/import/inventor', [BillOfMaterialController::class, 'importInventor'])->name('import.inventor');
+    });
 
     // BOM Items Management
     Route::post('bom/{bom}/items', [BillOfMaterialController::class, 'addItem'])->name('bom.items.add');

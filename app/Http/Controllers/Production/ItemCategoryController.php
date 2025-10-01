@@ -68,13 +68,12 @@ class ItemCategoryController extends BaseSearchController
         $itemsDirection = $request->input('items_direction', 'asc');
 
         // Get items with pagination
-        $itemsQuery = $category->items()
-            ->with(['category']);
+        $itemsQuery = $category->items();
 
         // Handle sorting for items
         switch ($itemsSort) {
             case 'code':
-                $itemsQuery->orderBy('code', $itemsDirection);
+                $itemsQuery->orderBy('item_number', $itemsDirection);
                 break;
             case 'is_active':
                 $itemsQuery->orderBy('is_active', $itemsDirection);
@@ -83,7 +82,26 @@ class ItemCategoryController extends BaseSearchController
                 $itemsQuery->orderBy($itemsSort, $itemsDirection);
         }
 
-        $items = $itemsQuery->paginate($itemsPerPage, ['*'], 'items_page')->withQueryString();
+        // Get items with specific columns for better performance
+        $items = $itemsQuery
+            ->select([
+                'id',
+                'item_number',
+                'name',
+                'description',
+                'is_active',
+                'unit_of_measure',
+                'item_category_id',
+            ])
+            ->paginate($itemsPerPage, ['*'], 'items_page')
+            ->withQueryString();
+
+        // Transform the items to include 'code' field for frontend compatibility
+        $items->getCollection()->transform(function ($item) {
+            $item->code = $item->item_number;
+
+            return $item;
+        });
 
         return Inertia::render('production/item-categories/show', [
             'category' => $category->load('createdBy'),

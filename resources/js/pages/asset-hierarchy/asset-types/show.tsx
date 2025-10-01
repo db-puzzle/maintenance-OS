@@ -31,10 +31,6 @@ export default function Show({ assetType, asset }: Props) {
             href: '/home',
         },
         {
-            title: 'Hierarquia de Ativos',
-            href: '/asset-hierarchy',
-        },
-        {
             title: 'Tipos de Ativo',
             href: '/asset-hierarchy/asset-types',
         },
@@ -83,7 +79,7 @@ export default function Show({ assetType, asset }: Props) {
                                 label: 'TAG',
                                 sortable: false,
                                 width: 'w-[25%]',
-                                 
+
                                 render: (value, row) => <div className="font-medium">{(row as unknown as Asset).tag}</div>,
                             },
                             {
@@ -91,7 +87,7 @@ export default function Show({ assetType, asset }: Props) {
                                 label: 'Área',
                                 sortable: false,
                                 width: 'w-[25%]',
-                                 
+
                                 render: (value, row) => <span className="text-muted-foreground text-sm">{(row as unknown as Asset).area?.name ?? '-'}</span>,
                             },
                             {
@@ -99,7 +95,7 @@ export default function Show({ assetType, asset }: Props) {
                                 label: 'Fabricante',
                                 sortable: false,
                                 width: 'w-[25%]',
-                                 
+
                                 render: (value, row) => <span className="text-muted-foreground text-sm">{(row as unknown as Asset).manufacturer?.name ?? '-'}</span>,
                             },
                             {
@@ -110,7 +106,7 @@ export default function Show({ assetType, asset }: Props) {
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
                             },
                         ]}
-                         
+
                         onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as unknown as Asset).id))}
                     />
                     <EntityPagination

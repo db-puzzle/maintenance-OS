@@ -396,14 +396,14 @@ export default function ManufacturingOrders({
         ];
     }, [statusCounts, summaryTotal]);
     const breadcrumbs = [
-        { title: 'Planjamento', href: '/planning' },
+        { title: 'Home', href: '/home' },
         { title: 'Ordens de Manufatura', href: '' }
     ];
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <ListLayout
-                title="Manufacturing Orders"
-                description="Manage production orders and track their progress"
+                title="Ordens de Manufatura"
+                description="Gerencie ordens de produção e acompanhe o progresso"
                 searchPlaceholder="Search by order number or item..."
                 searchValue={searchValue}
                 onSearchChange={handleSearchChange}
