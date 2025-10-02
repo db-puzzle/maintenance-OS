@@ -526,7 +526,7 @@ class BillOfMaterialController extends BaseSearchController
         $this->authorize('import', BillOfMaterial::class);
 
         return Inertia::render('production/bom/import/index', [
-            'supportedFormats' => ['csv', 'txt', 'json'],
+            'supportedFormats' => ['csv', 'json'],
         ]);
     }
 

@@ -6,8 +6,6 @@ use App\Models\Production\Item;
 use App\Models\Production\ItemCategory;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class ItemImportService
 {
@@ -18,15 +16,21 @@ class ItemImportService
     {
         return DB::transaction(function () use ($data, $updateExisting) {
             $imported = [];
+            $updated = [];
+            $skipped = 0;
             $errors = [];
 
             // Process items
             $items = isset($data['items']) ? $data['items'] : [];
             foreach ($items as $itemData) {
                 try {
-                    $item = $this->processItem($itemData, $updateExisting);
-                    if ($item) {
-                        $imported[] = $item;
+                    $result = $this->processItem($itemData, $updateExisting);
+                    if ($result === null) {
+                        $skipped++;
+                    } elseif ($result['was_updated']) {
+                        $updated[] = $result['item'];
+                    } else {
+                        $imported[] = $result['item'];
                     }
                 } catch (\Exception $e) {
                     $itemNumber = isset($itemData['item_number']) ? $itemData['item_number'] : 'unknown';
@@ -36,9 +40,11 @@ class ItemImportService
 
             return [
                 'imported' => $imported,
+                'updated' => $updated,
                 'errors' => $errors,
                 'count' => count($imported),
-                'skipped' => 0 // Will be tracked in processItem
+                'updated_count' => count($updated),
+                'skipped' => $skipped,
             ];
         });
     }
@@ -50,32 +56,37 @@ class ItemImportService
     {
         $rows = $this->parseCsvFile($file);
         $imported = [];
+        $updated = [];
         $errors = [];
         $skipped = 0;
 
-        DB::transaction(function () use ($rows, $mapping, $updateExisting, &$imported, &$errors, &$skipped) {
+        DB::transaction(function () use ($rows, $mapping, $updateExisting, &$imported, &$updated, &$errors, &$skipped) {
             foreach ($rows as $index => $row) {
                 try {
                     $mappedData = $this->mapCsvRow($row, $mapping);
                     if ($mappedData) {
-                        $item = $this->processItem($mappedData, $updateExisting);
-                        if ($item === null) {
+                        $result = $this->processItem($mappedData, $updateExisting);
+                        if ($result === null) {
                             $skipped++;
+                        } elseif ($result['was_updated']) {
+                            $updated[] = $result['item'];
                         } else {
-                            $imported[] = $item;
+                            $imported[] = $result['item'];
                         }
                     }
                 } catch (\Exception $e) {
-                    $errors[] = "Row " . ($index + 2) . ": " . $e->getMessage();
+                    $errors[] = 'Row ' . ($index + 2) . ': ' . $e->getMessage();
                 }
             }
         });
 
         return [
             'imported' => $imported,
+            'updated' => $updated,
             'errors' => $errors,
             'count' => count($imported),
-            'skipped' => $skipped
+            'updated_count' => count($updated),
+            'skipped' => $skipped,
         ];
     }
 
@@ -94,7 +105,7 @@ class ItemImportService
     /**
      * Process and create/update a single item.
      */
-    protected function processItem(array $data, bool $updateExisting = true): ?Item
+    protected function processItem(array $data, bool $updateExisting = true): ?array
     {
         // Find or create category if provided
         $categoryId = null;
@@ -140,19 +151,24 @@ class ItemImportService
 
         // Check if item exists
         $existingItem = Item::where('item_number', $data['item_number'])->first();
-        
-        if ($existingItem && !$updateExisting) {
+
+        if ($existingItem && ! $updateExisting) {
             // Skip existing items when update_existing is false
             return null;
         }
-        
+
+        $wasUpdated = $existingItem !== null;
+
         // Create or update item
         $item = Item::updateOrCreate(
             ['item_number' => $data['item_number']],
             $itemData
         );
 
-        return $item;
+        return [
+            'item' => $item,
+            'was_updated' => $wasUpdated,
+        ];
     }
 
     /**
@@ -163,18 +179,20 @@ class ItemImportService
         $content = file_get_contents($file->getRealPath());
         $lines = explode("\n", $content);
         $headers = str_getcsv(array_shift($lines));
-        
+
         $rows = [];
         foreach ($lines as $line) {
-            if (trim($line) === '') continue;
-            
+            if (trim($line) === '') {
+                continue;
+            }
+
             $values = str_getcsv($line);
             $row = [];
-            
+
             foreach ($headers as $index => $header) {
                 $row[$header] = isset($values[$index]) ? $values[$index] : '';
             }
-            
+
             $rows[] = $row;
         }
 
@@ -189,7 +207,9 @@ class ItemImportService
         $data = [];
 
         foreach ($mapping as $csvField => $itemField) {
-            if (empty($itemField) || $itemField === '_ignore') continue;
+            if (empty($itemField) || $itemField === '_ignore') {
+                continue;
+            }
 
             $value = isset($row[$csvField]) ? $row[$csvField] : '';
 
@@ -200,12 +220,12 @@ class ItemImportService
 
             // Handle numeric fields
             if (in_array($itemField, ['weight', 'list_price', 'manufacturing_cost', 'purchase_price', 'min_stock_level', 'max_stock_level', 'reorder_point'])) {
-                $value = is_numeric($value) ? (float)$value : null;
+                $value = is_numeric($value) ? (float) $value : null;
             }
 
             // Handle integer fields
             if (in_array($itemField, ['manufacturing_lead_time_days', 'purchase_lead_time_days'])) {
-                $value = is_numeric($value) ? (int)$value : null;
+                $value = is_numeric($value) ? (int) $value : null;
             }
 
             // Handle array fields

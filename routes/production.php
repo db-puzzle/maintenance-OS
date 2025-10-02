@@ -56,6 +56,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::get('items/export', [ItemController::class, 'export'])->name('items.export');
     Route::get('items/import/wizard', [ItemController::class, 'importWizard'])->name('items.import.wizard');
     Route::post('items/import', [ItemController::class, 'import'])->name('items.import');
+    Route::post('items/import/check-existing', [ItemController::class, 'checkExistingItems'])->name('items.import.check-existing');
 
     // Resource routes come after specific routes
     Route::resource('items', ItemController::class)->except(['edit']);

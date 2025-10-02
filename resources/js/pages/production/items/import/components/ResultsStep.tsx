@@ -29,19 +29,19 @@ export function ResultsStep({ session, onNewImport }: Props) {
                         {isSuccess ? (
                             <>
                                 <CheckCircle className="h-6 w-6 text-green-600" />
-                                Import Completed Successfully
+                                Importação Concluída com Sucesso
                             </>
                         ) : (
                             <>
                                 <XCircle className="h-6 w-6 text-destructive" />
-                                Import Failed
+                                Importação Falhou
                             </>
                         )}
                     </CardTitle>
                     <CardDescription>
                         {isSuccess
-                            ? 'Your items have been imported successfully.'
-                            : 'The import process encountered errors.'}
+                            ? 'Seus itens foram importados com sucesso.'
+                            : 'O processo de importação encontrou erros.'}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -49,26 +49,36 @@ export function ResultsStep({ session, onNewImport }: Props) {
                         {/* Summary Statistics */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="space-y-1">
-                                <p className="text-sm text-muted-foreground">Total Items</p>
+                                <p className="text-sm text-muted-foreground">Total de Itens</p>
                                 <p className="text-2xl font-bold">{session.totalItems.toLocaleString()}</p>
                             </div>
-                            <div className="space-y-1">
-                                <p className="text-sm text-muted-foreground">Successful</p>
-                                <p className="text-2xl font-bold text-green-600">
-                                    {session.successfulItems.toLocaleString()}
-                                </p>
-                            </div>
-                            {skippedItems > 0 && (
+                            {session.importedCount !== undefined && session.importedCount > 0 && (
                                 <div className="space-y-1">
-                                    <p className="text-sm text-muted-foreground">Skipped</p>
+                                    <p className="text-sm text-muted-foreground">Novos</p>
+                                    <p className="text-2xl font-bold text-green-600">
+                                        {session.importedCount.toLocaleString()}
+                                    </p>
+                                </div>
+                            )}
+                            {session.updatedCount !== undefined && session.updatedCount > 0 && (
+                                <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">Atualizados</p>
+                                    <p className="text-2xl font-bold text-blue-600">
+                                        {session.updatedCount.toLocaleString()}
+                                    </p>
+                                </div>
+                            )}
+                            {(session.skippedCount !== undefined ? session.skippedCount : skippedItems) > 0 && (
+                                <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">Pulados</p>
                                     <p className="text-2xl font-bold text-orange-600">
-                                        {skippedItems.toLocaleString()}
+                                        {(session.skippedCount ?? skippedItems).toLocaleString()}
                                     </p>
                                 </div>
                             )}
                             {session.failedItems > 0 && (
                                 <div className="space-y-1">
-                                    <p className="text-sm text-muted-foreground">Failed</p>
+                                    <p className="text-sm text-muted-foreground">Falhou</p>
                                     <p className="text-2xl font-bold text-destructive">
                                         {session.failedItems.toLocaleString()}
                                     </p>
@@ -80,7 +90,7 @@ export function ResultsStep({ session, onNewImport }: Props) {
                         {session.processedItems > 0 && (
                             <div className="pt-4 border-t">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Success Rate</span>
+                                    <span className="text-sm text-muted-foreground">Taxa de Sucesso</span>
                                     <span className="text-sm font-medium">
                                         {Math.round((session.successfulItems / session.processedItems) * 100)}%
                                     </span>
@@ -104,8 +114,18 @@ export function ResultsStep({ session, onNewImport }: Props) {
                 <Alert className="border-green-200 bg-green-50">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     <AlertDescription className="text-green-800">
-                        <strong>Success!</strong> {session.successfulItems} items were imported successfully.
-                        {skippedItems > 0 && ` ${skippedItems} items were skipped because they already exist.`}
+                        <strong>Sucesso!</strong>
+                        {session.importedCount !== undefined && session.updatedCount !== undefined ? (
+                            <>
+                                {session.importedCount > 0 && `${session.importedCount} novos itens foram importados`}
+                                {session.importedCount > 0 && session.updatedCount > 0 && ' e '}
+                                {session.updatedCount > 0 && `${session.updatedCount} itens foram atualizados`}
+                                {' com sucesso.'}
+                            </>
+                        ) : (
+                            ` ${session.successfulItems} itens foram processados com sucesso.`
+                        )}
+                        {(session.skippedCount ?? skippedItems) > 0 && ` ${session.skippedCount ?? skippedItems} itens foram pulados porque já existem.`}
                     </AlertDescription>
                 </Alert>
             )}
@@ -116,23 +136,23 @@ export function ResultsStep({ session, onNewImport }: Props) {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <AlertCircle className="h-5 w-5 text-destructive" />
-                            Import Errors
+                            Erros de Importação
                         </CardTitle>
                         <CardDescription>
-                            The following errors occurred during import
+                            Os seguintes erros ocorreram durante a importação
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-2">
                             {session.errors.slice(0, 10).map((error, index) => (
                                 <div key={index} className="text-sm p-2 bg-destructive/10 rounded">
-                                    {error.row && <span className="font-medium">Row {error.row}: </span>}
+                                    {error.row && <span className="font-medium">Linha {error.row}: </span>}
                                     {error.message}
                                 </div>
                             ))}
                             {session.errors.length > 10 && (
                                 <p className="text-sm text-muted-foreground pt-2">
-                                    ...and {session.errors.length - 10} more errors
+                                    ...e mais {session.errors.length - 10} erros
                                 </p>
                             )}
                         </div>
@@ -143,28 +163,28 @@ export function ResultsStep({ session, onNewImport }: Props) {
             {/* Next Steps */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Next Steps</CardTitle>
+                    <CardTitle>Próximos Passos</CardTitle>
                     <CardDescription>
-                        What would you like to do next?
+                        O que você gostaria de fazer agora?
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-3">
+                    <div className="flex gap-3">
                         <Button
                             onClick={handleViewItems}
-                            className="w-full"
+                            size="sm"
                             variant={isSuccess ? "default" : "outline"}
                         >
                             <FileText className="mr-2 h-4 w-4" />
-                            View All Items
+                            Ver Todos os Itens
                         </Button>
                         <Button
                             onClick={onNewImport}
                             variant="outline"
-                            className="w-full"
+                            size="sm"
                         >
                             <RefreshCw className="mr-2 h-4 w-4" />
-                            Start New Import
+                            Nova Importação
                         </Button>
                     </div>
                 </CardContent>
@@ -175,12 +195,12 @@ export function ResultsStep({ session, onNewImport }: Props) {
                 <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                        <strong>Tips for resolving import errors:</strong>
+                        <strong>Dicas para resolver erros de importação:</strong>
                         <ul className="list-disc pl-5 mt-2 space-y-1">
-                            <li>Check that all required fields are filled</li>
-                            <li>Ensure item numbers are unique</li>
-                            <li>Verify that numeric fields contain valid numbers</li>
-                            <li>Make sure date fields are properly formatted</li>
+                            <li>Verifique se todos os campos obrigatórios estão preenchidos</li>
+                            <li>Certifique-se de que os números dos itens são únicos</li>
+                            <li>Verifique se os campos numéricos contêm números válidos</li>
+                            <li>Certifique-se de que os campos de data estão formatados corretamente</li>
                         </ul>
                     </AlertDescription>
                 </Alert>

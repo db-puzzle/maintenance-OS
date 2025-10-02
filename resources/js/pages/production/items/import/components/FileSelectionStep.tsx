@@ -1,11 +1,11 @@
-import React, { useState, useCallback } from 'react';
-import { Upload, FileText, AlertCircle, Download } from 'lucide-react';
+import React, { useState, useCallback, useRef } from 'react';
+import { Upload, FileText, Download, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ImportFile } from '../types';
+import { formatBytes } from '@/utils/format';
 
 interface Props {
     supportedFormats: string[];
@@ -17,12 +17,22 @@ export function FileSelectionStep({ supportedFormats, onNext }: Props) {
     const [dragActive, setDragActive] = useState(false);
     const [fileType, setFileType] = useState<string>('');
     const [isProcessing, setIsProcessing] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileSelect = useCallback(async (file: File) => {
         const extension = file.name.split('.').pop()?.toLowerCase();
 
-        if (!extension || !supportedFormats.includes(extension)) {
-            toast.error(`Unsupported format. Please use: ${supportedFormats.join(', ')}`);
+        // Accept .txt files as CSV
+        const normalizedExtension = extension === 'txt' ? 'csv' : extension;
+
+        if (!normalizedExtension || !supportedFormats.includes(normalizedExtension)) {
+            toast.error(`Formato não suportado. Use: ${supportedFormats.join(', ')}`);
+            return;
+        }
+
+        // Max 10MB
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error('Arquivo muito grande (máximo 10MB)');
             return;
         }
 
@@ -69,7 +79,7 @@ export function FileSelectionStep({ supportedFormats, onNext }: Props) {
                 const lines = text.split('\n').filter(line => line.trim());
 
                 if (lines.length < 2) {
-                    toast.error('Empty or invalid CSV file');
+                    toast.error('Arquivo CSV vazio ou inválido');
                     setIsProcessing(false);
                     return;
                 }
@@ -89,12 +99,28 @@ export function FileSelectionStep({ supportedFormats, onNext }: Props) {
                 importFile.headers = headers;
                 importFile.data = data;
                 importFile.totalRows = lines.length - 1; // Exclude header row
+            } else if (fileType === 'json') {
+                // For JSON files, parse the data
+                const text = await selectedFile.text();
+                const jsonData = JSON.parse(text);
+
+                if (jsonData.items && Array.isArray(jsonData.items)) {
+                    importFile.data = jsonData.items;
+                    importFile.totalRows = jsonData.items.length;
+                } else if (Array.isArray(jsonData)) {
+                    importFile.data = jsonData;
+                    importFile.totalRows = jsonData.length;
+                } else {
+                    toast.error('Formato JSON inválido. Esperado um array de itens ou objeto com propriedade "items".');
+                    setIsProcessing(false);
+                    return;
+                }
             }
 
             onNext([importFile]);
         } catch (error) {
             console.error('Error processing file:', error);
-            toast.error('Error processing file. Please try again.');
+            toast.error('Erro ao processar arquivo. Tente novamente.');
         } finally {
             setIsProcessing(false);
         }
@@ -104,94 +130,101 @@ export function FileSelectionStep({ supportedFormats, onNext }: Props) {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Select Import File</CardTitle>
+                    <CardTitle>Selecionar Arquivo de Importação</CardTitle>
                     <CardDescription>
-                        Upload a CSV or JSON file containing your item data
+                        Faça upload de um arquivo CSV ou JSON contendo seus dados de itens
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    {/* Drop Zone */}
-                    <div
-                        className={cn(
-                            'relative rounded-lg border-2 border-dashed p-12 text-center transition-colors',
-                            dragActive
-                                ? 'border-primary bg-primary/5'
-                                : 'border-gray-300 hover:border-gray-400',
-                            selectedFile && 'bg-gray-50'
-                        )}
-                        onDragEnter={handleDrag}
-                        onDragLeave={handleDrag}
-                        onDragOver={handleDrag}
-                        onDrop={handleDrop}
-                    >
-                        <input
-                            type="file"
-                            accept={supportedFormats.map(f => `.${f}`).join(',')}
-                            onChange={handleInputChange}
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                            disabled={isProcessing}
-                        />
+                <CardContent className="space-y-4">
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept={supportedFormats.map(f => `.${f}`).join(',') + ',.txt'}
+                        onChange={handleInputChange}
+                        className="hidden"
+                        disabled={isProcessing}
+                    />
 
-                        {!selectedFile ? (
-                            <>
-                                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                <p className="mt-2 text-sm font-medium text-gray-900">
-                                    Drop your file here, or click to browse
-                                </p>
-                                <p className="mt-1 text-xs text-gray-600">
-                                    Supported formats: {supportedFormats.join(', ').toUpperCase()}
-                                </p>
-                            </>
-                        ) : (
-                            <>
-                                <FileText className="mx-auto h-12 w-12 text-primary" />
-                                <p className="mt-2 text-sm font-medium text-gray-900">
-                                    {selectedFile.name}
-                                </p>
-                                <p className="mt-1 text-xs text-gray-600">
-                                    {(selectedFile.size / 1024).toFixed(2)} KB
-                                </p>
+                    {/* Drop Zone */}
+                    {!selectedFile ? (
+                        <div
+                            className={cn(
+                                'border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer',
+                                {
+                                    'border-gray-300 bg-gray-50 hover:bg-gray-100': !dragActive,
+                                    'border-primary bg-primary/10': dragActive,
+                                }
+                            )}
+                            onDragEnter={handleDrag}
+                            onDragLeave={handleDrag}
+                            onDragOver={handleDrag}
+                            onDrop={handleDrop}
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+
+                            <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                            <p className="text-lg font-medium text-gray-900">
+                                Arraste o arquivo aqui
+                            </p>
+                            <p className="text-sm text-gray-600 mt-1">
+                                ou clique para selecionar
+                            </p>
+                            <Button variant="outline" className="mt-4">
+                                <FolderOpen className="h-4 w-4 mr-2" />
+                                Escolher Arquivo
+                            </Button>
+                            <p className="text-xs text-gray-500 mt-4">
+                                Formatos aceitos: {supportedFormats.map(f => f.toUpperCase()).join(', ')} • Máximo 10MB
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <FileText className="h-8 w-8 text-gray-400" />
+                                    <div>
+                                        <p className="font-medium">{selectedFile.name}</p>
+                                        <p className="text-sm text-gray-600">
+                                            {formatBytes(selectedFile.size)} • {fileType.toUpperCase()}
+                                        </p>
+                                    </div>
+                                </div>
                                 <Button
-                                    variant="link"
+                                    variant="outline"
                                     size="sm"
-                                    className="mt-2"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
+                                    onClick={() => {
                                         setSelectedFile(null);
                                         setFileType('');
+                                        if (fileInputRef.current) {
+                                            fileInputRef.current.value = '';
+                                        }
                                     }}
                                     disabled={isProcessing}
                                 >
-                                    Choose different file
+                                    Remover
                                 </Button>
-                            </>
-                        )}
-                    </div>
-
-                    {/* Format Information */}
-                    <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                            <strong>CSV Format:</strong> First row should contain column headers. Required fields: Item Number, Name, Unit of Measure.
-                            <br />
-                            <strong>JSON Format:</strong> Use the system export format for best compatibility.
-                        </AlertDescription>
-                    </Alert>
-
-                    {/* Template Download */}
-                    <div className="flex items-center justify-between rounded-lg border p-4">
-                        <div>
-                            <p className="text-sm font-medium">Need a template?</p>
-                            <p className="text-xs text-muted-foreground">
-                                Download a sample CSV file to get started
-                            </p>
+                            </div>
                         </div>
-                        <Button variant="outline" size="sm" asChild>
-                            <a href="/templates/item-import-template.csv" download>
-                                <Download className="mr-2 h-4 w-4" />
-                                Download Template
-                            </a>
-                        </Button>
+                    )}
+
+                    {/* Template Downloads */}
+                    <div className="border-t pt-4">
+                        <p className="text-sm font-medium mb-2">Modelos de Arquivo</p>
+
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" asChild>
+                                <a href="/templates/item-import-template.csv" download>
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Baixar Modelo CSV
+                                </a>
+                            </Button>
+                            <Button variant="outline" size="sm" asChild>
+                                <a href="/templates/item-import-template.json" download>
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Baixar Modelo JSON
+                                </a>
+                            </Button>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -203,7 +236,7 @@ export function FileSelectionStep({ supportedFormats, onNext }: Props) {
                     disabled={!selectedFile || isProcessing}
                     className="min-w-[120px]"
                 >
-                    {isProcessing ? 'Processing...' : 'Next'}
+                    {isProcessing ? 'Processando...' : 'Próximo'}
                 </Button>
             </div>
         </div>

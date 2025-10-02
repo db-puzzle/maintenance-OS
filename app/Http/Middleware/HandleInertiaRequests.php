@@ -62,6 +62,7 @@ class HandleInertiaRequests extends Middleware
                 'info' => fn () => $request->session()->get('info'),
                 'newWorkCellId' => fn () => $request->session()->get('newWorkCellId'),
                 'workCell' => fn () => $request->session()->get('workCell'),
+                'result' => fn () => $request->session()->get('flash.result'),
             ],
             'ziggy' => fn (): array => [
                 ...(new Ziggy)->toArray(),

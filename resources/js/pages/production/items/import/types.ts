@@ -22,6 +22,10 @@ export interface ImportSession {
     successfulItems: number;
     failedItems: number;
     errors?: ImportError[];
+    // Additional detailed counts
+    importedCount?: number;
+    updatedCount?: number;
+    skippedCount?: number;
 }
 
 export interface ImportError {
@@ -43,28 +47,28 @@ export interface ImportResult {
 
 // CSV field definitions
 export const csvFields = [
-    { value: 'item_number', label: 'Item Number', required: true },
-    { value: 'name', label: 'Name', required: true },
-    { value: 'description', label: 'Description', required: false },
-    { value: 'category_name', label: 'Category', required: false },
-    { value: 'unit_of_measure', label: 'Unit of Measure', required: true },
-    { value: 'can_be_sold', label: 'Can Be Sold', required: false },
-    { value: 'can_be_purchased', label: 'Can Be Purchased', required: false },
-    { value: 'can_be_manufactured', label: 'Can Be Manufactured', required: false },
-    { value: 'is_phantom', label: 'Is Phantom', required: false },
-    { value: 'is_active', label: 'Is Active', required: false },
-    { value: 'weight', label: 'Weight', required: false },
-    { value: 'list_price', label: 'List Price', required: false },
-    { value: 'manufacturing_cost', label: 'Manufacturing Cost', required: false },
-    { value: 'manufacturing_lead_time_days', label: 'Manufacturing Lead Time (Days)', required: false },
-    { value: 'purchase_price', label: 'Purchase Price', required: false },
-    { value: 'purchase_lead_time_days', label: 'Purchase Lead Time (Days)', required: false },
-    { value: 'track_inventory', label: 'Track Inventory', required: false },
-    { value: 'min_stock_level', label: 'Min Stock Level', required: false },
-    { value: 'max_stock_level', label: 'Max Stock Level', required: false },
-    { value: 'reorder_point', label: 'Reorder Point', required: false },
-    { value: 'preferred_vendor', label: 'Preferred Vendor', required: false },
-    { value: 'vendor_item_number', label: 'Vendor Item Number', required: false },
+    { value: 'item_number', label: 'Número do Item', required: true },
+    { value: 'name', label: 'Nome', required: true },
+    { value: 'description', label: 'Descrição', required: false },
+    { value: 'category_name', label: 'Categoria', required: false },
+    { value: 'unit_of_measure', label: 'Unidade de Medida', required: true },
+    { value: 'can_be_sold', label: 'Pode Ser Vendido', required: false },
+    { value: 'can_be_purchased', label: 'Pode Ser Comprado', required: false },
+    { value: 'can_be_manufactured', label: 'Pode Ser Fabricado', required: false },
+    { value: 'is_phantom', label: 'É Fantasma', required: false },
+    { value: 'is_active', label: 'Está Ativo', required: false },
+    { value: 'weight', label: 'Peso', required: false },
+    { value: 'list_price', label: 'Preço de Lista', required: false },
+    { value: 'manufacturing_cost', label: 'Custo de Fabricação', required: false },
+    { value: 'manufacturing_lead_time_days', label: 'Lead Time de Fabricação (Dias)', required: false },
+    { value: 'purchase_price', label: 'Preço de Compra', required: false },
+    { value: 'purchase_lead_time_days', label: 'Lead Time de Compra (Dias)', required: false },
+    { value: 'track_inventory', label: 'Rastrear Estoque', required: false },
+    { value: 'min_stock_level', label: 'Nível Mín. de Estoque', required: false },
+    { value: 'max_stock_level', label: 'Nível Máx. de Estoque', required: false },
+    { value: 'reorder_point', label: 'Ponto de Reposição', required: false },
+    { value: 'preferred_vendor', label: 'Fornecedor Preferido', required: false },
+    { value: 'vendor_item_number', label: 'Número do Item do Fornecedor', required: false },
     { value: 'tags', label: 'Tags', required: false },
 ];
 

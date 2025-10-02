@@ -29,7 +29,10 @@ export function FileSelectionStep({ supportedFormats, onNext, initialBomInfo }: 
     const handleFileSelect = useCallback((file: File) => {
         const extension = file.name.split('.').pop()?.toLowerCase();
 
-        if (!extension || !supportedFormats.includes(extension)) {
+        // Accept .txt files as CSV
+        const normalizedExtension = extension === 'txt' ? 'csv' : extension;
+
+        if (!normalizedExtension || !supportedFormats.includes(normalizedExtension)) {
             setErrors([`Formato não suportado. Use: ${supportedFormats.join(', ')}`]);
             return;
         }
@@ -99,7 +102,7 @@ export function FileSelectionStep({ supportedFormats, onNext, initialBomInfo }: 
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept={supportedFormats.map(f => `.${f}`).join(',')}
+                        accept={supportedFormats.map(f => `.${f}`).join(',') + ',.txt'}
                         onChange={handleFileInput}
                         className="hidden"
                     />

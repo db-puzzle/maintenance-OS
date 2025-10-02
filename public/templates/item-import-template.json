@@ -1,0 +1,38 @@
+{
+    "items": [
+        {
+            "item_number": "ITEM-001",
+            "name": "Item Name 1",
+            "description": "Description of the item",
+            "unit_of_measure": "UN",
+            "category": "General",
+            "manufacturer": "Manufacturer Name",
+            "manufacturer_part_number": "MPN-001",
+            "supplier": "Supplier Name",
+            "supplier_part_number": "SPN-001",
+            "cost": 99.99,
+            "lead_time": 7,
+            "minimum_stock": 10,
+            "maximum_stock": 100,
+            "reorder_point": 20,
+            "location": "A1-B2-C3"
+        },
+        {
+            "item_number": "ITEM-002",
+            "name": "Item Name 2",
+            "description": "Another item description",
+            "unit_of_measure": "PC",
+            "category": "Electronics",
+            "manufacturer": "Another Manufacturer",
+            "manufacturer_part_number": "MPN-002",
+            "supplier": "Another Supplier",
+            "supplier_part_number": "SPN-002",
+            "cost": 49.99,
+            "lead_time": 14,
+            "minimum_stock": 5,
+            "maximum_stock": 50,
+            "reorder_point": 10,
+            "location": "D4-E5-F6"
+        }
+    ]
+}

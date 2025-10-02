@@ -89,7 +89,7 @@ export default function ItemImport({ supportedFormats }: Props) {
     });
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Home', href: '/home' },
-        { title: 'Items', href: route('production.items.index') },
+        { title: 'Itemssss', href: route('production.items.index') },
         { title: 'Import Items', href: route('production.items.import.wizard') },
     ];
     const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {

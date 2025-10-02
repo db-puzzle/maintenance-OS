@@ -94,36 +94,38 @@ export function ResultsStep({ session, onNewImport }: Props) {
                         O que você gostaria de fazer agora?
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                    {isSuccess && (
+                <CardContent>
+                    <div className="flex gap-3 flex-wrap">
+                        {isSuccess && (
+                            <Button
+                                onClick={handleViewBom}
+                                size="sm"
+                                variant="default"
+                            >
+                                <FileText className="h-4 w-4 mr-2" />
+                                Visualizar BOM Importada
+                                <ExternalLink className="h-4 w-4 ml-2" />
+                            </Button>
+                        )}
+
                         <Button
-                            onClick={handleViewBom}
-                            className="w-full justify-start"
-                            variant="default"
+                            onClick={onNewImport}
+                            variant="outline"
+                            size="sm"
                         >
-                            <FileText className="h-4 w-4 mr-2" />
-                            Visualizar BOM Importada
-                            <ExternalLink className="h-4 w-4 ml-auto" />
+                            <Plus className="h-4 w-4 mr-2" />
+                            Importar Outra BOM
                         </Button>
-                    )}
 
-                    <Button
-                        onClick={onNewImport}
-                        variant="outline"
-                        className="w-full justify-start"
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Importar Outra BOM
-                    </Button>
-
-                    <Button
-                        onClick={handleBackToList}
-                        variant="outline"
-                        className="w-full justify-start"
-                    >
-                        <List className="h-4 w-4 mr-2" />
-                        Voltar para Lista de BOMs
-                    </Button>
+                        <Button
+                            onClick={handleBackToList}
+                            variant="outline"
+                            size="sm"
+                        >
+                            <List className="h-4 w-4 mr-2" />
+                            Voltar para Lista de BOMs
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 

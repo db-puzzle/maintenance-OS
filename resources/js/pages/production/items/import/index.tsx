@@ -19,23 +19,23 @@ type Step = 'selection' | 'configuration' | 'validation' | 'processing' | 'resul
 const steps: { id: Step; title: string }[] = [
     {
         id: 'selection',
-        title: 'File Selection',
+        title: 'Seleção de Arquivo',
     },
     {
         id: 'configuration',
-        title: 'Configuration',
+        title: 'Configuração',
     },
     {
         id: 'validation',
-        title: 'Validation',
+        title: 'Validação',
     },
     {
         id: 'processing',
-        title: 'Processing',
+        title: 'Processamento',
     },
     {
         id: 'results',
-        title: 'Results',
+        title: 'Resultados',
     },
 ];
 
@@ -53,13 +53,25 @@ export default function ItemImport({ supportedFormats }: Props) {
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Home', href: '/home' },
-        { title: 'Items', href: route('production.items.index') },
-        { title: 'Import Items', href: '#' },
+        { title: 'Itens', href: route('production.items.index') },
+        { title: 'Importar Itens', href: '#' },
     ];
 
     const handleFilesSelected = (files: ImportFile[]) => {
         setSelectedFiles(files);
-        setCurrentStep('configuration');
+        // Skip configuration for JSON files as they don't need field mapping
+        const fileType = files[0]?.file.name.split('.').pop()?.toLowerCase();
+        if (fileType === 'json') {
+            // For JSON, go directly to validation with default options
+            setFieldMapping({});
+            setImportOptions({
+                updateExisting: true,
+                skipDuplicates: false,
+            });
+            setCurrentStep('validation');
+        } else {
+            setCurrentStep('configuration');
+        }
     };
 
     const handleConfigurationComplete = (mapping: FieldMapping, options: ImportOptions) => {
@@ -91,13 +103,13 @@ export default function ItemImport({ supportedFormats }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Import Items" />
+            <Head title="Importar Itens" />
 
             <div className="relative flex h-[calc(100vh-3rem)] flex-col">
                 <div className="bg-white border-b px-6 py-4 flex-shrink-0">
-                    <h1 className="text-2xl font-bold text-gray-900">Import Items</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Importar Itens</h1>
                     <p className="mt-1 text-sm text-gray-600">
-                        Import multiple items from CSV or JSON files
+                        Importe múltiplos itens a partir de arquivos CSV ou JSON
                     </p>
                 </div>
 

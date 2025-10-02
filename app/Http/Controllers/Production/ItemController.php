@@ -535,7 +535,7 @@ class ItemController extends BaseSearchController
         $this->authorize('import', Item::class);
 
         return Inertia::render('production/items/import/index', [
-            'supportedFormats' => ['csv', 'txt', 'json'],
+            'supportedFormats' => ['csv', 'json'],
         ]);
     }
 
@@ -579,7 +579,7 @@ class ItemController extends BaseSearchController
             // Prepare result data for the new UI
             $importResult = [
                 'imported' => $result['count'],
-                'updated' => 0, // TODO: Track updates separately in import service
+                'updated' => $result['updated_count'] ?? 0,
                 'skipped' => $result['skipped'] ?? 0,
                 'failed' => count($result['errors']),
                 'errors' => $result['errors'],
@@ -604,6 +604,15 @@ class ItemController extends BaseSearchController
                 if (is_array($manifest)) {
                     $summary = $this->imageBulkImportService->importFromManifest('item_number', $manifest, $request->file('picture_files', []));
                     if (count($summary['errors']) > 0) {
+                        // If this is an Inertia request from the import wizard, return to the same page
+                        if ($request->header('X-Inertia')) {
+                            return back()
+                                ->with('success', "Successfully imported {$result['count']} items and {$summary['imagesImported']} image(s).")
+                                ->with('warning', 'Some images could not be imported.')
+                                ->with('flash', ['result' => $importResult])
+                                ->with('imageImportSummary', $summary);
+                        }
+
                         return redirect()->route('production.items.index')
                             ->with('success', "Successfully imported {$result['count']} items and {$summary['imagesImported']} image(s).")
                             ->with('warning', 'Some images could not be imported.')
@@ -613,6 +622,13 @@ class ItemController extends BaseSearchController
                     $message = "Successfully imported {$result['count']} items and {$summary['imagesImported']} image(s).";
                     if (isset($result['skipped']) && $result['skipped'] > 0) {
                         $message .= " {$result['skipped']} items were skipped (already exist).";
+                    }
+
+                    // If this is an Inertia request from the import wizard, return to the same page
+                    if ($request->header('X-Inertia')) {
+                        return back()
+                            ->with('success', $message)
+                            ->with('flash', ['result' => $importResult]);
                     }
 
                     return redirect()->route('production.items.index')
@@ -626,6 +642,15 @@ class ItemController extends BaseSearchController
                 $message .= " {$result['skipped']} items were skipped (already exist).";
             }
 
+            // If this is an Inertia request from the import wizard, return to the same page
+            // so the wizard can show the results step
+            if ($request->header('X-Inertia')) {
+                return back()
+                    ->with('success', $message)
+                    ->with('flash', ['result' => $importResult]);
+            }
+
+            // Otherwise, redirect to the items index (for backward compatibility)
             return redirect()->route('production.items.index')
                 ->with('success', $message)
                 ->with('flash', ['result' => $importResult]);
@@ -645,6 +670,46 @@ class ItemController extends BaseSearchController
 
         return response()->json([
             'item' => $item,
+        ]);
+    }
+
+    /**
+     * Check for existing items by item numbers.
+     */
+    public function checkExistingItems(Request $request): JsonResponse
+    {
+        $this->authorize('import', Item::class);
+
+        $request->validate([
+            'item_numbers' => 'required|array',
+            'item_numbers.*' => 'string',
+        ]);
+
+        $itemNumbers = $request->input('item_numbers');
+
+        // Get existing items with their current data
+        $existingItems = Item::whereIn('item_number', $itemNumbers)
+            ->with(['category', 'createdBy'])
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'item_number' => $item->item_number,
+                    'name' => $item->name,
+                    'description' => $item->description,
+                    'category_name' => $item->category?->name,
+                    'unit_of_measure' => $item->unit_of_measure,
+                    'is_active' => $item->is_active,
+                    'can_be_sold' => $item->can_be_sold,
+                    'can_be_purchased' => $item->can_be_purchased,
+                    'can_be_manufactured' => $item->can_be_manufactured,
+                    'updated_at' => $item->updated_at,
+                    'created_by' => $item->createdBy?->name,
+                ];
+            });
+
+        return response()->json([
+            'existing_items' => $existingItems,
+            'total_existing' => $existingItems->count(),
         ]);
     }
 }
