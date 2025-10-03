@@ -19,7 +19,7 @@ class UserInvitationController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware('auth')->except(['show', 'accept']);
         $this->middleware('can:users.invite')->except(['show', 'accept']);
     }
 

@@ -331,18 +331,16 @@ class UserInvitation extends Model
             }
         }
 
-        \App\Services\AuditLogService::log(
-            'invitation.accepted',
-            'accepted',
-            $this,
-            [],
-            ['accepted_by' => $user->id],
-            [
-                'email' => $this->email,
-                'user' => $user->name,
-                'invited_by' => $this->inviter->name,
-            ]
-        );
+        // Since the user might not be authenticated yet when accepting an invitation,
+        // we need to handle the audit log specially
+        \App\Services\AuditLogService::logSimple('invitation.accepted', [
+            'user_id' => $user->id, // The newly created user who accepted the invitation
+            'email' => $this->email,
+            'user' => $user->name,
+            'invited_by' => $this->inviter->name,
+            'invitation_id' => $this->id,
+            'accepted_at' => now()->toDateTimeString(),
+        ]);
     }
 
     /**

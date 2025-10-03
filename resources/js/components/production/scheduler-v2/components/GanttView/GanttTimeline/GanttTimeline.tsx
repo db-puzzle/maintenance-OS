@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { ScrollContainer } from '../../shared/ScrollContainer';
 import { TimeAxis } from './TimeAxis';
 import { StepBar } from './StepBar';
@@ -8,70 +8,45 @@ import { calculateTimelineLayout } from '../../../utils/timelineCalculations';
 import { cn } from '@/lib/utils';
 
 interface GanttTimelineProps {
-    orders: any[];
+    tasks: any[];
     viewConfig: {
         startDate: Date;
         endDate: Date;
     };
     zoomLevel: number;
+    timelineWidth: number;
     onStepUpdate: (stepId: string, updates: any) => void;
 }
 
 export const GanttTimeline: React.FC<GanttTimelineProps> = ({
-    orders,
+    tasks,
     viewConfig,
     zoomLevel,
+    timelineWidth,
     onStepUpdate,
 }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const _canvasRef = useRef<HTMLCanvasElement>(null);
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
     const [draggedStep, setDraggedStep] = useState<any>(null);
-    const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set());
 
     // Calculate timeline dimensions and layout
     const timelineLayout = calculateTimelineLayout({
         startDate: viewConfig.startDate,
         endDate: viewConfig.endDate,
         zoomLevel,
-        containerWidth: 1000, // Will be updated on mount
+        containerWidth: timelineWidth,
     });
 
-    // Flatten orders and steps for rendering
-    const flattenedRows = useCallback(() => {
-        const rows: any[] = [];
-
-        const processOrder = (order: any, level: number = 0) => {
-            rows.push({
-                type: 'order',
-                data: order,
-                level,
-                id: `order-${order.id}`,
-            });
-
-            if (expandedOrders.has(order.id)) {
-                // Add steps
-                order.steps?.forEach((step: any) => {
-                    rows.push({
-                        type: 'step',
-                        data: step,
-                        level: level + 1,
-                        id: `step-${step.id}`,
-                        orderId: order.id,
-                    });
-                });
-
-                // Add child orders
-                order.children?.forEach((child: any) => {
-                    processOrder(child, level + 1);
-                });
-            }
-        };
-
-        orders.forEach(order => processOrder(order));
-        return rows;
-    }, [orders, expandedOrders]);
-
-    const rows = flattenedRows();
+    // Tasks are already flattened in GanttView, so we can use them directly
+    const rows = useMemo(() => {
+        return tasks.map((task, _index) => ({
+            type: task.type,
+            data: task,
+            level: task.level || 0,
+            id: task.type === 'order' ? `order-${task.id}` : `step-${task.id}`,
+            orderId: task.orderId,
+        }));
+    }, [tasks]);
     const rowHeight = 45;
     const timelineHeight = rows.length * rowHeight;
 
@@ -178,8 +153,7 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                                 <div
                                     key={row.id}
                                     className={cn(
-                                        "absolute flex items-center",
-                                        "cursor-pointer"
+                                        "absolute flex items-center"
                                     )}
                                     style={{
                                         top: y,
@@ -188,15 +162,6 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                                         width: timelineLayout.getPositionForDate(latestEnd) -
                                             timelineLayout.getPositionForDate(earliestStart),
                                     }}
-                                    onClick={() => setExpandedOrders(prev => {
-                                        const newSet = new Set(prev);
-                                        if (newSet.has(order.id)) {
-                                            newSet.delete(order.id);
-                                        } else {
-                                            newSet.add(order.id);
-                                        }
-                                        return newSet;
-                                    })}
                                 >
                                     <div className="h-8 bg-blue-200 rounded px-2 flex items-center">
                                         <span className="text-xs font-medium truncate">

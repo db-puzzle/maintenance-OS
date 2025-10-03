@@ -3,13 +3,11 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Models\Skill;
-use App\Models\Certification;
 use App\Traits\HasMediaTrait;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -19,7 +17,11 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements HasMedia
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles, SoftDeletes, HasMediaTrait;
+    use HasFactory;
+    use HasMediaTrait;
+    use HasRoles;
+    use Notifiable;
+    use SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -31,6 +33,7 @@ class User extends Authenticatable implements HasMedia
         'email',
         'password',
         'timezone',
+        'email_verified_at',
     ];
 
     /**
@@ -55,9 +58,9 @@ class User extends Authenticatable implements HasMedia
             'password' => 'hashed',
         ];
     }
-    
+
     /**
-     * Register media collections
+     * Register media collections.
      */
     public function registerMediaCollections(): void
     {
@@ -65,7 +68,7 @@ class User extends Authenticatable implements HasMedia
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
             ->singleFile()
             ->useFallbackUrl('/images/default-avatar.png');
-            
+
         $this->addMediaCollection('documents')
             ->acceptsMimeTypes([
                 'application/pdf',
@@ -75,7 +78,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Convert a datetime from user's timezone to UTC
+     * Convert a datetime from user's timezone to UTC.
      */
     public function convertToUTC($datetime): Carbon
     {
@@ -83,7 +86,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Convert a datetime from UTC to user's timezone
+     * Convert a datetime from UTC to user's timezone.
      */
     public function convertFromUTC($datetime): Carbon
     {
@@ -91,7 +94,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Get the execution exports created by this user
+     * Get the execution exports created by this user.
      */
     public function executionExports(): HasMany
     {
@@ -99,7 +102,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Get work orders created by this user
+     * Get work orders created by this user.
      */
     public function createdWorkOrders(): HasMany
     {
@@ -107,7 +110,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Get work orders assigned to this user
+     * Get work orders assigned to this user.
      */
     public function assignedWorkOrders(): HasMany
     {
@@ -115,7 +118,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Get work orders approved by this user
+     * Get work orders approved by this user.
      */
     public function approvedWorkOrders(): HasMany
     {
@@ -123,7 +126,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Get the skills assigned to this user
+     * Get the skills assigned to this user.
      */
     public function skills(): BelongsToMany
     {
@@ -133,7 +136,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Get the certifications assigned to this user
+     * Get the certifications assigned to this user.
      */
     public function certifications(): BelongsToMany
     {
@@ -143,7 +146,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Get work order executions performed by this user
+     * Get work order executions performed by this user.
      */
     public function workOrderExecutions(): HasMany
     {
@@ -161,7 +164,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Boot the model
+     * Boot the model.
      */
     protected static function booted()
     {
@@ -180,7 +183,7 @@ class User extends Authenticatable implements HasMedia
                     $user->assignRole($adminRole);
                 }
             }
-            
+
             // Log user creation
             if (auth()->check()) {
                 \App\Services\AuditLogService::log(
@@ -196,7 +199,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * User invitations sent relationship
+     * User invitations sent relationship.
      */
     public function invitationsSent()
     {
@@ -204,7 +207,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * User invitation accepted relationship
+     * User invitation accepted relationship.
      */
     public function invitationAccepted()
     {
@@ -212,24 +215,25 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Check if user is administrator
+     * Check if user is administrator.
      */
     public function isAdministrator(): bool
     {
         $adminRole = Role::getAdministratorRole();
+
         return $adminRole ? $this->hasRole($adminRole) : false;
     }
 
     /**
-     * Grant administrator privileges
+     * Grant administrator privileges.
      */
     public function grantAdministrator(User $grantedBy, ?string $reason = null): void
     {
         $adminRole = Role::getAdministratorRole();
-        if (!$adminRole) {
+        if (! $adminRole) {
             throw new \Exception('Administrator role not found');
         }
-        
+
         $this->assignRole($adminRole);
 
         \App\Services\AuditLogService::log(
@@ -241,21 +245,21 @@ class User extends Authenticatable implements HasMedia
             [
                 'granted_by' => $grantedBy->name,
                 'reason' => $reason,
-                'user' => $this->name
+                'user' => $this->name,
             ]
         );
     }
 
     /**
-     * Revoke administrator privileges
+     * Revoke administrator privileges.
      */
     public function revokeAdministrator(User $revokedBy, ?string $reason = null): void
     {
         // Check if this would leave the system without administrators
         $adminProtectionService = app(\App\Services\AdministratorProtectionService::class);
         $protectionCheck = $adminProtectionService->canPerformOperation($this, 'revokePermission');
-        
-        if (!$protectionCheck['allowed']) {
+
+        if (! $protectionCheck['allowed']) {
             throw new \Exception($protectionCheck['message']);
         }
 
@@ -273,14 +277,14 @@ class User extends Authenticatable implements HasMedia
             [
                 'revoked_by' => $revokedBy->name,
                 'reason' => $reason,
-                'user' => $this->name
+                'user' => $this->name,
             ]
         );
     }
 
     /**
      * Check if user can perform action considering administrator bypass
-     * Override parent to add administrator bypass
+     * Override parent to add administrator bypass.
      */
     public function can($ability, $arguments = []): bool
     {
@@ -294,7 +298,7 @@ class User extends Authenticatable implements HasMedia
 
     /**
      * Check if user can perform action considering administrator bypass
-     * Override parent to add administrator bypass with wildcard permissions
+     * Override parent to add administrator bypass with wildcard permissions.
      */
     public function canAny($abilities, $arguments = []): bool
     {
@@ -313,7 +317,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Get all effective permissions including through roles
+     * Get all effective permissions including through roles.
      */
     public function getAllEffectivePermissions()
     {
@@ -322,7 +326,7 @@ class User extends Authenticatable implements HasMedia
         }
 
         $permissions = $this->getDirectPermissions();
-        
+
         foreach ($this->roles as $role) {
             $permissions = $permissions->merge($role->getAllEffectivePermissions());
         }
@@ -331,7 +335,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Check hierarchical permission with scope
+     * Check hierarchical permission with scope.
      */
     public function hasHierarchicalPermission(string $permission, $model = null): bool
     {
@@ -340,15 +344,12 @@ class User extends Authenticatable implements HasMedia
         }
 
         $hierarchyService = app(\App\Services\PermissionHierarchyService::class);
+
         return $hierarchyService->checkHierarchicalPermission($this, $permission, $model);
     }
 
-
-
-
-
     /**
-     * Get accessible entities for a permission
+     * Get accessible entities for a permission.
      */
     public function getAccessibleEntities(string $resource, string $action): array
     {
@@ -357,11 +358,12 @@ class User extends Authenticatable implements HasMedia
         }
 
         $hierarchyService = app(\App\Services\PermissionHierarchyService::class);
+
         return $hierarchyService->getAccessibleEntities($this, $resource, $action);
     }
 
     /**
-     * Check if user has invitation permission for an entity
+     * Check if user has invitation permission for an entity.
      */
     public function canInviteToEntity(string $entityType, int $entityId): bool
     {
@@ -373,7 +375,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Get all entities user can invite to
+     * Get all entities user can invite to.
      */
     public function getInvitableEntities(): array
     {
@@ -384,7 +386,7 @@ class User extends Authenticatable implements HasMedia
         $invitable = [
             'plants' => [],
             'areas' => [],
-            'sectors' => []
+            'sectors' => [],
         ];
 
         foreach ($this->getAllEffectivePermissions() as $permission) {

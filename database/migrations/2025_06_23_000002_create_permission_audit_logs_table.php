@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('event_type');
             $table->string('event_action', 50)->index();
             $table->nullableMorphs('auditable');
-            $table->foreignId('user_id')->constrained();
+            $table->foreignId('user_id')->nullable()->constrained();
             $table->foreignId('affected_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('impersonator_id')->nullable()->constrained('users');
             $table->json('old_values')->nullable();
@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('user_agent')->nullable();
             $table->string('session_id', 100)->nullable();
             $table->timestamps();
-            
+
             // Indexes for performance
             $table->index(['event_type', 'event_action']);
             $table->index(['user_id', 'created_at']);
@@ -42,4 +42,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('permission_audit_logs');
     }
-}; 
+};

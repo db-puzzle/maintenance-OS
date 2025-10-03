@@ -74,7 +74,7 @@ const gerenciamentoNavItems: NavGroup = {
         },
         {
             title: 'Produção',
-            href: '#',
+            href: '',
             icon: Factory,
             items: [
                 {
@@ -132,7 +132,7 @@ const sistemaNavItems: NavGroup = {
     items: [
         {
             title: 'Organização',
-            href: '/asset-hierarchy',
+            href: '',
             icon: Building2,
             items: [
                 {

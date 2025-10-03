@@ -63,22 +63,29 @@ export function NavMain({ items = [] }: { items: (NavItem | NavGroup)[] }) {
                             onOpenChange={(open) => togglePopover(item.title, open)}
                         >
                             <PopoverTrigger asChild>
-                                <SidebarMenuButton
-                                    tooltip={item.title}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        togglePopover(item.title);
-                                    }}
+                                <div
+                                    onMouseEnter={() => togglePopover(item.title, true)}
+                                    onMouseLeave={() => togglePopover(item.title, false)}
                                 >
-                                    {item.icon && <item.icon />}
-                                    <span className="sr-only">{item.title}</span>
-                                </SidebarMenuButton>
+                                    <SidebarMenuButton
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            // Still allow click to toggle for accessibility
+                                            togglePopover(item.title);
+                                        }}
+                                    >
+                                        {item.icon && <item.icon />}
+                                        <span className="sr-only">{item.title}</span>
+                                    </SidebarMenuButton>
+                                </div>
                             </PopoverTrigger>
                             <PopoverContent
                                 side="right"
                                 align="start"
                                 sideOffset={12}
                                 className="w-56 p-0 bg-sidebar border-sidebar-border"
+                                onMouseEnter={() => togglePopover(item.title, true)}
+                                onMouseLeave={() => togglePopover(item.title, false)}
                             >
                                 <div className="flex flex-col gap-2 p-2">
                                     <div className="flex h-8 shrink-0 items-center rounded-md -mb-2 px-2 text-sm font-medium text-sidebar-foreground/70">
