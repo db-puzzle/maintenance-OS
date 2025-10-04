@@ -115,12 +115,6 @@ export default function Dashboard() {
                 {
                     title: 'Programação',
                     description: 'Agende e visualize a produção',
-                    href: '/production/scheduler',
-                    icon: Calendar,
-                },
-                {
-                    title: 'Programação 2',
-                    description: 'Nova interface de programação',
                     href: '/production/scheduler/v2',
                     icon: Calendar,
                 },

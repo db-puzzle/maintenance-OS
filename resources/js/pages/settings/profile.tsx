@@ -30,9 +30,9 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
     const { auth } = usePage<SharedData>().props;
     const [open, setOpen] = useState(false);
     const { data, setData, patch, errors, processing, recentlySuccessful } = useForm<Required<ProfileForm>>({
-        name: auth.user.name,
-        email: auth.user.email,
-        timezone: (auth.user.timezone as string) || 'UTC',
+        name: auth.user?.name || '',
+        email: auth.user?.email || '',
+        timezone: auth.user?.timezone || 'UTC',
     });
     // Get the label for the selected timezone
     const getTimezoneLabel = (value: string) => {
@@ -127,7 +127,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                             </Popover>
                             <InputError className="mt-2" message={errors.timezone} />
                         </div>
-                        {mustVerifyEmail && auth.user.email_verified_at === null && (
+                        {mustVerifyEmail && auth.user?.email_verified_at === null && (
                             <div>
                                 <p className="text-muted-foreground -mt-4 text-sm">
                                     Your email address is unverified.{' '}

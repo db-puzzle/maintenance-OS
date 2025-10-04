@@ -346,19 +346,17 @@ export default function ManufacturingOrderHierarchicalView({
                     {/* Image */}
                     {showImages && (
                         <div className="flex items-center justify-center">
-                            {node.item && (
-                                <ItemImagePreview
-                                    primaryImageUrl={node.item.primary_image_thumbnail_url || node.item.primary_image_url}
-                                    imageCount={node.item.media?.length || 0}
-                                    className="w-12 h-12 cursor-pointer"
-                                    onClick={(e) => {
-                                        e?.stopPropagation();
-                                        if (node.item?.id) {
-                                            router.visit(route('production.items.show', node.item.id));
-                                        }
-                                    }}
-                                />
-                            )}
+                            <ItemImagePreview
+                                primaryImageUrl={node.item?.primary_image_thumbnail_url || node.item?.primary_image_url}
+                                imageCount={node.item?.media?.length || 0}
+                                className="w-12 h-12 cursor-pointer"
+                                onClick={(e) => {
+                                    e?.stopPropagation();
+                                    if (node.item?.id) {
+                                        router.visit(route('production.items.show', node.item.id));
+                                    }
+                                }}
+                            />
                         </div>
                     )}
 

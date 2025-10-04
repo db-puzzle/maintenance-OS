@@ -38,10 +38,13 @@ class SchedulingController extends Controller
 
     /**
      * Display the scheduling interface.
+     *
+     * @deprecated Use indexV2 instead - redirects to the new scheduler
      */
     public function index(Request $request)
     {
-        return $this->prepareSchedulerData($request, 'production/scheduler/index');
+        // Redirect to the new scheduler v2
+        return redirect()->route('production.scheduler.index-v2', $request->query());
     }
 
     /**
@@ -293,10 +296,16 @@ class SchedulingController extends Controller
 
         $version = $this->schedulingService->createScheduleVersion($request->user());
 
-        return response()->json([
-            'version' => $version,
-            'message' => 'New schedule version created',
-        ]);
+        // Determine which scheduler interface to redirect to based on the referrer
+        $referrer = $request->headers->get('referer');
+        $route = 'production.scheduler.index';
+
+        if ($referrer && str_contains($referrer, 'scheduler/v2')) {
+            $route = 'production.scheduler.index-v2';
+        }
+
+        return redirect()->route($route)
+            ->with('success', 'New schedule version created');
     }
 
     /**

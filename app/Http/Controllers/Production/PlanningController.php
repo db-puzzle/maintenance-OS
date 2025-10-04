@@ -226,26 +226,8 @@ class PlanningController extends Controller
             // Add other transition rules as needed
         }
 
-        // Reload manufacturing orders after transition, preserving selection state
-        $routeParams = $request->except(['orderIds', 'targetState']);
-
-        // Preserve user selection state if provided
-        if ($request->has('userSelection')) {
-            $routeParams['userSelection'] = $request->input('userSelection');
-        }
-        if ($request->has('activeMO')) {
-            $routeParams['activeMO'] = $request->input('activeMO');
-        }
-        // Preserve sorting state
-        if ($request->has('sortField')) {
-            $routeParams['sortField'] = $request->input('sortField');
-        }
-        if ($request->has('sortDirection')) {
-            $routeParams['sortDirection'] = $request->input('sortDirection');
-        }
-
-        return redirect()->route('production.planning', $routeParams)
-            ->with('success', 'Manufacturing orders updated successfully.');
+        // Return success response for Inertia to handle
+        return back()->with('success', count($orderIds) . ' manufacturing order(s) updated successfully.');
     }
 
     /**
@@ -802,7 +784,7 @@ class PlanningController extends Controller
 
         // If userSelection, activeMO, or sorting are in the request, ensure they're preserved in the response
         if ($request->has('userSelection') || $request->has('activeMO') || $request->has('sortField') || $request->has('sortDirection')) {
-            //dd($request->input('sortField'), $request->input('sortDirection'));
+            // dd($request->input('sortField'), $request->input('sortDirection'));
             $response = $response->with([
                 'preservedSelection' => [
                     'userSelection' => $request->input('userSelection') ? explode(',', $request->input('userSelection')) : [],

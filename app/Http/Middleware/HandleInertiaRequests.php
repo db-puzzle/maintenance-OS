@@ -48,6 +48,7 @@ class HandleInertiaRequests extends Middleware
                     'id' => $request->user()->id,
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
+                    'timezone' => $request->user()->timezone,
                     'roles' => $request->user()->roles->map(function ($role) {
                         return ['id' => $role->id, 'name' => $role->name];
                     }),

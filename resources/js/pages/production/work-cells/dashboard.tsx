@@ -91,10 +91,9 @@ export default function WorkCellDashboard({
     }, [autoRefresh]);
 
     const breadcrumbs = [
-        { title: 'Production', href: '/production' },
-        { title: 'Work Cells', href: '/production/work-cells' },
+        { title: 'Home', href: '/home' },
+        { title: 'Células de Trabalho', href: '/production/work-cells' },
         { title: workCell.name, href: `/production/work-cells/${workCell.id}` },
-        { title: 'Dashboard', href: '' }
     ];
 
     const handleExecuteStep = (step: ManufacturingStep) => {

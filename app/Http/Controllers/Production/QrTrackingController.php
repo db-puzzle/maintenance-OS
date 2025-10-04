@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
-use App\Models\Production\BomItem;
+// BomItem import removed - QR codes only for Item and ManufacturingOrder entities
+use App\Models\Production\Item;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingStep;
-use App\Models\Production\Item;
 use App\Models\Production\QrTracking;
 use App\Services\Production\QrCodeGenerationService;
 use Illuminate\Http\Request;
@@ -105,7 +105,7 @@ class QrTrackingController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -124,104 +124,8 @@ class QrTrackingController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
-    }
-
-    /**
-     * Generate QR codes for production order.
-     */
-    public function generateForOrder(Request $request, ManufacturingOrder $order)
-    {
-        $this->authorize('generate', QrTracking::class);
-
-        if (!in_array($order->status, ['released', 'in_progress'])) {
-            return back()->with('error', 'QR codes can only be generated for released or in-progress orders.');
-        }
-
-        $validated = $request->validate([
-            'include_non_routed' => 'boolean',
-            'regenerate_existing' => 'boolean',
-        ]);
-
-        $order->load('billOfMaterial.currentVersion.items.routing');
-        $items = $order->billOfMaterial->currentVersion->items;
-
-        $generated = [];
-        $errors = [];
-
-        DB::transaction(function () use ($items, $order, $validated, &$generated, &$errors) {
-            foreach ($items as $item) {
-                // Skip non-routed items if not included
-                if (!$validated['include_non_routed'] && !$item->routing) {
-                    continue;
-                }
-
-                // Skip if QR code already exists and not regenerating
-                if ($item->qr_code && !$validated['regenerate_existing']) {
-                    continue;
-                }
-
-                try {
-                    $qrData = $this->qrService->generateForBomItem($item, $order);
-                    $generated[] = [
-                        'item' => $item->name,
-                        'qr_code' => $qrData['qr_code'],
-                        'url' => $qrData['url'],
-                    ];
-                } catch (\Exception $e) {
-                    $errors[] = [
-                        'item' => $item->name,
-                        'error' => $e->getMessage(),
-                    ];
-                }
-            }
-        });
-
-        return response()->json([
-            'success' => count($errors) === 0,
-            'generated' => $generated,
-            'errors' => $errors,
-            'message' => sprintf('Generated %d QR codes%s', 
-                count($generated), 
-                count($errors) > 0 ? ' with ' . count($errors) . ' errors' : ''
-            ),
-        ]);
-    }
-
-    /**
-     * Generate QR code for single item.
-     */
-    public function generateForItem(Request $request, BomItem $item)
-    {
-        $this->authorize('generate', QrTracking::class);
-
-        $validated = $request->validate([
-            'manufacturing_order_id' => 'required|exists:manufacturing_orders,id',
-            'force_regenerate' => 'boolean',
-        ]);
-
-        if ($item->qr_code && !$validated['force_regenerate']) {
-            return back()->with('error', 'QR code already exists for this item.');
-        }
-
-        $order = ManufacturingOrder::find($validated['manufacturing_order_id']);
-
-        try {
-            $qrData = $this->qrService->generateForBomItem($item, $order);
-            
-            return response()->json([
-                'success' => true,
-                'qr_code' => $qrData['qr_code'],
-                'url' => $qrData['url'],
-                'message' => 'QR code generated successfully.',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'QR code generation failed: ' . $e->getMessage(),
-            ], 500);
-        }
     }
 
     /**
@@ -236,8 +140,7 @@ class QrTrackingController extends Controller
             $order = ManufacturingOrder::with([
                 'product',
                 'billOfMaterial.currentVersion.items' => function ($query) {
-                    $query->whereNotNull('qr_code')
-                        ->with(['routing', 'thumbnail']);
+                    $query->with(['routing', 'thumbnail']);
                 },
             ])->find($request->input('order_id'));
         }
@@ -245,7 +148,7 @@ class QrTrackingController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -264,37 +167,8 @@ class QrTrackingController extends Controller
             'include_routing' => 'boolean',
         ]);
 
-        $items = BomItem::whereIn('id', $validated['items'])
-            ->whereNotNull('qr_code')
-            ->with(['bomVersion.billOfMaterial', 'routing', 'thumbnail'])
-            ->get();
-
-        if ($items->isEmpty()) {
-            return back()->with('error', 'No items with QR codes found.');
-        }
-
-        // Log print event
-        foreach ($items as $item) {
-            QrTracking::create([
-                'qr_code' => $item->qr_code,
-                'event_type' => 'printed',
-                'event_data' => [
-                    'format' => $validated['format'],
-                    'item_id' => $item->id,
-                    'item_number' => $item->item_number,
-                ],
-                'scanned_by' => auth()->id(),
-            ]);
-        }
-
-        // Generate PDF based on format
-        $pdf = $this->generateLabelsPdf($items, $validated);
-
-        return response()->streamDownload(function () use ($pdf) {
-            echo $pdf;
-        }, 'qr-labels-' . now()->format('Y-m-d-His') . '.pdf', [
-            'Content-Type' => 'application/pdf',
-        ]);
+        // BOM items no longer have QR codes
+        return back()->with('error', 'QR codes are only available for Item and ManufacturingOrder entities, not BOM items.');
     }
 
     /**
@@ -330,15 +204,11 @@ class QrTrackingController extends Controller
             'location.longitude' => 'nullable|numeric',
         ]);
 
-        // Find the BOM item by QR code
-        $item = BomItem::where('qr_code', $validated['qr_code'])->first();
-        
-        if (!$item) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid QR code. Item not found.',
-            ], 404);
-        }
+        // BOM items no longer have QR codes
+        return response()->json([
+            'success' => false,
+            'message' => 'QR codes are only available for Item and ManufacturingOrder entities, not BOM items.',
+        ], 400);
 
         // Create tracking record
         $tracking = QrTracking::create([
@@ -375,30 +245,31 @@ class QrTrackingController extends Controller
             'code' => 'required|string',
             'scan_mode' => 'required|in:item,order,step',
         ]);
-        
+
         // Decode QR data
         $qrData = $this->decodeQrCode($validated['code']);
-        
+
         switch ($qrData['type']) {
             case 'manufacturing_order':
                 return redirect()->route('production.orders.show', $qrData['id'])
                     ->with('flash', ['fromQrScan' => true]);
-                    
+
             case 'manufacturing_step':
                 $step = ManufacturingStep::find($qrData['id']);
                 if ($step && in_array($step->status, ['queued', 'in_progress', 'on_hold'])) {
                     return redirect()->route('production.steps.execute', $qrData['id']);
                 }
+
                 return redirect()->route('production.steps.show', $qrData['id']);
-                
+
             case 'item':
                 return redirect()->route('production.items.show', $qrData['id']);
-                
+
             default:
                 return back()->with('error', 'Unknown QR code type');
         }
     }
-    
+
     /**
      * Decode QR code data.
      */
@@ -407,18 +278,18 @@ class QrTrackingController extends Controller
         // Simple implementation - in production you might want more complex encoding
         // Expected format: type:id (e.g., "order:123", "item:456", "step:789")
         $parts = explode(':', $code);
-        
+
         if (count($parts) !== 2) {
             throw new \InvalidArgumentException('Invalid QR code format');
         }
-        
+
         $typeMap = [
             'order' => 'manufacturing_order',
             'mo' => 'manufacturing_order',
             'step' => 'manufacturing_step',
             'item' => 'item',
         ];
-        
+
         return [
             'type' => $typeMap[$parts[0]] ?? $parts[0],
             'id' => (int) $parts[1],
@@ -461,15 +332,11 @@ class QrTrackingController extends Controller
      */
     public function details($qrCode)
     {
-        // Find the BOM item by QR code
-        $item = BomItem::where('qr_code', $qrCode)->first();
-        
-        if (!$item) {
-            return response()->json([
-                'success' => false,
-                'message' => 'QR code not found.',
-            ], 404);
-        }
+        // BOM items no longer have QR codes
+        return response()->json([
+            'success' => false,
+            'message' => 'QR codes are only available for Item and ManufacturingOrder entities.',
+        ], 400);
 
         $item->load([
             'bomVersion.billOfMaterial',
@@ -534,7 +401,7 @@ class QrTrackingController extends Controller
     {
         // This would use a PDF generation service
         // For now, return a placeholder
-        return "PDF content would be generated here";
+        return 'PDF content would be generated here';
     }
 
     /**
@@ -586,13 +453,13 @@ class QrTrackingController extends Controller
             ->limit(10)
             ->get()
             ->map(function ($item) {
-                $bomItem = BomItem::where('qr_code', $item->qr_code)->first();
+                // BOM items no longer have QR codes
                 return [
                     'qr_code' => $item->qr_code,
                     'scan_count' => $item->scan_count,
-                    'item_number' => $bomItem->item_number ?? 'Unknown',
-                    'item_name' => $bomItem->name ?? 'Unknown',
+                    'item_number' => 'N/A',
+                    'item_name' => 'N/A',
                 ];
             });
     }
-} 
+}

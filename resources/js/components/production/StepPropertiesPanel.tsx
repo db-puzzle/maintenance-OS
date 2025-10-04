@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 import { ItemSelect } from '@/components/ItemSelect';
 import CreateWorkCellSheet from '@/components/production/CreateWorkCellSheet';
@@ -131,15 +130,14 @@ export default function StepPropertiesPanel({
 
     return (
         <div className={cn(
-            "w-[35rem] h-full flex-shrink-0 border-l bg-background flex flex-col overflow-hidden",
+            "w-[28rem] h-full flex-shrink-0 border-l bg-background flex flex-col overflow-hidden",
             "transform transition-all duration-300 ease-out",
             isVisible
                 ? "translate-x-0 opacity-100"
                 : "translate-x-full opacity-0"
         )}>
 
-
-            <ScrollArea className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-corner]:bg-transparent">
                 <div className="p-4 space-y-4">
                     {/* Basic Info */}
                     <div className="space-y-3">
@@ -385,7 +383,7 @@ export default function StepPropertiesPanel({
 
 
                 </div>
-            </ScrollArea>
+            </div>
 
             {/* CreateWorkCellSheet */}
             <CreateWorkCellSheet

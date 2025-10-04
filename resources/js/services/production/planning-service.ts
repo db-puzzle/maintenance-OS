@@ -260,10 +260,14 @@ export class PlanningService {
     static reloadData(options: {
         only?: string[];
         delay?: number;
+        preserveState?: boolean;
+        preserveScroll?: boolean;
     } = {}): void {
         const reload = () => {
             router.reload({
-                only: options.only ?? ['manufacturingOrders']
+                only: options.only ?? ['manufacturingOrders'],
+                preserveState: options.preserveState ?? false,
+                preserveScroll: options.preserveScroll ?? false
             });
         };
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, router, usePage } from '@inertiajs/react';
+import { Link, router, usePage, useForm } from '@inertiajs/react';
 import {
     Package,
     Calendar,
@@ -18,7 +18,10 @@ import {
     Check,
     Info,
     Save,
+    ClipboardCheck,
 } from 'lucide-react';
+import axios from 'axios';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -34,21 +37,19 @@ import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import { TextInput } from '@/components/TextInput';
 import { ItemSelect } from '@/components/ItemSelect';
-import { ManufacturingOrder, RouteTemplate, WorkCell } from '@/types/production';
-import { Form } from '@/types/work-order';
-import { cn } from '@/lib/utils';
-import { useForm } from '@inertiajs/react';
+import StateButton from '@/components/StateButton';
 import ManufacturingOrderHierarchicalView, { ManufacturingOrderTreeNode } from '@/components/production/ManufacturingOrderHierarchicalView';
 import ManufacturingOrderRouteTab from '@/components/production/ManufacturingOrderRouteTab';
 import { ReportProductionDialog } from '@/components/production/ReportProductionDialog';
 import { SaveAsTemplateDialog } from '@/components/production/templates/SaveAsTemplateDialog';
 import { DirectExecution } from '@/components/production/templates/DirectExecution';
-import axios from 'axios';
-import { toast } from 'sonner';
+import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { createFormAdapter } from '@/utils/form-adapters';
-import { ClipboardCheck } from 'lucide-react';
-import StateButton from '@/components/StateButton';
-import type { WorkUnitsBreakdown } from '@/types/production';
+import { cn } from '@/lib/utils';
+import { ManufacturingOrder, RouteTemplate, WorkCell, WorkUnitsBreakdown } from '@/types/production';
+import { Form } from '@/types/work-order';
+import type { BreadcrumbItem } from '@/types';
+
 interface Props {
     order: ManufacturingOrder;
     canPlan?: boolean;
@@ -61,7 +62,7 @@ interface Props {
     canCreateRoute: boolean;
     canManageRoutes?: boolean;
     canReportProduction?: boolean;
-    templates?: RouteTemplate[]; // Route templates for creating new routes
+    templates?: RouteTemplate[];
     workCells?: WorkCell[];
     stepTypes?: Record<string, string>;
     forms?: Form[];
@@ -78,6 +79,8 @@ interface Props {
         name: string;
     }[];
 }
+
+// Helper Components
 function FieldGroup({ title, children }: { title?: string; children: React.ReactNode }) {
     return (
         <div className="space-y-4">
@@ -88,7 +91,18 @@ function FieldGroup({ title, children }: { title?: string; children: React.React
         </div>
     );
 }
-function StatCard({ label, value, icon: Icon, className }: { label: string; value: string | number; icon: React.ElementType; className?: string }) {
+
+function StatCard({
+    label,
+    value,
+    icon: Icon,
+    className
+}: {
+    label: string;
+    value: string | number;
+    icon: React.ElementType;
+    className?: string;
+}) {
     return (
         <div className="flex items-center gap-4 rounded-lg border p-4">
             <div className={cn("p-2 rounded-lg", className)}>
@@ -102,7 +116,13 @@ function StatCard({ label, value, icon: Icon, className }: { label: string; valu
     );
 }
 
-function WorkUnitsBreakdownDisplay({ breakdown, level = 0 }: { breakdown: WorkUnitsBreakdown; level?: number }) {
+function WorkUnitsBreakdownDisplay({
+    breakdown,
+    level = 0
+}: {
+    breakdown: WorkUnitsBreakdown;
+    level?: number;
+}) {
     const indent = level * 24;
     const progressPercentage = breakdown.expected_units > 0
         ? Math.round((breakdown.completed_units / breakdown.expected_units) * 100)
@@ -139,15 +159,37 @@ function WorkUnitsBreakdownDisplay({ breakdown, level = 0 }: { breakdown: WorkUn
         </div>
     );
 }
-export default function ShowManufacturingOrder({ order, canPlan = false, canSchedule = false, canRelease, canStart = false, canHold = false, canResume = false, canCancel, canCreateRoute, canManageRoutes = false, canReportProduction = false, templates = [], workCells = [], stepTypes = {}, forms = [], plants, shifts, manufacturers }: Props) {
+
+// Main Component
+export default function ShowManufacturingOrder({
+    order,
+    canPlan = false,
+    canSchedule = false,
+    canRelease,
+    canStart = false,
+    canHold = false,
+    canResume = false,
+    canCancel,
+    canCreateRoute,
+    canManageRoutes: _canManageRoutes = false,
+    canReportProduction = false,
+    templates = [],
+    workCells = [],
+    stepTypes = {},
+    forms = [],
+    plants,
+    shifts,
+    manufacturers
+}: Props) {
     const { props } = usePage();
     const flash = props.flash as { openRouteBuilder?: string | boolean; fromQrScan?: boolean } | undefined;
+
+    // State
     const [generatingQr, setGeneratingQr] = useState(false);
     const [reportProductionOpen, setReportProductionOpen] = useState(false);
     const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false);
-    // Check URL params - passed from backend
-    const openRouteBuilderParam = props.openRouteBuilder || null;
-    // Create a form instance for view-only display
+
+    // Form setup
     const inertiaForm = useForm({
         order_number: order.order_number,
         item_id: order.item_id?.toString() || '',
@@ -163,13 +205,32 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
         status: order.status,
         bom_id: order.bill_of_material_id?.toString() || '',
     });
-    // Create a wrapper that matches the TextInput interface
-    const form = createFormAdapter({
+
+    const formAdapter = createFormAdapter({
         data: inertiaForm.data,
         setData: inertiaForm.setData,
         errors: inertiaForm.errors,
         clearErrors: inertiaForm.clearErrors
     });
+
+    // Computed values
+    const openRouteBuilderParam = props.openRouteBuilder || null;
+    const simpleProgress = order.quantity > 0
+        ? Math.round((order.quantity_completed / order.quantity) * 100)
+        : 0;
+    const smartProgress = order.smart_progress_percentage ?? simpleProgress;
+    const hasChildren = order.child_orders_count > 0;
+    const hasRoute = order.has_route || order.manufacturing_route;
+    const shouldShowRelease = ['draft', 'planned', 'scheduled'].includes(order.status);
+
+    // Breadcrumbs
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Production', href: '/production' },
+        { title: 'Manufacturing Orders', href: '/production/orders' },
+        { title: order.order_number, href: '' }
+    ];
+
+    // Helper functions
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
         switch (status) {
             case 'draft':
@@ -189,6 +250,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                 return 'secondary';
         }
     };
+
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'draft':
@@ -211,17 +273,8 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                 return <AlertCircle className="h-4 w-4" />;
         }
     };
-    const simpleProgress = order.quantity > 0
-        ? Math.round((order.quantity_completed / order.quantity) * 100)
-        : 0;
-    const smartProgress = order.smart_progress_percentage ?? simpleProgress;
-    const hasChildren = order.child_orders_count > 0;
-    const hasRoute = order.has_route || order.manufacturing_route;
-    const breadcrumbs = [
-        { title: 'Production', href: '/production' },
-        { title: 'Manufacturing Orders', href: '/production/orders' },
-        { title: order.order_number, href: '' }
-    ];
+
+    // Event handlers
     const handlePlan = () => {
         router.visit(window.route('production.planning.index', { selectedMO: order.id }));
     };
@@ -276,6 +329,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
             });
         }
     };
+
     const handleGenerateQrTag = async () => {
         setGeneratingQr(true);
         try {
@@ -294,6 +348,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
             setGeneratingQr(false);
         }
     };
+
     // Tab definitions
     const tabs = [
         {
@@ -301,7 +356,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
             label: 'Overview',
             content: (
                 <div className="space-y-6 py-6">
-                    {/* QR Scan Indicator */}
                     {flash?.fromQrScan && (
                         <Alert className="mb-4">
                             <QrCode className="h-4 w-4" />
@@ -319,7 +373,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                         </Alert>
                     )}
 
-                    {/* Quantities Section */}
+                    {/* Quantities */}
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                             <StatCard
@@ -343,7 +397,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                         </div>
                     </div>
 
-                    {/* Production Reporting Section */}
+                    {/* Direct Production Reporting */}
                     {canReportProduction &&
                         ['released', 'in_progress'].includes(order.status) &&
                         (!order.has_route || (order.manufacturing_route && (!order.manufacturing_route.steps || order.manufacturing_route.steps.length === 0))) && (
@@ -376,7 +430,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                     {/* Order Information */}
                     <FieldGroup>
                         <TextInput
-                            form={form}
+                            form={formAdapter}
                             name="order_number"
                             label="Order Number"
                             placeholder="Order Number"
@@ -403,12 +457,12 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                                 { id: 'sales_order', name: 'Sales Order' },
                                 { id: 'forecast', name: 'Forecast' },
                             ]}
-                            value={String(form.data.source_type || 'manual')}
+                            value={String(formAdapter.data.source_type || 'manual')}
                             onValueChange={() => { }}
                             view={true}
                         />
                         <TextInput
-                            form={form}
+                            form={formAdapter}
                             name="source_reference"
                             label="Reference"
                             placeholder="No reference"
@@ -428,8 +482,24 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                             </div>
                         )}
                     </FieldGroup>
+
                     {/* Item Details */}
                     <FieldGroup>
+                        <div className="md:col-span-4 lg:col-span-1">
+                            <label className="text-sm font-medium mb-2 block">Item Image</label>
+                            <ItemImagePreview
+                                primaryImageUrl={order.item?.primary_image_url}
+                                primaryImageData={order.item?.primary_image_data}
+                                imageCount={order.item?.primary_image_url ? 1 : 0}
+                                className="w-24 h-24 cursor-pointer"
+                                onClick={(e) => {
+                                    e?.stopPropagation();
+                                    if (order.item?.id) {
+                                        router.visit(window.route('production.items.show', order.item.id));
+                                    }
+                                }}
+                            />
+                        </div>
                         <div className="grid gap-2">
                             <label className="text-sm font-medium">Item Number</label>
                             <div className="rounded-md border bg-muted/20 p-2 text-sm">
@@ -456,7 +526,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                             </div>
                         </div>
                         <TextInput
-                            form={form}
+                            form={formAdapter}
                             name="unit_of_measure"
                             label="Unit of Measure"
                             placeholder="—"
@@ -478,38 +548,40 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                             </div>
                         )}
                     </FieldGroup>
+
                     {/* Schedule */}
                     <FieldGroup>
                         <TextInput
-                            form={form}
+                            form={formAdapter}
                             name="requested_date"
                             label="Requested Date"
                             placeholder="Not set"
                             view={true}
                         />
                         <TextInput
-                            form={form}
+                            form={formAdapter}
                             name="planned_start_date"
                             label="Planned Start"
                             placeholder="Not set"
                             view={true}
                         />
                         <TextInput
-                            form={form}
+                            form={formAdapter}
                             name="actual_start_date"
                             label="Actual Start"
                             placeholder="Not set"
                             view={true}
                         />
                         <TextInput
-                            form={form}
+                            form={formAdapter}
                             name="actual_end_date"
                             label="Actual End"
                             placeholder="Not set"
                             view={true}
                         />
                     </FieldGroup>
-                    {/* Parent-Child Configuration */}
+
+                    {/* Parent-Child Info */}
                     {(order.parent_id || order.child_orders_count > 0 || (order.children && order.children.length > 0)) && (
                         <>
                             <Separator />
@@ -537,7 +609,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                                                     {order.completed_child_orders_count || 0} of {order.child_orders_count || (order.children?.length || 0)} completed
                                                 </p>
                                             </div>
-                                            {/* View All button temporarily disabled - route not implemented yet */}
                                         </div>
                                         {order.auto_complete_on_children && (
                                             <Alert>
@@ -576,46 +647,37 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
 
                     {/* Progress Overview */}
                     <div className="space-y-4">
-                        <div className="">
-                            <div className="space-y-3">
-                                {/* Smart Progress */}
-                                <div className="flex items-center gap-2">
-                                    <Progress value={smartProgress} className="h-4 flex-1" />
-                                    <span className="text-sm font-medium w-12 text-right">{Math.round(smartProgress)}%</span>
-                                </div>
-
-                                {/* Last Updated */}
-                                {order.progress_calculated_at && (
-                                    <p className="text-xs text-muted-foreground mt-2">
-                                        Progress updated {new Date(order.progress_calculated_at).toLocaleString()}
-                                    </p>
-                                )}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <Progress value={smartProgress} className="h-4 flex-1" />
+                                <span className="text-sm font-medium w-12 text-right">{Math.round(smartProgress)}%</span>
                             </div>
+                            {order.progress_calculated_at && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                    Progress updated {new Date(order.progress_calculated_at).toLocaleString()}
+                                </p>
+                            )}
                         </div>
                     </div>
 
                     {/* Work Units Breakdown */}
                     {order.work_units_breakdown && (hasChildren || hasRoute) ? (
-                        <>
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold flex items-center gap-2">
-                                    Work Units Breakdown
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger>
-                                                <Info className="h-4 w-4 text-muted-foreground" />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>Each unit passing through each step counts as one work unit</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </h3>
-                                <div className="">
-                                    <WorkUnitsBreakdownDisplay breakdown={order.work_units_breakdown} />
-                                </div>
-                            </div>
-                        </>
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                                Work Units Breakdown
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Info className="h-4 w-4 text-muted-foreground" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Each unit passing through each step counts as one work unit</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </h3>
+                            <WorkUnitsBreakdownDisplay breakdown={order.work_units_breakdown} />
+                        </div>
                     ) : (
                         <Alert>
                             <Info className="h-4 w-4" />
@@ -659,7 +721,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
         ...(order.bill_of_material_id ? [
             {
                 id: 'dependencies',
-                label: 'Dependencies',
+                label: 'Dependências',
                 content: (
                     <div className="space-y-6 py-6">
                         <h3 className="text-lg font-semibold">Parent-Child Dependencies</h3>
@@ -678,14 +740,13 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                             </AlertDescription>
                         </Alert>
 
-                        {/* Release Dependencies Section */}
+                        {/* Release Dependencies */}
                         <div className="space-y-4">
                             <div>
                                 <h4 className="font-medium mb-2">Release Configuration</h4>
                                 <p className="text-sm text-muted-foreground mb-4">
                                     Configure quando a ordem pai pode ser liberada para produção.
                                 </p>
-
                                 <div className="grid grid-cols-2 gap-4">
                                     <StateButton
                                         icon={PlayCircle}
@@ -695,7 +756,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                                         onClick={() => { }}
                                         disabled={true}
                                     />
-
                                     <StateButton
                                         icon={Ban}
                                         title="Após Ordens Filhas"
@@ -710,14 +770,13 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
 
                         <Separator />
 
-                        {/* Production Dependencies Section */}
+                        {/* Production Dependencies */}
                         <div className="space-y-4">
                             <div>
                                 <h4 className="font-medium mb-2">Production Start Dependencies</h4>
                                 <p className="text-sm text-muted-foreground mb-4">
                                     Configure quando a ordem pai pode começar a ser produzida com base no progresso das ordens filhas.
                                 </p>
-
                                 <div className="grid grid-cols-2 gap-4">
                                     <StateButton
                                         icon={PlayCircle}
@@ -727,7 +786,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                                         onClick={() => { }}
                                         disabled={true}
                                     />
-
                                     <StateButton
                                         icon={Ban}
                                         title="Sem Dependências"
@@ -736,7 +794,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                                         onClick={() => { }}
                                         disabled={true}
                                     />
-
                                     <StateButton
                                         icon={TrendingUp}
                                         title="Baseado em Quantidade"
@@ -745,7 +802,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                                         onClick={() => { }}
                                         disabled={true}
                                     />
-
                                     <StateButton
                                         icon={Percent}
                                         title="Baseado em Porcentagem"
@@ -756,7 +812,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                                     />
                                 </div>
 
-                                {/* Quantity-Based Configuration */}
+                                {/* Quantity Configuration */}
                                 {order.dependency_type === 'children_quantity' && (
                                     <div className="mt-6 p-4 rounded-lg border bg-muted/50">
                                         <label className="text-sm font-medium">Quantidade Mínima Requerida</label>
@@ -769,7 +825,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                                     </div>
                                 )}
 
-                                {/* Percentage-Based Configuration */}
+                                {/* Percentage Configuration */}
                                 {order.dependency_type === 'children_percentage' && (
                                     <div className="mt-6 p-4 rounded-lg border bg-muted/50">
                                         <label className="text-sm font-medium">Porcentagem Mínima Requerida</label>
@@ -789,12 +845,10 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
 
                         <Separator />
 
-                        {/* Auto-Complete Configuration - Only show for orders with children */}
+                        {/* Auto-Complete Configuration */}
                         {(order.child_orders_count > 0 || order.bill_of_material_id) && (
                             <div className="space-y-4">
                                 <h4 className="font-medium mb-3">Conclusão da Ordem</h4>
-
-                                {/* Show current configuration */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <StateButton
                                         icon={Check}
@@ -816,7 +870,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                                     />
                                 </div>
 
-                                {/* Show info about routing override */}
                                 {order.has_route && order.manufacturing_route?.steps && order.manufacturing_route.steps.length > 0 && (
                                     <Alert className="mt-4">
                                         <Info className="h-4 w-4" />
@@ -826,7 +879,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                                     </Alert>
                                 )}
 
-                                {/* Show warning about future routing */}
                                 {!order.has_route && order.auto_complete_on_children === true && (
                                     <Alert className="mt-4">
                                         <Info className="h-4 w-4" />
@@ -838,7 +890,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                             </div>
                         )}
 
-                        {/* For orders without children (non-BOM), show completion info */}
                         {order.child_orders_count === 0 && !order.bill_of_material_id && (
                             <div className="space-y-4">
                                 <h4 className="font-medium mb-3">Conclusão da Ordem</h4>
@@ -858,7 +909,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
             id: 'children',
             label: 'Child Orders',
             content: (
-                /* Show current order as root of the tree */
                 <ManufacturingOrderHierarchicalView
                     orders={[{
                         ...order,
@@ -866,7 +916,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                     } as ManufacturingOrderTreeNode]}
                     showActions={false}
                     routeTemplates={templates}
-                    canManageRoutes={canManageRoutes}
                 />
             )
         }] : []),
@@ -876,8 +925,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
             fullWidth: true,
             content: (
                 <div className="space-y-4">
-                    {/* Route header with actions */}
-                    {order.manufacturing_route && order.manufacturing_route.steps?.length > 0 && (
+                    {order.manufacturing_route && order.manufacturing_route.steps && order.manufacturing_route.steps.length > 0 && (
                         <div className="flex justify-between items-center">
                             <div>
                                 <h3 className="text-lg font-semibold">{order.manufacturing_route.name}</h3>
@@ -898,12 +946,10 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                         </div>
                     )}
 
-                    {/* Direct execution for routes without steps */}
-                    {order.has_route && (!order.manufacturing_route?.steps || order.manufacturing_route.steps.length === 0) && (
+                    {order.has_route && (!order.manufacturing_route?.steps || !order.manufacturing_route.steps.length) && (
                         <DirectExecution order={order} />
                     )}
 
-                    {/* Normal route tab for routes with steps */}
                     {(!order.has_route || (order.manufacturing_route?.steps && order.manufacturing_route.steps.length > 0)) && (
                         <ManufacturingOrderRouteTab
                             order={order}
@@ -965,6 +1011,8 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
             )
         }
     ];
+
+    // Subtitle
     const subtitle = (
         <>
             <span>{order.item?.name || 'Manufacturing Order'}</span>
@@ -975,10 +1023,8 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
             </Badge>
         </>
     );
-    // Check if order has a route - using the already declared hasRoute variable
-    const shouldShowRelease = ['draft', 'planned', 'scheduled'].includes(order.status);
 
-    // Additional actions for the header
+    // Header actions
     const headerActions = (
         <TooltipProvider>
             <div className="flex gap-2">
@@ -992,7 +1038,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                     {generatingQr ? 'Gerando...' : 'Gerar QR'}
                 </Button>
 
-                {/* Plan button - only for draft orders with routes */}
                 {order.status === 'draft' && canPlan && hasRoute && (
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -1012,7 +1057,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                     </Tooltip>
                 )}
 
-                {/* Schedule button - only for planned orders */}
                 {order.status === 'planned' && canSchedule && (
                     <Button
                         onClick={handleSchedule}
@@ -1023,7 +1067,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                     </Button>
                 )}
 
-                {/* Release button - for draft or scheduled orders */}
                 {shouldShowRelease && canRelease && (
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -1043,7 +1086,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                     </Tooltip>
                 )}
 
-                {/* Start Production button - for released orders */}
                 {order.status === 'released' && canStart && (
                     <Button
                         onClick={handleStart}
@@ -1054,7 +1096,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                     </Button>
                 )}
 
-                {/* Hold button - for in progress orders */}
                 {order.status === 'in_progress' && canHold && (
                     <Button
                         onClick={handleHold}
@@ -1065,7 +1106,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                     </Button>
                 )}
 
-                {/* Resume button - for on hold orders */}
                 {order.status === 'on_hold' && canResume && (
                     <Button
                         onClick={handleResume}
@@ -1076,7 +1116,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                     </Button>
                 )}
 
-                {/* Cancel button - available for most states */}
                 {canCancel && (
                     <Button variant="destructive" onClick={handleCancel}>
                         <XCircle className="h-4 w-4 mr-2" />
@@ -1086,6 +1125,7 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
             </div>
         </TooltipProvider>
     );
+
     return (
         <>
             <AppLayout breadcrumbs={breadcrumbs}>
@@ -1100,7 +1140,6 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
                 />
             </AppLayout>
 
-            {/* Production Reporting Dialog */}
             <ReportProductionDialog
                 order={order}
                 open={reportProductionOpen}
@@ -1116,4 +1155,4 @@ export default function ShowManufacturingOrder({ order, canPlan = false, canSche
             )}
         </>
     );
-} 
+}

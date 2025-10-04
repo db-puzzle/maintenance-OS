@@ -43,6 +43,7 @@ import { ImageWithBlurEffect } from '@/components/production/ImageWithBlurEffect
 import { GenericHierarchicalTreeView, GenericTreeNode, NodeRenderProps } from './shared/GenericHierarchicalTreeView';
 import { HierarchicalViewHeader } from './shared/HierarchicalViewHeader';
 import { useTreeExpansion } from './shared/useTreeExpansion';
+import { formatNumber } from '@/utils/number';
 
 // Extend BomItem with tree structure
 interface BomTreeNode extends GenericTreeNode {
@@ -448,7 +449,7 @@ export default function BomHierarchicalView({
                     {/* Item details */}
                     <div className={cn(
                         "flex-grow grid gap-2 items-center",
-                        showImages ? "grid-cols-[60px_1fr_1fr_80px_100px_80px]" : "grid-cols-12"
+                        showImages ? "grid-cols-[60px_1fr_1fr_1fr_1fr_80px_100px_80px]" : "grid-cols-[repeat(14,1fr)]"
                     )}>
                         {showImages && (
                             <div className="flex items-center justify-center">
@@ -487,7 +488,7 @@ export default function BomHierarchicalView({
                                                     </p>
                                                     {node.quantity && (
                                                         <p className="text-xs text-muted-foreground mt-2 select-none">
-                                                            Quantidade: <span className="font-medium">{node.quantity} {node.unit_of_measure}</span>
+                                                            Quantidade: <span className="font-medium">{formatNumber(node.quantity)} {node.unit_of_measure}</span>
                                                         </p>
                                                     )}
                                                     {node.item.media && node.item.media.length > 1 && (
@@ -510,26 +511,54 @@ export default function BomHierarchicalView({
                             "font-medium",
                             !showImages && "col-span-3"
                         )}>
-                            <div className="text-sm">{node.item.item_number}</div>
+                            <div
+                                className="text-sm text-primary hover:underline cursor-pointer"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.visit(route('production.items.show', node.item.id));
+                                }}
+                            >
+                                {node.item.item_number}
+                            </div>
                             {node.reference_designators && (
                                 <div className="text-xs text-muted-foreground">Ref: {node.reference_designators}</div>
                             )}
                         </div>
                         <div className={cn(
                             "text-foreground text-sm",
-                            !showImages && "col-span-4"
+                            !showImages && "col-span-3"
                         )}>
                             {node.item.name}
                         </div>
                         <div className={cn(
-                            "text-center text-sm text-foreground",
-                            !showImages && "col-span-1"
+                            "text-sm text-foreground",
+                            !showImages && "col-span-2"
                         )}>
-                            {node.quantity}
+                            {(() => {
+                                const item = node.item;
+                                if (item.is_phantom) return 'Phantom';
+                                if (item.can_be_manufactured && item.can_be_purchased) return 'Manufactured/Purchased';
+                                if (item.can_be_manufactured) return 'Manufactured';
+                                if (item.can_be_purchased) return 'Purchased';
+                                if (item.status === 'discontinued') return 'Discontinued';
+                                return 'Service';
+                            })()}
                         </div>
                         <div className={cn(
-                            "text-center text-sm text-foreground",
+                            "text-sm text-foreground",
                             !showImages && "col-span-2"
+                        )}>
+                            {node.item.category?.name || '-'}
+                        </div>
+                        <div className={cn(
+                            "text-right text-sm text-foreground",
+                            !showImages && "col-span-1"
+                        )}>
+                            {formatNumber(node.quantity)}
+                        </div>
+                        <div className={cn(
+                            "text-left text-sm text-foreground",
+                            !showImages && "col-span-1"
                         )}>
                             {node.unit_of_measure}
                         </div>
@@ -579,14 +608,16 @@ export default function BomHierarchicalView({
     const headerColumns = (
         <div className={cn(
             "bg-muted/50 p-3 rounded-lg grid gap-2 font-semibold text-sm mb-2",
-            showImages ? "grid-cols-[60px_1fr_1fr_80px_100px_80px]" : "grid-cols-12"
+            showImages ? "grid-cols-[60px_1fr_1fr_1fr_1fr_80px_100px_80px]" : "grid-cols-[repeat(14,1fr)]"
         )}>
             {showImages && <div className="text-center">Imagem</div>}
             <div className={showImages ? "" : "col-span-3"}>Código do Item</div>
-            <div className={showImages ? "" : "col-span-4"}>Descrição</div>
-            <div className="text-center">Qtd</div>
-            <div className="text-center">Unidade</div>
-            <div className="text-right">Ações</div>
+            <div className={cn("text-left ml-10", showImages ? "" : "col-span-3")}>Descrição</div>
+            <div className={cn("text-left ml-6", showImages ? "" : "col-span-2")}>Tipo</div>
+            <div className={cn("text-left ml-6", showImages ? "" : "col-span-2")}>Categoria</div>
+            <div className="text-right">Qtd</div>
+            <div className="text-left">Unidade</div>
+            <div className={cn("text-right", !showImages && "col-span-2")}>Ações</div>
         </div>
     );
 

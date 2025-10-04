@@ -3,8 +3,8 @@
 namespace App\Services\Production;
 
 use App\Models\Production\BillOfMaterial;
-use App\Models\Production\BomVersion;
 use App\Models\Production\BomItem;
+use App\Models\Production\BomVersion;
 use App\Models\Production\Item;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -13,11 +13,9 @@ use Illuminate\Support\Str;
 
 class BomImportService
 {
-    protected QrCodeGenerationService $qrCodeService;
-
-    public function __construct(QrCodeGenerationService $qrCodeService)
+    public function __construct()
     {
-        $this->qrCodeService = $qrCodeService;
+        // QR code generation removed - only needed for Item and ManufacturingOrder entities
     }
 
     /**
@@ -30,12 +28,12 @@ class BomImportService
             $this->validateInventorData($data);
 
             // Ensure output_item_id is provided
-            if (!isset($data['output_item_id'])) {
+            if (! isset($data['output_item_id'])) {
                 throw new \Exception('Output item ID is required for BOM creation');
             }
 
             $outputItem = Item::findOrFail($data['output_item_id']);
-            if (!$outputItem->can_be_manufactured) {
+            if (! $outputItem->can_be_manufactured) {
                 throw new \Exception('Selected item cannot be manufactured');
             }
 
@@ -92,18 +90,18 @@ class BomImportService
 
             // Find output item - it's the root item (first item with no parent)
             $outputItem = null;
-            if (!empty($data['items'])) {
+            if (! empty($data['items'])) {
                 $firstItem = $data['items'][0] ?? null;
                 if ($firstItem && isset($firstItem['item_number'])) {
                     $outputItem = Item::where('item_number', $firstItem['item_number'])->first();
                 }
             }
 
-            if (!$outputItem) {
+            if (! $outputItem) {
                 throw new \Exception('Could not determine output item from JSON. Ensure the root item exists in the system.');
             }
 
-            if (!$outputItem->can_be_manufactured) {
+            if (! $outputItem->can_be_manufactured) {
                 throw new \Exception('The root item cannot be manufactured');
             }
 
@@ -138,12 +136,9 @@ class BomImportService
             ]);
 
             // Process items recursively
-            if (!empty($data['items'][0]['children'])) {
+            if (! empty($data['items'][0]['children'])) {
                 $this->processNativeJsonItems($version, $data['items'][0]['children'], $rootBomItem, 1);
             }
-
-            // Generate QR codes for all items
-            $this->generateQrCodesForVersion($version);
 
             return $bom->fresh(['currentVersion.items']);
         });
@@ -159,8 +154,8 @@ class BomImportService
         foreach ($items as $itemData) {
             // Find or create the item
             $item = Item::where('item_number', $itemData['item_number'])->first();
-            
-            if (!$item) {
+
+            if (! $item) {
                 $item = Item::create([
                     'item_number' => $itemData['item_number'],
                     'name' => $itemData['item_name'] ?? $itemData['item_number'],
@@ -183,7 +178,7 @@ class BomImportService
             ]);
 
             // Process children if exist
-            if (!empty($itemData['children'])) {
+            if (! empty($itemData['children'])) {
                 $sequenceNumber = $this->processNativeJsonItems($version, $itemData['children'], $bomItem, $level + 1, $sequenceNumber);
             }
         }
@@ -199,7 +194,7 @@ class BomImportService
         return DB::transaction(function () use ($file, $mapping, $bomInfo) {
             // Parse CSV
             $data = $this->parseCsvFile($file);
-            
+
             // Validate CSV data
             $this->validateCsvData($data, $mapping);
 
@@ -212,9 +207,9 @@ class BomImportService
             // The output item is typically the top-level item (level 0 or no parent)
             $outputItem = null;
             foreach ($data as $row) {
-                $level = isset($mapping['level']) && isset($row[$mapping['level']]) ? (int)$row[$mapping['level']] : null;
+                $level = isset($mapping['level']) && isset($row[$mapping['level']]) ? (int) $row[$mapping['level']] : null;
                 $parent = isset($mapping['parent']) && isset($row[$mapping['parent']]) ? $row[$mapping['parent']] : null;
-                
+
                 if ($level === 0 || empty($parent)) {
                     $itemNumber = $row[$mapping['item_number']] ?? null;
                     if ($itemNumber) {
@@ -224,11 +219,11 @@ class BomImportService
                 }
             }
 
-            if (!$outputItem) {
+            if (! $outputItem) {
                 throw new \Exception('Could not determine output item from CSV. Ensure there is a top-level item (level 0 or no parent).');
             }
 
-            if (!$outputItem->can_be_manufactured) {
+            if (! $outputItem->can_be_manufactured) {
                 throw new \Exception('Selected item cannot be manufactured');
             }
 
@@ -268,9 +263,6 @@ class BomImportService
             // Process hierarchy - all items become children of root
             $this->processHierarchyItems($version, $hierarchy['items'], $rootBomItem, 1);
 
-            // Generate QR codes for all items
-            $this->generateQrCodesForVersion($version);
-
             return $bom->fresh(['currentVersion.items']);
         });
     }
@@ -287,15 +279,15 @@ class BomImportService
         foreach ($items as $index => $itemData) {
             // Find or create the item in the items table
             $item = Item::where('item_number', $itemData['item_number'])->first();
-            
-            if (!$item) {
+
+            if (! $item) {
                 // Create new item if it doesn't exist
                 $item = Item::create([
                     'item_number' => $itemData['item_number'],
                     'name' => $itemData['name'],
                     'description' => $itemData['description'] ?? null,
-                    'can_be_manufactured' => isset($itemData['children']) && !empty($itemData['children']),
-                    'can_be_purchased' => !isset($itemData['children']) || empty($itemData['children']),
+                    'can_be_manufactured' => isset($itemData['children']) && ! empty($itemData['children']),
+                    'can_be_purchased' => ! isset($itemData['children']) || empty($itemData['children']),
                     'is_active' => true,
                     'unit_of_measure' => $itemData['unit_of_measure'] ?? 'EA',
                     'weight' => $itemData['weight'] ?? null,
@@ -306,7 +298,7 @@ class BomImportService
 
             // Import thumbnail to S3 if provided
             $thumbnailPath = null;
-            if (!empty($itemData['thumbnail'])) {
+            if (! empty($itemData['thumbnail'])) {
                 $thumbnailPath = $this->importThumbnail($itemData['thumbnail'], $itemData['item_number']);
             }
 
@@ -328,7 +320,7 @@ class BomImportService
             ]);
 
             // Process children recursively
-            if (!empty($itemData['children'])) {
+            if (! empty($itemData['children'])) {
                 $this->processInventorItems($version, $itemData['children'], $bomItem, $level + 1);
             }
         }
@@ -353,6 +345,7 @@ class BomImportService
         }
 
         fclose($handle);
+
         return $data;
     }
 
@@ -373,7 +366,7 @@ class BomImportService
         foreach ($flatData as $row) {
             $level = (int) ($row[$mapping['level'] ?? 'level'] ?? 0);
             $itemNumber = $row[$mapping['item_number'] ?? 'item_number'];
-            
+
             $item = [
                 'item_number' => $itemNumber,
                 'name' => $row[$mapping['name'] ?? 'name'],
@@ -415,15 +408,15 @@ class BomImportService
         foreach ($items as $index => $itemData) {
             // Find or create the item in the items table
             $item = Item::where('item_number', $itemData['item_number'])->first();
-            
-            if (!$item) {
+
+            if (! $item) {
                 // Create new item if it doesn't exist
                 $item = Item::create([
                     'item_number' => $itemData['item_number'],
                     'name' => $itemData['name'],
                     'description' => $itemData['description'] ?? null,
-                    'can_be_manufactured' => isset($itemData['children']) && !empty($itemData['children']),
-                    'can_be_purchased' => !isset($itemData['children']) || empty($itemData['children']),
+                    'can_be_manufactured' => isset($itemData['children']) && ! empty($itemData['children']),
+                    'can_be_purchased' => ! isset($itemData['children']) || empty($itemData['children']),
                     'is_active' => true,
                     'unit_of_measure' => $itemData['unit_of_measure'] ?? 'EA',
                     'created_by' => auth()->id(),
@@ -441,7 +434,7 @@ class BomImportService
             ]);
 
             // Process children recursively
-            if (!empty($itemData['children'])) {
+            if (! empty($itemData['children'])) {
                 $this->processHierarchyItems($version, $itemData['children'], $bomItem, $level + 1);
             }
         }
@@ -481,7 +474,7 @@ class BomImportService
      */
     protected function determineItemType(array $data): string
     {
-        if (!empty($data['children'])) {
+        if (! empty($data['children'])) {
             return 'assembly';
         }
 
@@ -491,7 +484,7 @@ class BomImportService
 
         // Default logic based on item number pattern
         $itemNumber = $data['item_number'] ?? '';
-        
+
         if (preg_match('/^ASM-/', $itemNumber)) {
             return 'assembly';
         } elseif (preg_match('/^SUB-/', $itemNumber)) {
@@ -504,47 +497,21 @@ class BomImportService
     /**
      * Generate QR codes for all items in a version.
      */
-    protected function generateQrCodesForVersion(BomVersion $version): void
-    {
-        try {
-            // Check if S3 is configured
-            $s3Config = config('filesystems.disks.s3');
-            if (!$s3Config || empty($s3Config['key']) || empty($s3Config['secret'])) {
-                \Log::info('S3 not configured, skipping QR code generation during import');
-                return;
-            }
-
-            foreach ($version->items as $item) {
-                try {
-                    $this->qrCodeService->generateForBomItem($item);
-                } catch (\Exception $e) {
-                    \Log::warning("Failed to generate QR code for BOM item {$item->id}: " . $e->getMessage());
-                    // Continue with other items
-                }
-            }
-        } catch (\Exception $e) {
-            \Log::warning('Failed to generate QR codes during BOM import: ' . $e->getMessage());
-            // Don't fail the import due to QR code generation issues
-        }
-    }
-
-
-
     /**
      * Validate Inventor data structure.
      */
     protected function validateInventorData(array $data): void
     {
         $required = ['name', 'items'];
-        
+
         foreach ($required as $field) {
             if (empty($data[$field])) {
                 throw new \InvalidArgumentException("Field '{$field}' is required in Inventor data.");
             }
         }
 
-        if (!is_array($data['items']) || count($data['items']) === 0) {
-            throw new \InvalidArgumentException("BOM must contain at least one item.");
+        if (! is_array($data['items']) || count($data['items']) === 0) {
+            throw new \InvalidArgumentException('BOM must contain at least one item.');
         }
     }
 
@@ -554,15 +521,15 @@ class BomImportService
     protected function validateCsvData(array $data, array $mapping): void
     {
         if (empty($data)) {
-            throw new \InvalidArgumentException("CSV file is empty.");
+            throw new \InvalidArgumentException('CSV file is empty.');
         }
 
         $requiredFields = ['item_number', 'name'];
-        
+
         foreach ($requiredFields as $field) {
             $mappedField = $mapping[$field] ?? $field;
-            
-            if (!isset($data[0][$mappedField])) {
+
+            if (! isset($data[0][$mappedField])) {
                 throw new \InvalidArgumentException("Required field '{$field}' not found in CSV.");
             }
         }

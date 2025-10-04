@@ -40,8 +40,6 @@ class BomItemFactory extends Factory
                 'step1' => fake()->sentence(),
                 'step2' => fake()->sentence(),
             ] : null,
-            'qr_code' => null, // Will be generated when needed
-            'qr_generated_at' => null,
         ];
     }
 
@@ -107,15 +105,4 @@ class BomItemFactory extends Factory
             'sequence_number' => $sequence,
         ]);
     }
-
-    /**
-     * Generate a QR code for this item.
-     */
-    public function withQrCode(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'qr_code' => 'QR-' . strtoupper(fake()->unique()->bothify('????####')),
-            'qr_generated_at' => now(),
-        ]);
-    }
-} 
+}

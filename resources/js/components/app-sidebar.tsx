@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { ChartGantt, ClipboardList, LayoutGrid, Award, Factory, FileBox, UsersRound, Building2, Forklift, SquarePen } from 'lucide-react';
+import { ChartGantt, LayoutGrid, Factory, UsersRound, Building2, SquarePen } from 'lucide-react';
 import AppLogo from './app-logo';
 interface NavGroup {
     title: string;
@@ -64,10 +64,6 @@ const gerenciamentoNavItems: NavGroup = {
                 },
                 {
                     title: 'Programação',
-                    href: '/production/scheduler',
-                },
-                {
-                    title: 'Programação 2',
                     href: '/production/scheduler/v2',
                 },
             ],

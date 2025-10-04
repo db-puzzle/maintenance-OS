@@ -6,6 +6,7 @@ import { ManufacturingOrder, WorkCell } from '@/types/production';
 import { ScheduleVersion, ProductionSchedule, ScheduleAlert } from '@/types/scheduler';
 import { ScrollSyncProvider } from '@/components/production/scheduler-v2/contexts/ScrollSyncContext';
 import { ProductionScheduler } from '@/components/production/scheduler-v2/ProductionScheduler';
+import { formatNumber } from '@/utils/number';
 
 interface Props extends PageProps {
     currentVersion: ScheduleVersion;
@@ -38,7 +39,7 @@ interface Props extends PageProps {
 }
 
 export default function SchedulerV2Index({
-    auth,
+    auth: _auth,
     currentVersion,
     publishedVersion,
     orders,
@@ -50,11 +51,11 @@ export default function SchedulerV2Index({
     schedulingAlgorithms,
 }: Props) {
     const [schedules, setSchedules] = useState(initialSchedules);
-    const [alerts, setAlerts] = useState(initialAlerts);
-    const [alertStats, setAlertStats] = useState(initialAlertStats);
+    const [alerts] = useState(initialAlerts);
+    const [alertStats] = useState(initialAlertStats);
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Production', href: '/production/orders' },
+        { title: 'Home', href: '/home' },
         { title: 'Scheduler v2', href: '' },
     ];
 
@@ -65,8 +66,10 @@ export default function SchedulerV2Index({
 
         schedules.forEach(schedule => {
             const step = schedule.manufacturing_step;
-            const route = step.manufacturing_route;
-            const orderId = route.manufacturing_order_id;
+            const route = step?.manufacturing_route;
+            const orderId = route?.manufacturing_order_id;
+
+            if (!orderId || !step) return;
 
             if (!orderStepsMap.has(orderId)) {
                 orderStepsMap.set(orderId, []);
@@ -75,7 +78,7 @@ export default function SchedulerV2Index({
             orderStepsMap.get(orderId)!.push({
                 id: schedule.id,
                 manufacturing_step_id: step.id,
-                sequence_number: step.step_number,
+                sequence_number: (step as any).step_number || 0,
                 name: step.name,
                 description: step.description,
                 work_cell_id: schedule.work_cell_id,
@@ -84,16 +87,16 @@ export default function SchedulerV2Index({
                 // Scheduling fields
                 planned_start_date: schedule.scheduled_start,
                 planned_end_date: schedule.scheduled_end,
-                actual_start_date: step.actual_start_date,
-                actual_end_date: step.actual_end_date,
-                duration_hours: step.estimated_duration,
-                setup_time_hours: step.setup_time,
+                actual_start_date: (step as any).actual_start_date,
+                actual_end_date: (step as any).actual_end_date,
+                duration_hours: (step as any).estimated_duration || 0,
+                setup_time_hours: (step as any).setup_time || 0,
 
                 // Progress tracking
                 status: step.status,
-                percent_complete: step.progress_percentage || 0,
-                quantity_completed: step.quantity_completed || 0,
-                quantity_remaining: step.quantity_remaining || 0,
+                percent_complete: (step as any).progress_percentage || 0,
+                quantity_completed: formatNumber((step as any).quantity_completed || 0),
+                quantity_remaining: formatNumber((step as any).quantity_remaining || 0),
 
                 // Hierarchy
                 parent_step_id: null, // Will be set based on BOM structure if needed
@@ -102,12 +105,12 @@ export default function SchedulerV2Index({
                 expanded: true,
 
                 // Manufacturing specifics
-                operation_type: step.step_type || 'production',
+                operation_type: (step as any).step_type || 'production',
                 required_resources: [],
 
                 // Dependencies
-                predecessors: step.dependencies?.map((d: any) => d.predecessor_step_id) || [],
-                successors: step.dependents?.map((d: any) => d.dependent_step_id) || [],
+                predecessors: (step as any).dependencies?.map((d: any) => d.predecessor_step_id) || [],
+                successors: (step as any).dependents?.map((d: any) => d.dependent_step_id) || [],
 
                 // UI helpers
                 can_start: step.status !== 'pending',
@@ -132,10 +135,10 @@ export default function SchedulerV2Index({
                 status: order.status,
                 priority: order.priority,
                 requested_date: order.requested_date,
-                quantity: order.quantity,
+                quantity: formatNumber(order.quantity),
                 unit_of_measure: order.unit_of_measure,
-                parent_order_id: order.parent_order_id,
-                children: [], // Will be populated based on parent_order_id relationships
+                parent_order_id: (order as any).parent_order_id,
+                children: [] as any[], // Will be populated based on parent_order_id relationships
                 steps: orderSteps,
                 expanded: true,
                 level: 0,
@@ -145,26 +148,26 @@ export default function SchedulerV2Index({
         // Build parent-child relationships
         const orderMap = new Map(transformedOrders.map(o => [o.id, o]));
         transformedOrders.forEach(order => {
-            if (order.parent_order_id) {
-                const parent = orderMap.get(order.parent_order_id);
+            if ((order as any).parent_order_id) {
+                const parent = orderMap.get((order as any).parent_order_id);
                 if (parent) {
-                    parent.children.push(order);
+                    parent.children.push(order as any);
                     order.level = parent.level + 1;
                 }
             }
         });
 
         // Filter out child orders from root level
-        const rootOrders = transformedOrders.filter(o => !o.parent_order_id);
+        const rootOrders = transformedOrders.filter(o => !(o as any).parent_order_id);
 
         return {
             orders: rootOrders,
             workCells: workCells.map(wc => ({
                 ...wc,
-                scheduled_steps: orderStepsMap.values()
+                scheduled_steps: Array.from(orderStepsMap.values())
                     .flat()
-                    .filter(step => step.work_cell_id === wc.id)
-                    .map(step => ({
+                    .filter((step: any) => step.work_cell_id === wc.id)
+                    .map((step: any) => ({
                         step_id: step.id,
                         start_time: step.planned_start_date,
                         end_time: step.planned_end_date,

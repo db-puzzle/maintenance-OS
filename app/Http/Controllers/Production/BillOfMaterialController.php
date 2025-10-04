@@ -172,7 +172,7 @@ class BillOfMaterialController extends BaseSearchController
         if ($bom->currentVersion) {
             // First, get all BOM items for the current version
             $allBomItems = BomItem::where('bom_version_id', $bom->currentVersion->id)
-                ->with(['item']) // Load item relationship without media for now
+                ->with(['item.category']) // Load item relationship with category
                 ->orderBy('level')
                 ->orderBy('sequence_number')
                 ->get();

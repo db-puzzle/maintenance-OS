@@ -43,6 +43,14 @@ import { PageProps, BreadcrumbItem } from '@/types';
 import { ManufacturingOrder, WorkCell } from '@/types/production';
 import { ManufacturingOrderTreeNode } from '@/components/production/ManufacturingOrderHierarchicalView';
 import { cn } from '@/lib/utils';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 type DetailViewMode = 'route' | 'work-cell' | 'bulk';
 
@@ -237,6 +245,9 @@ export default function PlanningPage({
         type: 'mo-switch',
     });
 
+    // Dialog state for unsaved changes warning
+    const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
+
 
     // Use keyboard shortcuts hook
     usePlanningKeyboardShortcuts({
@@ -348,20 +359,19 @@ export default function PlanningPage({
     // Handle marking as planned/draft
     const handleToggleStatus = useCallback(() => {
         if (selectedMOs.size === 0) {
-            toast.error('Please select manufacturing orders to change status.');
+            toast.error('Por favor, selecione ordens de fabricação para alterar o status.');
+            return;
+        }
+
+        // Check for unsaved changes before allowing status transition
+        if (hasUnsavedChanges) {
+            setShowUnsavedChangesDialog(true);
             return;
         }
 
         // Determine target state based on current active MO status
         const targetState = activeMODetails?.status === 'planned' ? 'draft' : 'planned';
-        const actionText = targetState === 'planned' ? 'marked as planned' : 'reverted to draft';
-
-        // Store current selection and active MO before the request
-        const currentSelectedMOs = new Set(selectedMOs);
-        const currentActiveMO = activeMO;
-
-        // Allow navigation for this request
-        allowNavigation();
+        const actionText = targetState === 'planned' ? 'marcada como planejada' : 'revertida para rascunho';
 
         PlanningService.bulkTransition(
             {
@@ -370,23 +380,26 @@ export default function PlanningPage({
             },
             {
                 onSuccess: () => {
-                    toast.success(`${selectedMOs.size} manufacturing order${selectedMOs.size > 1 ? 's have' : ' has'} been ${actionText}.`);
+                    toast.success(`${selectedMOs.size} ordem${selectedMOs.size > 1 ? 's de fabricação foram' : ' de fabricação foi'} ${actionText}.`);
 
-                    // Restore selection after the update
-                    setSelectedMOs(currentSelectedMOs);
-                    setActiveMO(currentActiveMO);
+                    // Trigger a reload of the data while preserving state
+                    PlanningService.reloadData({
+                        only: ['manufacturingOrders'],
+                        preserveState: true,
+                        preserveScroll: true,
+                    });
                 },
                 onError: () => {
-                    // Handle error silently
+                    toast.error('Falha ao atualizar o status da ordem de fabricação.');
                 },
-                preserveState: false,
-                userSelection: Array.from(currentSelectedMOs),
-                activeMO: currentActiveMO,
+                preserveState: true,
+                userSelection: Array.from(selectedMOs),
+                activeMO: activeMO,
                 sortField: sortField,
                 sortDirection: sortDirection
             }
         );
-    }, [selectedMOs, activeMODetails, activeMO, allowNavigation]);
+    }, [selectedMOs, activeMODetails, activeMO, sortField, sortDirection, hasUnsavedChanges]);
 
     // Handle MO selection from modal
     const handleModalMOSelect = useCallback((orderIds: number[]) => {
@@ -420,7 +433,7 @@ export default function PlanningPage({
             <Head title="Planejar" />
 
             <div className={cn(
-                "flex flex-col transition-all duration-200",
+                "flex flex-col transition-all duration-200 overflow-hidden",
                 isCompressed ? "h-[calc(100vh-3rem)]" : "h-screen"
             )}>
 
@@ -661,7 +674,7 @@ export default function PlanningPage({
                             <div className="flex-1 overflow-hidden flex flex-col">
                                 {/* Route Builder */}
                                 {detailViewMode === 'route' && activeMODetails && (
-                                    <div className="flex-1">
+                                    <div className="flex-1 min-h-0">
                                         <RouteBuilder
                                             manufacturingOrder={activeMODetails}
                                             workCells={workCells}
@@ -811,6 +824,35 @@ export default function PlanningPage({
                     }}
                 />
             )}
+
+            {/* Unsaved Changes Dialog */}
+            <Dialog open={showUnsavedChangesDialog} onOpenChange={setShowUnsavedChangesDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Alterações não salvas</DialogTitle>
+                        <DialogDescription>
+                            Você possui alterações não salvas nesta tela.
+                            <p>Para marcar ordens como planejadas, você precisa primeiro:</p>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 py-4">
+                        <p className="text-sm">
+                            <strong>A.</strong> Salvar suas alterações, ou
+                        </p>
+                        <p className="text-sm">
+                            <strong>B.</strong> Descartar suas alterações.
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="default"
+                            onClick={() => setShowUnsavedChangesDialog(false)}
+                        >
+                            Entendi
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

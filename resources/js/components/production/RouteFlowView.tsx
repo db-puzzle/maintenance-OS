@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { StepCard } from './StepCard';
 import { GateCard, GateConfiguration } from './GateCard';
 import { ParentMOContinuationCard } from './ParentMOContinuationCard';
@@ -29,7 +28,7 @@ interface RouteFlowViewProps {
     onGateSelect: (gateId: string) => void;
     onStepAdd: () => void;
     onStepDelete: (step: ExtendedManufacturingStep) => void;
-    onStepUpdate: (stepId: number, updates: Partial<ExtendedManufacturingStep>) => void;
+    onStepUpdate?: (stepId: number, updates: Partial<ExtendedManufacturingStep>) => void;
     onGateUpdate: (stepId: number, gate: GateConfiguration) => void;
     canEdit: boolean;
     viewMode?: boolean;
@@ -46,7 +45,7 @@ export default function RouteFlowView({
     onGateSelect,
     onStepAdd,
     onStepDelete,
-    onStepUpdate,
+    onStepUpdate: _onStepUpdate,
     onGateUpdate,
     canEdit,
     viewMode = false,
@@ -86,10 +85,7 @@ export default function RouteFlowView({
         }
     }, [onGateSelect, viewMode]);
 
-    // Handle gate update
-    const handleGateChange = useCallback((stepId: number, gate: GateConfiguration) => {
-        onGateUpdate(stepId, gate);
-    }, [onGateUpdate]);
+    // Handle gate update is passed directly to components
 
     // Handle background click to deselect
     const handleBackgroundClick = useCallback(() => {
@@ -111,7 +107,10 @@ export default function RouteFlowView({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={onStepAdd}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onStepAdd();
+                            }}
                             className="h-8"
                         >
                             <Plus className="h-4 w-4 mr-1" />
@@ -122,11 +121,19 @@ export default function RouteFlowView({
             </div>
 
             {/* Flow View */}
-            <ScrollArea
-                className="flex-1 overflow-y-auto"
+            <div
+                className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-corner]:bg-transparent"
                 onClick={handleBackgroundClick}
             >
-                <div className="p-8 pb-24 min-h-full">
+                <div
+                    className="p-8 pb-24"
+                    onClick={(e) => {
+                        // Only trigger background click if clicking directly on this div
+                        if (e.target === e.currentTarget) {
+                            handleBackgroundClick();
+                        }
+                    }}
+                >
                     {steps.length === 0 ? (
                         parentMO && onParentMOClick ? (
                             // Empty route with parent MO - show direct flow
@@ -141,7 +148,10 @@ export default function RouteFlowView({
                                     {canEdit && !viewMode && (
                                         <Button
                                             variant="outline"
-                                            onClick={onStepAdd}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onStepAdd();
+                                            }}
                                             className="relative z-10 bg-background"
                                         >
                                             <Plus className="h-4 w-4 mr-2" />
@@ -167,7 +177,10 @@ export default function RouteFlowView({
                                     {canEdit && !viewMode && (
                                         <Button
                                             variant="outline"
-                                            onClick={onStepAdd}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onStepAdd();
+                                            }}
                                         >
                                             <Plus className="h-4 w-4 mr-2" />
                                             Criar Primeira Etapa
@@ -229,7 +242,7 @@ export default function RouteFlowView({
                         </div>
                     )}
                 </div>
-            </ScrollArea>
+            </div>
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

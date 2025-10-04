@@ -106,15 +106,15 @@ export default function ItemImport({ supportedFormats }: Props) {
             <Head title="Importar Itens" />
 
             <div className="relative flex h-[calc(100vh-3rem)] flex-col">
-                <div className="bg-white border-b px-6 py-4 flex-shrink-0">
-                    <h1 className="text-2xl font-bold text-gray-900">Importar Itens</h1>
-                    <p className="mt-1 text-sm text-gray-600">
+                <div className="bg-background border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex-shrink-0">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Importar Itens</h1>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                         Importe múltiplos itens a partir de arquivos CSV ou JSON
                     </p>
                 </div>
 
                 {/* Progress Indicator */}
-                <div className="bg-white px-6 py-4 border-b flex-shrink-0 overflow-x-auto">
+                <div className="bg-background px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 overflow-x-auto">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full min-w-0">
                         {steps.map((step, index) => {
                             const isActive = step.id === currentStep;
@@ -132,7 +132,7 @@ export default function ItemImport({ supportedFormats }: Props) {
                                                 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0',
                                                 {
                                                     'bg-primary text-white': isActive || isCompleted,
-                                                    'bg-gray-200 text-gray-600': !isActive && !isCompleted,
+                                                    'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400': !isActive && !isCompleted,
                                                 }
                                             )}
                                         >
@@ -140,8 +140,8 @@ export default function ItemImport({ supportedFormats }: Props) {
                                         </div>
                                         <div className="ml-3">
                                             <p className={cn('text-sm font-medium whitespace-nowrap', {
-                                                'text-gray-900': isActive,
-                                                'text-gray-600': !isActive,
+                                                'text-gray-900 dark:text-gray-100': isActive,
+                                                'text-gray-600 dark:text-gray-400': !isActive,
                                             })}>
                                                 {step.title}
                                             </p>
@@ -150,9 +150,9 @@ export default function ItemImport({ supportedFormats }: Props) {
                                     {!isLast && (
                                         <>
                                             {/* Vertical connector for mobile */}
-                                            <div className="ml-4 h-8 w-0.5 bg-gray-200 md:hidden" />
+                                            <div className="ml-4 h-8 w-0.5 bg-gray-200 dark:bg-gray-700 md:hidden" />
                                             {/* Horizontal connector for desktop */}
-                                            <div className="hidden md:block flex-1 mx-4 h-0.5 bg-gray-200" />
+                                            <div className="hidden md:block flex-1 mx-4 h-0.5 bg-gray-200 dark:bg-gray-700" />
                                         </>
                                     )}
                                 </div>
@@ -162,7 +162,7 @@ export default function ItemImport({ supportedFormats }: Props) {
                 </div>
 
                 {/* Step Content */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-6 bg-background">
                     {currentStep === 'selection' && (
                         <FileSelectionStep
                             supportedFormats={supportedFormats}

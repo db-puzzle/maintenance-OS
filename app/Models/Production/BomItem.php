@@ -25,15 +25,12 @@ class BomItem extends Model
         'model_file_path',
         'bom_notes',
         'assembly_instructions',
-        'qr_code',
-        'qr_generated_at',
     ];
 
     protected $casts = [
         'quantity' => 'decimal:4',
         'bom_notes' => 'array',
         'assembly_instructions' => 'array',
-        'qr_generated_at' => 'datetime',
     ];
 
     /**
@@ -233,14 +230,6 @@ class BomItem extends Model
     public function scopeAtLevel($query, $level)
     {
         return $query->where('level', $level);
-    }
-
-    /**
-     * Scope for items with QR codes.
-     */
-    public function scopeWithQrCode($query)
-    {
-        return $query->whereNotNull('qr_code');
     }
 
     /**

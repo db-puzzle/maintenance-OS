@@ -279,6 +279,8 @@ export default function RouteBuilder({
         };
         setSteps(prevSteps => [...prevSteps, newStep]);
         setSelectedStep(newStep);
+        // Clear any gate selection to ensure step panel opens
+        setSelectedGateId(null);
     }, [steps.length]);
 
     // Delete step
@@ -409,14 +411,14 @@ export default function RouteBuilder({
     }, [selectedGateId, steps, canvasSteps]);
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full overflow-hidden">
 
             {/* Main Content - Flow View and Properties Panel */}
-            <div className="flex-1 flex overflow-hidden relative">
+            <div className="flex-1 flex overflow-hidden relative min-h-0">
                 {/* Flow view area with transition */}
                 <div className={cn(
-                    "flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-out",
-                    (selectedStep || selectedGateId) ? "pr-[35rem]" : "pr-0"
+                    "flex-1 flex flex-col transition-all duration-300 ease-out",
+                    (selectedStep || selectedGateId) ? "pr-[28rem]" : "pr-0"
                 )}>
                     <RouteFlowView
                         steps={canvasSteps}
