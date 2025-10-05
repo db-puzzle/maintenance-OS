@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createFormAdapter } from '@/utils/form-adapters';
 
 import { useForm } from '@inertiajs/react';
-import { AlertCircle, Clock, Copy, Plus, Table, Trash2, ChevronsUpDown, Check } from 'lucide-react';
+import { AlertCircle, Clock, Copy, Plus, Table, Trash2, ChevronsUpDown, Check, X } from 'lucide-react';
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import ShiftCalendarView from '@/components/ShiftCalendarView';
@@ -467,7 +467,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             updateSchedules(newSchedules);
         };
         const applyToSelectedDays = () => {
-
             const sourceDay = getSchedulesFromData().find((s) => s.weekday === selectedDay);
             if (!sourceDay) return;
 
@@ -490,6 +489,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             updateSchedules(newSchedules);
             setSelectedDays([]);
             setCopyPopoverOpen(false);
+            toast.success('Turnos copiados com sucesso!');
         };
         const handleSubmit = (e: React.FormEvent) => {
             e.preventDefault();
@@ -691,6 +691,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                             e.preventDefault();
                             // Our custom focus logic will handle it
                         }}
+                        aria-describedby={undefined}
                     >
                         <SheetHeader>
                             <SheetTitle>{initialShift ? 'Editar Turno' : 'Cadastrar Turno'}</SheetTitle>
@@ -791,22 +792,63 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                     <h3 className="text-lg font-semibold">Turnos da {day.label}</h3>
                                                     <div className="flex items-center gap-2">
                                                         {/* Botão para copiar turnos para múltiplos dias */}
-                                                        <Popover modal={true} open={copyPopoverOpen} onOpenChange={setCopyPopoverOpen}>
+                                                        <Popover
+                                                            modal={false}
+                                                            open={copyPopoverOpen}
+                                                            onOpenChange={setCopyPopoverOpen}
+                                                        >
                                                             <PopoverTrigger asChild>
                                                                 <Button
                                                                     type="button"
                                                                     variant="outline"
                                                                     size="sm"
-
                                                                     disabled={getSchedulesFromData()[dayIndex].shifts.length === 0}
                                                                 >
                                                                     <Copy className="mr-2 h-4 w-4" />
                                                                     Copiar para Múltiplos Dias
                                                                 </Button>
                                                             </PopoverTrigger>
-                                                            <PopoverContent className="w-80 p-6" align="end" sideOffset={5}>
+                                                            {copyPopoverOpen && (
+                                                                <div
+                                                                    className="fixed inset-0 z-[9998] pointer-events-auto"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        e.preventDefault();
+                                                                    }}
+                                                                    onMouseDown={(e) => {
+                                                                        e.stopPropagation();
+                                                                        e.preventDefault();
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            <PopoverContent
+                                                                className="w-80 p-6 z-[9999] bg-background border shadow-lg pointer-events-auto"
+                                                                align="end"
+                                                                sideOffset={5}
+                                                                forceMount
+                                                                onOpenAutoFocus={(e) => e.preventDefault()}
+                                                                onCloseAutoFocus={(e) => e.preventDefault()}
+                                                                onInteractOutside={(e) => e.preventDefault()}
+                                                                onEscapeKeyDown={(e) => e.preventDefault()}
+                                                                onPointerDownOutside={(e) => e.preventDefault()}
+                                                            >
                                                                 {/* Conteúdo do popover de cópia */}
-                                                                <div className="space-y-5">
+                                                                <div className="space-y-5 popover-content">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <h4 className="font-medium">Copiar para outros dias</h4>
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-6 w-6"
+                                                                            onClick={() => {
+                                                                                setCopyPopoverOpen(false);
+                                                                                setSelectedDays([]);
+                                                                            }}
+                                                                        >
+                                                                            <X className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </div>
                                                                     <div className="mt-1 grid grid-cols-2 gap-4">
                                                                         {weekdays
                                                                             .filter((d) => d.key !== day.key)

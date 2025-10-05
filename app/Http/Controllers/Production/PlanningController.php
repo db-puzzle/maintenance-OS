@@ -205,12 +205,28 @@ class PlanningController extends Controller
             'orderIds' => 'required|array',
             'orderIds.*' => 'exists:manufacturing_orders,id',
             'targetState' => 'required|in:draft,planned,scheduled,released',
+            'includeChildren' => 'boolean',
         ]);
 
         $orderIds = $validated['orderIds'];
         $targetState = $validated['targetState'];
+        $includeChildren = $validated['includeChildren'] ?? false;
 
-        $orders = ManufacturingOrder::whereIn('id', $orderIds)->get();
+        // Collect all order IDs to transition (including children if requested)
+        $allOrderIds = collect($orderIds);
+
+        if ($includeChildren && $targetState === 'planned') {
+            // For each order, collect all descendant IDs
+            foreach ($orderIds as $orderId) {
+                $childIds = $this->collectAllDescendantIds($orderId);
+                $allOrderIds = $allOrderIds->merge($childIds);
+            }
+        }
+
+        // Remove duplicates
+        $allOrderIds = $allOrderIds->unique()->values();
+
+        $orders = ManufacturingOrder::whereIn('id', $allOrderIds)->get();
 
         foreach ($orders as $order) {
             $this->authorize('update', $order);
@@ -227,7 +243,25 @@ class PlanningController extends Controller
         }
 
         // Return success response for Inertia to handle
-        return back()->with('success', count($orderIds) . ' manufacturing order(s) updated successfully.');
+        return back()->with('success', count($allOrderIds) . ' manufacturing order(s) updated successfully.');
+    }
+
+    /**
+     * Recursively collect all descendant IDs for a manufacturing order.
+     */
+    private function collectAllDescendantIds($orderId)
+    {
+        $descendantIds = [];
+
+        $children = ManufacturingOrder::where('parent_id', $orderId)->pluck('id');
+
+        foreach ($children as $childId) {
+            $descendantIds[] = $childId;
+            // Recursively collect descendants of this child
+            $descendantIds = array_merge($descendantIds, $this->collectAllDescendantIds($childId));
+        }
+
+        return $descendantIds;
     }
 
     /**

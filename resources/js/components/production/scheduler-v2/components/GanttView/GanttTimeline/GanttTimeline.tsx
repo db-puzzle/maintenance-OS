@@ -132,6 +132,35 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                         height={timelineHeight}
                     />
 
+                    {/* Vertical grid lines for days */}
+                    {(() => {
+                        const dayCount = Math.ceil(
+                            (viewConfig.endDate.getTime() - viewConfig.startDate.getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        );
+                        return Array.from({ length: dayCount + 1 }, (_, i) => {
+                            const x = i * timelineLayout.pixelsPerDay;
+                            return (
+                                <div
+                                    key={`day-line-${i}`}
+                                    className="absolute top-0 bottom-0 border-l border-muted"
+                                    style={{ left: x }}
+                                />
+                            );
+                        });
+                    })()}
+
+                    {/* Row dividers */}
+                    {rows.map((_, index) => (
+                        <div
+                            key={`row-divider-${index}`}
+                            className="absolute left-0 right-0 border-b"
+                            style={{
+                                top: (index + 1) * rowHeight - 1,
+                            }}
+                        />
+                    ))}
+
                     {/* Render rows */}
                     {rows.map((row, index) => {
                         const y = index * rowHeight;

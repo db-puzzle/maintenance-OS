@@ -10,7 +10,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 
 class UpdateSmartProgress implements ShouldQueue
 {
@@ -60,10 +59,6 @@ class UpdateSmartProgress implements ShouldQueue
 
         if (! $lock->get()) {
             // Another job is already processing this order
-            Log::info('Smart progress update already in progress', [
-                'order_id' => $this->order->id,
-            ]);
-
             return;
         }
 
@@ -72,20 +67,8 @@ class UpdateSmartProgress implements ShouldQueue
             $this->order->refresh();
 
             // Update progress
-            $progress = $progressService->updateProgress($this->order, true);
-
-            Log::info('Smart progress updated', [
-                'order_id' => $this->order->id,
-                'order_number' => $this->order->order_number,
-                'progress' => $progress,
-            ]);
+            $progressService->updateProgress($this->order, true);
         } catch (\Exception $e) {
-            Log::error('Failed to update smart progress', [
-                'order_id' => $this->order->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
             throw $e; // Re-throw to trigger retry
         } finally {
             $lock->release();
@@ -97,10 +80,7 @@ class UpdateSmartProgress implements ShouldQueue
      */
     public function failed(\Throwable $exception): void
     {
-        Log::error('Smart progress update job failed permanently', [
-            'order_id' => $this->order->id,
-            'error' => $exception->getMessage(),
-        ]);
+        // Job failed permanently after all retries
     }
 
     /**

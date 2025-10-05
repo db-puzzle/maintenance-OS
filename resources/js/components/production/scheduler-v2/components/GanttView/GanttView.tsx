@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { ScrollContainer } from '../shared/ScrollContainer';
 import { GanttGrid } from './GanttGrid/GanttGrid';
 import { GanttTimeline } from './GanttTimeline/GanttTimeline';
-import { cn } from '@/lib/utils';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup, ImperativePanelGroupHandle } from '@/components/ui/resizable';
 
 interface GanttViewProps {
     orders: any[]; // Manufacturing orders with steps
@@ -12,6 +12,9 @@ interface GanttViewProps {
     };
     zoomLevel: number;
     onStepUpdate: (stepId: string, updates: any) => void;
+    leftPanelSize: number;
+    onLeftPanelResize: (size: number) => void;
+    panelGroupRef: React.RefObject<ImperativePanelGroupHandle | null>;
 }
 
 export const GanttView: React.FC<GanttViewProps> = ({
@@ -19,6 +22,9 @@ export const GanttView: React.FC<GanttViewProps> = ({
     viewConfig,
     zoomLevel,
     onStepUpdate,
+    leftPanelSize,
+    onLeftPanelResize,
+    panelGroupRef,
 }) => {
     // Flatten orders and their steps for display
     const visibleTasks = useMemo(() => {
@@ -60,35 +66,54 @@ export const GanttView: React.FC<GanttViewProps> = ({
     }, [viewConfig, zoomLevel]);
 
     return (
-        <div className="gantt-view flex h-full bg-background border-b">
+        <ResizablePanelGroup
+            ref={panelGroupRef}
+            direction="horizontal"
+            className="h-full gantt-view bg-background border-b"
+            onLayout={(sizes) => {
+                if (sizes.length > 0 && Math.abs(sizes[0] - leftPanelSize) > 0.1) {
+                    onLeftPanelResize(sizes[0]);
+                }
+            }}
+        >
             {/* Left Panel - Task Grid */}
-            <div className="gantt-grid-container w-[610px] flex-shrink-0 border-r">
-                <ScrollContainer id="gantt-grid" axis="y">
-                    <GanttGrid
-                        tasks={visibleTasks}
-                        onTaskToggle={(taskId) => {
-                            // Handle expand/collapse
-                            const order = orders.find(o => o.id === taskId);
-                            if (order) {
-                                onStepUpdate(taskId, { expanded: !order.expanded });
-                            }
-                        }}
-                    />
-                </ScrollContainer>
-            </div>
+            <ResizablePanel
+                defaultSize={leftPanelSize}
+                minSize={20}
+                maxSize={50}
+            >
+                <div className="gantt-grid-container h-full border-r">
+                    <ScrollContainer id="gantt-grid" axis="y">
+                        <GanttGrid
+                            tasks={visibleTasks}
+                            onTaskToggle={(taskId) => {
+                                // Handle expand/collapse
+                                const order = orders.find(o => o.id === taskId);
+                                if (order) {
+                                    onStepUpdate(taskId, { expanded: !order.expanded });
+                                }
+                            }}
+                        />
+                    </ScrollContainer>
+                </div>
+            </ResizablePanel>
+
+            <ResizableHandle />
 
             {/* Right Panel - Timeline */}
-            <div className="gantt-timeline-container flex-1 overflow-hidden">
-                <ScrollContainer id="gantt-timeline" axis="xy">
-                    <GanttTimeline
-                        tasks={visibleTasks}
-                        viewConfig={viewConfig}
-                        zoomLevel={zoomLevel}
-                        timelineWidth={timelineWidth}
-                        onStepUpdate={onStepUpdate}
-                    />
-                </ScrollContainer>
-            </div>
-        </div>
+            <ResizablePanel defaultSize={100 - leftPanelSize}>
+                <div className="gantt-timeline-container h-full overflow-hidden">
+                    <ScrollContainer id="gantt-timeline" axis="xy">
+                        <GanttTimeline
+                            tasks={visibleTasks}
+                            viewConfig={viewConfig}
+                            zoomLevel={zoomLevel}
+                            timelineWidth={timelineWidth}
+                            onStepUpdate={onStepUpdate}
+                        />
+                    </ScrollContainer>
+                </div>
+            </ResizablePanel>
+        </ResizablePanelGroup>
     );
 };

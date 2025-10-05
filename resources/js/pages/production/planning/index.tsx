@@ -34,6 +34,7 @@ import RouteBuilder from '@/components/production/planning/RouteBuilder';
 import ApplyTemplateDialog from '@/components/production/planning/ApplyTemplateDialog';
 import { SaveAsTemplateDialog } from '@/components/production/templates/SaveAsTemplateDialog';
 import { MOSelectionModal } from '@/components/production/planning/MOSelectionModal';
+import { MarkChildrenPlannedDialog } from '@/components/production/planning/MarkChildrenPlannedDialog';
 // import { UnsavedChangesDialog } from '@/components/production/planning/UnsavedChangesDialog';
 // import WorkCellManager from '@/components/production/planning/WorkCellManager';
 // import BulkOperationsPanel from '@/components/production/planning/BulkOperationsPanel';
@@ -248,6 +249,14 @@ export default function PlanningPage({
     // Dialog state for unsaved changes warning
     const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
 
+    // Dialog state for marking children as planned
+    const [showMarkChildrenDialog, setShowMarkChildrenDialog] = useState(false);
+    const [pendingPlannedTransition, setPendingPlannedTransition] = useState<{
+        orderIds: number[];
+        parentOrder: ManufacturingOrder | null;
+        childrenCount: number;
+    } | null>(null);
+
 
     // Use keyboard shortcuts hook
     usePlanningKeyboardShortcuts({
@@ -356,6 +365,35 @@ export default function PlanningPage({
     }, [findMOInHierarchy, moChangesStore, currentManufacturingOrders]);
 
 
+    // Helper function to count all children of selected orders
+    const countChildrenForOrders = useCallback((orderIds: number[]): number => {
+        let totalChildren = 0;
+        const visited = new Set<number>();
+
+        const countChildren = (order: ManufacturingOrder): number => {
+            if (visited.has(order.id)) return 0;
+            visited.add(order.id);
+
+            let count = 0;
+            if (order.children && order.children.length > 0) {
+                count += order.children.length;
+                for (const child of order.children) {
+                    count += countChildren(child);
+                }
+            }
+            return count;
+        };
+
+        for (const orderId of orderIds) {
+            const order = findMOInHierarchy(currentManufacturingOrders, orderId);
+            if (order) {
+                totalChildren += countChildren(order);
+            }
+        }
+
+        return totalChildren;
+    }, [currentManufacturingOrders, findMOInHierarchy]);
+
     // Handle marking as planned/draft
     const handleToggleStatus = useCallback(() => {
         if (selectedMOs.size === 0) {
@@ -371,16 +409,45 @@ export default function PlanningPage({
 
         // Determine target state based on current active MO status
         const targetState = activeMODetails?.status === 'planned' ? 'draft' : 'planned';
+
+        // Check if transitioning to planned and if any selected order has children
+        if (targetState === 'planned') {
+            const orderIds = Array.from(selectedMOs);
+            const childrenCount = countChildrenForOrders(orderIds);
+
+            if (childrenCount > 0 && activeMODetails) {
+                // Show dialog to ask about children
+                setPendingPlannedTransition({
+                    orderIds,
+                    parentOrder: activeMODetails,
+                    childrenCount
+                });
+                setShowMarkChildrenDialog(true);
+                return;
+            }
+        }
+
+        // No children or transitioning to draft - proceed directly
+        performStatusTransition(Array.from(selectedMOs), targetState, false);
+    }, [selectedMOs, activeMODetails, activeMO, sortField, sortDirection, hasUnsavedChanges, countChildrenForOrders]);
+
+    // Function to actually perform the status transition
+    const performStatusTransition = useCallback((orderIds: number[], targetState: 'planned' | 'draft', includeChildren: boolean) => {
         const actionText = targetState === 'planned' ? 'marcada como planejada' : 'revertida para rascunho';
 
         PlanningService.bulkTransition(
             {
-                orderIds: Array.from(selectedMOs),
+                orderIds: orderIds,
                 targetState: targetState,
+                includeChildren: includeChildren,
             },
             {
                 onSuccess: () => {
-                    toast.success(`${selectedMOs.size} ordem${selectedMOs.size > 1 ? 's de fabricação foram' : ' de fabricação foi'} ${actionText}.`);
+                    const orderCount = includeChildren && targetState === 'planned'
+                        ? orderIds.length + countChildrenForOrders(orderIds)
+                        : orderIds.length;
+
+                    toast.success(`${orderCount} ordem${orderCount > 1 ? 's de fabricação foram' : ' de fabricação foi'} ${actionText}.`);
 
                     // Trigger a reload of the data while preserving state
                     PlanningService.reloadData({
@@ -399,7 +466,7 @@ export default function PlanningPage({
                 sortDirection: sortDirection
             }
         );
-    }, [selectedMOs, activeMODetails, activeMO, sortField, sortDirection, hasUnsavedChanges]);
+    }, [selectedMOs, activeMO, sortField, sortDirection, countChildrenForOrders]);
 
     // Handle MO selection from modal
     const handleModalMOSelect = useCallback((orderIds: number[]) => {
@@ -853,6 +920,24 @@ export default function PlanningPage({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Mark Children as Planned Dialog */}
+            {pendingPlannedTransition && pendingPlannedTransition.parentOrder && (
+                <MarkChildrenPlannedDialog
+                    open={showMarkChildrenDialog}
+                    onOpenChange={setShowMarkChildrenDialog}
+                    parentOrder={pendingPlannedTransition.parentOrder}
+                    childrenCount={pendingPlannedTransition.childrenCount}
+                    onConfirm={(includeChildren) => {
+                        performStatusTransition(
+                            pendingPlannedTransition.orderIds,
+                            'planned',
+                            includeChildren
+                        );
+                        setPendingPlannedTransition(null);
+                    }}
+                />
+            )}
         </AppLayout>
     );
 }

@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import React, { useState, useCallback, useRef } from 'react';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup, ImperativePanelGroupHandle } from '@/components/ui/resizable';
 import { ScrollSyncProvider } from './contexts/ScrollSyncContext';
 import { Toolbar } from './components/Toolbar/Toolbar';
 import { GanttView } from './components/GanttView/GanttView';
@@ -36,6 +36,9 @@ export const ProductionScheduler: React.FC<Props> = ({
         startDate: new Date(filters.start_date),
         endDate: new Date(filters.end_date),
     });
+    const [leftPanelSize, setLeftPanelSize] = useState(30); // Shared panel width percentage
+    const ganttPanelGroupRef = useRef<ImperativePanelGroupHandle>(null);
+    const schedulerPanelGroupRef = useRef<ImperativePanelGroupHandle>(null);
 
     const schedulerState = useSchedulerState({
         orders,
@@ -66,6 +69,18 @@ export const ProductionScheduler: React.FC<Props> = ({
         onUpdate({ id: allocationId, ...updates });
     }, [onUpdate]);
 
+    const handleLeftPanelResize = useCallback((size: number, source: 'gantt' | 'scheduler') => {
+        setLeftPanelSize(size);
+
+        // Synchronize the other panel
+        const layout = [size, 100 - size];
+        if (source === 'gantt' && schedulerPanelGroupRef.current) {
+            schedulerPanelGroupRef.current.setLayout(layout);
+        } else if (source === 'scheduler' && ganttPanelGroupRef.current) {
+            ganttPanelGroupRef.current.setLayout(layout);
+        }
+    }, []);
+
     return (
         <ScrollSyncProvider>
             <div className="production-scheduler flex flex-col h-full bg-background">
@@ -91,6 +106,9 @@ export const ProductionScheduler: React.FC<Props> = ({
                                 viewConfig={viewConfig}
                                 zoomLevel={zoomLevel}
                                 onStepUpdate={handleStepUpdate}
+                                leftPanelSize={leftPanelSize}
+                                onLeftPanelResize={(size) => handleLeftPanelResize(size, 'gantt')}
+                                panelGroupRef={ganttPanelGroupRef}
                             />
                         </ResizablePanel>
 
@@ -104,6 +122,9 @@ export const ProductionScheduler: React.FC<Props> = ({
                                 viewConfig={viewConfig}
                                 zoomLevel={zoomLevel}
                                 onAllocationUpdate={handleAllocationUpdate}
+                                leftPanelSize={leftPanelSize}
+                                onLeftPanelResize={(size) => handleLeftPanelResize(size, 'scheduler')}
+                                panelGroupRef={schedulerPanelGroupRef}
                             />
                         </ResizablePanel>
                     </ResizablePanelGroup>

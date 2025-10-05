@@ -1,7 +1,7 @@
 import React from 'react';
 import { SchedulerGrid } from './SchedulerGrid/SchedulerGrid';
 import { SchedulerTimeline } from './SchedulerTimeline/SchedulerTimeline';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup, ImperativePanelGroupHandle } from '@/components/ui/resizable';
 
 interface SchedulerViewProps {
     workCells: any[];
@@ -12,6 +12,9 @@ interface SchedulerViewProps {
     };
     zoomLevel: number;
     onAllocationUpdate: (allocationId: string, updates: any) => void;
+    leftPanelSize: number;
+    onLeftPanelResize: (size: number) => void;
+    panelGroupRef: React.RefObject<ImperativePanelGroupHandle | null>;
 }
 
 export const SchedulerView: React.FC<SchedulerViewProps> = ({
@@ -20,18 +23,34 @@ export const SchedulerView: React.FC<SchedulerViewProps> = ({
     viewConfig,
     zoomLevel,
     onAllocationUpdate,
+    leftPanelSize,
+    onLeftPanelResize,
+    panelGroupRef,
 }) => {
     return (
-        <ResizablePanelGroup direction="horizontal" className="h-full">
+        <ResizablePanelGroup
+            ref={panelGroupRef}
+            direction="horizontal"
+            className="h-full"
+            onLayout={(sizes) => {
+                if (sizes.length > 0 && Math.abs(sizes[0] - leftPanelSize) > 0.1) {
+                    onLeftPanelResize(sizes[0]);
+                }
+            }}
+        >
             {/* Left Panel - Resource Grid */}
-            <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
+            <ResizablePanel
+                defaultSize={leftPanelSize}
+                minSize={20}
+                maxSize={50}
+            >
                 <SchedulerGrid workCells={workCells} />
             </ResizablePanel>
 
             <ResizableHandle />
 
             {/* Right Panel - Resource Timeline */}
-            <ResizablePanel defaultSize={70}>
+            <ResizablePanel defaultSize={100 - leftPanelSize}>
                 <SchedulerTimeline
                     workCells={workCells}
                     allocations={allocations}

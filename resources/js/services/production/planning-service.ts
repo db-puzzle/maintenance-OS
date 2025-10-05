@@ -19,6 +19,7 @@ interface BulkUpdatePrioritiesParams {
 interface BulkTransitionParams {
     orderIds: number[];
     targetState: 'planned' | 'draft';
+    includeChildren?: boolean;
 }
 
 

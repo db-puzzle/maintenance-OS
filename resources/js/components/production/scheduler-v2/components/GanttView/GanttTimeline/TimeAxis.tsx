@@ -63,46 +63,50 @@ export const TimeAxis: React.FC<TimeAxisProps> = ({
     const periods = generateTimePeriods();
 
     return (
-        <div className="h-[80px] border-b bg-muted/50 sticky top-0 z-20">
+        <div className="h-[60px] border-b bg-muted/50 sticky top-0 z-20">
             {/* Top level header */}
-            <div className="h-[40px] border-b relative overflow-hidden">
-                <div className="absolute" style={{ width: `${width}px` }}>
-                    {periods.map((period, index) => (
-                        <div
-                            key={index}
-                            className={cn(
-                                "absolute h-full border-r flex items-center justify-center",
-                                "text-sm font-medium"
-                            )}
-                            style={{
-                                left: `${period.x}px`,
-                                width: `${period.width}px`,
-                            }}
-                        >
-                            {period.label}
-                        </div>
-                    ))}
+            <div className="h-[30px] border-b relative">
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="relative h-full" style={{ width: `${width}px` }}>
+                        {periods.map((period, index) => (
+                            <div
+                                key={index}
+                                className={cn(
+                                    "absolute top-0 bottom-0 border-r flex items-center justify-center px-1",
+                                    "text-sm font-medium"
+                                )}
+                                style={{
+                                    left: `${period.x}px`,
+                                    width: `${period.width}px`,
+                                }}
+                            >
+                                <span className="truncate">{period.label}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
 
             {/* Bottom level header */}
-            <div className="h-[40px] relative overflow-hidden">
-                <div className="absolute" style={{ width: `${width}px` }}>
-                    {periods.map((period, index) => (
-                        <div
-                            key={index}
-                            className={cn(
-                                "absolute h-full border-r flex items-center justify-center",
-                                "text-xs text-muted-foreground"
-                            )}
-                            style={{
-                                left: `${period.x}px`,
-                                width: `${period.width}px`,
-                            }}
-                        >
-                            {period.subLabel}
-                        </div>
-                    ))}
+            <div className="h-[30px] relative">
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="relative h-full" style={{ width: `${width}px` }}>
+                        {periods.map((period, index) => (
+                            <div
+                                key={index}
+                                className={cn(
+                                    "absolute top-0 bottom-0 border-r flex items-center justify-center px-1",
+                                    "text-xs text-muted-foreground"
+                                )}
+                                style={{
+                                    left: `${period.x}px`,
+                                    width: `${period.width}px`,
+                                }}
+                            >
+                                <span className="truncate">{period.subLabel}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

@@ -56,7 +56,7 @@ export default function SchedulerV2Index({
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Home', href: '/home' },
-        { title: 'Scheduler v2', href: '' },
+        { title: 'Scheduler', href: '' },
     ];
 
     // Transform data for the scheduler component

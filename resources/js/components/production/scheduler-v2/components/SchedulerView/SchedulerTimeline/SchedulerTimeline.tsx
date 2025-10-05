@@ -121,6 +121,24 @@ export const SchedulerTimeline: React.FC<SchedulerTimelineProps> = ({
                         height: timelineHeight,
                     }}
                 >
+                    {/* Vertical grid lines for days */}
+                    {(() => {
+                        const dayCount = Math.ceil(
+                            (viewConfig.endDate.getTime() - viewConfig.startDate.getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        );
+                        return Array.from({ length: dayCount + 1 }, (_, i) => {
+                            const x = i * timelineLayout.pixelsPerDay;
+                            return (
+                                <div
+                                    key={`day-line-${i}`}
+                                    className="absolute top-0 bottom-0 border-l border-muted"
+                                    style={{ left: x }}
+                                />
+                            );
+                        });
+                    })()}
+
                     {/* Render work cell rows */}
                     {workCells.map((workCell, index) => {
                         const y = index * rowHeight;
