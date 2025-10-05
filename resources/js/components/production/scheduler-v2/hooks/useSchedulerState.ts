@@ -18,8 +18,12 @@ export const useSchedulerState = ({
 }: UseSchedulerStateProps) => {
     // Filter orders based on date range
     const visibleOrders = useMemo(() => {
-        return orders.filter(order => {
+        const filtered = orders.filter(order => {
             // Check if any of the order's steps fall within the view range
+            if (!order.steps || order.steps.length === 0) {
+                return false;
+            }
+
             const hasVisibleSteps = order.steps.some((step: any) => {
                 const stepStart = new Date(step.planned_start_date);
                 const stepEnd = new Date(step.planned_end_date);
@@ -37,6 +41,8 @@ export const useSchedulerState = ({
 
             return hasVisibleSteps || hasVisibleChildren;
         });
+
+        return filtered;
     }, [orders, viewConfig]);
 
     // Flatten all steps for allocation view

@@ -7,14 +7,15 @@ import { ScheduleVersion, ProductionSchedule, ScheduleAlert } from '@/types/sche
 import { ScrollSyncProvider } from '@/components/production/scheduler-v2/contexts/ScrollSyncContext';
 import { ProductionScheduler } from '@/components/production/scheduler-v2/ProductionScheduler';
 import { formatNumber } from '@/utils/number';
+import { getDummyData } from './dummy-data';
 
 interface Props extends PageProps {
-    currentVersion: ScheduleVersion;
+    currentVersion?: ScheduleVersion;
     publishedVersion?: ScheduleVersion;
-    orders: ManufacturingOrder[];
-    schedules: ProductionSchedule[];
-    alerts: ScheduleAlert[];
-    alertStats: {
+    orders?: ManufacturingOrder[];
+    schedules?: ProductionSchedule[];
+    alerts?: ScheduleAlert[];
+    alertStats?: {
         total: number;
         unresolved: number;
         by_type: {
@@ -27,32 +28,43 @@ interface Props extends PageProps {
             warning: number;
         };
     };
-    workCells: WorkCell[];
-    filters: {
+    workCells?: WorkCell[];
+    filters?: {
         plant_id?: string;
         area_id?: string;
         start_date: string;
         end_date: string;
         search?: string;
     };
-    schedulingAlgorithms: Record<string, string>;
+    schedulingAlgorithms?: Record<string, string>;
 }
 
 export default function SchedulerV2Index({
     auth: _auth,
-    currentVersion,
-    publishedVersion,
-    orders,
-    schedules: initialSchedules,
-    alerts: initialAlerts,
-    alertStats: initialAlertStats,
-    workCells,
-    filters,
-    schedulingAlgorithms,
+    currentVersion: propsCurrentVersion,
+    publishedVersion: propsPublishedVersion,
+    orders: propsOrders,
+    schedules: propsSchedules,
+    alerts: propsAlerts,
+    alertStats: propsAlertStats,
+    workCells: propsWorkCells,
+    filters: propsFilters,
+    schedulingAlgorithms: propsSchedulingAlgorithms,
 }: Props) {
-    const [schedules, setSchedules] = useState(initialSchedules);
-    const [alerts] = useState(initialAlerts);
-    const [alertStats] = useState(initialAlertStats);
+    // Use dummy data instead of props
+    const dummyData = getDummyData();
+
+    // Force use dummy data - ignore props
+    const currentVersion = dummyData.currentVersion;
+    const publishedVersion = dummyData.publishedVersion;
+    const orders = dummyData.orders;
+    const workCells = dummyData.workCells;
+    const filters = dummyData.filters;
+    const schedulingAlgorithms = dummyData.schedulingAlgorithms;
+
+    const [schedules, setSchedules] = useState(dummyData.schedules);
+    const [alerts] = useState(dummyData.alerts);
+    const [alertStats] = useState(dummyData.alertStats);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Home', href: '/home' },
@@ -61,6 +73,7 @@ export default function SchedulerV2Index({
 
     // Transform data for the scheduler component
     const schedulerData = useMemo(() => {
+
         // Group schedules by manufacturing order and transform to steps
         const orderStepsMap = new Map<number, any[]>();
 
@@ -68,6 +81,7 @@ export default function SchedulerV2Index({
             const step = schedule.manufacturing_step;
             const route = step?.manufacturing_route;
             const orderId = route?.manufacturing_order_id;
+
 
             if (!orderId || !step) return;
 
@@ -159,6 +173,7 @@ export default function SchedulerV2Index({
 
         // Filter out child orders from root level
         const rootOrders = transformedOrders.filter(o => !(o as any).parent_order_id);
+
 
         return {
             orders: rootOrders,

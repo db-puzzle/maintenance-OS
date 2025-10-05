@@ -82,20 +82,16 @@ export const GanttView: React.FC<GanttViewProps> = ({
                 minSize={20}
                 maxSize={50}
             >
-                <div className="gantt-grid-container h-full border-r">
-                    <ScrollContainer id="gantt-grid" axis="y">
-                        <GanttGrid
-                            tasks={visibleTasks}
-                            onTaskToggle={(taskId) => {
-                                // Handle expand/collapse
-                                const order = orders.find(o => o.id === taskId);
-                                if (order) {
-                                    onStepUpdate(taskId, { expanded: !order.expanded });
-                                }
-                            }}
-                        />
-                    </ScrollContainer>
-                </div>
+                <GanttGrid
+                    tasks={visibleTasks}
+                    onTaskToggle={(taskId) => {
+                        // Handle expand/collapse
+                        const order = orders.find(o => o.id === taskId);
+                        if (order) {
+                            onStepUpdate(taskId, { expanded: !order.expanded });
+                        }
+                    }}
+                />
             </ResizablePanel>
 
             <ResizableHandle />

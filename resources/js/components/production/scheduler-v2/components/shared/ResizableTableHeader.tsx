@@ -13,12 +13,14 @@ interface ResizableTableHeaderProps {
     columns: Column[];
     onColumnsChange: (columns: Column[]) => void;
     className?: string;
+    style?: React.CSSProperties;
 }
 
 export const ResizableTableHeader: React.FC<ResizableTableHeaderProps> = ({
     columns,
     onColumnsChange,
     className,
+    style,
 }) => {
     const [localColumns, setLocalColumns] = useState(columns);
     const [resizing, setResizing] = useState<string | null>(null);
@@ -49,10 +51,7 @@ export const ResizableTableHeader: React.FC<ResizableTableHeaderProps> = ({
         const deltaX = e.clientX - startXRef.current;
         const newWidth = Math.max(
             column.minWidth || 50,
-            Math.min(
-                column.maxWidth || 500,
-                startWidthRef.current + deltaX
-            )
+            startWidthRef.current + deltaX
         );
 
         const newColumns = [...localColumns];
@@ -81,13 +80,18 @@ export const ResizableTableHeader: React.FC<ResizableTableHeaderProps> = ({
         }
     }, [resizing, handleMouseMove, handleMouseUp]);
 
+    const totalWidth = localColumns.reduce((sum, col) => sum + col.width, 0);
+
     return (
-        <div className={cn("flex bg-muted/30 sticky top-0 z-10", className)}>
+        <div
+            className={cn("flex bg-muted/30 sticky top-0 z-10 h-full", className)}
+            style={{ ...style, minWidth: `${totalWidth}px` }}
+        >
             {localColumns.map((column, index) => (
                 <div
                     key={column.key}
                     className={cn(
-                        "relative flex items-center text-xs font-medium text-muted-foreground px-3",
+                        "relative flex items-center text-xs font-medium text-muted-foreground px-3 h-full",
                         index < localColumns.length - 1 && "border-r"
                     )}
                     style={{ width: `${column.width}px` }}
