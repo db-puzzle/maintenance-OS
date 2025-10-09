@@ -80,7 +80,7 @@ export const GanttGrid: React.FC<GanttGridProps> = ({ tasks, onTaskToggle }) => 
     const totalWidth = columns.reduce((sum, col) => sum + col.width, 0);
 
     return (
-        <div ref={containerRef} className="h-full flex flex-col bg-background overflow-hidden border-r">
+        <div ref={containerRef} className="h-full flex flex-col bg-background border-r">
             {/* Header - Updated to match timeline header height (60px) */}
             <div
                 ref={headerRef}
@@ -97,7 +97,7 @@ export const GanttGrid: React.FC<GanttGridProps> = ({ tasks, onTaskToggle }) => 
             </div>
 
             {/* Body with ScrollContainer */}
-            <div ref={scrollContainerRef} className="flex-1">
+            <div ref={scrollContainerRef} className="flex-1 min-h-0">
                 <ScrollContainer id="gantt-grid" axis="xy" className="h-full">
                     <div style={{ minWidth: `${totalWidth}px` }}>
                         {tasks.map((task, index) => (

@@ -90,7 +90,7 @@ export default function SchedulerV2Index({
             }
 
             orderStepsMap.get(orderId)!.push({
-                id: schedule.id,
+                id: `${orderId}-${schedule.id}`, // Create unique ID by combining order ID and schedule ID
                 manufacturing_step_id: step.id,
                 sequence_number: (step as any).step_number || 0,
                 name: step.name,

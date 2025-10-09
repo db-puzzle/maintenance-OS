@@ -98,17 +98,13 @@ export const GanttView: React.FC<GanttViewProps> = ({
 
             {/* Right Panel - Timeline */}
             <ResizablePanel defaultSize={100 - leftPanelSize}>
-                <div className="gantt-timeline-container h-full overflow-hidden">
-                    <ScrollContainer id="gantt-timeline" axis="xy">
-                        <GanttTimeline
-                            tasks={visibleTasks}
-                            viewConfig={viewConfig}
-                            zoomLevel={zoomLevel}
-                            timelineWidth={timelineWidth}
-                            onStepUpdate={onStepUpdate}
-                        />
-                    </ScrollContainer>
-                </div>
+                <GanttTimeline
+                    tasks={visibleTasks}
+                    viewConfig={viewConfig}
+                    zoomLevel={zoomLevel}
+                    timelineWidth={timelineWidth}
+                    onStepUpdate={onStepUpdate}
+                />
             </ResizablePanel>
         </ResizablePanelGroup>
     );

@@ -38,57 +38,108 @@ export const ScrollSyncProvider: React.FC<ScrollSyncProviderProps> = ({ children
     }, []);
 
     const syncScroll = useCallback((source: string, axis: 'x' | 'y', value: number) => {
-        // Prevent recursive syncing
-        if (isSyncing.current.has(source)) return;
+        // Create a unique key for this sync operation to prevent recursion per axis
+        const syncKey = `${source}-${axis}`;
 
-        isSyncing.current.add(source);
+        // Prevent recursive syncing
+        if (isSyncing.current.has(syncKey)) {
+            return;
+        }
+
+        isSyncing.current.add(syncKey);
 
         requestAnimationFrame(() => {
             const containers = scrollContainers.current;
 
             if (axis === 'x') {
                 // Horizontal scroll - sync between timelines only
-                scrollPosition.current.x = value;
+                // Grid panels should NOT participate in horizontal sync
 
-                if (source !== 'gantt-timeline') {
-                    const ganttTimeline = containers.get('gantt-timeline');
-                    if (ganttTimeline) ganttTimeline.scrollLeft = value;
-                }
+                // Only timeline panels can sync horizontally
+                if (source === 'gantt-timeline' || source === 'scheduler-timeline') {
+                    scrollPosition.current.x = value;
 
-                if (source !== 'scheduler-timeline') {
-                    const schedulerTimeline = containers.get('scheduler-timeline');
-                    if (schedulerTimeline) schedulerTimeline.scrollLeft = value;
+                    if (source === 'gantt-timeline') {
+                        const schedulerTimeline = containers.get('scheduler-timeline');
+                        if (schedulerTimeline && Math.abs(schedulerTimeline.scrollLeft - value) > 1) {
+                            isSyncing.current.add('scheduler-timeline-x');
+                            schedulerTimeline.scrollLeft = value;
+                            // Clear the sync flag after a short delay
+                            setTimeout(() => {
+                                isSyncing.current.delete('scheduler-timeline-x');
+                            }, 50);
+                        }
+                    } else if (source === 'scheduler-timeline') {
+                        const ganttTimeline = containers.get('gantt-timeline');
+                        if (ganttTimeline && Math.abs(ganttTimeline.scrollLeft - value) > 1) {
+                            isSyncing.current.add('gantt-timeline-x');
+                            ganttTimeline.scrollLeft = value;
+                            // Clear the sync flag after a short delay
+                            setTimeout(() => {
+                                isSyncing.current.delete('gantt-timeline-x');
+                            }, 50);
+                        }
+                    }
                 }
             } else if (axis === 'y') {
                 // Vertical scroll - sync within each view
+
                 if (source === 'gantt-grid' || source === 'gantt-timeline') {
                     scrollPosition.current.y.gantt = value;
 
                     if (source !== 'gantt-grid') {
                         const ganttGrid = containers.get('gantt-grid');
-                        if (ganttGrid) ganttGrid.scrollTop = value;
+                        if (ganttGrid && Math.abs(ganttGrid.scrollTop - value) > 1) {
+                            isSyncing.current.add('gantt-grid-y');
+                            ganttGrid.scrollTop = value;
+                            // Clear the sync flag after a short delay
+                            setTimeout(() => {
+                                isSyncing.current.delete('gantt-grid-y');
+                            }, 50);
+                        }
                     }
 
                     if (source !== 'gantt-timeline') {
                         const ganttTimeline = containers.get('gantt-timeline');
-                        if (ganttTimeline) ganttTimeline.scrollTop = value;
+                        if (ganttTimeline && Math.abs(ganttTimeline.scrollTop - value) > 1) {
+                            isSyncing.current.add('gantt-timeline-y');
+                            ganttTimeline.scrollTop = value;
+                            // Clear the sync flag after a short delay
+                            setTimeout(() => {
+                                isSyncing.current.delete('gantt-timeline-y');
+                            }, 50);
+                        }
                     }
                 } else if (source === 'scheduler-grid' || source === 'scheduler-timeline') {
                     scrollPosition.current.y.scheduler = value;
 
                     if (source !== 'scheduler-grid') {
                         const schedulerGrid = containers.get('scheduler-grid');
-                        if (schedulerGrid) schedulerGrid.scrollTop = value;
+                        if (schedulerGrid && Math.abs(schedulerGrid.scrollTop - value) > 1) {
+                            isSyncing.current.add('scheduler-grid-y');
+                            schedulerGrid.scrollTop = value;
+                            // Clear the sync flag after a short delay
+                            setTimeout(() => {
+                                isSyncing.current.delete('scheduler-grid-y');
+                            }, 50);
+                        }
                     }
 
                     if (source !== 'scheduler-timeline') {
                         const schedulerTimeline = containers.get('scheduler-timeline');
-                        if (schedulerTimeline) schedulerTimeline.scrollTop = value;
+                        if (schedulerTimeline && Math.abs(schedulerTimeline.scrollTop - value) > 1) {
+                            isSyncing.current.add('scheduler-timeline-y');
+                            schedulerTimeline.scrollTop = value;
+                            // Clear the sync flag after a short delay
+                            setTimeout(() => {
+                                isSyncing.current.delete('scheduler-timeline-y');
+                            }, 50);
+                        }
                     }
                 }
             }
 
-            isSyncing.current.delete(source);
+            isSyncing.current.delete(syncKey);
         });
     }, []);
 

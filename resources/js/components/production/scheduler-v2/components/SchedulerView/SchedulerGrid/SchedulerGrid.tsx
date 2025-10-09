@@ -93,7 +93,7 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = ({ workCells }) => {
     };
 
     return (
-        <div ref={containerRef} className="h-full flex flex-col bg-background overflow-hidden">
+        <div ref={containerRef} className="h-full flex flex-col bg-background border-r">
             {/* Header - Updated to match timeline header height (60px) */}
             <div
                 ref={headerRef}
@@ -108,9 +108,12 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = ({ workCells }) => {
             </div>
 
             {/* Resource list */}
-            <div ref={scrollContainerRef} className="flex-1">
-                <ScrollContainer id="scheduler-grid" axis="xy" className="h-full overflow-auto">
-                    <div>
+            <div ref={scrollContainerRef} className="flex-1 min-h-0">
+                <ScrollContainer id="scheduler-grid" axis="xy" className="h-full">
+                    <div style={{
+                        minWidth: `${columns.reduce((sum, col) => sum + col.width, 0)}px`,
+                        minHeight: `${workCells.length * 45}px`
+                    }}>
                         {workCells.map((workCell) => {
                             const utilization = workCell.current_utilization || 0;
                             const assignedTasks = workCell.scheduled_steps?.length || 0;
