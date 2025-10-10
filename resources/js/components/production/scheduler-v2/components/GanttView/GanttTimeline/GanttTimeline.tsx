@@ -168,15 +168,38 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                         if (row.type === 'order') {
                             // Render order summary bar
                             const order = row.data;
-                            const steps = order.steps || [];
-                            if (steps.length === 0) return null;
 
-                            const earliestStart = new Date(Math.min(...steps.map((s: any) =>
-                                new Date(s.planned_start_date).getTime()
-                            )));
-                            const latestEnd = new Date(Math.max(...steps.map((s: any) =>
-                                new Date(s.planned_end_date).getTime()
-                            )));
+                            // Calculate span including child orders
+                            const getAllDatesFromOrder = (order: any): { starts: Date[], ends: Date[] } => {
+                                const dates = { starts: [] as Date[], ends: [] as Date[] };
+
+                                // Add dates from direct steps
+                                if (order.steps && order.steps.length > 0) {
+                                    order.steps.forEach((step: any) => {
+                                        dates.starts.push(new Date(step.planned_start_date));
+                                        dates.ends.push(new Date(step.planned_end_date));
+                                    });
+                                }
+
+                                // Add dates from child orders recursively
+                                if (order.children && order.children.length > 0) {
+                                    order.children.forEach((child: any) => {
+                                        const childDates = getAllDatesFromOrder(child);
+                                        dates.starts.push(...childDates.starts);
+                                        dates.ends.push(...childDates.ends);
+                                    });
+                                }
+
+                                return dates;
+                            };
+
+                            const allDates = getAllDatesFromOrder(order);
+
+                            // Skip if no dates found
+                            if (allDates.starts.length === 0) return null;
+
+                            const earliestStart = new Date(Math.min(...allDates.starts.map(d => d.getTime())));
+                            const latestEnd = new Date(Math.max(...allDates.ends.map(d => d.getTime())));
 
                             return (
                                 <div
@@ -192,7 +215,10 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                                             timelineLayout.getPositionForDate(earliestStart),
                                     }}
                                 >
-                                    <div className="h-8 bg-blue-200 rounded px-2 flex items-center">
+                                    <div className={cn(
+                                        "h-8 rounded px-2 flex items-center",
+                                        order.level === 0 ? "bg-blue-500 text-white" : "bg-blue-200"
+                                    )}>
                                         <span className="text-xs font-medium truncate">
                                             {order.order_number}
                                         </span>

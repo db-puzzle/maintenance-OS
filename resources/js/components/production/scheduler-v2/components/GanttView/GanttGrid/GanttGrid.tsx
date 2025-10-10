@@ -149,13 +149,19 @@ export const GanttGrid: React.FC<GanttGridProps> = ({ tasks, onTaskToggle }) => 
                                     )}
 
                                     {task.type === 'order' ? (
-                                        <Package className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                        <Package className={cn(
+                                            "h-4 w-4 flex-shrink-0",
+                                            task.level === 0 ? "text-primary" : "text-muted-foreground"
+                                        )} />
                                     ) : (
                                         <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                     )}
 
-                                    <span className="truncate font-medium">
-                                        {task.name || task.order_number || 'Untitled'}
+                                    <span className={cn(
+                                        "truncate",
+                                        task.type === 'order' && task.level === 0 ? "font-semibold" : "font-medium"
+                                    )}>
+                                        {task.order_number || task.name || 'Untitled'}
                                     </span>
                                 </div>
 

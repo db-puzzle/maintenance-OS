@@ -7,7 +7,7 @@ import { ScheduleVersion, ProductionSchedule, ScheduleAlert } from '@/types/sche
 import { ScrollSyncProvider } from '@/components/production/scheduler-v2/contexts/ScrollSyncContext';
 import { ProductionScheduler } from '@/components/production/scheduler-v2/ProductionScheduler';
 import { formatNumber } from '@/utils/number';
-import { getDummyData } from './dummy-data';
+import { getCleanDummyData } from './clean-dummy-data';
 
 interface Props extends PageProps {
     currentVersion?: ScheduleVersion;
@@ -52,12 +52,11 @@ export default function SchedulerV2Index({
     schedulingAlgorithms: propsSchedulingAlgorithms,
 }: Props) {
     // Use dummy data instead of props
-    const dummyData = getDummyData();
+    const dummyData = getCleanDummyData();
 
     // Force use dummy data - ignore props
     const currentVersion = dummyData.currentVersion;
     const publishedVersion = dummyData.publishedVersion;
-    const orders = dummyData.orders;
     const workCells = dummyData.workCells;
     const filters = dummyData.filters;
     const schedulingAlgorithms = dummyData.schedulingAlgorithms;
@@ -66,6 +65,11 @@ export default function SchedulerV2Index({
     const [alerts] = useState(dummyData.alerts);
     const [alertStats] = useState(dummyData.alertStats);
 
+    // Track expanded state for orders
+    const [expandedOrders, setExpandedOrders] = useState<Set<number>>(
+        new Set(dummyData.orders.map((o: any) => o.id)) // All expanded by default
+    );
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Home', href: '/home' },
         { title: 'Scheduler', href: '' },
@@ -73,11 +77,13 @@ export default function SchedulerV2Index({
 
     // Transform data for the scheduler component
     const schedulerData = useMemo(() => {
+        // Get orders from dummy data
+        const orders = dummyData.orders;
 
         // Group schedules by manufacturing order and transform to steps
         const orderStepsMap = new Map<number, any[]>();
 
-        schedules.forEach(schedule => {
+        schedules.forEach((schedule: any) => {
             const step = schedule.manufacturing_step;
             const route = step?.manufacturing_route;
             const orderId = route?.manufacturing_order_id;
@@ -96,7 +102,7 @@ export default function SchedulerV2Index({
                 name: step.name,
                 description: step.description,
                 work_cell_id: schedule.work_cell_id,
-                work_cell: workCells.find(wc => wc.id === schedule.work_cell_id),
+                work_cell: workCells.find((wc: any) => wc.id === schedule.work_cell_id),
 
                 // Scheduling fields
                 planned_start_date: schedule.scheduled_start,
@@ -139,7 +145,7 @@ export default function SchedulerV2Index({
         });
 
         // Transform orders with their steps
-        const transformedOrders = orders.map(order => {
+        const transformedOrders = orders.map((order: any) => {
             const orderSteps = orderStepsMap.get(order.id) || [];
 
             return {
@@ -151,33 +157,33 @@ export default function SchedulerV2Index({
                 requested_date: order.requested_date,
                 quantity: formatNumber(order.quantity),
                 unit_of_measure: order.unit_of_measure,
-                parent_order_id: (order as any).parent_order_id,
+                parent_order_id: (order as any).parent_id,
                 children: [] as any[], // Will be populated based on parent_order_id relationships
                 steps: orderSteps,
-                expanded: true,
+                expanded: expandedOrders.has(order.id), // Use expandedOrders state
                 level: 0,
             };
         });
 
         // Build parent-child relationships
-        const orderMap = new Map(transformedOrders.map(o => [o.id, o]));
-        transformedOrders.forEach(order => {
-            if ((order as any).parent_order_id) {
-                const parent = orderMap.get((order as any).parent_order_id);
+        const orderMap = new Map(transformedOrders.map((o: any) => [o.id, o]));
+        transformedOrders.forEach((order: any) => {
+            if (order.parent_order_id) {
+                const parent = orderMap.get(order.parent_order_id);
                 if (parent) {
-                    parent.children.push(order as any);
+                    parent.children.push(order);
                     order.level = parent.level + 1;
                 }
             }
         });
 
         // Filter out child orders from root level
-        const rootOrders = transformedOrders.filter(o => !(o as any).parent_order_id);
+        const rootOrders = transformedOrders.filter((o: any) => !o.parent_order_id);
 
 
         return {
             orders: rootOrders,
-            workCells: workCells.map(wc => ({
+            workCells: workCells.map((wc: any) => ({
                 ...wc,
                 scheduled_steps: Array.from(orderStepsMap.values())
                     .flat()
@@ -186,23 +192,35 @@ export default function SchedulerV2Index({
                         step_id: step.id,
                         start_time: step.planned_start_date,
                         end_time: step.planned_end_date,
-                        manufacturing_order_id: orders.find(o =>
+                        manufacturing_order_id: orders.find((o: any) =>
                             orderStepsMap.get(o.id)?.some(s => s.id === step.id)
                         )?.id,
                         status: step.status,
                     })),
             })),
         };
-    }, [orders, schedules, workCells]);
+    }, [dummyData.orders, schedules, workCells, expandedOrders]);
 
     const handleScheduleUpdate = useCallback((updatedSchedule: any) => {
         // Update local state
-        setSchedules(prev => prev.map(s =>
+        setSchedules((prev: any) => prev.map((s: any) =>
             s.id === updatedSchedule.id ? updatedSchedule : s
         ));
 
         // Here you would typically make an API call to update the backend
         // router.put(route('production.scheduler.update', updatedSchedule.id), updatedSchedule);
+    }, []);
+
+    const handleOrderToggle = useCallback((orderId: number) => {
+        setExpandedOrders(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(orderId)) {
+                newSet.delete(orderId);
+            } else {
+                newSet.add(orderId);
+            }
+            return newSet;
+        });
     }, []);
 
     return (
@@ -220,6 +238,7 @@ export default function SchedulerV2Index({
                     schedulingAlgorithms={schedulingAlgorithms}
                     filters={filters}
                     onUpdate={handleScheduleUpdate}
+                    onOrderToggle={handleOrderToggle}
                 />
             </ScrollSyncProvider>
         </AppLayout>

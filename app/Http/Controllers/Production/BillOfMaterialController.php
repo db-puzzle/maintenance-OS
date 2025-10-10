@@ -8,6 +8,7 @@ use App\Models\Production\BomItem;
 use App\Models\Production\BomVersion;
 use App\Models\Production\Item;
 use App\Models\Production\ItemCategory;
+use App\Services\JsonValidator;
 use App\Services\Production\BomImportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -1058,10 +1059,66 @@ class BillOfMaterialController extends BaseSearchController
             }
         } elseif ($fileType === 'json') {
             $content = file_get_contents($file->getRealPath());
-            $data = json_decode($content, true);
 
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                return response()->json(['error' => 'Invalid JSON file'], 422);
+            // Try to clean up common JSON formatting issues
+            // Remove BOM if present
+            $content = preg_replace('/^\xEF\xBB\xBF/', '', $content);
+
+            // Validate JSON with detailed error information
+            $validation = JsonValidator::validate($content);
+
+            if (! $validation['valid']) {
+                \Log::error('JSON decode error in BOM import', [
+                    'error' => $validation['error'],
+                    'file' => $file->getClientOriginalName(),
+                    'line' => $validation['line'] ?? null,
+                    'column' => $validation['column'] ?? null,
+                    'content_preview' => substr($content, 0, 500),
+                ]);
+
+                // Build detailed error message
+                $errorMessage = 'Arquivo JSON inválido';
+                $details = [];
+
+                // Add specific error type
+                if (str_contains($validation['error'], 'Syntax error') || str_contains($validation['error'], 'State mismatch')) {
+                    $errorMessage = 'Erro de sintaxe no JSON';
+                } elseif (str_contains($validation['error'], 'UTF-8')) {
+                    $errorMessage = 'Caracteres inválidos no arquivo';
+                } elseif (str_contains($validation['error'], 'Control character')) {
+                    // Control character errors often indicate unclosed strings
+                    $errorMessage = 'Erro de sintaxe no JSON (possível string não fechada)';
+                }
+
+                // Add position information
+                if (isset($validation['line']) && isset($validation['column'])) {
+                    $details[] = sprintf('Erro na linha %d, coluna %d', $validation['line'], $validation['column']);
+                }
+
+                // Add context if available
+                if (isset($validation['context'])) {
+                    $details[] = 'Contexto: ' . $validation['context'];
+                }
+
+                // Add generic help
+                $details[] = 'Verifique se o arquivo está bem formatado, com aspas duplas corretas, vírgulas nos lugares certos e chaves/colchetes balanceados.';
+
+                return response()->json([
+                    'error' => $errorMessage,
+                    'details' => implode(' ', $details),
+                    'line' => $validation['line'] ?? null,
+                    'column' => $validation['column'] ?? null,
+                ], 422);
+            }
+
+            $data = $validation['data'];
+
+            // Validate JSON structure for BOM
+            if (! is_array($data)) {
+                return response()->json([
+                    'error' => 'Estrutura JSON inválida',
+                    'details' => 'O arquivo JSON deve conter um objeto ou array válido.',
+                ], 422);
             }
         }
 

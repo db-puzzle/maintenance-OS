@@ -18,6 +18,7 @@ interface Props {
     schedulingAlgorithms: Record<string, string>;
     filters: any;
     onUpdate: (schedule: any) => void;
+    onOrderToggle: (orderId: number) => void;
 }
 
 export const ProductionScheduler: React.FC<Props> = ({
@@ -30,6 +31,7 @@ export const ProductionScheduler: React.FC<Props> = ({
     schedulingAlgorithms,
     filters,
     onUpdate,
+    onOrderToggle,
 }) => {
     const [zoomLevel, setZoomLevel] = useState(1);
     const [viewConfig, setViewConfig] = useState({
@@ -106,6 +108,7 @@ export const ProductionScheduler: React.FC<Props> = ({
                                 viewConfig={viewConfig}
                                 zoomLevel={zoomLevel}
                                 onStepUpdate={handleStepUpdate}
+                                onOrderToggle={onOrderToggle}
                                 leftPanelSize={leftPanelSize}
                                 onLeftPanelResize={(size) => handleLeftPanelResize(size, 'gantt')}
                                 panelGroupRef={ganttPanelGroupRef}

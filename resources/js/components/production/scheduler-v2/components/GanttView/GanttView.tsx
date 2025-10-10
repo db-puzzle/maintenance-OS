@@ -12,6 +12,7 @@ interface GanttViewProps {
     };
     zoomLevel: number;
     onStepUpdate: (stepId: string, updates: any) => void;
+    onOrderToggle: (orderId: number) => void;
     leftPanelSize: number;
     onLeftPanelResize: (size: number) => void;
     panelGroupRef: React.RefObject<ImperativePanelGroupHandle | null>;
@@ -22,6 +23,7 @@ export const GanttView: React.FC<GanttViewProps> = ({
     viewConfig,
     zoomLevel,
     onStepUpdate,
+    onOrderToggle,
     leftPanelSize,
     onLeftPanelResize,
     panelGroupRef,
@@ -30,28 +32,38 @@ export const GanttView: React.FC<GanttViewProps> = ({
     const visibleTasks = useMemo(() => {
         const tasks: any[] = [];
 
-        orders.forEach(order => {
+        const processOrder = (order: any, parentLevel: number = 0) => {
             // Add the order itself as a parent task
             tasks.push({
                 ...order,
                 isParent: true,
-                level: 0,
+                level: parentLevel,
                 type: 'order',
+                hasChildren: !!(order.children?.length || order.steps?.length),
             });
 
-            // Add steps if order is expanded
+            // Process child orders first (if any)
+            if (order.expanded !== false && order.children) {
+                order.children.forEach((childOrder: any) => {
+                    processOrder(childOrder, parentLevel + 1);
+                });
+            }
+
+            // Then add steps if order is expanded
             if (order.expanded !== false && order.steps) {
                 order.steps.forEach((step: any) => {
                     tasks.push({
                         ...step,
                         parentId: order.id,
                         orderId: order.id,
-                        level: 1,
+                        level: parentLevel + 1,
                         type: 'step',
                     });
                 });
             }
-        });
+        };
+
+        orders.forEach(order => processOrder(order, 0));
 
         return tasks;
     }, [orders]);
@@ -86,9 +98,26 @@ export const GanttView: React.FC<GanttViewProps> = ({
                     tasks={visibleTasks}
                     onTaskToggle={(taskId) => {
                         // Handle expand/collapse
-                        const order = orders.find(o => o.id === taskId);
+                        // taskId is a string, but order.id is a number
+                        const numericId = typeof taskId === 'string' ? parseInt(taskId, 10) : taskId;
+
+                        // Search for order recursively in the hierarchy
+                        const findOrder = (orderList: any[]): any => {
+                            for (const order of orderList) {
+                                if (order.id === numericId) {
+                                    return order;
+                                }
+                                if (order.children) {
+                                    const found = findOrder(order.children);
+                                    if (found) return found;
+                                }
+                            }
+                            return null;
+                        };
+
+                        const order = findOrder(orders);
                         if (order) {
-                            onStepUpdate(taskId, { expanded: !order.expanded });
+                            onOrderToggle(numericId);
                         }
                     }}
                 />

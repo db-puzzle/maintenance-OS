@@ -3,6 +3,8 @@ import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { FileSelectionStep } from './components/FileSelectionStep';
 import { MappingStep } from './components/MappingStep';
 import { ValidationStep } from './components/ValidationStep';
@@ -26,6 +28,8 @@ const steps: StepInfo[] = [
 export default function BomImportWizard({ supportedFormats }: Props) {
     const [currentStep, setCurrentStep] = useState<StepType>('selection');
     const [session, setSession] = useState<BomImportSession | null>(null);
+    const [isInitializing, setIsInitializing] = useState(true);
+    const [uploadError, setUploadError] = useState<{ title: string; description?: string } | null>(null);
     const [bomInfo, setBomInfo] = useState<BomInfo>({
         name: '',
         description: '',
@@ -48,6 +52,7 @@ export default function BomImportWizard({ supportedFormats }: Props) {
     const initializeSession = async () => {
         try {
             const response = await axios.post(route('production.bom.import.init-session'));
+            console.log('Session initialized:', response.data);
             setSession({
                 sessionId: response.data.sessionId,
                 status: 'initialized',
@@ -55,13 +60,20 @@ export default function BomImportWizard({ supportedFormats }: Props) {
             });
         } catch (error) {
             console.error('Failed to initialize session:', error);
+            alert('Erro ao inicializar sessão. Por favor, recarregue a página.');
+        } finally {
+            setIsInitializing(false);
         }
     };
 
     const handleFileSelection = async (file: BomImportFile, info: BomInfo) => {
-        if (!session) return;
+        if (!session) {
+            console.error('No session available');
+            return;
+        }
 
         setBomInfo(info);
+        setUploadError(null); // Clear any previous errors
 
         // Upload file to backend
         const formData = new FormData();
@@ -98,8 +110,48 @@ export default function BomImportWizard({ supportedFormats }: Props) {
             } else {
                 setCurrentStep('mapping');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to upload file:', error);
+
+            if (error.response?.status === 422) {
+                const errorData = error.response.data;
+
+                // Set error state to show in UI
+                if (errorData.error) {
+                    // Log the full error data for debugging
+                    console.log('Error data received:', errorData);
+
+                    let description = errorData.details || 'Por favor, verifique o arquivo e tente novamente.';
+
+                    // Add line/column info if available
+                    if (errorData.line && errorData.column) {
+                        description = `Linha ${errorData.line}, Coluna ${errorData.column}: ${description}`;
+                    }
+
+                    setUploadError({
+                        title: errorData.error,
+                        description: description
+                    });
+                } else if (errorData.errors) {
+                    // Handle validation errors
+                    const firstError = Object.values(errorData.errors)[0];
+                    setUploadError({
+                        title: 'Erro de validação',
+                        description: Array.isArray(firstError) ? firstError[0] : firstError as string
+                    });
+                } else {
+                    setUploadError({
+                        title: 'Erro ao fazer upload do arquivo',
+                        description: 'Por favor, tente novamente.'
+                    });
+                }
+            } else {
+                // Generic error
+                setUploadError({
+                    title: 'Erro inesperado',
+                    description: 'Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente.'
+                });
+            }
         }
     };
 
@@ -255,12 +307,34 @@ export default function BomImportWizard({ supportedFormats }: Props) {
 
                 {/* Step Content */}
                 <div className="flex-1 overflow-y-auto p-6">
+                    {/* Error Alert */}
+                    {uploadError && currentStep === 'selection' && (
+                        <Alert variant="destructive" className="mb-6">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>{uploadError.title}</AlertTitle>
+                            {uploadError.description && (
+                                <AlertDescription className="mt-2 whitespace-pre-wrap font-mono text-sm">
+                                    {uploadError.description}
+                                </AlertDescription>
+                            )}
+                        </Alert>
+                    )}
+
                     {currentStep === 'selection' && (
-                        <FileSelectionStep
-                            supportedFormats={supportedFormats}
-                            onNext={handleFileSelection}
-                            initialBomInfo={bomInfo}
-                        />
+                        isInitializing ? (
+                            <div className="flex items-center justify-center h-64">
+                                <div className="text-center">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                                    <p className="text-gray-600">Inicializando importação...</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <FileSelectionStep
+                                supportedFormats={supportedFormats}
+                                onNext={handleFileSelection}
+                                initialBomInfo={bomInfo}
+                            />
+                        )
                     )}
 
                     {currentStep === 'mapping' && session?.csv_headers && (
