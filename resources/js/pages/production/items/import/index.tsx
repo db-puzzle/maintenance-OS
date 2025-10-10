@@ -129,10 +129,10 @@ export default function ItemImport({ supportedFormats }: Props) {
                                     <div className="flex items-center">
                                         <div
                                             className={cn(
-                                                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0',
+                                                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0 transition-colors',
                                                 {
-                                                    'bg-primary text-white': isActive || isCompleted,
-                                                    'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400': !isActive && !isCompleted,
+                                                    'bg-primary text-primary-foreground ring-2 ring-primary/20': isActive || isCompleted,
+                                                    'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600': !isActive && !isCompleted,
                                                 }
                                             )}
                                         >
@@ -140,8 +140,8 @@ export default function ItemImport({ supportedFormats }: Props) {
                                         </div>
                                         <div className="ml-3">
                                             <p className={cn('text-sm font-medium whitespace-nowrap', {
-                                                'text-gray-900 dark:text-gray-100': isActive,
-                                                'text-gray-600 dark:text-gray-400': !isActive,
+                                                'text-gray-900 dark:text-gray-100': isActive || isCompleted,
+                                                'text-gray-500 dark:text-gray-400': !isActive && !isCompleted,
                                             })}>
                                                 {step.title}
                                             </p>

@@ -110,11 +110,12 @@ export default function BomImportWizard({ supportedFormats }: Props) {
             } else {
                 setCurrentStep('mapping');
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error('Failed to upload file:', error);
 
-            if (error.response?.status === 422) {
-                const errorData = error.response.data;
+            const axiosError = error as any;
+            if (axiosError.response?.status === 422) {
+                const errorData = axiosError.response.data;
 
                 // Set error state to show in UI
                 if (errorData.error) {
@@ -250,15 +251,15 @@ export default function BomImportWizard({ supportedFormats }: Props) {
             <Head title="Importar BOM" />
 
             <div className="relative flex h-[calc(100vh-3rem)] flex-col">
-                <div className="bg-white border-b px-6 py-4 flex-shrink-0">
-                    <h1 className="text-2xl font-bold text-gray-900">Importar BOM</h1>
-                    <p className="mt-1 text-sm text-gray-600">
+                <div className="bg-background border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex-shrink-0">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Importar BOM</h1>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                         Importe estruturas de produtos a partir de arquivos CSV ou JSON
                     </p>
                 </div>
 
                 {/* Progress Indicator */}
-                <div className="bg-white px-6 py-4 border-b flex-shrink-0 overflow-x-auto">
+                <div className="bg-background px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 overflow-x-auto">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full min-w-0">
                         {displaySteps.map((step, index) => {
                             const isActive = step.id === currentStep;
@@ -273,10 +274,10 @@ export default function BomImportWizard({ supportedFormats }: Props) {
                                     <div className="flex items-center">
                                         <div
                                             className={cn(
-                                                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0',
+                                                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0 transition-colors',
                                                 {
-                                                    'bg-primary text-white': isActive || isCompleted,
-                                                    'bg-gray-200 text-gray-600': !isActive && !isCompleted,
+                                                    'bg-primary text-primary-foreground ring-2 ring-primary/20': isActive || isCompleted,
+                                                    'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600': !isActive && !isCompleted,
                                                 }
                                             )}
                                         >
@@ -284,8 +285,8 @@ export default function BomImportWizard({ supportedFormats }: Props) {
                                         </div>
                                         <div className="ml-3">
                                             <p className={cn('text-sm font-medium whitespace-nowrap', {
-                                                'text-gray-900': isActive,
-                                                'text-gray-600': !isActive,
+                                                'text-gray-900 dark:text-gray-100': isActive || isCompleted,
+                                                'text-gray-500 dark:text-gray-400': !isActive && !isCompleted,
                                             })}>
                                                 {step.title}
                                             </p>
@@ -294,9 +295,9 @@ export default function BomImportWizard({ supportedFormats }: Props) {
                                     {!isLast && (
                                         <>
                                             {/* Vertical connector for mobile */}
-                                            <div className="ml-4 h-8 w-0.5 bg-gray-200 md:hidden" />
+                                            <div className="ml-4 h-8 w-0.5 bg-gray-200 dark:bg-gray-700 md:hidden" />
                                             {/* Horizontal connector for desktop */}
-                                            <div className="hidden md:block flex-1 mx-4 h-0.5 bg-gray-200" />
+                                            <div className="hidden md:block flex-1 mx-4 h-0.5 bg-gray-200 dark:bg-gray-700" />
                                         </>
                                     )}
                                 </div>
@@ -306,7 +307,7 @@ export default function BomImportWizard({ supportedFormats }: Props) {
                 </div>
 
                 {/* Step Content */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-6 bg-background">
                     {/* Error Alert */}
                     {uploadError && currentStep === 'selection' && (
                         <Alert variant="destructive" className="mb-6">
@@ -325,7 +326,7 @@ export default function BomImportWizard({ supportedFormats }: Props) {
                             <div className="flex items-center justify-center h-64">
                                 <div className="text-center">
                                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                                    <p className="text-gray-600">Inicializando importação...</p>
+                                    <p className="text-gray-600 dark:text-gray-400">Inicializando importação...</p>
                                 </div>
                             </div>
                         ) : (

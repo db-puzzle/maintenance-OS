@@ -100,27 +100,60 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
                 onError: (errors) => {
                     console.error('Import errors:', errors);
 
-                    const errorMessages = Object.values(errors).flat();
-                    setErrors(errorMessages.map((msg, index) => ({
-                        row: index + 1,
-                        message: String(msg)
-                    })));
+                    // Check if it's a JSON validation error
+                    if (errors.error && errors.details) {
+                        // This is our JSON validation error format
+                        let errorMessage = errors.error;
+                        if (errors.line && errors.column) {
+                            errorMessage = `Linha ${errors.line}, Coluna ${errors.column}: ${errors.details}`;
+                        } else {
+                            errorMessage = `${errors.error}: ${errors.details}`;
+                        }
 
-                    const updatedSession: ImportSession = {
-                        ...currentSession,
-                        status: 'failed',
-                        failedItems: currentSession.totalItems,
-                        errors: errorMessages.map((msg, index) => ({
+                        setErrors([{
+                            row: 0,
+                            message: errorMessage
+                        }]);
+
+                        const updatedSession: ImportSession = {
+                            ...currentSession,
+                            status: 'failed',
+                            failedItems: currentSession.totalItems,
+                            errors: [{
+                                row: 0,
+                                message: errorMessage
+                            }]
+                        };
+
+                        setCurrentSession(updatedSession);
+                        setStatusMessage('Importação falhou - Erro no arquivo JSON');
+                        setIsProcessing(false);
+
+                        toast.error(errorMessage);
+                    } else {
+                        // Regular validation errors
+                        const errorMessages = Object.values(errors).flat();
+                        setErrors(errorMessages.map((msg, index) => ({
                             row: index + 1,
                             message: String(msg)
-                        }))
-                    };
+                        })));
 
-                    setCurrentSession(updatedSession);
-                    setStatusMessage('Importação falhou');
-                    setIsProcessing(false);
+                        const updatedSession: ImportSession = {
+                            ...currentSession,
+                            status: 'failed',
+                            failedItems: currentSession.totalItems,
+                            errors: errorMessages.map((msg, index) => ({
+                                row: index + 1,
+                                message: String(msg)
+                            }))
+                        };
 
-                    toast.error('Importação falhou. Verifique os erros abaixo.');
+                        setCurrentSession(updatedSession);
+                        setStatusMessage('Importação falhou');
+                        setIsProcessing(false);
+
+                        toast.error('Importação falhou. Verifique os erros abaixo.');
+                    }
                 }
             });
 

@@ -180,8 +180,8 @@ export function FileSelectionStep({
                             className={cn(
                                 'border-2 border-dashed rounded-lg p-12 text-center transition-colors cursor-pointer',
                                 {
-                                    'border-gray-300 bg-gray-50 hover:bg-gray-100': !isDragging,
-                                    'border-primary bg-primary/10': isDragging,
+                                    'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800': !isDragging,
+                                    'border-primary bg-primary/10 dark:bg-primary/20': isDragging,
                                 }
                             )}
                             onDrop={handleDrop}
@@ -189,11 +189,11 @@ export function FileSelectionStep({
                             onDragLeave={handleDragLeave}
                             onClick={() => fileInputRef.current?.click()}
                         >
-                            <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                            <p className="text-lg font-medium text-gray-900">
+                            <Upload className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
+                            <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
                                 Arraste arquivos aqui
                             </p>
-                            <p className="text-sm text-gray-600 mt-1">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                 ou clique para selecionar
                             </p>
                             <Button variant="outline" className="mt-4">
@@ -226,7 +226,7 @@ export function FileSelectionStep({
                     <div className="flex items-center justify-between">
                         <div>
                             <h3 className="text-lg font-semibold">Arquivos Selecionados</h3>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
                                 {selectedFiles.length} arquivo(s) • {formatBytes(totalSize)} total
                                 • {validFiles.length} válido(s), {invalidFiles.length} inválido(s)
                             </p>

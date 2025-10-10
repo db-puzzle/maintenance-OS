@@ -7,6 +7,7 @@ use App\Models\Production\BillOfMaterial;
 use App\Models\Production\Item;
 use App\Models\Production\ItemCategory;
 use App\Models\Production\ManufacturingOrder;
+use App\Services\JsonValidator;
 use App\Services\Production\ItemImageBulkImportService;
 use App\Services\Production\ItemImportService;
 use Illuminate\Http\JsonResponse;
@@ -564,7 +565,68 @@ class ItemController extends BaseSearchController
 
             if ($extension === 'json') {
                 // Handle JSON import
-                $data = json_decode(file_get_contents($file->getRealPath()), true);
+                $content = file_get_contents($file->getRealPath());
+
+                // Remove BOM if present
+                $content = preg_replace('/^\xEF\xBB\xBF/', '', $content);
+
+                // Validate JSON with detailed error information
+                $validation = JsonValidator::validate($content);
+
+                if (! $validation['valid']) {
+                    \Log::error('JSON decode error in Item import', [
+                        'error' => $validation['error'],
+                        'file' => $file->getClientOriginalName(),
+                        'line' => $validation['line'] ?? null,
+                        'column' => $validation['column'] ?? null,
+                        'content_preview' => substr($content, 0, 500),
+                    ]);
+
+                    // Build detailed error message
+                    $errorMessage = 'Arquivo JSON inválido';
+                    $details = [];
+
+                    // Add specific error type
+                    if (str_contains($validation['error'], 'Syntax error') || str_contains($validation['error'], 'State mismatch')) {
+                        $errorMessage = 'Erro de sintaxe no JSON';
+                    } elseif (str_contains($validation['error'], 'UTF-8')) {
+                        $errorMessage = 'Caracteres inválidos no arquivo';
+                    } elseif (str_contains($validation['error'], 'Control character')) {
+                        // Control character errors often indicate unclosed strings
+                        $errorMessage = 'Erro de sintaxe no JSON (possível string não fechada)';
+                    }
+
+                    // Add position information
+                    if (isset($validation['line']) && isset($validation['column'])) {
+                        $details[] = sprintf('Erro na linha %d, coluna %d', $validation['line'], $validation['column']);
+                    }
+
+                    // Add context if available
+                    if (isset($validation['context'])) {
+                        $details[] = 'Contexto: ' . $validation['context'];
+                    }
+
+                    // Add generic help
+                    $details[] = 'Verifique se o arquivo está bem formatado, com aspas duplas corretas, vírgulas nos lugares certos e chaves/colchetes balanceados.';
+
+                    return response()->json([
+                        'error' => $errorMessage,
+                        'details' => implode(' ', $details),
+                        'line' => $validation['line'] ?? null,
+                        'column' => $validation['column'] ?? null,
+                    ], 422);
+                }
+
+                $data = $validation['data'];
+
+                // Validate that this is an Item import file, not a BOM
+                if (! $this->isValidItemJsonStructure($data)) {
+                    return response()->json([
+                        'error' => 'Arquivo inválido',
+                        'details' => 'Este parece ser um arquivo de importação de BOM, não de Itens. Arquivos de importação de Itens devem conter uma lista plana de itens.',
+                    ], 422);
+                }
+
                 $result = $this->importService->importFromNativeJson($data, $updateExisting);
             } else {
                 // Handle CSV import
@@ -573,6 +635,15 @@ class ItemController extends BaseSearchController
                 if (is_string($mapping)) {
                     $mapping = json_decode($mapping, true) ?? [];
                 }
+
+                // Validate that this is an Item import mapping, not a BOM
+                if (! $this->isValidItemCsvMapping($mapping)) {
+                    return response()->json([
+                        'error' => 'Mapeamento inválido',
+                        'details' => 'Os campos mapeados parecem ser de uma importação de BOM, não de Itens. Arquivos de BOM contêm informações de estrutura/hierarquia que não são suportadas na importação de Itens.',
+                    ], 422);
+                }
+
                 $result = $this->importService->importFromCsv($file, $mapping, $updateExisting);
             }
 
@@ -711,5 +782,88 @@ class ItemController extends BaseSearchController
             'existing_items' => $existingItems,
             'total_existing' => $existingItems->count(),
         ]);
+    }
+
+    /**
+     * Validate if the JSON structure is a valid Item import (not a BOM).
+     */
+    private function isValidItemJsonStructure(array $data): bool
+    {
+        // Check if it's a valid Item export structure
+        if (isset($data['items']) && is_array($data['items'])) {
+            // Check if any item has BOM-specific fields that indicate hierarchy
+            foreach ($data['items'] as $item) {
+                if (isset($item['children']) || isset($item['level']) || isset($item['parent_item_number'])) {
+                    return false; // This is a BOM file
+                }
+            }
+
+            // If we have items array, it should be a flat structure
+            return true;
+        }
+
+        // Check if it's an array at root level (could be Inventor BOM format)
+        if (isset($data[0]) && is_array($data[0])) {
+            // Check for BOM hierarchical indicators
+            foreach ($data as $item) {
+                if (isset($item['children']) || isset($item['level'])) {
+                    return false; // This is a BOM file
+                }
+            }
+
+            // For array format, we should have Item-specific fields
+            if (count($data) > 0) {
+                $firstItem = $data[0];
+                // Look for typical Item fields
+                if (isset($firstItem['item_number']) &&
+                    (isset($firstItem['can_be_sold']) ||
+                     isset($firstItem['can_be_purchased']) ||
+                     isset($firstItem['track_inventory']))) {
+                    return true; // This looks like an Item import
+                }
+            }
+        }
+
+        // Check for BOM-specific root structure
+        if (isset($data['bom_number']) || isset($data['output_item_id'])) {
+            return false; // This is definitely a BOM file
+        }
+
+        // Default to true if we can't determine (let the import service handle it)
+        return true;
+    }
+
+    /**
+     * Validate if the CSV mapping is for Item import (not a BOM).
+     */
+    private function isValidItemCsvMapping(array $mapping): bool
+    {
+        $mappedFields = array_values($mapping);
+
+        // Fields that indicate this is a BOM import, not an Item import
+        $bomOnlyFields = [
+            'parent_item_number',
+            'parent_item_id',
+            'level',
+            'sequence_number',
+            'position',
+            'reference_designator',
+            'bom_quantity', // Different from regular quantity
+            'assembly_quantity',
+        ];
+
+        // Check if any BOM-only fields are mapped
+        foreach ($bomOnlyFields as $field) {
+            if (in_array($field, $mappedFields)) {
+                return false; // This is likely a BOM import
+            }
+        }
+
+        // Item imports must have at least item_number and name
+        if (! in_array('item_number', $mappedFields) || ! in_array('name', $mappedFields)) {
+            return false;
+        }
+
+        return true;
     }
 }

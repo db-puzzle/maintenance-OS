@@ -102,16 +102,47 @@ export function FileSelectionStep({ supportedFormats, onNext }: Props) {
             } else if (fileType === 'json') {
                 // For JSON files, parse the data
                 const text = await selectedFile.text();
-                const jsonData = JSON.parse(text);
 
-                if (jsonData.items && Array.isArray(jsonData.items)) {
-                    importFile.data = jsonData.items;
-                    importFile.totalRows = jsonData.items.length;
-                } else if (Array.isArray(jsonData)) {
-                    importFile.data = jsonData;
-                    importFile.totalRows = jsonData.length;
-                } else {
-                    toast.error('Formato JSON inválido. Esperado um array de itens ou objeto com propriedade "items".');
+                try {
+                    const jsonData = JSON.parse(text);
+
+                    if (jsonData.items && Array.isArray(jsonData.items)) {
+                        importFile.data = jsonData.items;
+                        importFile.totalRows = jsonData.items.length;
+                    } else if (Array.isArray(jsonData)) {
+                        importFile.data = jsonData;
+                        importFile.totalRows = jsonData.length;
+                    } else {
+                        toast.error('Formato JSON inválido. Esperado um array de itens ou objeto com propriedade "items".');
+                        setIsProcessing(false);
+                        return;
+                    }
+                } catch (parseError: any) {
+                    // JSON parsing failed - provide helpful error message
+                    console.error('JSON parse error:', parseError);
+
+                    // Try to extract line/column from error message
+                    const errorMessage = parseError.message || '';
+                    const positionMatch = errorMessage.match(/position (\d+)/);
+
+                    if (positionMatch) {
+                        const position = parseInt(positionMatch[1]);
+                        const lines = text.substring(0, position).split('\n');
+                        const line = lines.length;
+                        const column = lines[lines.length - 1].length + 1;
+
+                        toast.error(
+                            `Erro de sintaxe no JSON na linha ${line}, coluna ${column}. ` +
+                            'Verifique se o arquivo está bem formatado, com aspas duplas corretas, ' +
+                            'vírgulas nos lugares certos e chaves/colchetes balanceados.'
+                        );
+                    } else {
+                        toast.error(
+                            'Arquivo JSON inválido. Verifique se o arquivo está bem formatado, ' +
+                            'com aspas duplas corretas, vírgulas nos lugares certos e chaves/colchetes balanceados.'
+                        );
+                    }
+
                     setIsProcessing(false);
                     return;
                 }

@@ -1053,7 +1053,27 @@ class BillOfMaterialController extends BaseSearchController
         $headers = [];
 
         if (in_array($fileType, ['csv', 'txt'])) {
-            $data = $this->importService->parseCsvFile($file);
+            // Parse CSV file directly here
+            $content = file_get_contents($file->getRealPath());
+            $lines = explode("\n", $content);
+            $headers = str_getcsv(array_shift($lines));
+
+            $data = [];
+            foreach ($lines as $line) {
+                if (trim($line) === '') {
+                    continue;
+                }
+
+                $values = str_getcsv($line);
+                $row = [];
+
+                foreach ($headers as $index => $header) {
+                    $row[$header] = isset($values[$index]) ? $values[$index] : '';
+                }
+
+                $data[] = $row;
+            }
+
             if (! empty($data)) {
                 $headers = array_keys($data[0]);
             }
@@ -1185,6 +1205,15 @@ class BillOfMaterialController extends BaseSearchController
 
         try {
             if ($fileType === 'json') {
+                // First, validate that this is a BOM structure, not an Item import
+                if (! $this->isValidBomJsonStructure($data)) {
+                    $validationResult['errors'][] = 'Arquivo inválido: Este parece ser um arquivo de importação de Itens, não de BOM. Arquivos de BOM devem ter estrutura hierárquica com componentes.';
+                    $sessionData['validation'] = $validationResult;
+                    Cache::put("bom_import_session_{$sessionId}", $sessionData, now()->addHours(24));
+
+                    return response()->json($validationResult);
+                }
+
                 // Validate JSON structure
                 $items = $this->extractItemsFromJson($data);
             } else {
@@ -1198,6 +1227,15 @@ class BillOfMaterialController extends BaseSearchController
                 }
 
                 $items = $this->extractItemsFromCsv($data, $mapping);
+
+                // For CSV files, check if this looks like an Item import based on mapped fields
+                if (! $this->isValidBomCsvMapping($mapping)) {
+                    $validationResult['errors'][] = 'Mapeamento inválido: Os campos mapeados parecem ser de uma importação de Itens, não de BOM. Arquivos de BOM devem conter informações de estrutura/hierarquia.';
+                    $sessionData['validation'] = $validationResult;
+                    Cache::put("bom_import_session_{$sessionId}", $sessionData, now()->addHours(24));
+
+                    return response()->json($validationResult);
+                }
             }
 
             // Check each item exists in database
@@ -1384,5 +1422,83 @@ class BillOfMaterialController extends BaseSearchController
         }
 
         return $items;
+    }
+
+    /**
+     * Validate if the JSON structure is a valid BOM structure (not a flat Item import).
+     */
+    private function isValidBomJsonStructure(array $data): bool
+    {
+        // Check if it's a native BOM format with hierarchical structure
+        if (isset($data['items']) && is_array($data['items'])) {
+            // If any item has children or the structure suggests hierarchy, it's likely a BOM
+            foreach ($data['items'] as $item) {
+                if (isset($item['children']) || isset($item['level']) || isset($item['parent_item_number'])) {
+                    return true;
+                }
+            }
+
+            // If it's just a flat array of items without any hierarchical indicators, it's likely an Item import
+            if (count($data['items']) > 0) {
+                $firstItem = $data['items'][0];
+                // Check for typical Item export fields that don't appear in BOM exports
+                if (isset($firstItem['can_be_sold']) || isset($firstItem['can_be_purchased']) ||
+                    isset($firstItem['purchase_price']) || isset($firstItem['track_inventory'])) {
+                    return false; // This is an Item import file
+                }
+            }
+        }
+
+        // Check if it's an Inventor format (array at root level)
+        if (isset($data[0]) && is_array($data[0])) {
+            // Inventor format should have children or hierarchical structure
+            foreach ($data as $item) {
+                if (isset($item['children']) || isset($item['level'])) {
+                    return true;
+                }
+            }
+        }
+
+        // If no hierarchical structure is found, it's not a valid BOM
+        return false;
+    }
+
+    /**
+     * Validate if the CSV mapping looks like a BOM import (not an Item import).
+     */
+    private function isValidBomCsvMapping(array $mapping): bool
+    {
+        $mappedFields = array_values($mapping);
+
+        // Fields that indicate this is an Item import, not a BOM import
+        $itemOnlyFields = [
+            'can_be_sold',
+            'can_be_purchased',
+            'purchase_price',
+            'purchase_lead_time_days',
+            'track_inventory',
+            'min_stock_level',
+            'max_stock_level',
+            'reorder_point',
+            'preferred_vendor',
+            'vendor_item_number',
+            'list_price',
+            'weight',
+            'dimensions',
+        ];
+
+        // Check if any Item-only fields are mapped
+        foreach ($itemOnlyFields as $field) {
+            if (in_array($field, $mappedFields)) {
+                return false; // This is likely an Item import
+            }
+        }
+
+        // BOM imports should have at least item_number and quantity
+        if (! in_array('item_number', $mappedFields) || ! in_array('quantity', $mappedFields)) {
+            return false;
+        }
+
+        return true;
     }
 }

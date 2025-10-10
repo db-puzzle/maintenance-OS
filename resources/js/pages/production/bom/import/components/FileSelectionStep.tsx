@@ -112,8 +112,8 @@ export function FileSelectionStep({ supportedFormats, onNext, initialBomInfo }: 
                             className={cn(
                                 'border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer',
                                 {
-                                    'border-gray-300 bg-gray-50 hover:bg-gray-100': !isDragging,
-                                    'border-primary bg-primary/10': isDragging,
+                                    'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800': !isDragging,
+                                    'border-primary bg-primary/10 dark:bg-primary/20': isDragging,
                                 }
                             )}
                             onDrop={handleDrop}
@@ -121,29 +121,29 @@ export function FileSelectionStep({ supportedFormats, onNext, initialBomInfo }: 
                             onDragLeave={handleDragLeave}
                             onClick={() => fileInputRef.current?.click()}
                         >
-                            <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                            <p className="text-lg font-medium text-gray-900">
+                            <Upload className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
+                            <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
                                 Arraste o arquivo aqui
                             </p>
-                            <p className="text-sm text-gray-600 mt-1">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                 ou clique para selecionar
                             </p>
                             <Button variant="outline" className="mt-4">
                                 <FolderOpen className="h-4 w-4 mr-2" />
                                 Escolher Arquivo
                             </Button>
-                            <p className="text-xs text-gray-500 mt-4">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
                                 Formatos aceitos: {supportedFormats.join(', ')} • Máximo 10MB
                             </p>
                         </div>
                     ) : (
-                        <div className="border rounded-lg p-4 bg-gray-50">
+                        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <FileText className="h-8 w-8 text-gray-400" />
+                                    <FileText className="h-8 w-8 text-gray-400 dark:text-gray-500" />
                                     <div>
-                                        <p className="font-medium">{selectedFile.filename}</p>
-                                        <p className="text-sm text-gray-600">
+                                        <p className="font-medium text-gray-900 dark:text-gray-100">{selectedFile.filename}</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">
                                             {formatBytes(selectedFile.size)} • {selectedFile.type.toUpperCase()}
                                         </p>
                                     </div>
@@ -165,8 +165,8 @@ export function FileSelectionStep({ supportedFormats, onNext, initialBomInfo }: 
                     )}
 
                     {/* Template Downloads */}
-                    <div className="border-t pt-4">
-                        <p className="text-sm font-medium mb-2">Modelos de Arquivo</p>
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Modelos de Arquivo</p>
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm" asChild>
                                 <a href="/templates/bom-import-template.csv" download>

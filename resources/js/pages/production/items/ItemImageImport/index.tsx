@@ -94,15 +94,15 @@ export default function ItemImageImport({
             <Head title="Importar Imagens de Itens" />
 
             <div className="relative flex h-[calc(100vh-3rem)] flex-col">
-                <div className="bg-white border-b px-6 py-4 flex-shrink-0">
-                    <h1 className="text-2xl font-bold text-gray-900">Importar Imagens de Itens</h1>
-                    <p className="mt-1 text-sm text-gray-600">
+                <div className="bg-background border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex-shrink-0">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Importar Imagens de Itens</h1>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                         Importe múltiplas imagens de uma vez com correspondência automática por nome de arquivo
                     </p>
                 </div>
 
                 {/* Progress Indicator */}
-                <div className="bg-white px-6 py-4 border-b flex-shrink-0 overflow-x-auto">
+                <div className="bg-background px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 overflow-x-auto">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full min-w-0">
                         {steps.map((step, index) => {
                             const isActive = step.id === currentStep;
@@ -117,10 +117,10 @@ export default function ItemImageImport({
                                     <div className="flex items-center">
                                         <div
                                             className={cn(
-                                                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0',
+                                                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0 transition-colors',
                                                 {
-                                                    'bg-primary text-white': isActive || isCompleted,
-                                                    'bg-gray-200 text-gray-600': !isActive && !isCompleted,
+                                                    'bg-primary text-primary-foreground ring-2 ring-primary/20': isActive || isCompleted,
+                                                    'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600': !isActive && !isCompleted,
                                                 }
                                             )}
                                         >
@@ -128,8 +128,8 @@ export default function ItemImageImport({
                                         </div>
                                         <div className="ml-3">
                                             <p className={cn('text-sm font-medium whitespace-nowrap', {
-                                                'text-gray-900': isActive,
-                                                'text-gray-600': !isActive,
+                                                'text-gray-900 dark:text-gray-100': isActive || isCompleted,
+                                                'text-gray-500 dark:text-gray-400': !isActive && !isCompleted,
                                             })}>
                                                 {step.title}
                                             </p>
@@ -138,9 +138,9 @@ export default function ItemImageImport({
                                     {!isLast && (
                                         <>
                                             {/* Vertical connector for mobile */}
-                                            <div className="ml-4 h-8 w-0.5 bg-gray-200 md:hidden" />
+                                            <div className="ml-4 h-8 w-0.5 bg-gray-200 dark:bg-gray-700 md:hidden" />
                                             {/* Horizontal connector for desktop */}
-                                            <div className="hidden md:block flex-1 mx-4 h-0.5 bg-gray-200" />
+                                            <div className="hidden md:block flex-1 mx-4 h-0.5 bg-gray-200 dark:bg-gray-700" />
                                         </>
                                     )}
                                 </div>
@@ -150,7 +150,7 @@ export default function ItemImageImport({
                 </div>
 
                 {/* Step Content */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-6 bg-background">
                     {currentStep === 'selection' && (
                         <FileSelectionStep
                             acceptedExtensions={acceptedExtensions}

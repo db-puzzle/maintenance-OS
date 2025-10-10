@@ -201,6 +201,19 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                             const earliestStart = new Date(Math.min(...allDates.starts.map(d => d.getTime())));
                             const latestEnd = new Date(Math.max(...allDates.ends.map(d => d.getTime())));
 
+                            // Debug width calculation
+                            const startX = timelineLayout.getPositionForDate(earliestStart);
+                            const endX = timelineLayout.getPositionForDate(latestEnd);
+                            const barWidth = endX - startX;
+
+                            if (order.level === 0) {
+                                console.log(`MO Bar Rendering - ${order.order_number}:`);
+                                console.log(`  Start position: ${startX}px`);
+                                console.log(`  End position: ${endX}px`);
+                                console.log(`  Calculated width: ${barWidth}px`);
+                                console.log(`  Timeline layout:`, timelineLayout);
+                            }
+
                             return (
                                 <div
                                     key={row.id}
@@ -210,13 +223,12 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                                     style={{
                                         top: y,
                                         height: rowHeight,
-                                        left: timelineLayout.getPositionForDate(earliestStart),
-                                        width: timelineLayout.getPositionForDate(latestEnd) -
-                                            timelineLayout.getPositionForDate(earliestStart),
+                                        left: startX,
+                                        width: barWidth,
                                     }}
                                 >
                                     <div className={cn(
-                                        "h-8 rounded px-2 flex items-center",
+                                        "h-8 rounded px-2 flex items-center w-full",
                                         order.level === 0 ? "bg-blue-500 text-white" : "bg-blue-200"
                                     )}>
                                         <span className="text-xs font-medium truncate">
