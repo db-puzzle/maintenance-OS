@@ -5,6 +5,7 @@ import { AllocationBar } from './AllocationBar';
 import { CapacityIndicator } from './CapacityIndicator';
 import { calculateTimelineLayout } from '../../../utils/timelineCalculations';
 import { cn } from '@/lib/utils';
+import { ZoomLevel } from '../../../utils/zoomConfig';
 
 interface SchedulerTimelineProps {
     workCells: any[];
@@ -13,8 +14,9 @@ interface SchedulerTimelineProps {
         startDate: Date;
         endDate: Date;
     };
-    zoomLevel: number;
+    zoomLevel: ZoomLevel;
     onAllocationUpdate: (allocationId: string, updates: any) => void;
+    onScrollContainerRef?: (container: HTMLElement | null) => void;
 }
 
 export const SchedulerTimeline: React.FC<SchedulerTimelineProps> = ({
@@ -23,6 +25,7 @@ export const SchedulerTimeline: React.FC<SchedulerTimelineProps> = ({
     viewConfig,
     zoomLevel,
     onAllocationUpdate,
+    onScrollContainerRef,
 }) => {
     const [selectedAllocationId, setSelectedAllocationId] = useState<string | null>(null);
     const [draggedAllocation, setDraggedAllocation] = useState<any>(null);
@@ -100,19 +103,28 @@ export const SchedulerTimeline: React.FC<SchedulerTimelineProps> = ({
 
     return (
         <div className="h-full flex flex-col bg-background">
-            {/* Time axis header (reuse from Gantt) */}
-            <TimeAxis
-                startDate={viewConfig.startDate}
-                endDate={viewConfig.endDate}
-                zoomLevel={zoomLevel}
-                width={timelineLayout.totalWidth}
-            />
+            {/* Time axis header with horizontal scroll sync */}
+            <div className="h-[60px] border-b bg-muted/50 sticky top-0 z-20 overflow-hidden">
+                <ScrollContainer
+                    id="scheduler-timeline-header"
+                    axis="x"
+                    className="h-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                >
+                    <TimeAxis
+                        startDate={viewConfig.startDate}
+                        endDate={viewConfig.endDate}
+                        zoomLevel={zoomLevel}
+                        width={timelineLayout.totalWidth}
+                    />
+                </ScrollContainer>
+            </div>
 
             {/* Resource timeline */}
             <ScrollContainer
                 id="scheduler-timeline"
                 axis="xy"
                 className="flex-1 relative"
+                onContainerRef={onScrollContainerRef}
             >
                 <div
                     className="relative"

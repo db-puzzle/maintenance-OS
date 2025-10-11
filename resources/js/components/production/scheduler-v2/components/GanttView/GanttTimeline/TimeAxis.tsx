@@ -1,10 +1,13 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { ZoomLevel } from '../../../utils/zoomConfig';
+import { calculateTimelineLayout } from '../../../utils/timelineCalculations';
+import { format } from 'date-fns';
 
 interface TimeAxisProps {
     startDate: Date;
     endDate: Date;
-    zoomLevel: number;
+    zoomLevel: ZoomLevel;
     width: number;
 }
 
@@ -16,38 +19,76 @@ export const TimeAxis: React.FC<TimeAxisProps> = ({
 }) => {
     // Generate time periods based on zoom level
     const generateTimePeriods = () => {
-        const periods: { label: string; subLabel: string; x: number; width: number }[] = [];
-        const current = new Date(startDate);
-        const pixelsPerDay = 100 * zoomLevel;
+        const layout = calculateTimelineLayout({
+            startDate,
+            endDate,
+            zoomLevel,
+            containerWidth: width
+        });
 
-        let x = 0;
-        while (current <= endDate) {
-            if (zoomLevel >= 2) {
-                // Hour view
-                const label = current.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                const subLabel = current.toLocaleDateString('en-US', { weekday: 'short' });
-                periods.push({ label, subLabel, x, width: pixelsPerDay / 24 });
-                current.setHours(current.getHours() + 1);
-                x += pixelsPerDay / 24;
-            } else if (zoomLevel >= 1) {
-                // Day view
-                const label = current.getDate().toString();
-                const subLabel = current.toLocaleDateString('en-US', { weekday: 'short' });
-                periods.push({ label, subLabel, x, width: pixelsPerDay });
-                current.setDate(current.getDate() + 1);
-                x += pixelsPerDay;
-            } else {
-                // Week view
-                const weekStart = new Date(current);
-                const weekEnd = new Date(current);
-                weekEnd.setDate(weekEnd.getDate() + 6);
-                const label = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-                const subLabel = `Week ${getWeekNumber(weekStart)}`;
-                periods.push({ label, subLabel, x, width: pixelsPerDay * 7 });
-                current.setDate(current.getDate() + 7);
-                x += pixelsPerDay * 7;
+        const periods: {
+            label: string;
+            subLabel: string;
+            x: number;
+            width: number;
+            isMajor: boolean;
+        }[] = [];
+
+        const boundaries = layout.getUnitBoundaries();
+
+        boundaries.forEach((boundary, index) => {
+            const isMajor = index % zoomLevel.unitsPerMajorGrid === 0;
+
+            // Format labels based on time scale
+            let label: string;
+            let subLabel: string;
+
+            switch (zoomLevel.timeScale) {
+                case 'hour':
+                    label = format(boundary.start, 'h:mm a');
+                    subLabel = format(boundary.start, 'EEE MMM d');
+                    break;
+                case '4hour':
+                    label = format(boundary.start, 'h a');
+                    subLabel = format(boundary.start, 'MMM d');
+                    break;
+                case 'day':
+                    label = format(boundary.start, 'd');
+                    subLabel = format(boundary.start, 'EEE');
+                    break;
+                case '3day':
+                    label = format(boundary.start, 'd');
+                    subLabel = format(boundary.start, 'MMM');
+                    break;
+                case 'week':
+                    label = `W${getWeekNumber(boundary.start)}`;
+                    subLabel = format(boundary.start, 'MMM');
+                    break;
+                case '2week':
+                    label = `W${getWeekNumber(boundary.start)}`;
+                    subLabel = format(boundary.start, 'MMM yyyy');
+                    break;
+                case 'month':
+                    label = format(boundary.start, 'MMM');
+                    subLabel = format(boundary.start, 'yyyy');
+                    break;
+                case 'quarter':
+                    label = `Q${getQuarter(boundary.start)}`;
+                    subLabel = format(boundary.start, 'yyyy');
+                    break;
+                default:
+                    label = format(boundary.start, 'd');
+                    subLabel = format(boundary.start, 'MMM yyyy');
             }
-        }
+
+            periods.push({
+                label,
+                subLabel,
+                x: boundary.position,
+                width: boundary.width,
+                isMajor
+            });
+        });
 
         return periods;
     };
@@ -60,10 +101,14 @@ export const TimeAxis: React.FC<TimeAxisProps> = ({
         return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
     };
 
+    const getQuarter = (date: Date): number => {
+        return Math.floor(date.getMonth() / 3) + 1;
+    };
+
     const periods = generateTimePeriods();
 
     return (
-        <div className="h-[60px] border-b bg-muted/50 sticky top-0 z-20">
+        <div className="h-[60px]" style={{ width: `${width}px` }}>
             {/* Top level header */}
             <div className="h-[30px] border-b relative">
                 <div className="absolute inset-0 overflow-hidden">
@@ -73,7 +118,8 @@ export const TimeAxis: React.FC<TimeAxisProps> = ({
                                 key={index}
                                 className={cn(
                                     "absolute top-0 bottom-0 border-r flex items-center justify-center px-1",
-                                    "text-sm font-medium"
+                                    "text-sm font-medium",
+                                    period.isMajor ? "border-border" : "border-border/50"
                                 )}
                                 style={{
                                     left: `${period.x}px`,
@@ -96,7 +142,8 @@ export const TimeAxis: React.FC<TimeAxisProps> = ({
                                 key={index}
                                 className={cn(
                                     "absolute top-0 bottom-0 border-r flex items-center justify-center px-1",
-                                    "text-xs text-muted-foreground"
+                                    "text-xs text-muted-foreground",
+                                    period.isMajor ? "border-border" : "border-border/50"
                                 )}
                                 style={{
                                     left: `${period.x}px`,

@@ -6,6 +6,7 @@ import { Dependencies } from './Dependencies';
 import { NonWorkingTime } from './NonWorkingTime';
 import { calculateTimelineLayout } from '../../../utils/timelineCalculations';
 import { cn } from '@/lib/utils';
+import { ZoomLevel } from '../../../utils/zoomConfig';
 
 interface GanttTimelineProps {
     tasks: any[];
@@ -13,9 +14,10 @@ interface GanttTimelineProps {
         startDate: Date;
         endDate: Date;
     };
-    zoomLevel: number;
+    zoomLevel: ZoomLevel;
     timelineWidth: number;
     onStepUpdate: (stepId: string, updates: any) => void;
+    onScrollContainerRef?: (container: HTMLElement | null) => void;
 }
 
 export const GanttTimeline: React.FC<GanttTimelineProps> = ({
@@ -24,6 +26,7 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
     zoomLevel,
     timelineWidth,
     onStepUpdate,
+    onScrollContainerRef,
 }) => {
     const _canvasRef = useRef<HTMLCanvasElement>(null);
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
@@ -103,19 +106,28 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
 
     return (
         <div className="h-full flex flex-col bg-background">
-            {/* Time axis header */}
-            <TimeAxis
-                startDate={viewConfig.startDate}
-                endDate={viewConfig.endDate}
-                zoomLevel={zoomLevel}
-                width={timelineLayout.totalWidth}
-            />
+            {/* Time axis header with horizontal scroll sync */}
+            <div className="h-[60px] border-b bg-muted/50 sticky top-0 z-20 overflow-hidden">
+                <ScrollContainer
+                    id="gantt-timeline-header"
+                    axis="x"
+                    className="h-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                >
+                    <TimeAxis
+                        startDate={viewConfig.startDate}
+                        endDate={viewConfig.endDate}
+                        zoomLevel={zoomLevel}
+                        width={timelineLayout.totalWidth}
+                    />
+                </ScrollContainer>
+            </div>
 
             {/* Timeline content */}
             <ScrollContainer
                 id="gantt-timeline"
                 axis="xy"
                 className="flex-1 relative"
+                onContainerRef={onScrollContainerRef}
             >
                 <div
                     className="relative"

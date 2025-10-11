@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { ScrollContainer } from '../shared/ScrollContainer';
 import { GanttGrid } from './GanttGrid/GanttGrid';
 import { GanttTimeline } from './GanttTimeline/GanttTimeline';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup, ImperativePanelGroupHandle } from '@/components/ui/resizable';
+import { ZoomLevel } from '../../utils/zoomConfig';
 
 interface GanttViewProps {
     orders: any[]; // Manufacturing orders with steps
@@ -10,12 +10,13 @@ interface GanttViewProps {
         startDate: Date;
         endDate: Date;
     };
-    zoomLevel: number;
+    zoomLevel: ZoomLevel;
     onStepUpdate: (stepId: string, updates: any) => void;
     onOrderToggle: (orderId: number) => void;
     leftPanelSize: number;
     onLeftPanelResize: (size: number) => void;
     panelGroupRef: React.RefObject<ImperativePanelGroupHandle | null>;
+    onScrollContainerRef?: (container: HTMLElement | null) => void;
 }
 
 export const GanttView: React.FC<GanttViewProps> = ({
@@ -27,6 +28,7 @@ export const GanttView: React.FC<GanttViewProps> = ({
     leftPanelSize,
     onLeftPanelResize,
     panelGroupRef,
+    onScrollContainerRef,
 }) => {
     // Flatten orders and their steps for display
     const visibleTasks = useMemo(() => {
@@ -74,7 +76,37 @@ export const GanttView: React.FC<GanttViewProps> = ({
             (viewConfig.endDate.getTime() - viewConfig.startDate.getTime()) /
             (1000 * 60 * 60 * 24)
         );
-        return daysDiff * 40 * zoomLevel; // 40px per day at zoom level 1
+        // Use pixelsPerDay from zoom level's time scale conversion
+        let pixelsPerDay: number;
+        switch (zoomLevel.timeScale) {
+            case 'hour':
+                pixelsPerDay = zoomLevel.pixelsPerUnit * 24;
+                break;
+            case '4hour':
+                pixelsPerDay = (zoomLevel.pixelsPerUnit / 4) * 24;
+                break;
+            case 'day':
+                pixelsPerDay = zoomLevel.pixelsPerUnit;
+                break;
+            case '3day':
+                pixelsPerDay = zoomLevel.pixelsPerUnit / 3;
+                break;
+            case 'week':
+                pixelsPerDay = zoomLevel.pixelsPerUnit / 7;
+                break;
+            case '2week':
+                pixelsPerDay = zoomLevel.pixelsPerUnit / 14;
+                break;
+            case 'month':
+                pixelsPerDay = zoomLevel.pixelsPerUnit / 30;
+                break;
+            case 'quarter':
+                pixelsPerDay = zoomLevel.pixelsPerUnit / 91;
+                break;
+            default:
+                pixelsPerDay = 100;
+        }
+        return Math.max(daysDiff * pixelsPerDay, 1000); // Minimum width of 1000px
     }, [viewConfig, zoomLevel]);
 
     return (
@@ -133,6 +165,7 @@ export const GanttView: React.FC<GanttViewProps> = ({
                     zoomLevel={zoomLevel}
                     timelineWidth={timelineWidth}
                     onStepUpdate={onStepUpdate}
+                    onScrollContainerRef={onScrollContainerRef}
                 />
             </ResizablePanel>
         </ResizablePanelGroup>

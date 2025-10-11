@@ -1,16 +1,22 @@
+import { ZoomLevel, getTimeUnits, getTimeUnitStart, addTimeUnits } from './zoomConfig';
+
 export interface TimelineLayout {
     totalWidth: number;
     pixelsPerDay: number;
     pixelsPerHour: number;
+    pixelsPerUnit: number;
     daysInView: number;
+    unitsInView: number;
+    timeScale: string;
     getPositionForDate: (date: Date) => number;
     getDateForPosition: (x: number) => Date;
+    getUnitBoundaries: () => { start: Date; end: Date; position: number; width: number }[];
 }
 
 interface CalculateTimelineLayoutProps {
     startDate: Date;
     endDate: Date;
-    zoomLevel: number;
+    zoomLevel: ZoomLevel;
     containerWidth: number;
 }
 
@@ -20,37 +26,111 @@ export const calculateTimelineLayout = ({
     zoomLevel,
     containerWidth,
 }: CalculateTimelineLayoutProps): TimelineLayout => {
-    // Calculate days in view
+    // Calculate time units in view based on zoom level
+    const unitsInView = getTimeUnits(startDate, endDate, zoomLevel.timeScale);
+    const pixelsPerUnit = zoomLevel.pixelsPerUnit;
+
+    // Calculate pixels per day and hour for compatibility
+    let pixelsPerDay: number;
+    let pixelsPerHour: number;
+
+    switch (zoomLevel.timeScale) {
+        case 'hour':
+            pixelsPerHour = pixelsPerUnit;
+            pixelsPerDay = pixelsPerHour * 24;
+            break;
+        case '4hour':
+            pixelsPerHour = pixelsPerUnit / 4;
+            pixelsPerDay = pixelsPerHour * 24;
+            break;
+        case 'day':
+            pixelsPerDay = pixelsPerUnit;
+            pixelsPerHour = pixelsPerDay / 24;
+            break;
+        case '3day':
+            pixelsPerDay = pixelsPerUnit / 3;
+            pixelsPerHour = pixelsPerDay / 24;
+            break;
+        case 'week':
+            pixelsPerDay = pixelsPerUnit / 7;
+            pixelsPerHour = pixelsPerDay / 24;
+            break;
+        case '2week':
+            pixelsPerDay = pixelsPerUnit / 14;
+            pixelsPerHour = pixelsPerDay / 24;
+            break;
+        case 'month':
+            pixelsPerDay = pixelsPerUnit / 30; // Approximate
+            pixelsPerHour = pixelsPerDay / 24;
+            break;
+        case 'quarter':
+            pixelsPerDay = pixelsPerUnit / 91; // Approximate
+            pixelsPerHour = pixelsPerDay / 24;
+            break;
+        default:
+            pixelsPerDay = 100;
+            pixelsPerHour = pixelsPerDay / 24;
+    }
+
+    // Calculate days in view for compatibility
     const daysInView = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
-    // Base pixels per day (adjust based on zoom level)
-    const basePixelsPerDay = 100; // Base width for one day
-    const pixelsPerDay = basePixelsPerDay * zoomLevel;
-    const pixelsPerHour = pixelsPerDay / 24;
-
     // Total timeline width
-    const totalWidth = Math.max(daysInView * pixelsPerDay, containerWidth);
+    const totalWidth = Math.max(unitsInView * pixelsPerUnit, containerWidth);
 
     // Helper functions
     const getPositionForDate = (date: Date): number => {
-        const daysDiff = (date.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+        const timeDiff = date.getTime() - startDate.getTime();
+        const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
         return daysDiff * pixelsPerDay;
     };
 
     const getDateForPosition = (x: number): Date => {
         const daysDiff = x / pixelsPerDay;
         const newDate = new Date(startDate);
-        newDate.setDate(newDate.getDate() + daysDiff);
+        newDate.setTime(newDate.getTime() + daysDiff * 24 * 60 * 60 * 1000);
         return newDate;
+    };
+
+    // Get unit boundaries for grid rendering
+    const getUnitBoundaries = (): { start: Date; end: Date; position: number; width: number }[] => {
+        const boundaries: { start: Date; end: Date; position: number; width: number }[] = [];
+        let currentDate = getTimeUnitStart(startDate, zoomLevel.timeScale);
+
+        while (currentDate < endDate) {
+            const nextDate = addTimeUnits(currentDate, 1, zoomLevel.timeScale);
+            const unitStart = currentDate < startDate ? startDate : currentDate;
+            const unitEnd = nextDate > endDate ? endDate : nextDate;
+
+            if (unitEnd > unitStart) {
+                const startPos = getPositionForDate(unitStart);
+                const endPos = getPositionForDate(unitEnd);
+
+                boundaries.push({
+                    start: new Date(currentDate),
+                    end: new Date(nextDate),
+                    position: startPos,
+                    width: endPos - startPos
+                });
+            }
+
+            currentDate = nextDate;
+        }
+
+        return boundaries;
     };
 
     return {
         totalWidth,
         pixelsPerDay,
         pixelsPerHour,
+        pixelsPerUnit,
         daysInView,
+        unitsInView,
+        timeScale: zoomLevel.timeScale,
         getPositionForDate,
         getDateForPosition,
+        getUnitBoundaries,
     };
 };
 
@@ -91,12 +171,13 @@ export const snapToGrid = (date: Date, gridUnit: 'hour' | 'day' | 'week'): Date 
         case 'day':
             snapped.setHours(0, 0, 0, 0);
             break;
-        case 'week':
+        case 'week': {
             snapped.setHours(0, 0, 0, 0);
             const day = snapped.getDay();
             const diff = snapped.getDate() - day + (day === 0 ? -6 : 1);
             snapped.setDate(diff);
             break;
+        }
     }
 
     return snapped;

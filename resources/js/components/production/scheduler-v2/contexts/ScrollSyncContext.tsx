@@ -52,33 +52,70 @@ export const ScrollSyncProvider: React.FC<ScrollSyncProviderProps> = ({ children
             const containers = scrollContainers.current;
 
             if (axis === 'x') {
-                // Horizontal scroll - sync between timelines only
+                // Horizontal scroll - sync between timelines and their headers
                 // Grid panels should NOT participate in horizontal sync
 
-                // Only timeline panels can sync horizontally
-                if (source === 'gantt-timeline' || source === 'scheduler-timeline') {
-                    scrollPosition.current.x = value;
+                scrollPosition.current.x = value;
 
-                    if (source === 'gantt-timeline') {
-                        const schedulerTimeline = containers.get('scheduler-timeline');
-                        if (schedulerTimeline && Math.abs(schedulerTimeline.scrollLeft - value) > 1) {
-                            isSyncing.current.add('scheduler-timeline-x');
-                            schedulerTimeline.scrollLeft = value;
-                            // Clear the sync flag after a short delay
-                            setTimeout(() => {
-                                isSyncing.current.delete('scheduler-timeline-x');
-                            }, 50);
-                        }
-                    } else if (source === 'scheduler-timeline') {
-                        const ganttTimeline = containers.get('gantt-timeline');
-                        if (ganttTimeline && Math.abs(ganttTimeline.scrollLeft - value) > 1) {
-                            isSyncing.current.add('gantt-timeline-x');
-                            ganttTimeline.scrollLeft = value;
-                            // Clear the sync flag after a short delay
-                            setTimeout(() => {
-                                isSyncing.current.delete('gantt-timeline-x');
-                            }, 50);
-                        }
+                // Sync between gantt timeline and its header
+                if (source === 'gantt-timeline' || source === 'gantt-timeline-header') {
+                    const ganttTimeline = containers.get('gantt-timeline');
+                    const ganttHeader = containers.get('gantt-timeline-header');
+
+                    if (source === 'gantt-timeline' && ganttHeader && Math.abs(ganttHeader.scrollLeft - value) > 1) {
+                        isSyncing.current.add('gantt-timeline-header-x');
+                        ganttHeader.scrollLeft = value;
+                        setTimeout(() => isSyncing.current.delete('gantt-timeline-header-x'), 50);
+                    } else if (source === 'gantt-timeline-header' && ganttTimeline && Math.abs(ganttTimeline.scrollLeft - value) > 1) {
+                        isSyncing.current.add('gantt-timeline-x');
+                        ganttTimeline.scrollLeft = value;
+                        setTimeout(() => isSyncing.current.delete('gantt-timeline-x'), 50);
+                    }
+
+                    // Also sync with scheduler timeline and its header
+                    const schedulerTimeline = containers.get('scheduler-timeline');
+                    const schedulerHeader = containers.get('scheduler-timeline-header');
+
+                    if (schedulerTimeline && Math.abs(schedulerTimeline.scrollLeft - value) > 1) {
+                        isSyncing.current.add('scheduler-timeline-x');
+                        schedulerTimeline.scrollLeft = value;
+                        setTimeout(() => isSyncing.current.delete('scheduler-timeline-x'), 50);
+                    }
+                    if (schedulerHeader && Math.abs(schedulerHeader.scrollLeft - value) > 1) {
+                        isSyncing.current.add('scheduler-timeline-header-x');
+                        schedulerHeader.scrollLeft = value;
+                        setTimeout(() => isSyncing.current.delete('scheduler-timeline-header-x'), 50);
+                    }
+                }
+
+                // Sync between scheduler timeline and its header
+                else if (source === 'scheduler-timeline' || source === 'scheduler-timeline-header') {
+                    const schedulerTimeline = containers.get('scheduler-timeline');
+                    const schedulerHeader = containers.get('scheduler-timeline-header');
+
+                    if (source === 'scheduler-timeline' && schedulerHeader && Math.abs(schedulerHeader.scrollLeft - value) > 1) {
+                        isSyncing.current.add('scheduler-timeline-header-x');
+                        schedulerHeader.scrollLeft = value;
+                        setTimeout(() => isSyncing.current.delete('scheduler-timeline-header-x'), 50);
+                    } else if (source === 'scheduler-timeline-header' && schedulerTimeline && Math.abs(schedulerTimeline.scrollLeft - value) > 1) {
+                        isSyncing.current.add('scheduler-timeline-x');
+                        schedulerTimeline.scrollLeft = value;
+                        setTimeout(() => isSyncing.current.delete('scheduler-timeline-x'), 50);
+                    }
+
+                    // Also sync with gantt timeline and its header
+                    const ganttTimeline = containers.get('gantt-timeline');
+                    const ganttHeader = containers.get('gantt-timeline-header');
+
+                    if (ganttTimeline && Math.abs(ganttTimeline.scrollLeft - value) > 1) {
+                        isSyncing.current.add('gantt-timeline-x');
+                        ganttTimeline.scrollLeft = value;
+                        setTimeout(() => isSyncing.current.delete('gantt-timeline-x'), 50);
+                    }
+                    if (ganttHeader && Math.abs(ganttHeader.scrollLeft - value) > 1) {
+                        isSyncing.current.add('gantt-timeline-header-x');
+                        ganttHeader.scrollLeft = value;
+                        setTimeout(() => isSyncing.current.delete('gantt-timeline-header-x'), 50);
                     }
                 }
             } else if (axis === 'y') {

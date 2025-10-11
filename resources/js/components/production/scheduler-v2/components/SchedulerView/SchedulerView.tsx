@@ -3,6 +3,8 @@ import { SchedulerGrid } from './SchedulerGrid/SchedulerGrid';
 import { SchedulerTimeline } from './SchedulerTimeline/SchedulerTimeline';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup, ImperativePanelGroupHandle } from '@/components/ui/resizable';
 
+import { ZoomLevel } from '../../utils/zoomConfig';
+
 interface SchedulerViewProps {
     workCells: any[];
     allocations: any[];
@@ -10,11 +12,12 @@ interface SchedulerViewProps {
         startDate: Date;
         endDate: Date;
     };
-    zoomLevel: number;
+    zoomLevel: ZoomLevel;
     onAllocationUpdate: (allocationId: string, updates: any) => void;
     leftPanelSize: number;
     onLeftPanelResize: (size: number) => void;
     panelGroupRef: React.RefObject<ImperativePanelGroupHandle | null>;
+    onScrollContainerRef?: (container: HTMLElement | null) => void;
 }
 
 export const SchedulerView: React.FC<SchedulerViewProps> = ({
@@ -26,6 +29,7 @@ export const SchedulerView: React.FC<SchedulerViewProps> = ({
     leftPanelSize,
     onLeftPanelResize,
     panelGroupRef,
+    onScrollContainerRef,
 }) => {
     return (
         <ResizablePanelGroup
@@ -57,6 +61,7 @@ export const SchedulerView: React.FC<SchedulerViewProps> = ({
                     viewConfig={viewConfig}
                     zoomLevel={zoomLevel}
                     onAllocationUpdate={onAllocationUpdate}
+                    onScrollContainerRef={onScrollContainerRef}
                 />
             </ResizablePanel>
         </ResizablePanelGroup>

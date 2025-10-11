@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { ZoomLevel } from '../utils/zoomConfig';
 
 interface UseSchedulerStateProps {
     orders: any[];
@@ -7,7 +8,7 @@ interface UseSchedulerStateProps {
         startDate: Date;
         endDate: Date;
     };
-    zoomLevel: number;
+    zoomLevel: ZoomLevel;
 }
 
 export const useSchedulerState = ({
@@ -62,12 +63,9 @@ export const useSchedulerState = ({
         return allSteps;
     }, [visibleOrders]);
 
-    // Calculate time scale based on zoom level
+    // Use time scale from zoom level configuration
     const timeScale = useMemo(() => {
-        if (zoomLevel >= 2) return 'hour';
-        if (zoomLevel >= 1.5) return 'day';
-        if (zoomLevel >= 1) return 'week';
-        return 'month';
+        return zoomLevel.timeScale;
     }, [zoomLevel]);
 
     return {
@@ -75,6 +73,7 @@ export const useSchedulerState = ({
         workCells,
         allocations,
         timeScale,
+        zoomLevel,
     };
 };
 

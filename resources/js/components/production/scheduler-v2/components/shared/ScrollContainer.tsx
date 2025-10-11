@@ -8,6 +8,7 @@ interface ScrollContainerProps {
     children: ReactNode;
     className?: string;
     style?: React.CSSProperties;
+    onContainerRef?: (container: HTMLElement | null) => void;
 }
 
 export const ScrollContainer: React.FC<ScrollContainerProps> = ({
@@ -16,6 +17,7 @@ export const ScrollContainer: React.FC<ScrollContainerProps> = ({
     children,
     className,
     style,
+    onContainerRef,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
     const { registerScrollContainer, unregisterScrollContainer, syncScroll } = useScrollSync();
@@ -25,14 +27,20 @@ export const ScrollContainer: React.FC<ScrollContainerProps> = ({
     useEffect(() => {
         if (ref.current) {
             registerScrollContainer(id, ref.current);
+            if (onContainerRef) {
+                onContainerRef(ref.current);
+            }
         }
         return () => {
             unregisterScrollContainer(id);
             if (scrollTimeout.current) {
                 clearTimeout(scrollTimeout.current);
             }
+            if (onContainerRef) {
+                onContainerRef(null);
+            }
         };
-    }, [id, registerScrollContainer, unregisterScrollContainer]);
+    }, [id, registerScrollContainer, unregisterScrollContainer, onContainerRef]);
 
     const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
         const element = e.currentTarget;

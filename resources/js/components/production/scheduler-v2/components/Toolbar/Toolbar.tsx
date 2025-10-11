@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -30,16 +23,18 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ZoomLevel, ZOOM_LEVELS } from '../../utils/zoomConfig';
 
 interface ToolbarProps {
     currentVersion: ScheduleVersion;
     publishedVersion?: ScheduleVersion;
     schedulingAlgorithms: Record<string, string>;
     alertStats: any;
-    zoomLevel: number;
+    zoomLevel: ZoomLevel;
     onZoomIn: () => void;
     onZoomOut: () => void;
     onZoomFit: () => void;
+    onZoomLevelChange: (levelId: string) => void;
     viewConfig: {
         startDate: Date;
         endDate: Date;
@@ -56,8 +51,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     onZoomIn,
     onZoomOut,
     onZoomFit,
+    onZoomLevelChange,
     viewConfig,
-    onViewConfigChange,
+    onViewConfigChange: _onViewConfigChange,
 }) => {
     const [selectedAlgorithm, setSelectedAlgorithm] = useState('asap');
     const [searchQuery, setSearchQuery] = useState('');
@@ -206,33 +202,65 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     </Button>
 
                     {/* Zoom controls */}
-                    <div className="flex items-center gap-1 border rounded-md p-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={onZoomOut}
-                            disabled={zoomLevel <= 0.5}
-                        >
-                            <ZoomOut className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={onZoomFit}
-                        >
-                            <Maximize2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={onZoomIn}
-                            disabled={zoomLevel >= 3}
-                        >
-                            <ZoomIn className="h-4 w-4" />
-                        </Button>
+                    <div className="flex items-center gap-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="h-9 px-3">
+                                    <ZoomIn className="h-4 w-4 mr-2" />
+                                    {zoomLevel.name}
+                                    <ChevronDown className="ml-2 h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-64">
+                                {ZOOM_LEVELS.map((level) => (
+                                    <DropdownMenuItem
+                                        key={level.id}
+                                        onClick={() => onZoomLevelChange(level.id)}
+                                        className={cn(
+                                            "flex flex-col items-start py-2",
+                                            level.id === zoomLevel.id && "bg-accent"
+                                        )}
+                                    >
+                                        <div className="font-medium">{level.name}</div>
+                                        <div className="text-xs text-muted-foreground">
+                                            {level.description}
+                                        </div>
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <div className="flex items-center gap-1 border rounded-md p-1">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={onZoomOut}
+                                disabled={zoomLevel.id === ZOOM_LEVELS[ZOOM_LEVELS.length - 1].id}
+                                title="Zoom Out"
+                            >
+                                <ZoomOut className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={onZoomFit}
+                                title="Reset Zoom"
+                            >
+                                <Maximize2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={onZoomIn}
+                                disabled={zoomLevel.id === ZOOM_LEVELS[0].id}
+                                title="Zoom In"
+                            >
+                                <ZoomIn className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
