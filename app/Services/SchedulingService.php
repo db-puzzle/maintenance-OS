@@ -12,6 +12,8 @@ use App\Services\Scheduling\CapacityChecker;
 use App\Services\Scheduling\ConflictDetector;
 use App\Services\Scheduling\DependencyValidator;
 use App\Services\Scheduling\DueDateBackwardScheduler;
+use App\Services\Scheduling\FamilyCapacityBookingService;
+use App\Services\Scheduling\OrderFamilyService;
 use App\Services\Scheduling\SchedulingResult;
 use App\Services\Scheduling\StepScheduleData;
 use Carbon\Carbon;
@@ -23,12 +25,19 @@ class SchedulingService
     protected CapacityChecker $capacityChecker;
     protected DependencyValidator $dependencyValidator;
     protected ConflictDetector $conflictDetector;
+    protected OrderFamilyService $familyService;
+    protected FamilyCapacityBookingService $familyCapacityService;
 
     public function __construct()
     {
+        $this->familyService = new OrderFamilyService;
         $this->capacityChecker = new CapacityChecker;
-        $this->dependencyValidator = new DependencyValidator;
-        $this->conflictDetector = new ConflictDetector;
+        $this->dependencyValidator = new DependencyValidator($this->familyService);
+        $this->conflictDetector = new ConflictDetector($this->familyService);
+        $this->familyCapacityService = new FamilyCapacityBookingService(
+            $this->capacityChecker,
+            $this->familyService
+        );
     }
 
     /**
@@ -52,17 +61,23 @@ class SchedulingService
             'asap' => new ASAPScheduler(
                 $this->capacityChecker,
                 $this->dependencyValidator,
-                $this->conflictDetector
+                $this->conflictDetector,
+                $this->familyService,
+                $this->familyCapacityService
             ),
             'due_date' => new DueDateBackwardScheduler(
                 $this->capacityChecker,
                 $this->dependencyValidator,
-                $this->conflictDetector
+                $this->conflictDetector,
+                $this->familyService,
+                $this->familyCapacityService
             ),
             'balanced' => new BalancedLoadingScheduler(
                 $this->capacityChecker,
                 $this->dependencyValidator,
-                $this->conflictDetector
+                $this->conflictDetector,
+                $this->familyService,
+                $this->familyCapacityService
             ),
             default => throw new \InvalidArgumentException("Unknown algorithm type: {$type}"),
         };

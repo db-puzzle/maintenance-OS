@@ -7,9 +7,17 @@ use App\Models\Production\ManufacturingStep;
 use App\Models\Production\WorkCell;
 use Carbon\Carbon;
 use DateTime;
+use Illuminate\Support\Collection;
 
 class ConflictDetector
 {
+    protected OrderFamilyService $familyService;
+
+    public function __construct(OrderFamilyService $familyService)
+    {
+        $this->familyService = $familyService;
+    }
+
     /**
      * Detect scheduling conflicts.
      */
@@ -40,6 +48,18 @@ class ConflictDetector
             );
             if ($dependencyConflict) {
                 $conflicts[] = $dependencyConflict;
+            }
+        }
+
+        // Check for family boundary violations
+        if ($step) {
+            $familyConflict = $this->checkFamilyBoundaryViolation(
+                $step,
+                $stepData,
+                $existingSchedule
+            );
+            if ($familyConflict) {
+                $conflicts[] = $familyConflict;
             }
         }
 
@@ -274,5 +294,103 @@ class ConflictDetector
         }
 
         return $warnings;
+    }
+
+    /**
+     * Check for family boundary violations.
+     */
+    public function checkFamilyBoundaryViolation(
+        ManufacturingStep $step,
+        StepScheduleData $stepData,
+        array $existingSchedule
+    ): ?string {
+        // Get the order for this step
+        $order = $step->manufacturingRoute->manufacturingOrder ?? null;
+        if (! $order) {
+            return null;
+        }
+
+        // Check if step dependencies cross family boundaries
+        if ($step->dependency_id) {
+            $dependencyStep = ManufacturingStep::find($step->dependency_id);
+            if ($dependencyStep && $dependencyStep->manufacturingRoute) {
+                $dependencyOrder = $dependencyStep->manufacturingRoute->manufacturingOrder;
+
+                if ($dependencyOrder && ! $this->familyService->areInSameFamily($order, $dependencyOrder)) {
+                    return "Cross-family dependency detected between orders {$order->order_number} and {$dependencyOrder->order_number}";
+                }
+            }
+        }
+
+        // Check for capacity conflicts with other families
+        $familyMembers = $this->familyService->getFamilyMembers($order);
+        $familyOrderIds = $familyMembers->pluck('id')->toArray();
+
+        foreach ($existingSchedule as $existingStep) {
+            // Skip if same work cell
+            if ($existingStep->workCellId !== $stepData->workCellId) {
+                continue;
+            }
+
+            // Check for time overlap
+            if ($this->hasTimeOverlap($stepData, $existingStep)) {
+                // Check if the conflicting step is from a different family
+                $conflictingStep = ManufacturingStep::find($existingStep->stepId);
+                if ($conflictingStep && $conflictingStep->manufacturingRoute) {
+                    $conflictingOrder = $conflictingStep->manufacturingRoute->manufacturingOrder;
+
+                    if ($conflictingOrder && ! in_array($conflictingOrder->id, $familyOrderIds)) {
+                        // This is a cross-family capacity conflict
+                        // In HDG approach, this should not happen as families are scheduled sequentially
+                        return "Family boundary violation: Step from {$order->order_number} overlaps with step from different family {$conflictingOrder->order_number}";
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if two schedule slots overlap.
+     */
+    protected function hasTimeOverlap(StepScheduleData $schedule1, StepScheduleData $schedule2): bool
+    {
+        $start1 = Carbon::instance($schedule1->scheduledStart);
+        $end1 = Carbon::instance($schedule1->scheduledEnd);
+        $start2 = Carbon::instance($schedule2->scheduledStart);
+        $end2 = Carbon::instance($schedule2->scheduledEnd);
+
+        return $start1->lt($end2) && $end1->gt($start2);
+    }
+
+    /**
+     * Validate family integrity for scheduling.
+     */
+    public function validateFamilyIntegrity(Collection $familyMembers): array
+    {
+        $errors = [];
+
+        // Check that all orders belong to the same family
+        if ($familyMembers->isEmpty()) {
+            return ['No orders in family'];
+        }
+
+        $topParent = $this->familyService->getTopParent($familyMembers->first());
+
+        foreach ($familyMembers as $member) {
+            $memberTopParent = $this->familyService->getTopParent($member);
+            if ($memberTopParent->id !== $topParent->id) {
+                $errors[] = "Order {$member->order_number} does not belong to family {$topParent->order_number}";
+            }
+        }
+
+        // Validate internal dependencies
+        $dependencyErrors = $this->familyService->validateFamilyDependencies($familyMembers);
+        $errors = array_merge($errors, array_map(function ($error) {
+            return "External dependency: {$error['order']} step '{$error['step']}' depends on step outside family";
+        }, $dependencyErrors));
+
+        return $errors;
     }
 }

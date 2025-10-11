@@ -139,9 +139,9 @@ export function LandingHeader() {
                 <nav className="relative z-50 flex justify-between">
                     <div className="flex items-center md:gap-x-12">
                         <Link href="/" aria-label="Home" className="flex items-center">
-                            <AppLogoIcon className="h-10 w-auto text-blue-600 dark:text-blue-400" />
+                            <AppLogoIcon className="h-10 w-auto" />
                             <span className="ml-2.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                                MaintenanceOS
+                                StreamLine
                             </span>
                         </Link>
                         <div className="hidden md:flex md:gap-x-6">

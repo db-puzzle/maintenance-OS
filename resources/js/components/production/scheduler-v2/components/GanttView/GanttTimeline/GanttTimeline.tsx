@@ -220,13 +220,6 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                             const endX = timelineLayout.getPositionForDate(latestEnd);
                             const barWidth = endX - startX;
 
-                            if (order.level === 0) {
-                                console.log(`MO Bar Rendering - ${order.order_number}:`);
-                                console.log(`  Start position: ${startX}px`);
-                                console.log(`  End position: ${endX}px`);
-                                console.log(`  Calculated width: ${barWidth}px`);
-                                console.log(`  Timeline layout:`, timelineLayout);
-                            }
 
                             return (
                                 <div

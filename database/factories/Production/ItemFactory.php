@@ -34,7 +34,7 @@ class ItemFactory extends Factory
                 'length' => $this->faker->numberBetween(1, 200),
                 'width' => $this->faker->numberBetween(1, 200),
                 'height' => $this->faker->numberBetween(1, 200),
-                'unit' => 'cm'
+                'unit' => 'cm',
             ]),
             'list_price' => $canBeSold ? $this->faker->randomFloat(2, 10, 1000) : null,
             'manufacturing_cost' => $canBeManufactured ? $this->faker->randomFloat(2, 5, 500) : null,
@@ -63,7 +63,6 @@ class ItemFactory extends Factory
     public function manufacturable(): static
     {
         return $this->state(fn (array $attributes) => [
-            'item_type' => 'manufactured',
             'can_be_manufactured' => true,
             'can_be_purchased' => false,
         ]);
@@ -72,7 +71,6 @@ class ItemFactory extends Factory
     public function purchasable(): static
     {
         return $this->state(fn (array $attributes) => [
-            'item_type' => 'purchased',
             'can_be_purchased' => true,
             'can_be_manufactured' => false,
             'preferred_vendor' => $this->faker->company(),
@@ -83,7 +81,6 @@ class ItemFactory extends Factory
     public function service(): static
     {
         return $this->state(fn (array $attributes) => [
-            'item_type' => 'service',
             'can_be_sold' => true,
             'can_be_purchased' => false,
             'can_be_manufactured' => false,
@@ -116,4 +113,4 @@ class ItemFactory extends Factory
             'track_inventory' => false,
         ]);
     }
-} 
+}

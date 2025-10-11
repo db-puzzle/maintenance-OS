@@ -7,15 +7,26 @@ use App\Models\Production\WorkCell;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
+/**
+ * @deprecated This scheduler is deprecated in favor of the HDG approach.
+ * Use ASAPScheduler or DueDateBackwardScheduler instead.
+ */
 class BalancedLoadingScheduler extends BaseScheduler
 {
     private array $workCellUtilization = [];
 
     /**
      * Distribute work evenly across work cells to maximize utilization.
+     *
+     * @deprecated This scheduler is deprecated. Use ASAPScheduler or DueDateBackwardScheduler instead.
      */
     public function schedule(SchedulingRequest $request): SchedulingResult
     {
+        trigger_error(
+            'BalancedLoadingScheduler is deprecated. Use ASAPScheduler or DueDateBackwardScheduler instead.',
+            E_USER_DEPRECATED
+        );
+
         $startTime = microtime(true);
         $result = new SchedulingResult;
         $scheduledSteps = [];
