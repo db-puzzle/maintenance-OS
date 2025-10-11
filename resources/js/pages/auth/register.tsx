@@ -1,16 +1,19 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { FormEventHandler, useEffect } from 'react';
-import { SlimLayout } from '@/layouts/auth/slim-layout';
-import { LandingButton } from '@/components/landing/LandingButton';
-import { LandingTextField } from '@/components/landing/LandingTextField';
-import AppLogoIcon from '@/components/app-logo-icon';
+import { Head, useForm } from '@inertiajs/react';
+import { LoaderCircle } from 'lucide-react';
+import { FormEventHandler } from 'react';
+
+import InputError from '@/components/input-error';
+import TextLink from '@/components/text-link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import AuthLayout from '@/layouts/auth-layout';
 
 type RegisterForm = {
     name: string;
     email: string;
     password: string;
     password_confirmation: string;
-    timezone: string;
 };
 
 export default function Register() {
@@ -19,16 +22,7 @@ export default function Register() {
         email: '',
         password: '',
         password_confirmation: '',
-        timezone: 'UTC',
     });
-
-    useEffect(() => {
-        // Detect browser timezone on component mount
-        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (browserTimezone) {
-            setData('timezone', browserTimezone);
-        }
-    }, [setData]);
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -38,91 +32,88 @@ export default function Register() {
     };
 
     return (
-        <SlimLayout>
-            <Head title="Sign Up" />
-            <div className="flex">
-                <Link href="/" aria-label="Home">
-                    <AppLogoIcon className="h-10 w-auto text-blue-600 dark:text-blue-400" />
-                </Link>
-            </div>
-            <h2 className="mt-20 text-lg font-semibold text-gray-900 dark:text-white">
-                Get started for free
-            </h2>
-            <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                Already registered?{' '}
-                <Link
-                    href={route('login')}
-                    className="font-medium text-blue-600 hover:underline dark:text-blue-400"
-                >
-                    Sign in
-                </Link>{' '}
-                to your account.
-            </p>
-            <form
-                className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8"
-                onSubmit={submit}
-            >
-                <LandingTextField
-                    label="Full name"
-                    name="name"
-                    type="text"
-                    autoComplete="name"
-                    required
-                    autoFocus
-                    value={data.name}
-                    onChange={(e) => setData('name', e.target.value)}
-                    error={errors.name}
-                    disabled={processing}
-                />
-                <LandingTextField
-                    label="Email address"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={data.email}
-                    onChange={(e) => setData('email', e.target.value)}
-                    error={errors.email}
-                    disabled={processing}
-                />
-                <LandingTextField
-                    label="Password"
-                    name="password"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    value={data.password}
-                    onChange={(e) => setData('password', e.target.value)}
-                    error={errors.password}
-                    disabled={processing}
-                />
-                <LandingTextField
-                    label="Confirm password"
-                    name="password_confirmation"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    value={data.password_confirmation}
-                    onChange={(e) => setData('password_confirmation', e.target.value)}
-                    error={errors.password_confirmation}
-                    disabled={processing}
-                />
-                {/* Hidden timezone field */}
-                <input type="hidden" name="timezone" value={data.timezone} />
-                <div>
-                    <LandingButton
-                        type="submit"
-                        variant="solid"
-                        color="blue"
-                        className="w-full"
-                        disabled={processing}
-                    >
-                        <span>
-                            Sign up <span aria-hidden="true">&rarr;</span>
-                        </span>
-                    </LandingButton>
+        <AuthLayout title="Create an account" description="Enter your details below to create your account">
+            <Head title="Register" />
+            <form className="flex flex-col gap-6" onSubmit={submit}>
+                <div className="grid gap-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="name">Name</Label>
+                        <Input
+                            id="name"
+                            type="text"
+                            required
+                            autoFocus
+                            tabIndex={1}
+                            autoComplete="name"
+                            value={data.name}
+                            onChange={(e) => setData('name', e.target.value)}
+                            disabled={processing}
+                            placeholder="Full name"
+                        />
+                        <InputError message={errors.name} className="mt-2" />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="email">Email address</Label>
+                        <Input
+                            id="email"
+                            type="email"
+                            required
+                            tabIndex={2}
+                            autoComplete="email"
+                            value={data.email}
+                            onChange={(e) => setData('email', e.target.value)}
+                            disabled={processing}
+                            placeholder="email@example.com"
+                        />
+                        <InputError message={errors.email} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                            id="password"
+                            type="password"
+                            required
+                            tabIndex={3}
+                            autoComplete="new-password"
+                            value={data.password}
+                            onChange={(e) => setData('password', e.target.value)}
+                            disabled={processing}
+                            placeholder="Password"
+                        />
+                        <InputError message={errors.password} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="password_confirmation">Confirm password</Label>
+                        <Input
+                            id="password_confirmation"
+                            type="password"
+                            required
+                            tabIndex={4}
+                            autoComplete="new-password"
+                            value={data.password_confirmation}
+                            onChange={(e) => setData('password_confirmation', e.target.value)}
+                            disabled={processing}
+                            placeholder="Confirm password"
+                        />
+                        <InputError message={errors.password_confirmation} />
+                    </div>
+
+                    <Button type="submit" className="mt-2 w-full" tabIndex={5} disabled={processing}>
+                        {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
+                        Create account
+                    </Button>
+                </div>
+
+                <div className="text-muted-foreground text-center text-sm">
+                    Already have an account?{' '}
+                    <TextLink href={route('login')} tabIndex={6}>
+                        Log in
+                    </TextLink>
                 </div>
             </form>
-        </SlimLayout>
+        </AuthLayout>
     );
 }

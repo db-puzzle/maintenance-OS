@@ -5,27 +5,27 @@ import { LandingContainer } from './LandingContainer';
 
 const features = [
     {
-        title: 'Payroll',
+        title: 'Items and BOMs',
         description:
-            "Keep track of everyone's salaries and whether or not they've been paid. Direct deposit not supported.",
-        image: '/images/screenshots/payroll.png',
+            "Manage your products and their relationships to each other in a intuitive and visual way.",
+        image: '/images/screenshots/hero_3d_marquee/2025-10-11_4.19.04PM.png',
     },
     {
-        title: 'Claim expenses',
+        title: 'Production Routes',
         description:
-            "All of your receipts organized into one place, as long as you don't mind typing in the data by hand.",
-        image: '/images/screenshots/expenses.png',
+            "Define the production steps and transition rules every sub-assembly.",
+        image: '/images/screenshots/hero_3d_marquee/2025-10-11_4.21.14PM.png',
     },
     {
-        title: 'VAT handling',
+        title: 'Scheduling',
         description:
-            "We only sell our software to companies who don't deal with VAT at all, so technically we do all the VAT stuff they need.",
-        image: '/images/screenshots/vat-returns.png',
+            "Schedule your production to coordinate workcells and maximize efficiency.",
+        image: '/images/screenshots/hero_3d_marquee/2025-10-11_4.21.28PM.png',
     },
     {
-        title: 'Reporting',
+        title: 'Tracking',
         description:
-            'Easily export your data into an Excel spreadsheet where you can do whatever the hell you want with it.',
+            'Easily distribute work thru the shop floor with QR codes and mobile scanning.',
         image: '/images/screenshots/reporting.png',
     },
 ];
@@ -56,22 +56,69 @@ export function LandingFeatures() {
             aria-label="Features for running your books"
             className="relative overflow-hidden bg-blue-600 pb-28 pt-20 sm:py-32"
         >
-            <img
-                className="absolute left-1/2 top-1/2 max-w-none translate-x-[-44%] translate-y-[-42%]"
-                src="/images/background-features.jpg"
-                alt=""
-                width={2245}
-                height={1636}
-            />
+            {/* Grid pattern background */}
+            <div className="absolute inset-0 z-0">
+                {/* Grid pattern using CSS background */}
+                <div
+                    className="absolute inset-0 z-10 opacity-20 animate-grid-fade-in"
+                    style={{
+                        backgroundImage: `
+                            linear-gradient(to right, white 1px, transparent 1px),
+                            linear-gradient(to bottom, white 1px, transparent 1px)
+                        `,
+                        backgroundSize: '60px 60px',
+                        maskImage: 'linear-gradient(315deg, black 0%, black 50%, transparent 100%)',
+                        WebkitMaskImage: 'linear-gradient(315deg, black 0%, black 50%, transparent 100%)',
+                        maskSize: '200% 200%',
+                        WebkitMaskSize: '200% 200%',
+                        maskPosition: '100% 100%',
+                        WebkitMaskPosition: '100% 100%',
+                        animation: 'gridReveal180 2s ease-out forwards'
+                    }}
+                />
 
-            <LandingContainer className="relative">
+                {/* Dot pattern at intersections */}
+                <div
+                    className="absolute inset-0 z-20 opacity-15 animate-grid-fade-in"
+                    style={{
+                        backgroundImage: 'radial-gradient(circle, white 2px, transparent 2px)',
+                        backgroundSize: '60px 60px',
+                        backgroundPosition: '30px 30px',
+                        maskImage: 'linear-gradient(315deg, black 0%, black 50%, transparent 100%)',
+                        WebkitMaskImage: 'linear-gradient(315deg, black 0%, black 50%, transparent 100%)',
+                        maskSize: '200% 200%',
+                        WebkitMaskSize: '200% 200%',
+                        maskPosition: '100% 100%',
+                        WebkitMaskPosition: '100% 100%',
+                        animation: 'gridReveal180 2s ease-out 0.3s forwards'
+                    }}
+                />
+
+                {/* Diagonal overlay to mask grid pattern - showing only bottom left */}
+                <div
+                    className="absolute inset-0 z-30"
+                    style={{
+                        background: `linear-gradient(225deg, 
+                            rgb(37, 99, 235) 0%,
+                            rgb(37, 99, 235) 30%,
+                            rgba(37, 99, 235, 0.8) 50%,
+                            rgba(37, 99, 235, 0.3) 70%,
+                            transparent 100%
+                        )`
+                    }}
+                />
+
+                {/* Additional gradient overlay for depth on the lower area */}
+                <div className="absolute inset-0 z-40 bg-gradient-to-t from-blue-700/20 via-transparent to-transparent" />
+            </div>
+
+            <LandingContainer className="relative z-40">
                 <div className="max-w-2xl md:mx-auto md:text-center xl:max-w-none">
                     <h2 className="font-display text-3xl tracking-tight text-white sm:text-4xl md:text-5xl">
-                        Everything you need to run your books.
+                        Everything you need to run your factories.
                     </h2>
                     <p className="mt-6 text-lg tracking-tight text-blue-100">
-                        Well everything you need if you aren&apos;t that picky about minor
-                        details like tax compliance.
+                        Your products are complex, your production process doesn&apos;t have to be.
                     </p>
                 </div>
                 <TabGroup

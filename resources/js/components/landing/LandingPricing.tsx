@@ -1,6 +1,7 @@
 import clsx from 'clsx';
-import { LandingButton } from './LandingButton';
 import { LandingContainer } from './LandingContainer';
+import { Button } from '@/components/ui/button';
+import { Link } from '@inertiajs/react';
 
 function SwirlyDoodle(props: React.ComponentPropsWithoutRef<'svg'>) {
     return (
@@ -97,15 +98,20 @@ function Plan({
                     </li>
                 ))}
             </ul>
-            <LandingButton
-                href={href}
-                variant={featured ? 'solid' : 'outline'}
-                color="white"
-                className="mt-8"
-                aria-label={`Get started with the ${name} plan for ${price}`}
+            <Button
+                asChild
+                variant={featured ? 'default' : 'outline'}
+                className={clsx(
+                    "mt-8",
+                    featured
+                        ? "bg-white text-slate-900 hover:bg-slate-100 focus-visible:ring-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                        : "text-white hover:bg-white/10 border-white/20"
+                )}
             >
-                Get started
-            </LandingButton>
+                <Link href={href} aria-label={`Get started with the ${name} plan for ${price}`}>
+                    Get started
+                </Link>
+            </Button>
         </section>
     );
 }

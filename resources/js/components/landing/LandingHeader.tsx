@@ -8,8 +8,8 @@ import {
     Transition,
 } from '@headlessui/react';
 import clsx from 'clsx';
-import { LandingButton } from './LandingButton';
 import { LandingContainer } from './LandingContainer';
+import { Button } from '@/components/ui/button';
 import AppLogoIcon from '@/components/app-logo-icon';
 import type { SharedData } from '@/types';
 
@@ -134,14 +134,14 @@ export function LandingHeader() {
     const { auth } = usePage<SharedData>().props;
 
     return (
-        <header className="py-10">
+        <header className="py-5">
             <LandingContainer>
                 <nav className="relative z-50 flex justify-between">
                     <div className="flex items-center md:gap-x-12">
                         <Link href="/" aria-label="Home" className="flex items-center">
                             <AppLogoIcon className="h-10 w-auto text-blue-600 dark:text-blue-400" />
                             <span className="ml-2.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                                TaxPal
+                                MaintenanceOS
                             </span>
                         </Link>
                         <div className="hidden md:flex md:gap-x-6">
@@ -153,23 +153,24 @@ export function LandingHeader() {
                     <div className="flex items-center gap-x-5 md:gap-x-8">
                         {auth.user ? (
                             <>
-                                <div className="hidden md:block">
-                                    <NavLink href={route('home')}>Dashboard</NavLink>
-                                </div>
-                                <LandingButton href={route('home')} color="blue">
-                                    <span>Go to Dashboard</span>
-                                </LandingButton>
+                                <Button asChild variant="blue">
+                                    <Link href={route('home')}>
+                                        <span>Go to Dashboard</span>
+                                    </Link>
+                                </Button>
                             </>
                         ) : (
                             <>
                                 <div className="hidden md:block">
                                     <NavLink href={route('login')}>Sign in</NavLink>
                                 </div>
-                                <LandingButton href={route('register')} color="blue">
-                                    <span>
-                                        Get started <span className="hidden lg:inline">today</span>
-                                    </span>
-                                </LandingButton>
+                                <Button asChild variant="blue">
+                                    <Link href={route('register')}>
+                                        <span>
+                                            Get started <span className="hidden lg:inline">today</span>
+                                        </span>
+                                    </Link>
+                                </Button>
                             </>
                         )}
                         <div className="-mr-1 md:hidden">
