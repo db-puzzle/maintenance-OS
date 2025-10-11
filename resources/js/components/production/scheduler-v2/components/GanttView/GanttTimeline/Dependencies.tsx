@@ -23,38 +23,41 @@ export const Dependencies: React.FC<DependenciesProps> = ({
     });
 
     // Generate dependency lines
-    const dependencyLines: JSX.Element[] = [];
+    const dependencyLines: React.ReactElement[] = [];
 
     steps.forEach((step) => {
-        const fromRowIndex = stepRowMap.get(step.id);
-        if (fromRowIndex === undefined) return;
+        const toRowIndex = stepRowMap.get(step.id);
+        if (toRowIndex === undefined) return;
 
         step.predecessors?.forEach((predecessorId: number) => {
-            const toStep = steps.find(s => s.manufacturing_step_id === predecessorId);
-            if (!toStep) return;
+            // The predecessorId refers to the manufacturing_step_id
+            const fromStep = steps.find(s => s.manufacturing_step_id === predecessorId);
+            if (!fromStep) return;
 
-            const toRowIndex = stepRowMap.get(toStep.id);
-            if (toRowIndex === undefined) return;
+            const fromRowIndex = stepRowMap.get(fromStep.id);
+            if (fromRowIndex === undefined) return;
 
             // Calculate positions
-            const fromX = layout.getPositionForDate(new Date(step.planned_start_date));
+            // From: right edge of predecessor task
+            const fromX = layout.getPositionForDate(new Date(fromStep.planned_end_date));
             const fromY = fromRowIndex * rowHeight + rowHeight / 2;
 
-            const toX = layout.getPositionForDate(new Date(toStep.planned_end_date));
-            const toY = toRowIndex * rowHeight + rowHeight / 2;
+            // To: top of successor task, with small offset to align with the task bar
+            const toX = layout.getPositionForDate(new Date(step.planned_start_date)) + 10; // 10px offset from start
+            const toY = toRowIndex * rowHeight;
 
             // Create path
-            const path = createDependencyPath(toX, toY, fromX, fromY);
+            const path = createDependencyPath(fromX, fromY, toX, toY, rowHeight);
 
             dependencyLines.push(
-                <g key={`dep-${toStep.id}-${step.id}`}>
+                <g key={`dep-${fromStep.id}-${step.id}`}>
                     <path
                         d={path}
                         fill="none"
-                        stroke="var(--gantt-dependency)"
-                        strokeWidth="2"
+                        stroke="var(--gantt-dependency, #9CA3AF)"
+                        strokeWidth="1.5"
                         markerEnd="url(#arrowhead)"
-                        className="opacity-60 hover:opacity-100 transition-opacity"
+                        className="opacity-40 hover:opacity-100 transition-opacity"
                     />
                 </g>
             );
@@ -69,15 +72,16 @@ export const Dependencies: React.FC<DependenciesProps> = ({
             <defs>
                 <marker
                     id="arrowhead"
-                    markerWidth="10"
-                    markerHeight="7"
-                    refX="9"
-                    refY="3.5"
-                    orient="auto"
+                    markerWidth="5"
+                    markerHeight="5"
+                    refX="2.5"
+                    refY="0"
+                    orient="0"
+                    markerUnits="strokeWidth"
                 >
-                    <polygon
-                        points="0 0, 10 3.5, 0 7"
-                        fill="var(--gantt-dependency)"
+                    <path
+                        d="M 0 0 L 2.5 5 L 5 0"
+                        fill="var(--gantt-dependency, #9CA3AF)"
                     />
                 </marker>
             </defs>
@@ -90,14 +94,21 @@ function createDependencyPath(
     fromX: number,
     fromY: number,
     toX: number,
-    toY: number
+    toY: number,
+    _rowHeight: number
 ): string {
-    // Create a smooth curve between tasks
-    const midX = (fromX + toX) / 2;
+    // Create a simple inverted L-shaped path
+    // Exit from the right edge of the predecessor
+    // Enter from the top of the successor
 
+    // End at the top of the successor, slightly down to connect with the arrow
+    const endY = toY + 3; // 3px down from the top of the row
+
+    // Create a clean inverted L-shape with only 3 points
     return `
         M ${fromX} ${fromY}
-        C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}
+        L ${toX} ${fromY}
+        L ${toX} ${endY}
     `;
 }
 

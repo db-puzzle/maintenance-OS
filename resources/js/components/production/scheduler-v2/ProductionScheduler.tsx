@@ -45,6 +45,12 @@ export const ProductionScheduler: React.FC<Props> = ({
         return getDefaultZoomLevel();
     });
 
+    // Load show dependencies preference from localStorage
+    const [showDependencies, setShowDependencies] = useState<boolean>(() => {
+        const saved = localStorage.getItem('scheduler-show-dependencies');
+        return saved === 'true'; // Default to false if not set
+    });
+
     const [viewConfig, setViewConfig] = useState({
         startDate: new Date(filters.start_date),
         endDate: new Date(filters.end_date),
@@ -67,6 +73,11 @@ export const ProductionScheduler: React.FC<Props> = ({
     useEffect(() => {
         localStorage.setItem('scheduler-zoom-level', currentZoomLevel.id);
     }, [currentZoomLevel]);
+
+    // Save show dependencies preference to localStorage when it changes
+    useEffect(() => {
+        localStorage.setItem('scheduler-show-dependencies', showDependencies.toString());
+    }, [showDependencies]);
 
     const schedulerState = useSchedulerState({
         orders,
@@ -216,6 +227,10 @@ export const ProductionScheduler: React.FC<Props> = ({
         }
     }, []);
 
+    const handleToggleDependencies = useCallback(() => {
+        setShowDependencies(prev => !prev);
+    }, []);
+
     return (
         <ScrollSyncProvider>
             <div className="production-scheduler flex flex-col h-full bg-background">
@@ -231,6 +246,8 @@ export const ProductionScheduler: React.FC<Props> = ({
                     onZoomLevelChange={handleZoomLevelChange}
                     viewConfig={viewConfig}
                     onViewConfigChange={setViewConfig}
+                    showDependencies={showDependencies}
+                    onToggleDependencies={handleToggleDependencies}
                 />
 
                 <div className="flex-1 flex flex-col min-h-0">
@@ -246,6 +263,7 @@ export const ProductionScheduler: React.FC<Props> = ({
                                 leftPanelSize={leftPanelSize}
                                 onLeftPanelResize={(size) => handleLeftPanelResize(size, 'gantt')}
                                 panelGroupRef={ganttPanelGroupRef}
+                                showDependencies={showDependencies}
                                 onScrollContainerRef={(container) => {
                                     ganttScrollRef.current.container = container;
                                 }}

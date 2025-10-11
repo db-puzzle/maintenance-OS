@@ -17,6 +17,7 @@ interface GanttTimelineProps {
     zoomLevel: ZoomLevel;
     timelineWidth: number;
     onStepUpdate: (stepId: string, updates: any) => void;
+    showDependencies: boolean;
     onScrollContainerRef?: (container: HTMLElement | null) => void;
 }
 
@@ -26,6 +27,7 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
     zoomLevel,
     timelineWidth,
     onStepUpdate,
+    showDependencies,
     onScrollContainerRef,
 }) => {
     const _canvasRef = useRef<HTMLCanvasElement>(null);
@@ -276,12 +278,16 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                     })}
 
                     {/* Dependencies */}
-                    <Dependencies
-                        steps={rows.filter(r => r.type === 'step').map(r => r.data)}
-                        rows={rows}
-                        rowHeight={rowHeight}
-                        layout={timelineLayout}
-                    />
+                    {showDependencies && (
+                        <>
+                            <Dependencies
+                                steps={rows.filter(r => r.type === 'step').map(r => r.data)}
+                                rows={rows}
+                                rowHeight={rowHeight}
+                                layout={timelineLayout}
+                            />
+                        </>
+                    )}
                 </div>
             </ScrollContainer>
         </div>

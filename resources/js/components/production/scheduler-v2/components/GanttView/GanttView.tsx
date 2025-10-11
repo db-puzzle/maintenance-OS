@@ -16,6 +16,7 @@ interface GanttViewProps {
     leftPanelSize: number;
     onLeftPanelResize: (size: number) => void;
     panelGroupRef: React.RefObject<ImperativePanelGroupHandle | null>;
+    showDependencies: boolean;
     onScrollContainerRef?: (container: HTMLElement | null) => void;
 }
 
@@ -28,6 +29,7 @@ export const GanttView: React.FC<GanttViewProps> = ({
     leftPanelSize,
     onLeftPanelResize,
     panelGroupRef,
+    showDependencies,
     onScrollContainerRef,
 }) => {
     // Flatten orders and their steps for display
@@ -165,6 +167,7 @@ export const GanttView: React.FC<GanttViewProps> = ({
                     zoomLevel={zoomLevel}
                     timelineWidth={timelineWidth}
                     onStepUpdate={onStepUpdate}
+                    showDependencies={showDependencies}
                     onScrollContainerRef={onScrollContainerRef}
                 />
             </ResizablePanel>

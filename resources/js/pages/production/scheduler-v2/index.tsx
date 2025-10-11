@@ -129,7 +129,7 @@ export default function SchedulerV2Index({
                 required_resources: [],
 
                 // Dependencies
-                predecessors: (step as any).dependencies?.map((d: any) => d.predecessor_step_id) || [],
+                predecessors: (step as any).depends_on_step_id ? [(step as any).depends_on_step_id] : [],
                 successors: (step as any).dependents?.map((d: any) => d.dependent_step_id) || [],
 
                 // UI helpers

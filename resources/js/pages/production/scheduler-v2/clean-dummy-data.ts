@@ -32,6 +32,7 @@ function createScheduleStep(step: ManufacturingStep, route: ManufacturingRoute, 
         setup_time_minutes: step.setup_time_minutes,
         cycle_time_minutes: step.cycle_time_minutes,
         status: step.status,
+        depends_on_step_id: step.depends_on_step_id,
         manufacturing_route: {
             id: route.id,
             manufacturing_order_id: route.manufacturing_order_id!,
@@ -879,7 +880,7 @@ export function getCleanDummyData() {
             schedule_version_id: 1,
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
-            manufacturing_step: steps[0],
+            manufacturing_step: { ...steps[0], depends_on_step_id: steps[0].depends_on_step_id },
             work_cell: workCells[1],
         },
         {
@@ -894,7 +895,7 @@ export function getCleanDummyData() {
             schedule_version_id: 1,
             created_at: '2024-01-01T00:00:00Z',
             updated_at: today.toISOString(),
-            manufacturing_step: steps[1],
+            manufacturing_step: { ...steps[1], depends_on_step_id: steps[1].depends_on_step_id },
             work_cell: workCells[1],
             locked_by_user: users[0],
         },
@@ -908,7 +909,7 @@ export function getCleanDummyData() {
             schedule_version_id: 1,
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
-            manufacturing_step: steps[2],
+            manufacturing_step: { ...steps[2], depends_on_step_id: steps[2].depends_on_step_id },
             work_cell: workCells[3],
         },
         {
@@ -921,7 +922,7 @@ export function getCleanDummyData() {
             schedule_version_id: 1,
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
-            manufacturing_step: steps[3],
+            manufacturing_step: { ...steps[3], depends_on_step_id: steps[3].depends_on_step_id },
             work_cell: workCells[2],
         },
         // Child Order Schedules - Engine Block
@@ -935,7 +936,7 @@ export function getCleanDummyData() {
             schedule_version_id: 1,
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
-            manufacturing_step: steps[4],
+            manufacturing_step: { ...steps[4], depends_on_step_id: steps[4].depends_on_step_id },
             work_cell: workCells[0],
         },
         {
@@ -948,7 +949,7 @@ export function getCleanDummyData() {
             schedule_version_id: 1,
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
-            manufacturing_step: steps[5],
+            manufacturing_step: { ...steps[5], depends_on_step_id: steps[5].depends_on_step_id },
             work_cell: workCells[2],
         },
         // Child Order Schedules - Piston Assembly
@@ -962,7 +963,7 @@ export function getCleanDummyData() {
             schedule_version_id: 1,
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
-            manufacturing_step: steps[6],
+            manufacturing_step: { ...steps[6], depends_on_step_id: steps[6].depends_on_step_id },
             work_cell: workCells[1],
         },
         {
@@ -976,7 +977,7 @@ export function getCleanDummyData() {
             conflicts: ['Overlaps with Engine Assembly on same work cell'],
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
-            manufacturing_step: steps[7],
+            manufacturing_step: { ...steps[7], depends_on_step_id: steps[7].depends_on_step_id },
             work_cell: workCells[1],
         },
         {
@@ -989,7 +990,7 @@ export function getCleanDummyData() {
             schedule_version_id: 1,
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
-            manufacturing_step: steps[8],
+            manufacturing_step: { ...steps[8], depends_on_step_id: steps[8].depends_on_step_id },
             work_cell: workCells[2],
         },
         // Child Order Schedules - ECM
@@ -1003,7 +1004,7 @@ export function getCleanDummyData() {
             schedule_version_id: 1,
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
-            manufacturing_step: steps[9],
+            manufacturing_step: { ...steps[9], depends_on_step_id: steps[9].depends_on_step_id },
             work_cell: workCells[3],
         },
         {
@@ -1016,7 +1017,7 @@ export function getCleanDummyData() {
             schedule_version_id: 1,
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
-            manufacturing_step: steps[10],
+            manufacturing_step: { ...steps[10], depends_on_step_id: steps[10].depends_on_step_id },
             work_cell: workCells[2],
         },
         // Independent Order Schedules
@@ -1030,7 +1031,7 @@ export function getCleanDummyData() {
             schedule_version_id: 1,
             created_at: '2024-01-05T00:00:00Z',
             updated_at: '2024-01-05T00:00:00Z',
-            manufacturing_step: steps[11],
+            manufacturing_step: { ...steps[11], depends_on_step_id: steps[11].depends_on_step_id },
             work_cell: workCells[0],
         },
         {
@@ -1043,7 +1044,7 @@ export function getCleanDummyData() {
             schedule_version_id: 1,
             created_at: '2024-01-05T00:00:00Z',
             updated_at: '2024-01-05T00:00:00Z',
-            manufacturing_step: steps[12],
+            manufacturing_step: { ...steps[12], depends_on_step_id: steps[12].depends_on_step_id },
             work_cell: workCells[2],
         },
     ];

@@ -12,6 +12,7 @@ import {
     AlertCircle,
     Search,
     ChevronDown,
+    GitBranch,
 } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import { toast } from 'sonner';
@@ -40,6 +41,8 @@ interface ToolbarProps {
         endDate: Date;
     };
     onViewConfigChange: (config: any) => void;
+    showDependencies: boolean;
+    onToggleDependencies: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -54,6 +57,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     onZoomLevelChange,
     viewConfig,
     onViewConfigChange: _onViewConfigChange,
+    showDependencies,
+    onToggleDependencies,
 }) => {
     const [selectedAlgorithm, setSelectedAlgorithm] = useState('asap');
     const [searchQuery, setSearchQuery] = useState('');
@@ -199,6 +204,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     <Button variant="outline" size="sm">
                         <Calendar className="h-4 w-4 mr-2" />
                         {viewConfig.startDate.toLocaleDateString()} - {viewConfig.endDate.toLocaleDateString()}
+                    </Button>
+
+                    {/* Dependencies toggle */}
+                    <Button
+                        variant={showDependencies ? "default" : "outline"}
+                        size="sm"
+                        onClick={onToggleDependencies}
+                        className="gap-2"
+                    >
+                        <GitBranch className="h-4 w-4" />
+                        <span className="hidden sm:inline">Dependencies</span>
                     </Button>
 
                     {/* Zoom controls */}
