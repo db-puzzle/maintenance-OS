@@ -301,6 +301,193 @@ class SchedulingService
     }
 
     /**
+     * Validate orders for scheduling.
+     */
+    public function validateOrdersForScheduling(
+        Collection $orders,
+        bool $checkDependencies = true,
+        bool $checkTimeParameters = true
+    ): array {
+        $validationResult = [
+            'valid' => true,
+            'errors' => [],
+            'warnings' => [],
+        ];
+
+        // Check time parameters if requested
+        if ($checkTimeParameters) {
+            foreach ($orders as $order) {
+                if (! $order->manufacturingRoute) {
+                    $validationResult['errors'][] = [
+                        'order_id' => $order->id,
+                        'order_number' => $order->order_number,
+                        'issue' => 'missing_route',
+                        'message' => "Order {$order->order_number} has no manufacturing route defined",
+                    ];
+                    $validationResult['valid'] = false;
+                    continue;
+                }
+
+                foreach ($order->manufacturingRoute->steps as $step) {
+                    // Check if step has time parameters
+                    $hasRouteTime = $step->setup_time_minutes !== null && $step->cycle_time_minutes !== null;
+                    $hasCellCapacity = false;
+
+                    if ($step->workCell && ! $hasRouteTime) {
+                        // Check if work cell has capacity settings for this item
+                        $itemRate = $step->workCell->itemRates()
+                            ->where('item_id', $order->item_id)
+                            ->first();
+                        $hasCellCapacity = $itemRate && $itemRate->units_per_hour > 0;
+                    }
+
+                    if (! $hasRouteTime && ! $hasCellCapacity) {
+                        $validationResult['errors'][] = [
+                            'step_id' => $step->id,
+                            'order_number' => $order->order_number,
+                            'step_name' => $step->name,
+                            'issue' => 'missing_time_parameters',
+                            'message' => "Step '{$step->name}' in order {$order->order_number} has no time parameters",
+                            'editLinks' => [
+                                'edit_step' => route('production.routes.steps.edit', $step->id),
+                                'edit_work_cell' => $step->workCell ? route('production.work-cells.edit', $step->workCell->id) : null,
+                            ],
+                        ];
+                        $validationResult['valid'] = false;
+                    }
+                }
+            }
+        }
+
+        // Check dependencies if requested
+        if ($checkDependencies) {
+            // Group orders by family
+            $families = $this->familyService->groupOrdersByFamily($orders);
+
+            foreach ($families as $family) {
+                // Check for cross-family dependencies
+                $dependencyErrors = $this->familyService->validateFamilyDependencies($family['members']);
+
+                foreach ($dependencyErrors as $error) {
+                    $validationResult['errors'][] = [
+                        'type' => 'cross_family_dependency',
+                        'message' => $error,
+                        'family' => $family['top_parent']->order_number,
+                    ];
+                    $validationResult['valid'] = false;
+                }
+
+                // Check gate configurations
+                foreach ($family['members'] as $order) {
+                    if (! $order->manufacturingRoute) {
+                        continue;
+                    }
+
+                    foreach ($order->manufacturingRoute->steps as $step) {
+                        if ($step->depends_on_step_id) {
+                            // Validate gate configuration
+                            if (! in_array($step->dependency_start_condition, ['immediate', 'quantity_based', 'percentage_based', 'completed'])) {
+                                $validationResult['warnings'][] = [
+                                    'step_id' => $step->id,
+                                    'message' => "Step '{$step->name}' has invalid gate configuration, defaulting to 'completed'",
+                                ];
+                            }
+
+                            if ($step->dependency_start_condition === 'quantity_based' && ! $step->dependency_minimum_quantity) {
+                                $validationResult['warnings'][] = [
+                                    'step_id' => $step->id,
+                                    'message' => "Step '{$step->name}' has quantity-based gate but no minimum quantity set",
+                                ];
+                            }
+
+                            if ($step->dependency_start_condition === 'percentage_based' && ! $step->dependency_minimum_percentage) {
+                                $validationResult['warnings'][] = [
+                                    'step_id' => $step->id,
+                                    'message' => "Step '{$step->name}' has percentage-based gate but no minimum percentage set",
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $validationResult;
+    }
+
+    /**
+     * Calculate metrics for a completed schedule.
+     */
+    public function calculateScheduleMetrics(ScheduleVersion $version): array
+    {
+        $schedules = $version->productionSchedules;
+
+        if ($schedules->isEmpty()) {
+            return [
+                'total_steps' => 0,
+                'families_processed' => 0,
+                'average_utilization' => 0,
+                'makespan' => 0,
+                'on_time_rate' => 0,
+            ];
+        }
+
+        // Get unique order IDs
+        $orderIds = $schedules->pluck('manufacturingStep.manufacturingRoute.manufacturing_order_id')->unique();
+        $orders = ManufacturingOrder::whereIn('id', $orderIds)->get();
+
+        // Count families
+        $families = $this->familyService->groupOrdersByFamily($orders);
+
+        // Calculate makespan
+        $start = Carbon::parse($schedules->min('scheduled_start'));
+        $end = Carbon::parse($schedules->max('scheduled_end'));
+        $makespan = $end->diffInMinutes($start);
+
+        // Calculate utilization by work cell
+        $workCellUtilizations = [];
+        foreach ($schedules->groupBy('work_cell_id') as $workCellId => $cellSchedules) {
+            $totalScheduledMinutes = $cellSchedules->sum(function ($schedule) {
+                $start = Carbon::parse($schedule->scheduled_start);
+                $end = Carbon::parse($schedule->scheduled_end);
+
+                return $end->diffInMinutes($start);
+            });
+
+            $workCellUtilizations[] = $makespan > 0 ? ($totalScheduledMinutes / $makespan) * 100 : 0;
+        }
+
+        // Calculate on-time rate
+        $onTimeCount = 0;
+        foreach ($orders as $order) {
+            if ($order->requested_date) {
+                $orderSchedules = $schedules->filter(function ($schedule) use ($order) {
+                    return $schedule->manufacturingStep->manufacturingRoute->manufacturing_order_id === $order->id;
+                });
+
+                if ($orderSchedules->isNotEmpty()) {
+                    $orderEnd = Carbon::parse($orderSchedules->max('scheduled_end'));
+                    $requestedDate = Carbon::parse($order->requested_date);
+
+                    if ($orderEnd->lte($requestedDate)) {
+                        $onTimeCount++;
+                    }
+                }
+            }
+        }
+
+        $onTimeRate = $orders->count() > 0 ? ($onTimeCount / $orders->count()) * 100 : 0;
+
+        return [
+            'total_steps' => $schedules->count(),
+            'families_processed' => $families->count(),
+            'average_utilization' => ! empty($workCellUtilizations) ? round(array_sum($workCellUtilizations) / count($workCellUtilizations), 2) : 0,
+            'makespan' => $makespan,
+            'on_time_rate' => round($onTimeRate, 2),
+        ];
+    }
+
+    /**
      * Reschedule a single step.
      */
     public function rescheduleStep(

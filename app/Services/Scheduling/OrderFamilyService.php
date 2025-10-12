@@ -3,6 +3,7 @@
 namespace App\Services\Scheduling;
 
 use App\Models\Production\ManufacturingOrder;
+use App\Models\Production\ManufacturingStep;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -292,5 +293,38 @@ class OrderFamilyService
         $stats['work_cells_required'] = $stats['work_cells_required']->unique()->values()->toArray();
 
         return $stats;
+    }
+
+    /**
+     * Check if a family has external dependencies.
+     */
+    public function hasExternalDependencies(Collection $familyMembers): bool
+    {
+        $familyOrderIds = $familyMembers->pluck('id')->toArray();
+
+        foreach ($familyMembers as $member) {
+            if (! $member->manufacturingRoute) {
+                continue;
+            }
+
+            foreach ($member->manufacturingRoute->steps as $step) {
+                if ($step->depends_on_step_id) {
+                    // Get the dependency step's order
+                    $dependencyStep = ManufacturingStep::with('manufacturingRoute.manufacturingOrder')
+                        ->find($step->depends_on_step_id);
+
+                    if ($dependencyStep && $dependencyStep->manufacturingRoute) {
+                        $dependencyOrderId = $dependencyStep->manufacturingRoute->manufacturing_order_id;
+
+                        // Check if the dependency is outside the family
+                        if (! in_array($dependencyOrderId, $familyOrderIds)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

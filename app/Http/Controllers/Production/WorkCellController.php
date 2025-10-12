@@ -269,11 +269,11 @@ class WorkCellController extends BaseSearchController
         if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
             // Load relationships that might be needed
             $workCell->load(['plant', 'area', 'sector', 'shift', 'manufacturer']);
-            
-            return back()
-                ->with('success', "Célula de trabalho {$workCell->name} criada com sucesso.")
-                ->with('newWorkCellId', $workCell->id)
-                ->with('workCell', $workCell->toArray());
+
+            return back()->with([
+                'success' => "Célula de trabalho {$workCell->name} criada com sucesso.",
+                'workCell' => $workCell->toArray(),
+            ]);
         }
 
         return redirect()->route('production.work-cells.show', $workCell)

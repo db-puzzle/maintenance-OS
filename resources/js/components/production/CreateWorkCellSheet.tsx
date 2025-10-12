@@ -316,20 +316,11 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
 
                 // Call onSuccess callback if provided
                 if (onSuccess) {
-                    // Debug: log the entire page props to see what's available
-                    console.log('Page props after work cell creation:', page.props);
-
-                    // Try to get the work cell from flash data
-                    const flashData = (page.props as { flash?: { workCell?: WorkCell } }).flash;
-                    const workCellData = flashData?.workCell;
-
-                    console.log('Flash data:', flashData);
-                    console.log('Work cell data:', workCellData);
+                    // Get the work cell from flash data
+                    const workCellData = (page.props as { flash?: { workCell?: WorkCell } }).flash?.workCell;
 
                     if (workCellData) {
                         onSuccess(workCellData);
-                    } else {
-                        console.warn('No work cell data found in response');
                     }
                 }
             },

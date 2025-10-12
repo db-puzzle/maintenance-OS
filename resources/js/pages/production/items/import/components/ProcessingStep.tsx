@@ -5,7 +5,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { ImportFile, FieldMapping, ImportOptions, ImportSession, ImportResult } from '../types';
 import { router } from '@inertiajs/react';
-import { toast } from 'sonner';
 
 interface Props {
     files: ImportFile[];
@@ -73,11 +72,6 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
                         setProgress(100);
                         setStatusMessage('Importação concluída com sucesso!');
 
-                        // Show success message
-                        if (result.imported > 0 || result.updated > 0) {
-                            toast.success(`Importados ${result.imported} novos itens e atualizados ${result.updated} itens existentes com sucesso.`);
-                        }
-
                         setTimeout(() => {
                             setIsProcessing(false);
                             onComplete(updatedSession);
@@ -128,8 +122,6 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
                         setCurrentSession(updatedSession);
                         setStatusMessage('Importação falhou - Erro no arquivo JSON');
                         setIsProcessing(false);
-
-                        toast.error(errorMessage);
                     } else {
                         // Regular validation errors
                         const errorMessages = Object.values(errors).flat();
@@ -151,8 +143,6 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
                         setCurrentSession(updatedSession);
                         setStatusMessage('Importação falhou');
                         setIsProcessing(false);
-
-                        toast.error('Importação falhou. Verifique os erros abaixo.');
                     }
                 }
             });
@@ -172,7 +162,6 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
             console.error('Import error:', error);
             setStatusMessage('Importação falhou');
             setIsProcessing(false);
-            toast.error('Ocorreu um erro inesperado durante a importação.');
         }
     }, [file, mapping, options, currentSession, onComplete]);
 

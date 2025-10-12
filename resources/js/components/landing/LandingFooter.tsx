@@ -11,7 +11,7 @@ export function LandingFooter() {
                         <Link href="/" aria-label="Home" className="flex items-center">
                             <AppLogoIcon className="h-10 w-auto text-blue-600 dark:text-blue-400" />
                             <span className="ml-2.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                                TaxPal
+                                StreamLine
                             </span>
                         </Link>
                     </div>
@@ -43,7 +43,7 @@ export function LandingFooter() {
                         <Link
                             href="https://twitter.com"
                             className="group"
-                            aria-label="TaxPal on Twitter"
+                            aria-label="StreamLine on Twitter"
                         >
                             <svg
                                 className="h-6 w-6 fill-slate-500 group-hover:fill-slate-700 dark:fill-slate-400 dark:group-hover:fill-slate-300"
@@ -56,7 +56,7 @@ export function LandingFooter() {
                         <Link
                             href="https://github.com"
                             className="group"
-                            aria-label="TaxPal on GitHub"
+                            aria-label="StreamLine on GitHub"
                         >
                             <svg
                                 className="h-6 w-6 fill-slate-500 group-hover:fill-slate-700 dark:fill-slate-400 dark:group-hover:fill-slate-300"
@@ -68,7 +68,7 @@ export function LandingFooter() {
                         </Link>
                     </div>
                     <p className="mt-6 text-sm text-slate-500 sm:mt-0 dark:text-slate-400">
-                        Copyright &copy; {new Date().getFullYear()} TaxPal. All rights reserved.
+                        Copyright &copy; {new Date().getFullYear()} StreamLine. All rights reserved.
                     </p>
                 </div>
             </LandingContainer>

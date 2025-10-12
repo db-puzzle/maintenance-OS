@@ -25,9 +25,16 @@ export function useNavigationGuard({
         };
 
         // Inertia navigation handler
-        const handleInertiaNavigate = (event: { detail: { visit: { url: string; prefetch?: boolean } } }) => {
+        const handleInertiaNavigate = (event: Event) => {
+            const customEvent = event as CustomEvent<{ visit: { url: string; prefetch?: boolean; preserveState?: boolean } }>;
+
             // Skip if this is a prefetch request (hover)
-            if (event.detail.visit.prefetch) {
+            if (customEvent.detail.visit.prefetch) {
+                return;
+            }
+
+            // Skip if this is a state-preserving request (like form submission)
+            if (customEvent.detail.visit.preserveState) {
                 return;
             }
 
@@ -36,28 +43,28 @@ export function useNavigationGuard({
 
                 // If we have a custom navigation handler, use it
                 if (onNavigate) {
-                    onNavigate(event.detail.visit.url).then((shouldNavigate) => {
+                    onNavigate(customEvent.detail.visit.url).then((shouldNavigate) => {
                         if (shouldNavigate) {
                             isNavigatingRef.current = true;
-                            router.visit(event.detail.visit.url);
+                            router.visit(customEvent.detail.visit.url);
                         }
                     });
                 } else {
                     // Default behavior - show browser confirm dialog
                     if (window.confirm(message)) {
                         isNavigatingRef.current = true;
-                        router.visit(event.detail.visit.url);
+                        router.visit(customEvent.detail.visit.url);
                     }
                 }
             }
         };
 
         window.addEventListener('beforeunload', handleBeforeUnload);
-        document.addEventListener('inertia:before', handleInertiaNavigate as EventListener);
+        document.addEventListener('inertia:before', handleInertiaNavigate);
 
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
-            document.removeEventListener('inertia:before', handleInertiaNavigate as EventListener);
+            document.removeEventListener('inertia:before', handleInertiaNavigate);
         };
     }, [hasChanges, message, onNavigate]);
 

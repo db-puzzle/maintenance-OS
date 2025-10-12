@@ -9,6 +9,7 @@ use App\Models\Production\ProductionSchedule;
 use App\Models\Production\ScheduleVersion;
 use App\Models\Production\WorkCell;
 use App\Services\ScheduleAlertService;
+use App\Services\Scheduling\OrderFamilyService;
 use App\Services\Scheduling\SchedulingRequest;
 use App\Services\SchedulingService;
 use Illuminate\Http\Request;
@@ -18,13 +19,16 @@ class SchedulingController extends Controller
 {
     protected SchedulingService $schedulingService;
     protected ScheduleAlertService $alertService;
+    protected OrderFamilyService $familyService;
 
     public function __construct(
         SchedulingService $schedulingService,
-        ScheduleAlertService $alertService
+        ScheduleAlertService $alertService,
+        OrderFamilyService $familyService
     ) {
         $this->schedulingService = $schedulingService;
         $this->alertService = $alertService;
+        $this->familyService = $familyService;
     }
 
     /**
@@ -106,6 +110,10 @@ class SchedulingController extends Controller
             })
             ->get();
 
+        // Remove balanced loading from algorithms
+        $algorithms = $this->schedulingService->getAvailableAlgorithms();
+        unset($algorithms['balanced']);
+
         return Inertia::render($viewName, [
             'currentVersion' => $currentVersion,
             'publishedVersion' => $publishedVersion,
@@ -115,7 +123,9 @@ class SchedulingController extends Controller
             'alertStats' => $alertStats,
             'workCells' => $workCells,
             'filters' => $filters,
-            'schedulingAlgorithms' => $this->schedulingService->getAvailableAlgorithms(),
+            'schedulingAlgorithms' => $algorithms,
+            'defaultStartDate' => now()->format('Y-m-d'),
+            'activeScheduleVersion' => ScheduleVersion::active()->first(),
         ]);
     }
 
@@ -126,11 +136,12 @@ class SchedulingController extends Controller
     {
         $request->validate([
             'version_id' => 'required|exists:schedule_versions,id',
-            'algorithm' => 'required|in:asap,due_date,balanced',
+            'algorithm' => 'required|in:asap,due_date',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
             'manufacturing_order_ids' => 'nullable|array',
             'manufacturing_order_ids.*' => 'exists:manufacturing_orders,id',
+            'respect_locked_schedules' => 'boolean',
         ]);
 
         $version = ScheduleVersion::findOrFail($request->version_id);
@@ -435,5 +446,214 @@ class SchedulingController extends Controller
             'version' => $newVersion,
             'message' => 'Schedule restored from snapshot',
         ]);
+    }
+
+    /**
+     * Validate orders for scheduling.
+     */
+    public function validateOrders(Request $request)
+    {
+        $validated = $request->validate([
+            'manufacturing_order_ids' => 'required|array',
+            'manufacturing_order_ids.*' => 'exists:manufacturing_orders,id',
+            'check_dependencies' => 'boolean',
+            'check_time_parameters' => 'boolean',
+        ]);
+
+        $orders = ManufacturingOrder::whereIn('id', $validated['manufacturing_order_ids'])
+            ->with(['manufacturingRoute.steps.workCell', 'children', 'parent'])
+            ->get();
+
+        $validationResult = $this->schedulingService->validateOrdersForScheduling(
+            $orders,
+            $validated['check_dependencies'] ?? true,
+            $validated['check_time_parameters'] ?? true
+        );
+
+        return back()->with([
+            'validation' => $validationResult,
+            'showValidationModal' => ! $validationResult['valid'],
+        ]);
+    }
+
+    /**
+     * Get family information for selected orders.
+     */
+    public function getFamilies(Request $request)
+    {
+        $orderIds = $request->input('order_ids', []);
+
+        if (empty($orderIds)) {
+            return response()->json(['families' => []]);
+        }
+
+        $orders = ManufacturingOrder::whereIn('id', $orderIds)
+            ->with(['manufacturingRoute.steps', 'children', 'parent'])
+            ->get();
+
+        $families = $this->familyService->groupOrdersByFamily($orders);
+
+        // Transform the families data for frontend consumption
+        $transformedFamilies = $families->map(function ($family) {
+            return [
+                'top_parent' => [
+                    'id' => $family['top_parent']->id,
+                    'order_number' => $family['top_parent']->order_number,
+                    'priority' => $family['priority'],
+                ],
+                'members' => $family['members']->map(function ($member) {
+                    return [
+                        'id' => $member->id,
+                        'order_number' => $member->order_number,
+                        'parent_id' => $member->parent_id,
+                        'quantity' => $member->quantity,
+                        'status' => $member->status,
+                        'has_route' => $member->manufacturingRoute !== null,
+                        'step_count' => $member->manufacturingRoute ? $member->manufacturingRoute->steps->count() : 0,
+                    ];
+                }),
+                'total_steps' => $family['total_steps'],
+                'total_orders' => $family['total_orders'],
+                'priority' => $family['priority'],
+                'has_dependencies' => $this->familyService->hasExternalDependencies($family['members']),
+            ];
+        });
+
+        return response()->json(['families' => $transformedFamilies]);
+    }
+
+    /**
+     * Get results for a completed schedule.
+     */
+    public function results($versionId)
+    {
+        $version = ScheduleVersion::with([
+            'productionSchedules.manufacturingStep.manufacturingRoute.manufacturingOrder',
+            'productionSchedules.workCell',
+            'alerts',
+        ])->findOrFail($versionId);
+
+        $this->authorize('view', $version);
+
+        // Calculate metrics if not already present
+        $metrics = $version->algorithm_metrics ?? $this->schedulingService->calculateScheduleMetrics($version);
+
+        // Group scheduled steps by family
+        $families = $this->groupScheduledStepsByFamily($version);
+
+        return Inertia::render('Production/Scheduler/Results', [
+            'version' => $version,
+            'metrics' => $metrics,
+            'families' => $families,
+            'alerts' => $version->alerts,
+        ]);
+    }
+
+    /**
+     * Show progress page for a scheduling job.
+     */
+    public function progress($jobId)
+    {
+        // Find the version associated with this job
+        $version = ScheduleVersion::where('scheduling_job_id', $jobId)->firstOrFail();
+
+        $this->authorize('view', $version);
+
+        return Inertia::render('Production/Scheduler/Progress', [
+            'jobId' => $jobId,
+            'websocketChannel' => "scheduling.{$version->id}",
+            'version' => $version,
+        ]);
+    }
+
+    /**
+     * Group scheduled steps by family for results display.
+     */
+    private function groupScheduledStepsByFamily(ScheduleVersion $version)
+    {
+        $schedules = $version->productionSchedules()
+            ->with('manufacturingStep.manufacturingRoute.manufacturingOrder')
+            ->get();
+
+        $orderIds = $schedules->pluck('manufacturingStep.manufacturingRoute.manufacturing_order_id')->unique();
+        $orders = ManufacturingOrder::whereIn('id', $orderIds)->get();
+
+        $families = $this->familyService->groupOrdersByFamily($orders);
+
+        return $families->map(function ($family) use ($schedules) {
+            $familyOrderIds = $family['members']->pluck('id');
+            $familySchedules = $schedules->filter(function ($schedule) use ($familyOrderIds) {
+                return $familyOrderIds->contains($schedule->manufacturingStep->manufacturingRoute->manufacturing_order_id);
+            });
+
+            return [
+                'top_parent' => $family['top_parent']->order_number,
+                'priority' => $family['priority'],
+                'orders' => $family['members']->map(function ($order) use ($familySchedules) {
+                    $orderSchedules = $familySchedules->filter(function ($schedule) use ($order) {
+                        return $schedule->manufacturingStep->manufacturingRoute->manufacturing_order_id === $order->id;
+                    });
+
+                    return [
+                        'order_number' => $order->order_number,
+                        'schedules' => $orderSchedules->map(function ($schedule) {
+                            return [
+                                'id' => $schedule->id,
+                                'step_name' => $schedule->manufacturingStep->name,
+                                'work_cell' => $schedule->workCell->name,
+                                'scheduled_start' => $schedule->scheduled_start,
+                                'scheduled_end' => $schedule->scheduled_end,
+                                'is_locked' => $schedule->is_locked,
+                                'conflicts' => $schedule->conflicts,
+                            ];
+                        }),
+                    ];
+                }),
+                'metrics' => [
+                    'start_date' => $familySchedules->min('scheduled_start'),
+                    'end_date' => $familySchedules->max('scheduled_end'),
+                    'total_duration' => $this->calculateFamilyDuration($familySchedules),
+                    'utilization' => $this->calculateFamilyUtilization($familySchedules),
+                ],
+            ];
+        });
+    }
+
+    /**
+     * Calculate total duration for a family.
+     */
+    private function calculateFamilyDuration($schedules)
+    {
+        if ($schedules->isEmpty()) {
+            return 0;
+        }
+
+        $start = \Carbon\Carbon::parse($schedules->min('scheduled_start'));
+        $end = \Carbon\Carbon::parse($schedules->max('scheduled_end'));
+
+        return $end->diffInMinutes($start);
+    }
+
+    /**
+     * Calculate utilization percentage for a family.
+     */
+    private function calculateFamilyUtilization($schedules)
+    {
+        if ($schedules->isEmpty()) {
+            return 0;
+        }
+
+        $totalScheduledMinutes = $schedules->sum(function ($schedule) {
+            $start = \Carbon\Carbon::parse($schedule->scheduled_start);
+            $end = \Carbon\Carbon::parse($schedule->scheduled_end);
+
+            return $end->diffInMinutes($start);
+        });
+
+        $totalAvailableMinutes = $this->calculateFamilyDuration($schedules);
+
+        return $totalAvailableMinutes > 0
+            ? round(($totalScheduledMinutes / $totalAvailableMinutes) * 100, 2)
+            : 0;
     }
 }

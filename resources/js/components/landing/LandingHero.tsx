@@ -62,8 +62,8 @@ export function LandingHero() {
             </div>
 
             <LandingContainer className="pb-16 pt-12 sm:pt-16 lg:pt-20">
-                <div className="lg:grid lg:grid-cols-12 lg:gap-x-8 lg:gap-y-20">
-                    <div className="relative z-10 mx-auto max-w-2xl lg:col-span-7 lg:max-w-none lg:pt-6 xl:col-span-6">
+                <div className="lg:grid lg:grid-cols-12 lg:gap-x-12 xl:gap-x-16 lg:gap-y-20">
+                    <div className="relative z-10 mx-auto max-w-2xl lg:col-span-6 lg:max-w-none lg:pt-6 xl:col-span-5">
                         {/* Tagline */}
                         <p className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                             BY THE MAKERS OF MAINTENANCEOS
@@ -126,9 +126,11 @@ export function LandingHero() {
                     </div>
 
                     {/* Hero image area */}
-                    <div className="relative mt-16 sm:mt-24 lg:col-span-5 lg:row-span-2 lg:mt-0 xl:col-span-6">
-                        <div className="rounded-lg bg-gray-100 p-4 dark:bg-gray-800">
-                            <ThreeDMarquee images={images} className="mx-auto" />
+                    <div className="relative mt-8 sm:mt-12 lg:col-span-6 lg:row-span-2 lg:-mt-10 xl:col-span-7">
+                        <div className="-mx-4 sm:-mx-6 lg:-mr-8 xl:-mr-12">
+                            <div className="rounded-xl bg-gray-100 p-2 sm:p-4 dark:bg-gray-800">
+                                <ThreeDMarquee images={images} className="mx-auto" />
+                            </div>
                         </div>
                     </div>
                 </div>

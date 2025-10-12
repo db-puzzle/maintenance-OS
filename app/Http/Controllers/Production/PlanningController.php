@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
+use App\Models\AssetHierarchy\Manufacturer;
+use App\Models\AssetHierarchy\Plant;
+use App\Models\AssetHierarchy\Shift;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingRoute;
+use App\Models\Production\UnitOfMeasure;
 use App\Models\Production\WorkCell;
 use App\Services\Production\ManufacturingOrderService;
 use App\Services\Production\RouteBuilderService;
@@ -42,6 +46,15 @@ class PlanningController extends Controller
         // Load work cells once
         $workCells = $this->loadWorkCells();
 
+        // Get all plants, shifts, manufacturers, and units of measure for CreateWorkCellSheet
+        $plants = Plant::orderBy('name')->get(['id', 'name']);
+        $shifts = Shift::orderBy('name')->get(['id', 'name']);
+        $manufacturers = Manufacturer::orderBy('name')->get(['id', 'name']);
+        $unitsOfMeasure = UnitOfMeasure::where('is_active', true)
+            ->orderBy('uom_type')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name', 'symbol', 'uom_type']);
+
         // Get user permissions - check if permissions exist before checking them
         $user = $request->user();
         $permissions = [
@@ -73,6 +86,10 @@ class PlanningController extends Controller
             'manufacturingOrders' => $hierarchicalOrders,
             'routeTemplates' => $routeTemplates,
             'workCells' => $workCells,
+            'plants' => $plants,
+            'shifts' => $shifts,
+            'manufacturers' => $manufacturers,
+            'unitsOfMeasure' => $unitsOfMeasure,
             'permissions' => $permissions,
             'selectedMO' => $request->input('selectedMO'),
             'userSelection' => $request->input('userSelection') ? explode(',', $request->input('userSelection')) : [],

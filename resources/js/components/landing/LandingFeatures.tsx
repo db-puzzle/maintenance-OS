@@ -115,7 +115,7 @@ export function LandingFeatures() {
             <LandingContainer className="relative z-40">
                 <div className="max-w-2xl md:mx-auto md:text-center xl:max-w-none">
                     <h2 className="font-display text-3xl tracking-tight text-white sm:text-4xl md:text-5xl">
-                        Everything you need to run your factories.
+                        Everything you need to run your shop.
                     </h2>
                     <p className="mt-6 text-lg tracking-tight text-blue-100">
                         Your products are complex, your production process doesn&apos;t have to be.

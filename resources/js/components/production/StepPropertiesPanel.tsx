@@ -49,6 +49,13 @@ interface Props {
         id: number;
         name: string;
     }[];
+    unitsOfMeasure?: {
+        id: number;
+        code: string;
+        name: string;
+        symbol?: string;
+        uom_type: 'COUNT' | 'MASS' | 'LENGTH' | 'AREA' | 'VOLUME' | 'TIME';
+    }[];
 
     isSaving: boolean;
     onLocalStepUpdate: (stepId: number, updates: Partial<ExtendedManufacturingStep>) => void;
@@ -67,6 +74,7 @@ export default function StepPropertiesPanel({
     plants,
     shifts,
     manufacturers,
+    unitsOfMeasure,
 
     isSaving,
     onLocalStepUpdate,
@@ -78,7 +86,6 @@ export default function StepPropertiesPanel({
     const [lastSelectedStep, setLastSelectedStep] = useState<ExtendedManufacturingStep | null>(null);
     const [workCellSheetOpen, setWorkCellSheetOpen] = useState(false);
     const workCellSelectRef = useRef<HTMLButtonElement>(null);
-    const [previousWorkCellsLength, setPreviousWorkCellsLength] = useState(workCells.length);
 
     // Keep track of the last selected step for animation purposes
     useEffect(() => {
@@ -86,13 +93,6 @@ export default function StepPropertiesPanel({
             setLastSelectedStep(selectedStep);
         }
     }, [selectedStep]);
-
-
-
-    // Update previous workCells length when workCells prop changes
-    useEffect(() => {
-        setPreviousWorkCellsLength(workCells.length);
-    }, [workCells]);
 
 
     useEffect(() => {
@@ -394,6 +394,7 @@ export default function StepPropertiesPanel({
                 plants={plants}
                 shifts={shifts}
                 manufacturers={manufacturers}
+                unitsOfMeasure={unitsOfMeasure}
             />
         </div>
     );
@@ -439,58 +440,9 @@ export default function StepPropertiesPanel({
             }, 100);
 
             // Reload to get the updated work cells list for the select
+            // This preserves state while updating the workCells prop
             router.reload({
                 only: ['workCells']
-            });
-        } else {
-            // Fallback to the original method if no work cell is provided
-            // Store the current workCells length before reload
-            setPreviousWorkCellsLength(workCells.length);
-
-            // Reload to get the updated work cells
-            router.reload({
-                only: ['workCells'],
-                onSuccess: (page) => {
-                    // Get the updated workCells from the page props
-                    const updatedWorkCells = (page.props as { workCells?: WorkCell[] }).workCells || [];
-
-                    // Find the newly created work cell - it should be the newest one (highest ID)
-                    let foundWorkCell: WorkCell | undefined;
-
-                    if (updatedWorkCells.length > previousWorkCellsLength && displayStep) {
-                        // Sort by ID descending to get the newest
-                        const sortedWorkCells = [...updatedWorkCells].sort((a, b) => b.id - a.id);
-                        foundWorkCell = sortedWorkCells[0];
-
-                        if (foundWorkCell) {
-                            // Set the newly created work cell ID in the form
-                            stepForm.setData('work_cell_id', foundWorkCell.id.toString());
-
-                            // Update the local state with the new work cell
-                            onLocalStepUpdate(displayStep.id, {
-                                work_cell_id: foundWorkCell.id,
-                                work_cell: foundWorkCell
-                            });
-                        }
-                    }
-
-                    // After reload, focus the work cell select field
-                    setTimeout(() => {
-                        const selectButton = workCellSelectRef.current;
-                        if (selectButton) {
-                            selectButton.focus();
-                            // Add a temporary highlight effect with smooth transition
-                            selectButton.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all', 'duration-300');
-                            setTimeout(() => {
-                                selectButton.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
-                                // Remove transition classes after animation completes
-                                setTimeout(() => {
-                                    selectButton.classList.remove('transition-all', 'duration-300');
-                                }, 300);
-                            }, 2000);
-                        }
-                    }, 100);
-                }
             });
         }
     }

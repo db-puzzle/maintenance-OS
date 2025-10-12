@@ -64,6 +64,13 @@ class HandleInertiaRequests extends Middleware
                 'newWorkCellId' => fn () => $request->session()->get('newWorkCellId'),
                 'workCell' => fn () => $request->session()->get('workCell'),
                 'result' => fn () => $request->session()->get('flash.result'),
+                'validation' => fn () => $request->session()->get('validation'),
+                'showValidationModal' => fn () => $request->session()->get('showValidationModal', false),
+            ],
+            'schedulingConfig' => fn () => [
+                'locked_schedules_enabled' => config('scheduling.respect_locked_schedules', true),
+                'max_scheduling_days' => config('scheduling.max_days_ahead', 90),
+                'websocket_enabled' => config('broadcasting.default') !== null,
             ],
             'ziggy' => fn (): array => [
                 ...(new Ziggy)->toArray(),

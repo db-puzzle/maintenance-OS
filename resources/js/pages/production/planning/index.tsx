@@ -99,6 +99,16 @@ interface PlanningPageProps extends PageProps {
     manufacturingOrders: ManufacturingOrder[];
     routeTemplates: RouteTemplate[];
     workCells: WorkCell[];
+    plants: { id: number; name: string }[];
+    shifts: { id: number; name: string }[];
+    manufacturers: { id: number; name: string }[];
+    unitsOfMeasure: {
+        id: number;
+        code: string;
+        name: string;
+        symbol?: string;
+        uom_type: 'COUNT' | 'MASS' | 'LENGTH' | 'AREA' | 'VOLUME' | 'TIME';
+    }[];
     selectedMO?: number;
     userSelection?: number[];
     activeMO?: number | null;
@@ -128,6 +138,10 @@ export default function PlanningPage({
     manufacturingOrders = [],
     routeTemplates = [],
     workCells = [],
+    plants = [],
+    shifts = [],
+    manufacturers = [],
+    unitsOfMeasure = [],
     selectedMO,
     userSelection = [],
     activeMO: initialActiveMO = null,
@@ -142,6 +156,12 @@ export default function PlanningPage({
 
     // Use manufacturingOrders directly from props if available, otherwise use initial props
     const currentManufacturingOrders = props.manufacturingOrders || manufacturingOrders;
+
+    // Also get the latest data for work cell creation
+    const currentPlants = props.plants || plants;
+    const currentShifts = props.shifts || shifts;
+    const currentManufacturers = props.manufacturers || manufacturers;
+    const currentUnitsOfMeasure = props.unitsOfMeasure || unitsOfMeasure;
 
 
     // Convert selectedMO to number once
@@ -745,6 +765,10 @@ export default function PlanningPage({
                                         <RouteBuilder
                                             manufacturingOrder={activeMODetails}
                                             workCells={workCells}
+                                            plants={currentPlants}
+                                            shifts={currentShifts}
+                                            manufacturers={currentManufacturers}
+                                            unitsOfMeasure={currentUnitsOfMeasure}
                                             permissions={permissions}
                                             onStepsChange={handleRouteStepsChange}
                                             onSaveStatusChange={() => { }} // No longer needed, handled by hook

@@ -8,7 +8,7 @@ interface LandingContainerProps extends PropsWithChildren {
 export function LandingContainer({ className, children, ...props }: LandingContainerProps) {
     return (
         <div
-            className={clsx('mx-auto max-w-7xl px-4 sm:px-6 lg:px-8', className)}
+            className={clsx('mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12', className)}
             {...props}
         >
             {children}

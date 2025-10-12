@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useForm } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
-import CreateWorkCellSheet from '@/components/production/CreateWorkCellSheet';
 import RouteFlowView from '@/components/production/RouteFlowView';
 import StepPropertiesPanel from '@/components/production/StepPropertiesPanel';
 import GatePropertiesPanel from '@/components/production/GatePropertiesPanel';
@@ -31,6 +30,16 @@ export interface RouteStep {
 interface RouteBuilderProps {
     manufacturingOrder: ManufacturingOrder;
     workCells: WorkCell[];
+    plants: { id: number; name: string }[];
+    shifts: { id: number; name: string }[];
+    manufacturers: { id: number; name: string }[];
+    unitsOfMeasure: {
+        id: number;
+        code: string;
+        name: string;
+        symbol?: string;
+        uom_type: 'COUNT' | 'MASS' | 'LENGTH' | 'AREA' | 'VOLUME' | 'TIME';
+    }[];
     onDirtyChange?: (isDirty: boolean) => void;
     onStepsChange: (steps: RouteStep[]) => void;
     onSave?: () => void;
@@ -49,6 +58,10 @@ interface RouteBuilderProps {
 export default function RouteBuilder({
     manufacturingOrder,
     workCells,
+    plants,
+    shifts,
+    manufacturers,
+    unitsOfMeasure,
     onDirtyChange,
     onStepsChange,
     isSaving = false,
@@ -58,7 +71,6 @@ export default function RouteBuilder({
     const [steps, setSteps] = useState<RouteStep[]>([]);
     const [selectedStep, setSelectedStep] = useState<RouteStep | null>(null);
     const [selectedGateId, setSelectedGateId] = useState<string | null>(null);
-    const [showCreateWorkCell, setShowCreateWorkCell] = useState(false);
 
     // Track original steps for comparison
     const originalStepsRef = useRef<RouteStep[]>([]);
@@ -483,9 +495,10 @@ export default function RouteBuilder({
                             created_at: new Date().toISOString(),
                             updated_at: new Date().toISOString(),
                         }}
-                        plants={[]}
-                        shifts={[]}
-                        manufacturers={[]}
+                        plants={plants}
+                        shifts={shifts}
+                        manufacturers={manufacturers}
+                        unitsOfMeasure={unitsOfMeasure}
                         isSaving={isSaving}
                         onLocalStepUpdate={(stepId, updates) => {
                             // Try to find by exact ID match first
@@ -544,18 +557,6 @@ export default function RouteBuilder({
                     />
                 </div>
             </div>
-
-            {/* Create Work Cell Sheet */}
-            {permissions.canCreateWorkCell && (
-                <CreateWorkCellSheet
-                    isOpen={showCreateWorkCell}
-                    onOpenChange={setShowCreateWorkCell}
-                    onSuccess={(_newWorkCell) => {
-                        setShowCreateWorkCell(false);
-                    }}
-                />
-            )}
-
         </div>
     );
 }
