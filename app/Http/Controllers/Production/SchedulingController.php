@@ -125,7 +125,7 @@ class SchedulingController extends Controller
             'filters' => $filters,
             'schedulingAlgorithms' => $algorithms,
             'defaultStartDate' => now()->format('Y-m-d'),
-            'activeScheduleVersion' => ScheduleVersion::active()->first(),
+            'activeScheduleVersion' => $currentVersion,
         ]);
     }
 
