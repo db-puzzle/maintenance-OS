@@ -49,9 +49,26 @@ abstract class BaseScheduler
         $processedSteps = 0;
         $nextFamilyStart = $request->scheduleStartDate ?? now();
 
+        Log::info('BaseScheduler::scheduleByFamilies - Start', [
+            'order_count' => $orders->count(),
+            'start_date' => $nextFamilyStart instanceof Carbon ? $nextFamilyStart->format('Y-m-d H:i:s') : $nextFamilyStart,
+        ]);
+
         try {
             // Group orders by families
             $families = $this->familyService->groupOrdersByFamily($orders);
+
+            Log::info('BaseScheduler::scheduleByFamilies - Grouped into families', [
+                'family_count' => $families->count(),
+                'families' => $families->map(function ($family) {
+                    return [
+                        'top_parent' => $family['top_parent']->order_number,
+                        'member_count' => $family['members']->count(),
+                        'total_steps' => $family['total_steps'],
+                        'priority' => $family['priority'],
+                    ];
+                })->toArray(),
+            ]);
 
             // Count total steps across all families
             foreach ($families as $family) {

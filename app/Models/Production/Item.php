@@ -67,7 +67,7 @@ class Item extends Model implements HasMedia
         'reorder_point' => 'decimal:2',
     ];
 
-    protected $appends = ['primary_image_url', 'primary_image_data'];
+    protected $appends = ['code', 'primary_image_url', 'primary_image_data'];
 
     /**
      * Register media collections.
@@ -218,6 +218,14 @@ class Item extends Model implements HasMedia
     }
 
     // Image-related accessors
+
+    /**
+     * Get code attribute (alias for item_number).
+     */
+    public function getCodeAttribute(): ?string
+    {
+        return $this->item_number;
+    }
 
     /**
      * Get the primary image URL for this item.

@@ -66,6 +66,7 @@ class HandleInertiaRequests extends Middleware
                 'result' => fn () => $request->session()->get('flash.result'),
                 'validation' => fn () => $request->session()->get('validation'),
                 'showValidationModal' => fn () => $request->session()->get('showValidationModal', false),
+                'schedulingJob' => fn () => $request->session()->get('schedulingJob'),
             ],
             'schedulingConfig' => fn () => [
                 'locked_schedules_enabled' => config('scheduling.respect_locked_schedules', true),

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Production;
 use App\Http\Controllers\Controller;
 use App\Jobs\Production\ScheduleProductionJob;
 use App\Models\Production\ManufacturingOrder;
+use App\Models\Production\ManufacturingStep;
 use App\Models\Production\ProductionSchedule;
 use App\Models\Production\ScheduleVersion;
 use App\Models\Production\WorkCell;
@@ -37,18 +38,192 @@ class SchedulingController extends Controller
     public function indexV2(Request $request)
     {
         // Use the same logic as index but return a different view
-        return $this->prepareSchedulerData($request, 'production/scheduler-v2/index');
+        return $this->prepareSchedulerData($request, 'production/scheduler/index');
     }
 
     /**
-     * Display the scheduling interface.
+     * Display the scheduler setup page.
+     */
+    public function setup(Request $request)
+    {
+        $this->authorize('viewAny', ScheduleVersion::class);
+
+        // Get current or create new draft version
+        $currentVersion = ScheduleVersion::draft()
+            ->latest()
+            ->first();
+
+        if (! $currentVersion) {
+            $currentVersion = $this->schedulingService->createScheduleVersion($request->user());
+        }
+
+        // Get published version
+        $publishedVersion = ScheduleVersion::published()
+            ->latest()
+            ->first();
+
+        // Remove balanced loading from algorithms
+        $algorithms = $this->schedulingService->getAvailableAlgorithms();
+        unset($algorithms['balanced']);
+
+        // Transform algorithms to array format for the UI
+        $algorithmsArray = [];
+        foreach ($algorithms as $key => $label) {
+            $algorithmsArray[] = ['value' => $key, 'label' => $label];
+        }
+
+        // Get active orders
+        $filters = $request->only(['plant_id', 'area_id', 'start_date', 'end_date', 'search']);
+        $filters['start_date'] = $filters['start_date'] ?? now()->format('Y-m-d');
+        $filters['end_date'] = $filters['end_date'] ?? now()->addMonths(3)->format('Y-m-d');
+
+        $orders = $this->schedulingService->getActiveManufacturingOrders($filters);
+
+        // Map orders for Inertia response
+        $mappedOrders = $orders->map(function ($order) {
+            $routeData = null;
+            if ($order->manufacturingRoute) {
+                $routeData = [
+                    'id' => $order->manufacturingRoute->id,
+                    'name' => $order->manufacturingRoute->name,
+                    'steps' => $order->manufacturingRoute->steps->map(function ($step) {
+                        return [
+                            'id' => $step->id,
+                            'name' => $step->name,
+                            'sequence_number' => $step->sequence_number,
+                            'work_cell_id' => $step->work_cell_id,
+                        ];
+                    })->toArray(),
+                ];
+            }
+
+            return [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'status' => $order->status,
+                'priority' => $order->priority,
+                'quantity' => $order->quantity,
+                'due_date' => $order->due_date?->format('Y-m-d'),
+                'release_date' => $order->release_date?->format('Y-m-d'),
+                'requested_date' => $order->requested_date,
+                'parent_id' => $order->parent_id,
+                'item' => $order->item ? [
+                    'id' => $order->item->id,
+                    'name' => $order->item->name,
+                    'code' => $order->item->code,
+                    'description' => $order->item->description,
+                ] : null,
+                'manufacturingRoute' => $routeData,
+                'has_time_parameters' => $order->manufacturingRoute?->steps()
+                    ->where(function ($query) {
+                        $query->whereNotNull('setup_time_minutes')
+                            ->orWhereNotNull('cycle_time_minutes');
+                    })
+                    ->exists() ?? false,
+            ];
+        })->values();
+
+        // Get work cells
+        $workCells = WorkCell::with(['area', 'plant'])
+            ->get()
+            ->map(function ($cell) {
+                return [
+                    'id' => $cell->id,
+                    'name' => $cell->name,
+                    'code' => $cell->code ?? $cell->name,
+                    'work_center_area_id' => $cell->area_id,
+                ];
+            });
+
+        return Inertia::render('production/scheduler/setup', [
+            'currentVersion' => $currentVersion,
+            'publishedVersion' => $publishedVersion,
+            'orders' => $mappedOrders,
+            'workCells' => $workCells,
+            'filters' => $filters,
+            'algorithms' => $algorithmsArray,
+            'defaultStartDate' => $filters['start_date'],
+            'activeScheduleVersion' => $currentVersion,
+        ]);
+    }
+
+    /**
+     * Display the HDG scheduling interface.
      *
-     * @deprecated Use indexV2 instead - redirects to the new scheduler
+     * @deprecated This method is no longer used. The route now redirects to indexV2.
      */
     public function index(Request $request)
     {
-        // Redirect to the new scheduler v2
-        return redirect()->route('production.scheduler.index-v2', $request->query());
+        $this->authorize('viewAny', ScheduleVersion::class);
+
+        // Get current or create new draft version
+        $currentVersion = ScheduleVersion::draft()
+            ->latest()
+            ->first();
+
+        if (! $currentVersion) {
+            $currentVersion = $this->schedulingService->createScheduleVersion($request->user());
+        }
+
+        // Remove balanced loading from algorithms
+        $algorithms = $this->schedulingService->getAvailableAlgorithms();
+        unset($algorithms['balanced']);
+
+        // Transform algorithms to array format for the UI
+        $algorithmsArray = [];
+        foreach ($algorithms as $key => $label) {
+            $algorithmsArray[] = ['value' => $key, 'label' => $label];
+        }
+
+        // Get active orders
+        $orders = $this->schedulingService->getActiveManufacturingOrders([
+            'start_date' => now()->format('Y-m-d'),
+            'end_date' => now()->addMonths(3)->format('Y-m-d'),
+        ]);
+
+        // Map orders for Inertia response
+        $mappedOrders = $orders->map(function ($order) {
+            $routeData = null;
+            if ($order->manufacturingRoute) {
+                $routeData = [
+                    'id' => $order->manufacturingRoute->id,
+                    'name' => $order->manufacturingRoute->name,
+                    'steps' => $order->manufacturingRoute->steps->map(function ($step) {
+                        return [
+                            'id' => $step->id,
+                            'name' => $step->name,
+                            'sequence_number' => $step->sequence_number,
+                            'work_cell_id' => $step->work_cell_id,
+                        ];
+                    })->toArray(),
+                ];
+            }
+
+            return [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'status' => $order->status,
+                'priority' => $order->priority,
+                'quantity' => $order->quantity,
+                'requested_date' => $order->requested_date,
+                'parent_id' => $order->parent_id,
+                'item' => $order->item,
+                'manufacturingRoute' => $routeData,
+            ];
+        });
+
+        return Inertia::render('production/scheduler/index', [
+            'algorithms' => $algorithmsArray,
+            'defaultStartDate' => now()->format('Y-m-d'),
+            'activeScheduleVersion' => $currentVersion,
+            'currentVersion' => $currentVersion,
+            'orders' => $mappedOrders,
+            'workCells' => WorkCell::all(),
+            'filters' => [
+                'start_date' => now()->format('Y-m-d'),
+                'end_date' => now()->addMonths(3)->format('Y-m-d'),
+            ],
+        ]);
     }
 
     /**
@@ -114,16 +289,54 @@ class SchedulingController extends Controller
         $algorithms = $this->schedulingService->getAvailableAlgorithms();
         unset($algorithms['balanced']);
 
+        // Transform algorithms to array format for the UI
+        $algorithmsArray = [];
+        foreach ($algorithms as $key => $label) {
+            $algorithmsArray[] = ['value' => $key, 'label' => $label];
+        }
+
+        // Map orders with manufacturing route details
+        $mappedOrders = $orders->map(function ($order) {
+            $routeData = null;
+            if ($order->manufacturingRoute) {
+                $routeData = [
+                    'id' => $order->manufacturingRoute->id,
+                    'name' => $order->manufacturingRoute->name,
+                    'steps' => $order->manufacturingRoute->steps->map(function ($step) {
+                        return [
+                            'id' => $step->id,
+                            'name' => $step->name,
+                            'sequence_number' => $step->sequence_number,
+                            'work_cell_id' => $step->work_cell_id,
+                        ];
+                    })->toArray(),
+                ];
+            }
+
+            return [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'status' => $order->status,
+                'priority' => $order->priority,
+                'quantity' => $order->quantity,
+                'requested_date' => $order->requested_date,
+                'parent_id' => $order->parent_id,
+                'item' => $order->item,
+                'manufacturingRoute' => $routeData,
+            ];
+        });
+
         return Inertia::render($viewName, [
             'currentVersion' => $currentVersion,
             'publishedVersion' => $publishedVersion,
-            'orders' => $orders,
+            'orders' => $mappedOrders,
             'schedules' => $schedules,
             'alerts' => $alerts,
             'alertStats' => $alertStats,
             'workCells' => $workCells,
             'filters' => $filters,
             'schedulingAlgorithms' => $algorithms,
+            'algorithms' => $algorithmsArray,
             'defaultStartDate' => now()->format('Y-m-d'),
             'activeScheduleVersion' => $currentVersion,
         ]);
@@ -134,21 +347,46 @@ class SchedulingController extends Controller
      */
     public function runScheduler(Request $request)
     {
-        $request->validate([
-            'version_id' => 'required|exists:schedule_versions,id',
-            'algorithm' => 'required|in:asap,due_date',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
-            'manufacturing_order_ids' => 'nullable|array',
-            'manufacturing_order_ids.*' => 'exists:manufacturing_orders,id',
-            'respect_locked_schedules' => 'boolean',
+        \Log::info('SchedulingController::runScheduler - Start', [
+            'request_data' => $request->all(),
+            'user_id' => auth()->id(),
         ]);
 
+        try {
+            $request->validate([
+                'version_id' => 'required|exists:schedule_versions,id',
+                'algorithm' => 'required|in:asap,due_date',
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after:start_date',
+                'manufacturing_order_ids' => 'nullable|array',
+                'manufacturing_order_ids.*' => 'exists:manufacturing_orders,id',
+                'respect_locked_schedules' => 'boolean',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('SchedulingController::runScheduler - Validation failed', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all(),
+            ]);
+            throw $e;
+        }
+
         $version = ScheduleVersion::findOrFail($request->version_id);
+        \Log::info('SchedulingController::runScheduler - Found version', [
+            'version_id' => $version->id,
+            'version_number' => $version->version_number,
+            'status' => $version->status,
+            'scheduling_status' => $version->scheduling_status,
+        ]);
+
         $this->authorize('runScheduling', $version);
 
         // Check if already scheduling
         if ($version->isScheduling()) {
+            \Log::warning('SchedulingController::runScheduler - Version already scheduling', [
+                'version_id' => $version->id,
+                'scheduling_status' => $version->scheduling_status,
+            ]);
+
             return back()->withErrors([
                 'message' => 'A scheduling job is already running for this version',
             ]);
@@ -160,12 +398,26 @@ class SchedulingController extends Controller
             'end_date' => $request->end_date,
         ];
 
+        \Log::info('SchedulingController::runScheduler - Filters', [
+            'filters' => $filters,
+            'has_specific_order_ids' => ! empty($request->manufacturing_order_ids),
+            'specific_order_ids' => $request->manufacturing_order_ids ?? [],
+        ]);
+
         // If specific order IDs provided, use those; otherwise get all active orders
         if (! empty($request->manufacturing_order_ids)) {
             $orderIds = $request->manufacturing_order_ids;
+            \Log::info('SchedulingController::runScheduler - Using specific order IDs', [
+                'order_ids' => $orderIds,
+                'count' => count($orderIds),
+            ]);
         } else {
             $orders = $this->schedulingService->getOrdersForScheduling($filters);
             $orderIds = $orders->pluck('id')->toArray();
+            \Log::info('SchedulingController::runScheduler - Got orders from service', [
+                'order_count' => $orders->count(),
+                'order_ids' => $orderIds,
+            ]);
         }
 
         if (empty($orderIds)) {
@@ -199,6 +451,13 @@ class SchedulingController extends Controller
             'scheduleEndDate' => $request->end_date,
         ]);
 
+        \Log::info('SchedulingController::runScheduler - Created scheduling request', [
+            'order_count' => count($orderIds),
+            'algorithm' => $request->algorithm,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+        ]);
+
         // Generate a unique job ID for tracking
         $jobId = uniqid('scheduling_', true);
 
@@ -208,16 +467,28 @@ class SchedulingController extends Controller
             'scheduling_job_id' => $jobId,
         ]);
 
+        \Log::info('SchedulingController::runScheduler - Updated version status', [
+            'version_id' => $version->id,
+            'job_id' => $jobId,
+            'scheduling_status' => 'queued',
+        ]);
+
         // Create and dispatch the job with the job ID
         $job = new ScheduleProductionJob($schedulingRequest, $version, $jobId);
         dispatch($job)->onQueue('scheduling');
 
-        return back()->with('flash', [
-            'data' => [
-                'job_id' => $jobId,
-                'message' => 'Scheduling job queued successfully',
-                'channel' => "scheduling.{$version->id}",
-            ],
+        \Log::info('SchedulingController::runScheduler - Job dispatched successfully', [
+            'job_id' => $jobId,
+            'version_id' => $version->id,
+            'queue' => 'scheduling',
+        ]);
+
+        // Return the job data for the frontend to handle
+        return back()->with('schedulingJob', [
+            'job_id' => $jobId,
+            'websocket_channel' => "scheduling.{$version->id}",
+            'version_id' => $version->id,
+            'message' => 'Scheduling job queued successfully',
         ]);
     }
 
@@ -228,7 +499,7 @@ class SchedulingController extends Controller
     {
         $this->authorize('view', $version);
 
-        return response()->json([
+        $response = [
             'status' => $version->scheduling_status,
             'job_id' => $version->scheduling_job_id,
             'algorithm' => $version->last_algorithm_used,
@@ -236,7 +507,60 @@ class SchedulingController extends Controller
             'execution_time' => $version->algorithm_execution_time,
             'metrics' => $version->algorithm_metrics,
             'error' => $version->scheduling_error,
-        ]);
+            'message' => null,
+        ];
+
+        // Add descriptive message based on status
+        switch ($version->scheduling_status) {
+            case 'queued':
+                $response['message'] = 'Scheduling job is queued and will start soon...';
+                break;
+            case 'running':
+                $response['message'] = 'Scheduling is in progress...';
+                break;
+            case 'completed':
+                $response['message'] = 'Scheduling completed successfully!';
+                break;
+            case 'failed':
+                // Enhance error message with more context
+                if ($version->scheduling_error) {
+                    // Check for specific error patterns
+                    if (str_contains($version->scheduling_error, 'Missing production time parameters')) {
+                        $response['message'] = 'Cannot schedule: Some manufacturing steps are missing time parameters. Please set up cycle times and setup times for all steps, or configure work cell production rates.';
+                    } elseif (str_contains($version->scheduling_error, 'timeout')) {
+                        $response['message'] = 'Scheduling took too long to complete. Try scheduling fewer orders or use a simpler algorithm.';
+                    } elseif (str_contains($version->scheduling_error, 'memory')) {
+                        $response['message'] = 'Not enough resources to complete scheduling. Try scheduling fewer orders.';
+                    } else {
+                        $response['message'] = $version->scheduling_error;
+                    }
+                } else {
+                    $response['message'] = 'Scheduling failed. Please check the logs for more details.';
+                }
+
+                // If we have alerts, include the most recent critical ones
+                $criticalAlerts = $version->alerts()
+                    ->where('severity', 'error')
+                    ->orderBy('created_at', 'desc')
+                    ->limit(3)
+                    ->get();
+
+                if ($criticalAlerts->isNotEmpty()) {
+                    $response['errorDetails'] = [
+                        'message' => $response['message'],
+                        'alerts' => $criticalAlerts->map(function ($alert) {
+                            return [
+                                'type' => $alert->type,
+                                'message' => $alert->message,
+                                'context' => $alert->context,
+                            ];
+                        })->toArray(),
+                    ];
+                }
+                break;
+        }
+
+        return response()->json($response);
     }
 
     /**
@@ -312,7 +636,7 @@ class SchedulingController extends Controller
         $route = 'production.scheduler.index';
 
         if ($referrer && str_contains($referrer, 'scheduler/v2')) {
-            $route = 'production.scheduler.index-v2';
+            $route = 'production.scheduler.index';
         }
 
         return redirect()->route($route)
@@ -453,22 +777,60 @@ class SchedulingController extends Controller
      */
     public function validateOrders(Request $request)
     {
-        $validated = $request->validate([
-            'manufacturing_order_ids' => 'required|array',
-            'manufacturing_order_ids.*' => 'exists:manufacturing_orders,id',
-            'check_dependencies' => 'boolean',
-            'check_time_parameters' => 'boolean',
+        \Log::info('SchedulingController::validateOrders - Start', [
+            'request_data' => $request->all(),
+        ]);
+
+        try {
+            $validated = $request->validate([
+                'manufacturing_order_ids' => 'required|array',
+                'manufacturing_order_ids.*' => 'exists:manufacturing_orders,id',
+                'check_dependencies' => 'boolean',
+                'check_time_parameters' => 'boolean',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('SchedulingController::validateOrders - Validation failed', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all(),
+            ]);
+            throw $e;
+        }
+
+        \Log::info('SchedulingController::validateOrders - Validation passed', [
+            'order_ids' => $validated['manufacturing_order_ids'],
+            'order_count' => count($validated['manufacturing_order_ids']),
+            'check_dependencies' => $validated['check_dependencies'] ?? true,
+            'check_time_parameters' => $validated['check_time_parameters'] ?? true,
         ]);
 
         $orders = ManufacturingOrder::whereIn('id', $validated['manufacturing_order_ids'])
             ->with(['manufacturingRoute.steps.workCell', 'children', 'parent'])
             ->get();
 
+        \Log::info('SchedulingController::validateOrders - Found orders', [
+            'found_count' => $orders->count(),
+            'orders' => $orders->map(function ($order) {
+                return [
+                    'id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'status' => $order->status,
+                    'has_route' => $order->manufacturingRoute !== null,
+                    'step_count' => $order->manufacturingRoute ? $order->manufacturingRoute->steps->count() : 0,
+                ];
+            })->toArray(),
+        ]);
+
         $validationResult = $this->schedulingService->validateOrdersForScheduling(
             $orders,
             $validated['check_dependencies'] ?? true,
             $validated['check_time_parameters'] ?? true
         );
+
+        \Log::info('SchedulingController::validateOrders - Validation result', [
+            'valid' => $validationResult['valid'],
+            'issue_count' => count($validationResult['issues'] ?? []),
+            'issues' => $validationResult['issues'] ?? [],
+        ]);
 
         return back()->with([
             'validation' => $validationResult,
@@ -541,28 +903,11 @@ class SchedulingController extends Controller
         // Group scheduled steps by family
         $families = $this->groupScheduledStepsByFamily($version);
 
-        return Inertia::render('Production/Scheduler/Results', [
+        return Inertia::render('production/scheduler/results', [
             'version' => $version,
             'metrics' => $metrics,
             'families' => $families,
             'alerts' => $version->alerts,
-        ]);
-    }
-
-    /**
-     * Show progress page for a scheduling job.
-     */
-    public function progress($jobId)
-    {
-        // Find the version associated with this job
-        $version = ScheduleVersion::where('scheduling_job_id', $jobId)->firstOrFail();
-
-        $this->authorize('view', $version);
-
-        return Inertia::render('Production/Scheduler/Progress', [
-            'jobId' => $jobId,
-            'websocketChannel' => "scheduling.{$version->id}",
-            'version' => $version,
         ]);
     }
 
@@ -655,5 +1000,104 @@ class SchedulingController extends Controller
         return $totalAvailableMinutes > 0
             ? round(($totalScheduledMinutes / $totalAvailableMinutes) * 100, 2)
             : 0;
+    }
+
+    /**
+     * Prepare scheduling page with time parameter validation.
+     */
+    public function prepareScheduling(Request $request)
+    {
+        $algorithms = [
+            ['value' => 'asap', 'label' => 'ASAP (As Soon As Possible)'],
+            ['value' => 'due_date', 'label' => 'Due Date (Backward Scheduling)'],
+        ];
+
+        // Get current or create new draft version
+        $currentVersion = ScheduleVersion::draft()
+            ->latest()
+            ->first();
+
+        if (! $currentVersion) {
+            $currentVersion = $this->schedulingService->createScheduleVersion($request->user());
+        }
+
+        return Inertia::render('Production/Scheduler/Prepare', [
+            'algorithms' => $algorithms,
+            'currentVersion' => $currentVersion,
+            'workCells' => WorkCell::with(['itemRates.item'])->get(),
+            'defaultStartDate' => now()->format('Y-m-d'),
+        ]);
+    }
+
+    /**
+     * Validate time parameters for selected orders.
+     */
+    public function validateTimeParameters(Request $request)
+    {
+        $request->validate([
+            'manufacturing_order_ids' => 'required|array',
+            'manufacturing_order_ids.*' => 'exists:manufacturing_orders,id',
+        ]);
+
+        $orders = ManufacturingOrder::whereIn('id', $request->manufacturing_order_ids)
+            ->with([
+                'manufacturingRoute.steps.workCell.itemRates' => function ($query) use ($request) {
+                    // Load item rates for the orders' items
+                    $itemIds = ManufacturingOrder::whereIn('id', $request->manufacturing_order_ids)
+                        ->pluck('item_id');
+                    $query->whereIn('item_id', $itemIds);
+                },
+                'item.media',
+                'parent',
+                'children' => function ($query) use ($request) {
+                    // Only load children that are also in the selected order list
+                    $query->whereIn('id', $request->manufacturing_order_ids);
+                },
+            ])
+            ->get();
+
+        $timeParameterStatus = $this->schedulingService->getOrdersWithTimeParameterStatus($orders);
+
+        return response()->json($timeParameterStatus);
+    }
+
+    /**
+     * Update manufacturing step time parameters.
+     */
+    public function updateStepTime(Request $request, ManufacturingStep $step)
+    {
+        $this->authorize('update', $step->manufacturingRoute->manufacturingOrder);
+
+        $validated = $request->validate([
+            'setup_time_minutes' => 'required|integer|min:0',
+            'cycle_time_minutes' => 'required|numeric|min:0',
+        ]);
+
+        $step->update($validated);
+
+        return back()->with('success', 'Step time parameters updated successfully');
+    }
+
+    /**
+     * Update or create work cell item rate.
+     */
+    public function updateWorkCellRate(Request $request, WorkCell $workCell)
+    {
+        $this->authorize('update', $workCell);
+
+        $validated = $request->validate([
+            'item_id' => 'required|exists:items,id',
+            'setup_time_minutes' => 'required|integer|min:0',
+            'production_rate_per_hour' => 'required|numeric|min:0.001',
+            'unit_of_measure' => 'required|string|max:50',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $workCell->itemRates()->updateOrCreate(
+            ['item_id' => $validated['item_id']],
+            $validated
+        );
+
+        return back()->with('success', 'Work cell production rate updated successfully');
     }
 }

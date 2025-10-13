@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { PageProps, BreadcrumbItem } from '@/types';
 import { ManufacturingOrder, WorkCell } from '@/types/production';
@@ -7,7 +7,8 @@ import { ScheduleVersion, ProductionSchedule, ScheduleAlert } from '@/types/sche
 import { ScrollSyncProvider } from '@/components/production/scheduler-v2/contexts/ScrollSyncContext';
 import { ProductionScheduler } from '@/components/production/scheduler-v2/ProductionScheduler';
 import { formatNumber } from '@/utils/number';
-import { getCleanDummyData } from './clean-dummy-data';
+import SchedulerOrderSelection from '@/components/production/SchedulerOrderSelection';
+import { toast } from 'sonner';
 
 interface Props extends PageProps {
     currentVersion?: ScheduleVersion;
@@ -37,6 +38,9 @@ interface Props extends PageProps {
         search?: string;
     };
     schedulingAlgorithms?: Record<string, string>;
+    algorithms?: Array<{ value: string; label: string }>;
+    defaultStartDate?: string;
+    activeScheduleVersion?: any;
 }
 
 export default function SchedulerV2Index({
@@ -50,24 +54,36 @@ export default function SchedulerV2Index({
     workCells: propsWorkCells,
     filters: propsFilters,
     schedulingAlgorithms: propsSchedulingAlgorithms,
+    algorithms: propsAlgorithms,
+    defaultStartDate: propsDefaultStartDate,
+    activeScheduleVersion: propsActiveScheduleVersion,
 }: Props) {
-    // Use dummy data instead of props
-    const dummyData = getCleanDummyData();
+    // Use real props data from backend
+    const currentVersion = propsCurrentVersion;
+    const publishedVersion = propsPublishedVersion;
+    const orders = propsOrders || [];
+    const workCells = propsWorkCells || [];
+    const filters = propsFilters || { start_date: '', end_date: '' };
+    const schedulingAlgorithms = propsSchedulingAlgorithms || {};
+    const algorithms = propsAlgorithms || [];
+    const defaultStartDate = propsDefaultStartDate || new Date().toISOString().split('T')[0];
+    const activeScheduleVersion = propsActiveScheduleVersion;
 
-    // Force use dummy data - ignore props
-    const currentVersion = dummyData.currentVersion;
-    const publishedVersion = dummyData.publishedVersion;
-    const workCells = dummyData.workCells;
-    const filters = dummyData.filters;
-    const schedulingAlgorithms = dummyData.schedulingAlgorithms;
+    const [schedules, setSchedules] = useState(propsSchedules || []);
+    const [alerts] = useState(propsAlerts || []);
+    const [alertStats] = useState(propsAlertStats || {
+        total: 0,
+        unresolved: 0,
+        by_type: { capacity_overrun: 0, dependency_violation: 0, late_delivery: 0 },
+        by_severity: { error: 0, warning: 0 }
+    });
 
-    const [schedules, setSchedules] = useState(dummyData.schedules);
-    const [alerts] = useState(dummyData.alerts);
-    const [alertStats] = useState(dummyData.alertStats);
+    // State for order selection modal
+    const [showOrderSelection, setShowOrderSelection] = useState(false);
 
     // Track expanded state for orders
     const [expandedOrders, setExpandedOrders] = useState<Set<number>>(
-        new Set(dummyData.orders.map((o: any) => o.id)) // All expanded by default
+        new Set(orders.map((o: any) => o.id)) // All expanded by default
     );
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -77,8 +93,8 @@ export default function SchedulerV2Index({
 
     // Transform data for the scheduler component
     const schedulerData = useMemo(() => {
-        // Get orders from dummy data
-        const orders = dummyData.orders;
+        // Get orders from real props
+        const ordersData = orders;
 
         // Group schedules by manufacturing order and transform to steps
         const orderStepsMap = new Map<number, any[]>();
@@ -145,7 +161,7 @@ export default function SchedulerV2Index({
         });
 
         // Transform orders with their steps
-        const transformedOrders = orders.map((order: any) => {
+        const transformedOrders = ordersData.map((order: any) => {
             const orderSteps = orderStepsMap.get(order.id) || [];
 
             return {
@@ -192,14 +208,14 @@ export default function SchedulerV2Index({
                         step_id: step.id,
                         start_time: step.planned_start_date,
                         end_time: step.planned_end_date,
-                        manufacturing_order_id: orders.find((o: any) =>
+                        manufacturing_order_id: ordersData.find((o: any) =>
                             orderStepsMap.get(o.id)?.some(s => s.id === step.id)
                         )?.id,
                         status: step.status,
                     })),
             })),
         };
-    }, [dummyData.orders, schedules, workCells, expandedOrders]);
+    }, [orders, schedules, workCells, expandedOrders]);
 
     const handleScheduleUpdate = useCallback((updatedSchedule: any) => {
         // Update local state
@@ -223,6 +239,18 @@ export default function SchedulerV2Index({
         });
     }, []);
 
+    // Handle running scheduler from order selection modal
+    const handleRunScheduler = useCallback((data: any) => {
+        router.post(route('production.scheduler.run'), data, {
+            onSuccess: () => {
+                toast.success('Scheduling started');
+            },
+            onError: () => {
+                toast.error('Failed to start scheduling');
+            },
+        });
+    }, []);
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Production Scheduler v2" />
@@ -231,7 +259,7 @@ export default function SchedulerV2Index({
                 <ProductionScheduler
                     steps={schedulerData.orders}
                     workCells={schedulerData.workCells}
-                    currentVersion={currentVersion}
+                    currentVersion={currentVersion!}
                     publishedVersion={publishedVersion}
                     alerts={alerts}
                     alertStats={alertStats}
@@ -239,9 +267,23 @@ export default function SchedulerV2Index({
                     filters={filters}
                     onUpdate={handleScheduleUpdate}
                     onOrderToggle={handleOrderToggle}
+                    onOpenOrderSelection={() => setShowOrderSelection(true)}
                 />
             </ScrollSyncProvider>
+
+            {/* Order Selection Modal */}
+            <SchedulerOrderSelection
+                open={showOrderSelection}
+                onOpenChange={setShowOrderSelection}
+                onRunScheduler={handleRunScheduler}
+                algorithms={algorithms}
+                defaultStartDate={defaultStartDate}
+                activeScheduleVersion={activeScheduleVersion}
+                currentVersion={currentVersion}
+                orders={orders}
+                workCells={workCells}
+                filters={filters}
+            />
         </AppLayout>
     );
 }
-

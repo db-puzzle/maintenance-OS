@@ -21,6 +21,7 @@ interface Props {
     filters: any;
     onUpdate: (schedule: any) => void;
     onOrderToggle: (orderId: number) => void;
+    onOpenOrderSelection: () => void;
 }
 
 export const ProductionScheduler: React.FC<Props> = ({
@@ -34,6 +35,7 @@ export const ProductionScheduler: React.FC<Props> = ({
     filters,
     onUpdate,
     onOrderToggle,
+    onOpenOrderSelection,
 }) => {
     // Load zoom level from localStorage or use default
     const [currentZoomLevel, setCurrentZoomLevel] = useState<ZoomLevel>(() => {
@@ -248,6 +250,7 @@ export const ProductionScheduler: React.FC<Props> = ({
                     onViewConfigChange={setViewConfig}
                     showDependencies={showDependencies}
                     onToggleDependencies={handleToggleDependencies}
+                    onOpenOrderSelection={onOpenOrderSelection}
                 />
 
                 <div className="flex-1 flex flex-col min-h-0">

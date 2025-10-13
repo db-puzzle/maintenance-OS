@@ -13,6 +13,7 @@ import {
     Search,
     ChevronDown,
     GitBranch,
+    Settings,
 } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import { toast } from 'sonner';
@@ -43,6 +44,7 @@ interface ToolbarProps {
     onViewConfigChange: (config: any) => void;
     showDependencies: boolean;
     onToggleDependencies: () => void;
+    onOpenOrderSelection: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -59,6 +61,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     onViewConfigChange: _onViewConfigChange,
     showDependencies,
     onToggleDependencies,
+    onOpenOrderSelection,
 }) => {
     const [selectedAlgorithm, setSelectedAlgorithm] = useState('asap');
     const [searchQuery, setSearchQuery] = useState('');
@@ -118,6 +121,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                         onClick={handleCreateNewSchedule}
                     >
                         Create New Schedule
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        onClick={onOpenOrderSelection}
+                    >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Setup Scheduler
                     </Button>
 
                     <DropdownMenu>

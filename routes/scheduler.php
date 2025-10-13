@@ -5,15 +5,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'web'])->prefix('production/scheduler')->group(function () {
     // Main scheduler interface
-    Route::get('/', [SchedulingController::class, 'index'])->name('production.scheduler.index');
+    Route::get('/', [SchedulingController::class, 'indexV2'])->name('production.scheduler.index');
 
-    // New scheduler interface (v2)
-    Route::get('v2', [SchedulingController::class, 'indexV2'])->name('production.scheduler.index-v2');
+    // Scheduler setup page
+    Route::get('/setup', [SchedulingController::class, 'setup'])->name('production.scheduler.setup');
 
     // HDG-specific endpoints
     Route::post('/validate-orders', [SchedulingController::class, 'validateOrders'])->name('production.scheduler.validate');
     Route::get('/families', [SchedulingController::class, 'getFamilies'])->name('production.scheduler.families');
-    Route::get('/progress/{jobId}', [SchedulingController::class, 'progress'])->name('production.scheduler.progress');
     Route::get('/results/{versionId}', [SchedulingController::class, 'results'])->name('production.scheduler.results');
 
     // Scheduling operations
@@ -34,4 +33,10 @@ Route::middleware(['auth', 'web'])->prefix('production/scheduler')->group(functi
     Route::post('/versions/{version}/snapshots', [SchedulingController::class, 'createSnapshot'])->name('production.scheduler.snapshots.create');
     Route::get('/versions/{version}/snapshots', [SchedulingController::class, 'getSnapshots'])->name('production.scheduler.snapshots.index');
     Route::post('/versions/{version}/snapshots/{snapshot}/restore', [SchedulingController::class, 'restoreSnapshot'])->name('production.scheduler.snapshots.restore');
+
+    // Time Parameter Management
+    Route::get('/prepare', [SchedulingController::class, 'prepareScheduling'])->name('production.scheduler.prepare');
+    Route::patch('/steps/{step}/time', [SchedulingController::class, 'updateStepTime'])->name('production.steps.update-time');
+    Route::post('/work-cells/{workCell}/rates', [SchedulingController::class, 'updateWorkCellRate'])->name('production.work-cells.update-rate');
+    Route::post('/validate-time-parameters', [SchedulingController::class, 'validateTimeParameters'])->name('production.scheduler.validate-time-parameters');
 });

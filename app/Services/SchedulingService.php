@@ -151,15 +151,20 @@ class SchedulingService
         ?array $orderIds = null
     ): Collection {
         $query = ManufacturingOrder::with([
-            'manufacturingRoute.steps.workCell',
-            'manufacturingRoute.steps.dependency',
-            'manufacturingRoute.steps.manufacturingRoute.manufacturingOrder',
+            'manufacturingRoute' => function ($q) {
+                $q->with(['steps' => function ($sq) {
+                    $sq->with(['workCell', 'dependency']);
+                }]);
+            },
             'item',
             'children',
+            'parent',
         ])
-            ->whereIn('status', ['planned', 'released'])
-            ->whereHas('manufacturingRoute')
-            ->whereHas('manufacturingRoute.steps');
+            ->whereIn('status', ['planned', 'released']);
+
+        // Remove the route filter to show all orders
+        // $query->whereHas('manufacturingRoute')
+        //     ->whereHas('manufacturingRoute.steps');
 
         if ($orderIds !== null) {
             $query->whereIn('id', $orderIds);
@@ -485,6 +490,156 @@ class SchedulingService
             'makespan' => $makespan,
             'on_time_rate' => round($onTimeRate, 2),
         ];
+    }
+
+    /**
+     * Get orders with detailed time parameter status.
+     */
+    public function getOrdersWithTimeParameterStatus($orders)
+    {
+        $result = [];
+
+        foreach ($orders as $order) {
+            $orderData = [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'item' => $order->item ? [
+                    'id' => $order->item->id,
+                    'item_number' => $order->item->item_number,
+                    'name' => $order->item->name,
+                    'primary_image_url' => $order->item->primary_image_url,
+                    'primary_image_thumbnail_url' => $order->item->primary_image_thumbnail_url,
+                    'media' => $order->item->media ? $order->item->media->map(function ($media) {
+                        return [
+                            'id' => $media->id,
+                            'url' => $media->getUrl(),
+                            'thumbnail_url' => $media->getUrl('thumb'),
+                        ];
+                    })->toArray() : [],
+                ] : null,
+                'quantity' => $order->quantity,
+                'status' => $order->status,
+                'parent_id' => $order->parent_id,
+                'has_route' => $order->manufacturingRoute !== null,
+                'time_parameter_status' => 'valid', // valid, partial, missing
+                'steps' => [],
+                'issues' => [],
+                'children' => [], // Will be populated later
+            ];
+
+            if (! $order->manufacturingRoute) {
+                $orderData['time_parameter_status'] = 'missing';
+                $orderData['issues'][] = [
+                    'type' => 'missing_route',
+                    'message' => 'No manufacturing route defined',
+                ];
+            } else {
+                $hasAllTimes = true;
+                $hasAnyTimes = false;
+
+                foreach ($order->manufacturingRoute->steps as $step) {
+                    $stepData = [
+                        'id' => $step->id,
+                        'name' => $step->name,
+                        'work_cell_id' => $step->work_cell_id,
+                        'work_cell' => $step->workCell,
+                        'has_step_time' => ($step->setup_time_minutes !== null && $step->cycle_time_minutes !== null),
+                        'setup_time_minutes' => $step->setup_time_minutes,
+                        'cycle_time_minutes' => $step->cycle_time_minutes,
+                        'has_work_cell_rate' => false,
+                        'work_cell_rate' => null,
+                        'effective_time_source' => null, // 'step' or 'work_cell'
+                        'effective_setup_time' => null,
+                        'effective_cycle_time' => null,
+                        'effective_total_time' => null,
+                    ];
+
+                    // Check for work cell item rate
+                    if ($step->workCell) {
+                        $itemRate = $step->workCell->itemRates->where('item_id', $order->item_id)->first();
+                        if ($itemRate) {
+                            $stepData['has_work_cell_rate'] = true;
+                            $stepData['work_cell_rate'] = [
+                                'id' => $itemRate->id,
+                                'setup_time_minutes' => $itemRate->setup_time_minutes,
+                                'production_rate_per_hour' => $itemRate->production_rate_per_hour,
+                                'unit_of_measure' => $itemRate->unit_of_measure,
+                                'cycle_time_minutes' => $itemRate->production_rate_per_hour > 0
+                                    ? (60 / $itemRate->production_rate_per_hour)
+                                    : null,
+                            ];
+                        }
+                    }
+
+                    // Determine effective time source
+                    if ($stepData['has_step_time']) {
+                        $stepData['effective_time_source'] = 'step';
+                        $stepData['effective_setup_time'] = $step->setup_time_minutes;
+                        $stepData['effective_cycle_time'] = $step->cycle_time_minutes;
+                        $hasAnyTimes = true;
+                    } elseif ($stepData['has_work_cell_rate']) {
+                        $stepData['effective_time_source'] = 'work_cell';
+                        $stepData['effective_setup_time'] = $stepData['work_cell_rate']['setup_time_minutes'];
+                        $stepData['effective_cycle_time'] = $stepData['work_cell_rate']['cycle_time_minutes'];
+                        $hasAnyTimes = true;
+                    } else {
+                        $hasAllTimes = false;
+                        $orderData['issues'][] = [
+                            'type' => 'missing_time',
+                            'step_id' => $step->id,
+                            'step_name' => $step->name,
+                            'message' => "Step '{$step->name}' has no time parameters configured",
+                        ];
+                    }
+
+                    // Calculate total time for the order quantity
+                    if ($stepData['effective_setup_time'] !== null && $stepData['effective_cycle_time'] !== null) {
+                        $stepData['effective_total_time'] = $stepData['effective_setup_time'] +
+                            ($stepData['effective_cycle_time'] * $order->quantity);
+                    }
+
+                    $orderData['steps'][] = $stepData;
+                }
+
+                if (! $hasAllTimes) {
+                    $orderData['time_parameter_status'] = $hasAnyTimes ? 'partial' : 'missing';
+                }
+            }
+
+            $result[] = $orderData;
+        }
+
+        // Build hierarchical structure
+        $hierarchicalResult = $this->buildHierarchicalStructure($result);
+
+        return $hierarchicalResult;
+    }
+
+    /**
+     * Build hierarchical structure from flat order list.
+     */
+    private function buildHierarchicalStructure($orders)
+    {
+        $orderMap = [];
+        $rootOrders = [];
+
+        // First pass: create a map of all orders by ID
+        foreach ($orders as $order) {
+            $orderMap[$order['id']] = $order;
+        }
+
+        // Second pass: build parent-child relationships
+        foreach ($orders as $order) {
+            if ($order['parent_id'] && isset($orderMap[$order['parent_id']])) {
+                // Add as child to parent
+                $orderMap[$order['parent_id']]['children'][] = &$orderMap[$order['id']];
+            } else {
+                // No parent or parent not in list, add to root
+                $rootOrders[] = &$orderMap[$order['id']];
+            }
+        }
+
+        return $rootOrders;
     }
 
     /**

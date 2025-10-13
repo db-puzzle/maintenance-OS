@@ -53,12 +53,27 @@ class ScheduleProductionJob implements ShouldQueue
      */
     public function handle(SchedulingService $schedulingService): void
     {
+        Log::info('ScheduleProductionJob::handle - Start', [
+            'job_id' => $this->jobId,
+            'version_id' => $this->version->id,
+            'algorithm' => $this->request->algorithmType,
+            'order_count' => count($this->request->manufacturingOrderIds),
+            'order_ids' => $this->request->manufacturingOrderIds,
+            'start_date' => $this->request->scheduleStartDate?->format('Y-m-d'),
+            'end_date' => $this->request->scheduleEndDate?->format('Y-m-d'),
+        ]);
+
         try {
             // Mark job as started
             $this->version->markSchedulingStarted(
                 $this->request->algorithmType,
                 $this->jobId
             );
+
+            Log::info('ScheduleProductionJob::handle - Marked as started', [
+                'job_id' => $this->jobId,
+                'scheduling_status' => $this->version->scheduling_status,
+            ]);
 
             // Broadcast start event
             broadcast(new SchedulingStarted(
@@ -75,13 +90,35 @@ class ScheduleProductionJob implements ShouldQueue
             // Create and run the algorithm
             $algorithm = $schedulingService->createAlgorithm($this->request->algorithmType);
 
+            Log::info('ScheduleProductionJob::handle - Created algorithm', [
+                'job_id' => $this->jobId,
+                'algorithm_class' => get_class($algorithm),
+            ]);
+
             // Set up progress reporting
             $this->setupProgressReporting($algorithm);
 
             // Execute scheduling
+            Log::info('ScheduleProductionJob::handle - Starting algorithm execution', [
+                'job_id' => $this->jobId,
+                'algorithm' => $this->request->algorithmType,
+            ]);
+
             $result = $algorithm->schedule($this->request);
 
+            Log::info('ScheduleProductionJob::handle - Algorithm execution completed', [
+                'job_id' => $this->jobId,
+                'success' => $result->success,
+                'scheduled_steps_count' => count($result->scheduledSteps ?? []),
+                'alerts_count' => count($result->alerts ?? []),
+                'execution_time' => $result->executionTime ?? null,
+            ]);
+
             if (! $result->success) {
+                Log::error('ScheduleProductionJob::handle - Algorithm failed', [
+                    'job_id' => $this->jobId,
+                    'result' => $result,
+                ]);
                 throw new Exception('Scheduling algorithm failed to produce a valid schedule');
             }
 
@@ -147,7 +184,7 @@ class ScheduleProductionJob implements ShouldQueue
 
         // Log detailed error
         Log::error('Scheduling failed', [
-            'job_id' => $this->job->getJobId(),
+            'job_id' => $this->jobId,
             'version_id' => $this->version->id,
             'algorithm' => $this->request->algorithmType,
             'error' => $exception->getMessage(),
@@ -156,7 +193,7 @@ class ScheduleProductionJob implements ShouldQueue
 
         // Broadcast user-friendly error
         broadcast(new SchedulingFailed(
-            jobId: $this->job->getJobId(),
+            jobId: $this->jobId,
             scheduleVersionId: $this->version->id,
             error: $this->getUserFriendlyError($exception),
             context: [
@@ -174,6 +211,10 @@ class ScheduleProductionJob implements ShouldQueue
         $message = $exception->getMessage();
 
         // Map technical errors to user-friendly messages
+        if (str_contains($message, 'Missing production time parameters')) {
+            return 'Cannot schedule: Some manufacturing steps are missing time parameters. Please set up cycle times and setup times for all steps, or configure work cell production rates.';
+        }
+
         if (str_contains($message, 'timeout')) {
             return 'Scheduling took too long to complete. Try scheduling fewer orders or use a simpler algorithm.';
         }
@@ -184,6 +225,10 @@ class ScheduleProductionJob implements ShouldQueue
 
         if (str_contains($message, 'locked step conflicts')) {
             return 'Unable to find valid schedule due to locked step constraints. Try unlocking some steps.';
+        }
+
+        if (str_contains($message, 'no manufacturing route')) {
+            return 'Cannot schedule: Some orders are missing manufacturing routes. Please define routes for all orders.';
         }
 
         // Default message

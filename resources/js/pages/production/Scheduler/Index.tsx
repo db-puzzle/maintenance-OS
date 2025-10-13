@@ -1,241 +1,335 @@
-import React, { useState, useEffect } from 'react';
-import { Head, useForm, router, usePage } from '@inertiajs/react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CalendarIcon, Clock, Users } from 'lucide-react';
-import { format } from 'date-fns';
-import OrderSelectionPanel from './components/OrderSelectionPanel';
-import FamilyVisualization from './components/FamilyVisualization';
-import ValidationModal from './components/ValidationModal';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { Head, router, usePage } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+import { PageProps, BreadcrumbItem } from '@/types';
+import { ManufacturingOrder, WorkCell } from '@/types/production';
+import { ScheduleVersion, ProductionSchedule, ScheduleAlert } from '@/types/scheduler';
+import { ScrollSyncProvider } from '@/components/production/scheduler-v2/contexts/ScrollSyncContext';
+import { ProductionScheduler } from '@/components/production/scheduler-v2/ProductionScheduler';
+import { formatNumber } from '@/utils/number';
+import SchedulerProgress from '@/components/production/SchedulerProgress';
+import { toast } from 'sonner';
 
-interface SchedulerIndexProps {
-    algorithms: Array<{ value: string; label: string }>;
-    defaultStartDate: string;
-    activeScheduleVersion: any;
-    currentVersion: any;
-    orders: any[];
-    workCells: any[];
-    filters: any;
+interface Props extends PageProps {
+    currentVersion?: ScheduleVersion;
+    publishedVersion?: ScheduleVersion;
+    orders?: ManufacturingOrder[];
+    schedules?: ProductionSchedule[];
+    alerts?: ScheduleAlert[];
+    alertStats?: {
+        total: number;
+        unresolved: number;
+        by_type: {
+            capacity_overrun: number;
+            dependency_violation: number;
+            late_delivery: number;
+        };
+        by_severity: {
+            error: number;
+            warning: number;
+        };
+    };
+    workCells?: WorkCell[];
+    filters?: {
+        plant_id?: string;
+        area_id?: string;
+        start_date: string;
+        end_date: string;
+        search?: string;
+    };
+    schedulingAlgorithms?: Record<string, string>;
+    algorithms?: Array<{ value: string; label: string }>;
+    defaultStartDate?: string;
+    activeScheduleVersion?: any;
 }
 
-export default function SchedulerIndex({
-    algorithms,
-    defaultStartDate,
-    activeScheduleVersion,
-    currentVersion,
-    orders,
-    workCells,
-    filters
-}: SchedulerIndexProps) {
-    const { schedulingConfig, flash } = usePage().props;
-    const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
-    const [families, setFamilies] = useState<any[]>([]);
-    const [selectionMode, setSelectionMode] = useState<'individual' | 'family' | 'smart'>('smart');
-    const [isValidating, setIsValidating] = useState(false);
+export default function SchedulerV2Index({
+    auth: _auth,
+    currentVersion: propsCurrentVersion,
+    publishedVersion: propsPublishedVersion,
+    orders: propsOrders,
+    schedules: propsSchedules,
+    alerts: propsAlerts,
+    alertStats: propsAlertStats,
+    workCells: propsWorkCells,
+    filters: propsFilters,
+    schedulingAlgorithms: propsSchedulingAlgorithms,
+    algorithms: propsAlgorithms,
+    defaultStartDate: propsDefaultStartDate,
+    activeScheduleVersion: propsActiveScheduleVersion,
+}: Props) {
+    // Use real props data from backend
+    const currentVersion = propsCurrentVersion;
+    const publishedVersion = propsPublishedVersion;
+    const orders = propsOrders || [];
+    const workCells = propsWorkCells || [];
+    const filters = propsFilters || { start_date: '', end_date: '' };
+    const schedulingAlgorithms = propsSchedulingAlgorithms || {};
+    const algorithms = propsAlgorithms || [];
+    const defaultStartDate = propsDefaultStartDate || new Date().toISOString().split('T')[0];
+    const activeScheduleVersion = propsActiveScheduleVersion;
 
-    const { data, setData, post, processing } = useForm({
-        version_id: currentVersion?.id,
-        algorithm: 'asap',
-        start_date: defaultStartDate,
-        end_date: filters?.end_date || format(new Date().setMonth(new Date().getMonth() + 3), 'yyyy-MM-dd'),
-        manufacturing_order_ids: [] as number[],
-        respect_locked_schedules: schedulingConfig?.locked_schedules_enabled || true,
+    // Get flash data from page props
+    const { flash } = usePage().props as any;
+
+
+    const [schedules, setSchedules] = useState(propsSchedules || []);
+    const [alerts] = useState(propsAlerts || []);
+    const [alertStats] = useState(propsAlertStats || {
+        total: 0,
+        unresolved: 0,
+        by_type: { capacity_overrun: 0, dependency_violation: 0, late_delivery: 0 },
+        by_severity: { error: 0, warning: 0 }
     });
 
-    // Handle family selection mode
-    useEffect(() => {
-        if (selectedOrders.length > 0 && selectionMode !== 'individual') {
-            fetchFamilies(selectedOrders);
-        }
-    }, [selectedOrders, selectionMode]);
+    // State for order selection modal - now replaced with navigation to setup page
 
-    // Handle validation modal display
-    useEffect(() => {
-        if (flash?.showValidationModal && flash?.validation) {
-            // Modal will be shown based on this state
-        }
-    }, [flash]);
+    // State for progress modal
+    const [showProgress, setShowProgress] = useState(false);
+    const [progressData, setProgressData] = useState<{
+        job_id: string;
+        websocket_channel: string;
+        version_id: number;
+    } | null>(null);
 
-    const fetchFamilies = async (orderIds: number[]) => {
-        try {
-            const response = await fetch(route('production.scheduler.families', { order_ids: orderIds }));
-            const data = await response.json();
-            setFamilies(data.families || []);
-        } catch (error) {
-            console.error('Failed to fetch families:', error);
-        }
-    };
+    // Track expanded state for orders
+    const [expandedOrders, setExpandedOrders] = useState<Set<number>>(
+        new Set(orders.map((o: any) => o.id)) // All expanded by default
+    );
 
-    const handleOrderSelection = (orderIds: number[]) => {
-        setSelectedOrders(orderIds);
-        setData('manufacturing_order_ids', orderIds);
-    };
+    // Track if scheduling is in progress
+    const [_isScheduling, setIsScheduling] = useState(false);
 
-    const validateAndRun = () => {
-        if (data.manufacturing_order_ids.length === 0) {
-            alert('Please select at least one manufacturing order');
-            return;
-        }
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Home', href: '/home' },
+        { title: 'Scheduler', href: '' },
+    ];
 
-        setIsValidating(true);
-        post(route('production.scheduler.validate'), {
-            preserveState: true,
-            preserveScroll: true,
-            only: ['validation', 'flash'],
-            onSuccess: () => {
-                setIsValidating(false);
-                // If validation passes, run the scheduler
-                if (flash?.validation?.valid) {
-                    runScheduler();
+    // Transform data for the scheduler component
+    const schedulerData = useMemo(() => {
+        // Get orders from real props
+        const ordersData = orders;
+
+        // Group schedules by manufacturing order and transform to steps
+        const orderStepsMap = new Map<number, any[]>();
+
+        schedules.forEach((schedule: any) => {
+            const step = schedule.manufacturing_step;
+            const route = step?.manufacturing_route;
+            const orderId = route?.manufacturing_order_id;
+
+
+            if (!orderId || !step) return;
+
+            if (!orderStepsMap.has(orderId)) {
+                orderStepsMap.set(orderId, []);
+            }
+
+            orderStepsMap.get(orderId)!.push({
+                id: `${orderId}-${schedule.id}`, // Create unique ID by combining order ID and schedule ID
+                manufacturing_step_id: step.id,
+                sequence_number: (step as any).step_number || 0,
+                name: step.name,
+                description: step.description,
+                work_cell_id: schedule.work_cell_id,
+                work_cell: workCells.find((wc: any) => wc.id === schedule.work_cell_id),
+
+                // Scheduling fields
+                planned_start_date: schedule.scheduled_start,
+                planned_end_date: schedule.scheduled_end,
+                actual_start_date: (step as any).actual_start_date,
+                actual_end_date: (step as any).actual_end_date,
+                duration_hours: (step as any).estimated_duration || 0,
+                setup_time_hours: (step as any).setup_time || 0,
+
+                // Progress tracking
+                status: step.status,
+                percent_complete: (step as any).progress_percentage || 0,
+                quantity_completed: formatNumber((step as any).quantity_completed || 0),
+                quantity_remaining: formatNumber((step as any).quantity_remaining || 0),
+
+                // Hierarchy
+                parent_step_id: null, // Will be set based on BOM structure if needed
+                is_milestone: false,
+                level: 1,
+                expanded: true,
+
+                // Manufacturing specifics
+                operation_type: (step as any).step_type || 'production',
+                required_resources: [],
+
+                // Dependencies
+                predecessors: (step as any).depends_on_step_id ? [(step as any).depends_on_step_id] : [],
+                successors: (step as any).dependents?.map((d: any) => d.dependent_step_id) || [],
+
+                // UI helpers
+                can_start: step.status !== 'pending',
+                is_critical_path: false,
+                slack_hours: 0,
+
+                // Lock status
+                is_locked: schedule.is_locked,
+                locked_by: schedule.locked_by,
+                locked_at: schedule.locked_at,
+            });
+        });
+
+        // Transform orders with their steps
+        const transformedOrders = ordersData.map((order: any) => {
+            const orderSteps = orderStepsMap.get(order.id) || [];
+
+            return {
+                id: order.id,
+                order_number: order.order_number,
+                name: order.item?.name || order.order_number,
+                status: order.status,
+                priority: order.priority,
+                requested_date: order.requested_date,
+                quantity: formatNumber(order.quantity),
+                unit_of_measure: order.unit_of_measure,
+                parent_order_id: (order as any).parent_id,
+                children: [] as any[], // Will be populated based on parent_order_id relationships
+                steps: orderSteps,
+                expanded: expandedOrders.has(order.id), // Use expandedOrders state
+                level: 0,
+            };
+        });
+
+        // Build parent-child relationships
+        const orderMap = new Map(transformedOrders.map((o: any) => [o.id, o]));
+        transformedOrders.forEach((order: any) => {
+            if (order.parent_order_id) {
+                const parent = orderMap.get(order.parent_order_id);
+                if (parent) {
+                    parent.children.push(order);
+                    order.level = parent.level + 1;
                 }
-            },
-            onError: () => {
-                setIsValidating(false);
             }
         });
-    };
 
-    const runScheduler = () => {
-        post(route('production.scheduler.run'), {
+        // Filter out child orders from root level
+        const rootOrders = transformedOrders.filter((o: any) => !o.parent_order_id);
+
+
+        return {
+            orders: rootOrders,
+            workCells: workCells.map((wc: any) => ({
+                ...wc,
+                scheduled_steps: Array.from(orderStepsMap.values())
+                    .flat()
+                    .filter((step: any) => step.work_cell_id === wc.id)
+                    .map((step: any) => ({
+                        step_id: step.id,
+                        start_time: step.planned_start_date,
+                        end_time: step.planned_end_date,
+                        manufacturing_order_id: ordersData.find((o: any) =>
+                            orderStepsMap.get(o.id)?.some(s => s.id === step.id)
+                        )?.id,
+                        status: step.status,
+                    })),
+            })),
+        };
+    }, [orders, schedules, workCells, expandedOrders]);
+
+    const handleScheduleUpdate = useCallback((updatedSchedule: any) => {
+        // Update local state
+        setSchedules((prev: any) => prev.map((s: any) =>
+            s.id === updatedSchedule.id ? updatedSchedule : s
+        ));
+
+        // Here you would typically make an API call to update the backend
+        // router.put(route('production.scheduler.update', updatedSchedule.id), updatedSchedule);
+    }, []);
+
+    const handleOrderToggle = useCallback((orderId: number) => {
+        setExpandedOrders(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(orderId)) {
+                newSet.delete(orderId);
+            } else {
+                newSet.add(orderId);
+            }
+            return newSet;
+        });
+    }, []);
+
+    // Handle running scheduler from order selection modal
+    const handleRunScheduler = useCallback((data: any) => {
+        router.post(route('production.scheduler.run'), data, {
             onSuccess: () => {
-                // Will redirect to progress page automatically
+                toast.success('Scheduling started');
+            },
+            onError: () => {
+                toast.error('Failed to start scheduling');
             },
         });
-    };
+    }, []);
+
+    // Handle scheduler started event from order selection modal
+    const handleSchedulerStarted = useCallback((jobData: {
+        job_id: string;
+        websocket_channel: string;
+        version_id: number;
+    }) => {
+        // Set the progress data and show the progress modal
+        setProgressData(jobData);
+        setShowProgress(true);
+        setIsScheduling(true);
+    }, []);
+
+    // Handle scheduler completion
+    const handleSchedulerComplete = useCallback(() => {
+        setShowProgress(false);
+        setProgressData(null);
+        setIsScheduling(false);
+        // The SchedulerProgress component already handles the page reload
+    }, []);
+
+    // Handle flash data for scheduling
+    useEffect(() => {
+        // Check if we have scheduling job info from flash
+        if (flash?.schedulingJob) {
+            handleSchedulerStarted({
+                job_id: flash.schedulingJob.job_id,
+                websocket_channel: flash.schedulingJob.websocket_channel,
+                version_id: flash.schedulingJob.version_id,
+            });
+        }
+    }, [flash, handleSchedulerStarted]);
 
     return (
-        <>
-            <Head title="Production Scheduler" />
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Production Scheduler v2" />
 
-            <div className="container mx-auto p-6 space-y-6">
-                <div className="flex justify-between items-center">
-                    <h1 className="text-3xl font-bold">Production Scheduler</h1>
-                    <div className="flex gap-2">
-                        {activeScheduleVersion && (
-                            <Badge variant="outline" className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                Version {activeScheduleVersion.version_number}
-                            </Badge>
-                        )}
-                    </div>
-                </div>
+            <ScrollSyncProvider>
+                <ProductionScheduler
+                    steps={schedulerData.orders}
+                    workCells={schedulerData.workCells}
+                    currentVersion={currentVersion!}
+                    publishedVersion={publishedVersion}
+                    alerts={alerts}
+                    alertStats={alertStats}
+                    schedulingAlgorithms={schedulingAlgorithms}
+                    filters={filters}
+                    onUpdate={handleScheduleUpdate}
+                    onOrderToggle={handleOrderToggle}
+                    onOpenOrderSelection={() => router.visit(route('production.scheduler.setup'))}
+                />
+            </ScrollSyncProvider>
 
-                {/* Algorithm Selection */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Scheduling Configuration</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="algorithm">Algorithm</Label>
-                                <Select
-                                    value={data.algorithm}
-                                    onValueChange={(value) => setData('algorithm', value)}
-                                >
-                                    <SelectTrigger id="algorithm">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {algorithms.map((algo) => (
-                                            <SelectItem key={algo.value} value={algo.value}>
-                                                {algo.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {data.algorithm === 'due_date' && (
-                                    <p className="text-sm text-muted-foreground">
-                                        Schedules backward from due dates with automatic forward fallback
-                                    </p>
-                                )}
-                            </div>
+            {/* Order Selection Modal - replaced with navigation to setup page */}
 
-                            <div className="space-y-2">
-                                <Label htmlFor="date-range">Date Range</Label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="date"
-                                        value={data.start_date}
-                                        onChange={(e) => setData('start_date', e.target.value)}
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    />
-                                    <span className="self-center">to</span>
-                                    <input
-                                        type="date"
-                                        value={data.end_date}
-                                        onChange={(e) => setData('end_date', e.target.value)}
-                                        min={data.start_date}
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="respect-locked"
-                                checked={data.respect_locked_schedules}
-                                onCheckedChange={(checked) =>
-                                    setData('respect_locked_schedules', checked as boolean)
-                                }
-                            />
-                            <Label htmlFor="respect-locked">
-                                Respect locked schedules
-                            </Label>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Order Selection */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <OrderSelectionPanel
-                        orders={orders}
-                        selectedOrders={selectedOrders}
-                        onSelectionChange={handleOrderSelection}
-                        selectionMode={selectionMode}
-                        onSelectionModeChange={setSelectionMode}
-                    />
-
-                    {families.length > 0 && (
-                        <FamilyVisualization
-                            families={families}
-                            selectedOrders={selectedOrders}
-                        />
-                    )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-4">
-                    <Button
-                        variant="outline"
-                        onClick={() => router.visit(route('production.scheduler.index'))}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        onClick={validateAndRun}
-                        disabled={processing || isValidating || selectedOrders.length === 0}
-                    >
-                        {isValidating ? 'Validating...' : 'Run Scheduler'}
-                    </Button>
-                </div>
-
-                {/* Validation Modal */}
-                {flash?.showValidationModal && flash?.validation && (
-                    <ValidationModal
-                        validation={flash.validation}
-                        onClose={() => router.reload({ only: ['flash'] })}
-                        onContinue={runScheduler}
-                    />
-                )}
-            </div>
-        </>
+            {/* Progress Modal */}
+            {progressData && (
+                <SchedulerProgress
+                    open={showProgress}
+                    onOpenChange={setShowProgress}
+                    jobId={progressData.job_id}
+                    versionId={progressData.version_id}
+                    websocketChannel={progressData.websocket_channel}
+                    onComplete={handleSchedulerComplete}
+                />
+            )}
+        </AppLayout>
     );
 }
