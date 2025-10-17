@@ -281,7 +281,9 @@ class OrderFamilyService
             if ($order->manufacturingRoute) {
                 foreach ($order->manufacturingRoute->steps as $step) {
                     $stats['total_steps']++;
-                    $stats['total_duration_minutes'] += ($step->setup_time_minutes ?? 0) + ($step->cycle_time_minutes ?? 0);
+                    // Convert seconds to minutes for compatibility
+                    $stepDurationSeconds = ($step->setup_time_seconds ?? 0) + ($step->cycle_time_seconds ?? 0);
+                    $stats['total_duration_minutes'] += ceil($stepDurationSeconds / 60);
 
                     if ($step->work_cell_id) {
                         $stats['work_cells_required']->push($step->work_cell_id);

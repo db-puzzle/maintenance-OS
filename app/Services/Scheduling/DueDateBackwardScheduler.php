@@ -278,7 +278,8 @@ class DueDateBackwardScheduler extends BaseScheduler
         // Add duration of this order's steps
         if ($order->manufacturingRoute) {
             foreach ($order->manufacturingRoute->steps as $step) {
-                $stepDuration = ($step->setup_time_minutes ?? 0) + ($step->cycle_time_minutes ?? 0);
+                $stepDurationSeconds = ($step->setup_time_seconds ?? 0) + ($step->cycle_time_seconds ?? 0);
+                $stepDuration = (int) ceil($stepDurationSeconds / 60); // Convert to minutes
                 if ($stepDuration === 0) {
                     $stepDuration = 30; // Default
                 }

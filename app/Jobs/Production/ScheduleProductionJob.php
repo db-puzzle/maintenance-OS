@@ -53,6 +53,8 @@ class ScheduleProductionJob implements ShouldQueue
      */
     public function handle(SchedulingService $schedulingService): void
     {
+        Log::info('ScheduleProductionJob::handle - Job execution started');
+        
         Log::info('ScheduleProductionJob::handle - Start', [
             'job_id' => $this->jobId,
             'version_id' => $this->version->id,
@@ -64,6 +66,8 @@ class ScheduleProductionJob implements ShouldQueue
         ]);
 
         try {
+            Log::info('ScheduleProductionJob::handle - Entering try block');
+            
             // Mark job as started
             $this->version->markSchedulingStarted(
                 $this->request->algorithmType,
@@ -112,12 +116,20 @@ class ScheduleProductionJob implements ShouldQueue
                 'scheduled_steps_count' => count($result->scheduledSteps ?? []),
                 'alerts_count' => count($result->alerts ?? []),
                 'execution_time' => $result->executionTime ?? null,
+                'result_details' => [
+                    'has_scheduled_steps' => !empty($result->scheduledSteps),
+                    'metrics' => $result->metrics ?? [],
+                    'alerts' => $result->alerts ?? [],
+                ],
             ]);
 
             if (! $result->success) {
                 Log::error('ScheduleProductionJob::handle - Algorithm failed', [
                     'job_id' => $this->jobId,
-                    'result' => $result,
+                    'result_success' => $result->success,
+                    'scheduled_steps' => count($result->scheduledSteps ?? []),
+                    'alerts' => $result->alerts ?? [],
+                    'metrics' => $result->metrics ?? [],
                 ]);
                 throw new Exception('Scheduling algorithm failed to produce a valid schedule');
             }
@@ -161,6 +173,12 @@ class ScheduleProductionJob implements ShouldQueue
                 'alerts' => count($result->alerts),
             ]);
         } catch (Exception $e) {
+            Log::error('ScheduleProductionJob::handle - Exception caught', [
+                'job_id' => $this->jobId,
+                'exception_message' => $e->getMessage(),
+                'exception_class' => get_class($e),
+                'exception_trace' => $e->getTraceAsString(),
+            ]);
             $this->handleFailure($e);
             throw $e;
         }

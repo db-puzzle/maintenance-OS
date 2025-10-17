@@ -42,15 +42,44 @@ class CapacityChecker
         $start = Carbon::instance($afterTime);
         $maxSearchDays = 30; // Search up to 30 days ahead
         $endSearch = $start->copy()->addDays($maxSearchDays);
+        
+        \Log::debug('CapacityChecker::findNextAvailableSlot - Start search', [
+            'work_cell' => $workCell->name,
+            'duration_minutes' => $durationMinutes,
+            'after_time' => $afterTime->format('Y-m-d H:i:s'),
+            'search_until' => $endSearch->format('Y-m-d H:i:s'),
+        ]);
 
-        while ($start < $endSearch) {
+        $iterationCount = 0;
+        $maxIterations = 1000; // Prevent infinite loops
+        
+        while ($start < $endSearch && $iterationCount < $maxIterations) {
+            $iterationCount++;
             $end = $start->copy()->addMinutes($durationMinutes);
+            
+            \Log::debug('CapacityChecker::findNextAvailableSlot - Checking slot', [
+                'iteration' => $iterationCount,
+                'start' => $start->format('Y-m-d H:i:s'),
+                'end' => $end->format('Y-m-d H:i:s'),
+                'work_cell' => $workCell->name,
+            ]);
             
             // Check if this slot is available
             if ($this->isAvailable($workCell, $start->toDateTime(), $end->toDateTime())) {
                 // Also check shift constraints if applicable
                 if ($this->isWithinShiftHours($workCell, $start, $end)) {
+                    \Log::info('CapacityChecker::findNextAvailableSlot - Found available slot', [
+                        'work_cell' => $workCell->name,
+                        'slot_start' => $start->format('Y-m-d H:i:s'),
+                        'slot_end' => $end->format('Y-m-d H:i:s'),
+                        'duration_minutes' => $durationMinutes,
+                    ]);
                     return $start->toDateTime();
+                } else {
+                    \Log::debug('CapacityChecker::findNextAvailableSlot - Slot not within shift hours', [
+                        'start' => $start->format('Y-m-d H:i:s'),
+                        'end' => $end->format('Y-m-d H:i:s'),
+                    ]);
                 }
             }
 

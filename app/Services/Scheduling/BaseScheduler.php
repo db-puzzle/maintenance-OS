@@ -97,6 +97,12 @@ abstract class BaseScheduler
 
                     if ($familySchedule === null) {
                         // Could not schedule this family
+                        Log::warning('BaseScheduler::scheduleByFamilies - Family scheduling returned null', [
+                            'family' => $family['top_parent']->order_number,
+                            'family_members' => $family['members']->pluck('order_number')->toArray(),
+                            'family_steps' => $family['total_steps'],
+                        ]);
+                        
                         $result->alerts[] = [
                             'type' => 'family_scheduling_failed',
                             'severity' => 'error',
@@ -111,6 +117,12 @@ abstract class BaseScheduler
                     }
 
                     // Merge family schedule into overall schedule
+                    Log::info('BaseScheduler::scheduleByFamilies - Family scheduled successfully', [
+                        'family' => $family['top_parent']->order_number,
+                        'scheduled_steps_in_family' => count($familySchedule),
+                        'total_scheduled_so_far' => count($scheduledSteps) + count($familySchedule),
+                    ]);
+                    
                     $scheduledSteps = array_merge($scheduledSteps, $familySchedule);
                     $processedSteps += $family['total_steps'];
 
@@ -159,6 +171,13 @@ abstract class BaseScheduler
                     'execution_time' => $familyExecutionTime,
                 ]);
             }
+
+            // Log final results
+            Log::info('BaseScheduler::scheduleByFamilies - Completed scheduling', [
+                'total_scheduled_steps' => count($scheduledSteps),
+                'families_processed' => $families->count(),
+                'has_scheduled_steps' => !empty($scheduledSteps),
+            ]);
 
             $result->success = ! empty($scheduledSteps);
             $result->scheduledSteps = array_values($scheduledSteps);

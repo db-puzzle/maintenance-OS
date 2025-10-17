@@ -226,8 +226,10 @@ export default function ApplyTemplateDialog({
     };
 
     // Apply the selected template
-    const handleApplyTemplate = () => {
-        if (!selectedTemplateId) {
+    const handleApplyTemplate = (templateId?: number) => {
+        const idToApply = templateId || selectedTemplateId;
+
+        if (!idToApply) {
             toast.error('Por favor, selecione um template para aplicar');
             return;
         }
@@ -237,7 +239,7 @@ export default function ApplyTemplateDialog({
         router.post(
             route('production.orders.apply-template', { order: manufacturingOrderId }),
             {
-                template_id: selectedTemplateId,
+                template_id: idToApply,
             },
             {
                 onSuccess: () => {
@@ -347,6 +349,14 @@ export default function ApplyTemplateDialog({
                                     onRowClick={(template) => {
                                         const templateId = (template as RouteTemplate).id;
                                         setSelectedTemplateId(selectedTemplateId === templateId ? null : templateId);
+                                    }}
+                                    onRowDoubleClick={(template) => {
+                                        const templateId = (template as RouteTemplate).id;
+                                        setSelectedTemplateId(templateId);
+                                        // Small delay to allow the selection to be visually registered
+                                        setTimeout(() => {
+                                            handleApplyTemplate(templateId);
+                                        }, 50);
                                     }}
                                 />
                             </div>

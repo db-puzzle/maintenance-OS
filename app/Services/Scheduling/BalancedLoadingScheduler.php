@@ -39,24 +39,25 @@ class BalancedLoadingScheduler extends BaseScheduler
 
         // Sort by priority and duration
         $allSteps = $allSteps->sortByDesc(function ($step) {
-            $duration = ($step->setup_time_minutes ?? 0) + ($step->cycle_time_minutes ?? 0);
-            if ($duration === 0) {
-                $duration = 30; // Default
+            $durationSeconds = ($step->setup_time_seconds ?? 0) + ($step->cycle_time_seconds ?? 0);
+            if ($durationSeconds === 0) {
+                $durationSeconds = 1800; // Default to 30 minutes (1800 seconds)
             }
 
             return $step->manufacturingRoute->manufacturingOrder->priority * 1000
-                   + $duration;
+                   + $durationSeconds;
         });
 
         $totalSteps = $allSteps->count();
         $processedSteps = 0;
 
         foreach ($allSteps as $step) {
-            // Calculate step duration
-            $durationMinutes = ($step->setup_time_minutes ?? 0) + ($step->cycle_time_minutes ?? 0);
-            if ($durationMinutes === 0) {
-                $durationMinutes = 30; // Default to 30 minutes if no duration specified
+            // Calculate step duration (convert seconds to minutes for compatibility)
+            $durationSeconds = ($step->setup_time_seconds ?? 0) + ($step->cycle_time_seconds ?? 0);
+            if ($durationSeconds === 0) {
+                $durationSeconds = 1800; // Default to 30 minutes (1800 seconds) if no duration specified
             }
+            $durationMinutes = (int) ceil($durationSeconds / 60);
 
             if ($this->isStepLocked($step)) {
                 $lockedSchedule = $this->getLockedSchedule($step);

@@ -3,6 +3,7 @@
 namespace App\Services\Scheduling;
 
 use App\Models\Production\ManufacturingStep;
+use App\Services\Scheduling\Exceptions\SchedulingValidationException;
 use Carbon\Carbon;
 use DateTime;
 use Illuminate\Support\Collection;
@@ -30,6 +31,13 @@ class FamilyCapacityBookingService
         DateTime $startDate,
         array $existingSchedules = []
     ): ?array {
+        \Log::info('FamilyCapacityBookingService::reserveFamilyCapacity - Start', [
+            'family_members_count' => $familyMembers->count(),
+            'family_orders' => $familyMembers->pluck('order_number')->toArray(),
+            'start_date' => $startDate->format('Y-m-d H:i:s'),
+            'existing_schedules_count' => count($existingSchedules),
+        ]);
+
         DB::beginTransaction();
 
         try {
@@ -39,6 +47,9 @@ class FamilyCapacityBookingService
             // First, validate all steps have required time parameters
             $validationResult = $this->validateFamilyTimeParameters($familyMembers);
             if (! $validationResult['valid']) {
+                \Log::error('FamilyCapacityBookingService::reserveFamilyCapacity - Validation failed', [
+                    'errors' => $validationResult['errors'],
+                ]);
                 DB::rollback();
                 throw new SchedulingValidationException(
                     'Missing production time parameters',
@@ -96,6 +107,15 @@ class FamilyCapacityBookingService
 
                     if (! $slot) {
                         // Cannot find slot for this step - fail entire family
+                        \Log::error('FamilyCapacityBookingService::reserveFamilyCapacity - No slot found for step', [
+                            'step_id' => $step->id,
+                            'step_name' => $step->name,
+                            'order_number' => $order->order_number,
+                            'work_cell' => $step->workCell?->name,
+                            'duration_minutes' => $duration,
+                            'earliest_start' => $earliestStart->format('Y-m-d H:i:s'),
+                        ]);
+                        
                         DB::rollback();
 
                         return null;
@@ -116,6 +136,11 @@ class FamilyCapacityBookingService
 
             // If we made it here, all steps were successfully scheduled
             DB::commit();
+
+            \Log::info('FamilyCapacityBookingService::reserveFamilyCapacity - Success', [
+                'scheduled_steps_count' => count($scheduledSteps),
+                'family_orders' => $familyMembers->pluck('order_number')->toArray(),
+            ]);
 
             return $scheduledSteps;
         } catch (\Exception $e) {
@@ -138,7 +163,7 @@ class FamilyCapacityBookingService
             }
 
             foreach ($order->manufacturingRoute->steps as $step) {
-                $hasStepTime = ($step->setup_time_minutes ?? 0) + ($step->cycle_time_minutes ?? 0) > 0;
+                $hasStepTime = ($step->setup_time_seconds ?? 0) + ($step->cycle_time_seconds ?? 0) > 0;
                 $hasWorkCellRate = false;
 
                 // Check if work cell has capacity settings
@@ -188,21 +213,23 @@ class FamilyCapacityBookingService
                         ->where('item_id', $order->item_id)
                         ->first();
 
-                    if ($itemRate && $itemRate->units_per_hour > 0) {
-                        // Calculate time based on order quantity and rate
-                        $hours = $order->quantity / $itemRate->units_per_hour;
-
-                        return (int) ceil($hours * 60); // Convert to minutes
+                    if ($itemRate && $itemRate->cycle_time_seconds > 0) {
+                        // Calculate total time: setup + (cycle time * quantity)
+                        $totalSeconds = $itemRate->setup_time_seconds + ($itemRate->cycle_time_seconds * $order->quantity);
+                        
+                        // Convert to minutes for compatibility
+                        return (int) ceil($totalSeconds / 60);
                     }
                 }
             }
             throw new \RuntimeException("Work cell rates not available for step {$step->id}");
         }
 
-        // Use step-specific times
-        $routeTime = ($step->setup_time_minutes ?? 0) + ($step->cycle_time_minutes ?? 0);
-        if ($routeTime > 0) {
-            return $routeTime;
+        // Use step-specific times (in seconds)
+        $routeTimeSeconds = ($step->setup_time_seconds ?? 0) + ($step->cycle_time_seconds ?? 0);
+        if ($routeTimeSeconds > 0) {
+            // Convert seconds to minutes for compatibility with current system
+            return (int) ceil($routeTimeSeconds / 60);
         }
 
         // If no times specified, throw error
@@ -324,9 +351,9 @@ class FamilyCapacityBookingService
         $totalQuantity = $order->quantity;
         $quantityAtPercentage = ($totalQuantity * $percentage) / 100;
 
-        // Get the production rate (units per minute)
-        $setupTime = $dependencyStep->setup_time_minutes ?? 0;
-        $cycleTime = $dependencyStep->cycle_time_minutes ?? 0;
+        // Get the production rate (convert from seconds)
+        $setupTimeMinutes = ($dependencyStep->setup_time_seconds ?? 0) / 60;
+        $cycleTimeMinutes = ($dependencyStep->cycle_time_seconds ?? 0) / 60;
 
         if ($dependencyStep->use_workcell_throughput && $dependencyStep->workCell) {
             // Use work cell throughput rate
@@ -334,22 +361,22 @@ class FamilyCapacityBookingService
                 ->where('item_id', $order->item_id)
                 ->first();
 
-            if ($itemRate && $itemRate->units_per_hour > 0) {
-                $unitsPerMinute = $itemRate->units_per_hour / 60;
-                $setupTime = $itemRate->setup_time_minutes ?? 0;
+            if ($itemRate && $itemRate->cycle_time_seconds > 0) {
+                $unitsPerMinute = 60 / $itemRate->cycle_time_seconds; // Convert cycle time to units per minute
+                $setupTimeMinutes = ($itemRate->setup_time_seconds ?? 0) / 60;
             } else {
                 // No rate available, use total duration
                 return $dependencySchedule->scheduledEnd;
             }
-        } elseif ($cycleTime > 0) {
+        } elseif ($cycleTimeMinutes > 0) {
             // Use route step cycle time (time per unit)
-            $unitsPerMinute = 1 / $cycleTime;
+            $unitsPerMinute = 1 / $cycleTimeMinutes;
         } else {
             return $dependencySchedule->scheduledEnd;
         }
 
         // Time to produce the required quantity = setup time + (quantity / rate)
-        $minutesToProduceQuantity = $setupTime + ($quantityAtPercentage / $unitsPerMinute);
+        $minutesToProduceQuantity = $setupTimeMinutes + ($quantityAtPercentage / $unitsPerMinute);
 
         \Log::debug('Percentage calculation details', [
             'total_quantity' => $totalQuantity,
@@ -454,24 +481,5 @@ class FamilyCapacityBookingService
         }
 
         return $requirements;
-    }
-}
-
-/**
- * Exception for scheduling validation errors.
- */
-class SchedulingValidationException extends \Exception
-{
-    protected array $validationErrors;
-
-    public function __construct(string $message, array $errors = [])
-    {
-        parent::__construct($message);
-        $this->validationErrors = $errors;
-    }
-
-    public function getValidationErrors(): array
-    {
-        return $this->validationErrors;
     }
 }

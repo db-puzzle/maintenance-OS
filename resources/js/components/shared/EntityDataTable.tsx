@@ -11,6 +11,7 @@ interface EntityDataTableProps<T> {
     columns: ColumnConfig<T>[];
     loading?: boolean;
     onRowClick?: (row: T) => void;
+    onRowDoubleClick?: (row: T) => void;
     actions?: (row: T) => React.ReactNode;
     emptyMessage?: string;
     columnVisibility?: Record<string, boolean>;
@@ -27,6 +28,7 @@ export function EntityDataTable<T>({
     columns,
     loading = false,
     onRowClick,
+    onRowDoubleClick,
     actions,
     emptyMessage = 'Nenhum registro encontrado.',
     columnVisibility = {},
@@ -215,6 +217,15 @@ export function EntityDataTable<T>({
                                                     }
                                                 }
                                             }}
+                                            onDoubleClick={(e) => {
+                                                if (onRowDoubleClick && !isLoading) {
+                                                    // Don't trigger double click if clicking on checkbox
+                                                    const target = e.target as HTMLElement;
+                                                    if (!target.closest('[data-slot="checkbox"]') && !target.closest('[data-slot="checkbox-indicator"]')) {
+                                                        onRowDoubleClick(row);
+                                                    }
+                                                }
+                                            }}
                                         >
                                             {visibleColumns.map((column, index) => (
                                                 <TableCell
@@ -309,6 +320,15 @@ export function EntityDataTable<T>({
                                             const target = e.target as HTMLElement;
                                             if (!target.closest('[data-slot="checkbox"]') && !target.closest('[data-slot="checkbox-indicator"]')) {
                                                 onRowClick(row);
+                                            }
+                                        }
+                                    }}
+                                    onDoubleClick={(e) => {
+                                        if (onRowDoubleClick) {
+                                            // Don't trigger double click if clicking on checkbox
+                                            const target = e.target as HTMLElement;
+                                            if (!target.closest('[data-slot="checkbox"]') && !target.closest('[data-slot="checkbox-indicator"]')) {
+                                                onRowDoubleClick(row);
                                             }
                                         }
                                     }}
