@@ -1,0 +1,60 @@
+{
+    "work_cells": [
+        {
+            "name": "Usinagem CNC 01",
+            "description": "Célula de usinagem CNC para peças de precisão",
+            "cell_type": "internal",
+            "plant_name": "Planta Principal",
+            "area_name": "Produção",
+            "sector_name": "Usinagem",
+            "shift_name": "Turno A",
+            "manufacturer_name": null,
+            "has_finite_capacity": true,
+            "default_production_rate_per_hour": 50,
+            "default_unit_of_measure": "units",
+            "is_active": true
+        },
+        {
+            "name": "Montagem Manual 01",
+            "description": "Estação de montagem manual",
+            "cell_type": "internal",
+            "plant_name": "Planta Principal",
+            "area_name": "Produção",
+            "sector_name": "Montagem",
+            "shift_name": "Turno A",
+            "manufacturer_name": null,
+            "has_finite_capacity": false,
+            "default_production_rate_per_hour": null,
+            "default_unit_of_measure": "units",
+            "is_active": true
+        },
+        {
+            "name": "Pintura Eletrostática",
+            "description": "Cabine de pintura eletrostática",
+            "cell_type": "internal",
+            "plant_name": "Planta Principal",
+            "area_name": "Acabamento",
+            "sector_name": "Pintura",
+            "shift_name": "Turno B",
+            "manufacturer_name": null,
+            "has_finite_capacity": true,
+            "default_production_rate_per_hour": 30,
+            "default_unit_of_measure": "units",
+            "is_active": true
+        },
+        {
+            "name": "Fornecedor Externo 01",
+            "description": "Serviço de galvanização terceirizado",
+            "cell_type": "external",
+            "plant_name": null,
+            "area_name": null,
+            "sector_name": null,
+            "shift_name": null,
+            "manufacturer_name": "ABC Galvanização Ltda",
+            "has_finite_capacity": true,
+            "default_production_rate_per_hour": 100,
+            "default_unit_of_measure": "kg",
+            "is_active": true
+        }
+    ]
+}

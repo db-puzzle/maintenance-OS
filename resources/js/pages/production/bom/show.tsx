@@ -43,9 +43,6 @@ interface Props {
 
 export default function BomShow({ bom, items = [], categories, can = { update: false, delete: false, manageItems: false }, isCreating = false }: Props) {
     const [isEditMode, setIsEditMode] = useState(isCreating);
-    const [isCompressed, setIsCompressed] = useState(false);
-
-
 
     const { data, setData, post, put, processing, errors, clearErrors } = useForm({
         name: bom?.name || '',
@@ -321,7 +318,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
     ];
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} enableCompressedMode={true}>
             <Head title={isCreating ? 'Nova BOM' : `BOM ${bom?.bom_number}`} />
 
             <ShowLayout
@@ -341,8 +338,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                 }
                 editRoute=""
                 tabs={tabs}
-                defaultCompressed={isCompressed}
-                onCompressedChange={setIsCompressed}
             />
         </AppLayout>
     );

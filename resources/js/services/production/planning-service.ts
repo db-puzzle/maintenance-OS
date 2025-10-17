@@ -18,7 +18,7 @@ interface BulkUpdatePrioritiesParams {
 
 interface BulkTransitionParams {
     orderIds: number[];
-    targetState: 'planned' | 'draft';
+    targetState: 'planned' | 'draft' | 'released';
     includeChildren?: boolean;
 }
 
@@ -50,6 +50,7 @@ export class PlanningService {
                         work_cell_id: step.work_cell_id,
                         setup_time_minutes: step.setup_time_minutes || 0,
                         cycle_time_minutes: step.cycle_time_minutes || 0,
+                        use_workcell_throughput: step.use_workcell_throughput ?? false,
                         step_type: step.step_type,
                         is_required: step.is_required,
                         child_order_dependency_type: step.gate_after?.dependency_type || 'all_children_completed',

@@ -12,6 +12,8 @@ import { ManufacturingRoute, ManufacturingStep, WorkCell } from '@/types/product
 import { Form } from '@/types/work-order';
 import { cn } from '@/lib/utils';
 import { router } from '@inertiajs/react';
+import StateButton from '@/components/StateButton';
+import { Timer, Zap } from 'lucide-react';
 
 interface ExtendedManufacturingStep extends ManufacturingStep {
     isNew?: boolean;
@@ -32,6 +34,7 @@ interface Props {
         quality_check_mode?: string;
         sampling_size?: number;
         form_id?: string;
+        use_workcell_throughput?: boolean;
     }>>;
     stepTypes: Record<string, string>;
     workCells: WorkCell[];
@@ -86,6 +89,7 @@ export default function StepPropertiesPanel({
     const [lastSelectedStep, setLastSelectedStep] = useState<ExtendedManufacturingStep | null>(null);
     const [workCellSheetOpen, setWorkCellSheetOpen] = useState(false);
     const workCellSelectRef = useRef<HTMLButtonElement>(null);
+
 
     // Keep track of the last selected step for animation purposes
     useEffect(() => {
@@ -297,48 +301,160 @@ export default function StepPropertiesPanel({
                     </div>
 
                     {/* Time Settings */}
-                    <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Tempo de Setup (min)</Label>
-                                <Input
-                                    type="number"
-                                    value={stepForm.data.setup_time_minutes}
-                                    onChange={(e) => {
-                                        const value = parseInt(e.target.value) || 0;
-                                        stepForm.setData('setup_time_minutes', value);
-                                        if (displayStep) {
-                                            onLocalStepUpdate(displayStep.id, { setup_time_minutes: value });
-                                        }
-                                    }}
-                                    disabled={viewMode}
-                                />
-                            </div>
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Definição de Tempo de Produção</h3>
+                        <div className="space-y-3">
+                            <StateButton
+                                icon={Timer}
+                                title="Tempo de Fabricação Específico"
+                                description="Definir tempo de setup e ciclo para esta etapa"
+                                selected={!stepForm.data.use_workcell_throughput}
+                                onClick={() => {
+                                    stepForm.setData('use_workcell_throughput', false);
 
-                            <div className="space-y-2">
-                                <Label>Tempo de Ciclo (min)</Label>
-                                <Input
-                                    type="number"
-                                    value={stepForm.data.cycle_time_minutes}
-                                    onChange={(e) => {
-                                        const value = parseInt(e.target.value) || 0;
-                                        stepForm.setData('cycle_time_minutes', value);
-                                        if (displayStep) {
-                                            onLocalStepUpdate(displayStep.id, { cycle_time_minutes: value });
-                                        }
-                                    }}
-                                    disabled={viewMode}
-                                />
-                            </div>
-                        </div>
+                                    if (displayStep) {
+                                        // Always update use_workcell_throughput to trigger unsaved state
+                                        const updates: Partial<ExtendedManufacturingStep> = {
+                                            use_workcell_throughput: false
+                                        };
 
-                        <div className="bg-muted rounded-lg p-3">
-                            <p className="text-sm">
-                                <span className="text-muted-foreground">Tempo total estimado:</span>{' '}
-                                <span className="font-medium">
-                                    {stepForm.data.setup_time_minutes + (stepForm.data.cycle_time_minutes * (routing.manufacturing_order?.quantity || 1))} min
-                                </span>
-                            </p>
+                                        // When switching back to specific times, restore the original values if they were zero
+                                        if (stepForm.data.setup_time_minutes === 0 && stepForm.data.cycle_time_minutes === 0) {
+                                            // Restore original values from the selected step
+                                            const originalSetupTime = displayStep.setup_time_minutes || 0;
+                                            const originalCycleTime = displayStep.cycle_time_minutes || 0;
+                                            stepForm.setData('setup_time_minutes', originalSetupTime);
+                                            stepForm.setData('cycle_time_minutes', originalCycleTime);
+                                            updates.setup_time_minutes = originalSetupTime;
+                                            updates.cycle_time_minutes = originalCycleTime;
+                                        }
+
+                                        onLocalStepUpdate(displayStep.id, updates);
+                                    }
+                                }}
+                                disabled={isSaving || viewMode}
+                            />
+                            {!stepForm.data.use_workcell_throughput && (
+                                <div className="border-l border-gray-200">
+                                    <div className="ml-6 space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label>Tempo de Setup (min)</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={stepForm.data.setup_time_minutes}
+                                                    onChange={(e) => {
+                                                        const value = parseInt(e.target.value) || 0;
+                                                        stepForm.setData('setup_time_minutes', value);
+                                                        if (displayStep) {
+                                                            onLocalStepUpdate(displayStep.id, { setup_time_minutes: value });
+                                                        }
+                                                    }}
+                                                    disabled={viewMode}
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label>Tempo de Ciclo (min)</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={stepForm.data.cycle_time_minutes}
+                                                    onChange={(e) => {
+                                                        const value = parseInt(e.target.value) || 0;
+                                                        stepForm.setData('cycle_time_minutes', value);
+                                                        if (displayStep) {
+                                                            onLocalStepUpdate(displayStep.id, { cycle_time_minutes: value });
+                                                        }
+                                                    }}
+                                                    disabled={viewMode}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-muted rounded-lg p-3">
+                                            <p className="text-sm">
+                                                <span className="text-muted-foreground">Tempo total estimado:</span>{' '}
+                                                <span className="font-medium">
+                                                    {stepForm.data.setup_time_minutes + (stepForm.data.cycle_time_minutes * (routing.manufacturing_order?.quantity || 1))} min
+                                                </span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <StateButton
+                                icon={Zap}
+                                title="Utilizar Throughput Padrão da Célula"
+                                description="Usar a taxa de produção padrão da célula de trabalho"
+                                selected={stepForm.data.use_workcell_throughput === true}
+                                onClick={() => {
+                                    stepForm.setData('use_workcell_throughput', true);
+                                    // Set setup and cycle times to zero when using workcell throughput
+                                    stepForm.setData('setup_time_minutes', 0);
+                                    stepForm.setData('cycle_time_minutes', 0);
+                                    if (displayStep) {
+                                        const updates = {
+                                            use_workcell_throughput: true,
+                                            setup_time_minutes: 0,
+                                            cycle_time_minutes: 0
+                                        };
+                                        onLocalStepUpdate(displayStep.id, updates);
+                                    }
+                                }}
+                                disabled={isSaving || viewMode || !stepForm.data.work_cell_id}
+                            />
+                            {stepForm.data.use_workcell_throughput && stepForm.data.work_cell_id && (
+                                <div className="border-l border-gray-200">
+                                    <div className="ml-6 space-y-4">
+                                        {(() => {
+                                            const selectedWorkCell = workCells.find(wc => wc.id === parseInt(stepForm.data.work_cell_id));
+                                            if (!selectedWorkCell) return null;
+
+                                            return (
+                                                <>
+                                                    <div className="bg-muted rounded-lg p-3 space-y-2">
+                                                        <p className="text-sm">
+                                                            <span className="text-muted-foreground">Taxa de Produção:</span>{' '}
+                                                            <span className="font-medium">
+                                                                {selectedWorkCell.default_production_rate_per_hour || 'Não definida'} {selectedWorkCell.default_unit_of_measure}/hora
+                                                            </span>
+                                                        </p>
+                                                        <p className="text-sm">
+                                                            <span className="text-muted-foreground">Tempo de Setup Padrão:</span>{' '}
+                                                            <span className="font-medium">
+                                                                {selectedWorkCell.default_setup_time_minutes || 0} min
+                                                            </span>
+                                                        </p>
+                                                        {selectedWorkCell.default_production_rate_per_hour && routing.manufacturing_order?.quantity && (
+                                                            <p className="text-sm">
+                                                                <span className="text-muted-foreground">Tempo total estimado:</span>{' '}
+                                                                <span className="font-medium">
+                                                                    {Math.ceil((routing.manufacturing_order.quantity / selectedWorkCell.default_production_rate_per_hour) * 60) + (selectedWorkCell.default_setup_time_minutes || 0)} min
+                                                                </span>
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    {!selectedWorkCell.default_production_rate_per_hour && (
+                                                        <p className="text-sm text-amber-600">
+                                                            A célula selecionada não possui taxa de produção configurada.
+                                                        </p>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            )}
+                            {stepForm.data.use_workcell_throughput && !stepForm.data.work_cell_id && (
+                                <div className="border-l border-gray-200">
+                                    <div className="ml-6">
+                                        <p className="text-sm text-muted-foreground">
+                                            Selecione uma célula de trabalho para usar o throughput padrão.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

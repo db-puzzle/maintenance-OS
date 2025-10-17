@@ -68,7 +68,7 @@ export default function ManufacturingOrders({
 
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
-    const [parentFilter, setParentFilter] = useState(filters.parent_id || '');
+    const [parentFilter, setParentFilter] = useState(filters.parent_id || 'root');
     const [loading] = useState(false);
     const [deleteOrder, setDeleteOrder] = useState<ManufacturingOrder | null>(null);
     const [showCreateDialog, setShowCreateDialog] = useState(shouldOpenCreate);
@@ -78,9 +78,25 @@ export default function ManufacturingOrders({
     // Update filter states when props change
     React.useEffect(() => {
         setStatusFilter(filters.status || '');
-        setParentFilter(filters.parent_id || '');
+        setParentFilter(filters.parent_id || 'root');
         setSearchValue(filters.search || '');
     }, [filters]);
+
+    // Apply default parent filter on mount if not already set
+    React.useEffect(() => {
+        if (!filters.parent_id) {
+            router.get(route('production.orders.index'), {
+                search: searchValue,
+                status: statusFilter === 'all' ? undefined : statusFilter,
+                parent_id: 'root'
+            }, {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['orders', 'statusCounts', 'summaryTotal'],
+                replace: true
+            });
+        }
+    }, []);
 
     // Clean up URL parameter when dialog is closed
     React.useEffect(() => {

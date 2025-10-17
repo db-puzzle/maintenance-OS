@@ -9,6 +9,7 @@ export interface RouteStep {
     work_cell_id: number | null;
     setup_time_minutes?: number;
     cycle_time_minutes?: number;
+    use_workcell_throughput?: boolean;
     step_type: 'standard' | 'quality_check' | 'rework';
     is_required: boolean;
     quality_check_mode?: 'every_part' | 'entire_lot' | 'sampling';

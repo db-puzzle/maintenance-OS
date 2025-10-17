@@ -67,7 +67,7 @@ class Item extends Model implements HasMedia
         'reorder_point' => 'decimal:2',
     ];
 
-    protected $appends = ['code', 'primary_image_url', 'primary_image_data'];
+    protected $appends = ['code', 'primary_image_url', 'primary_image_thumbnail_url', 'primary_image_data'];
 
     /**
      * Register media collections.
@@ -238,6 +238,23 @@ class Item extends Model implements HasMedia
 
             // Use the authenticated API route
             return $media ? route('api.media.show-conversion', [$media->id, 'preview']) : null;
+        }
+
+        // If media is not loaded, return null
+        return null;
+    }
+
+    /**
+     * Get the primary image thumbnail URL for this item.
+     */
+    public function getPrimaryImageThumbnailUrlAttribute(): ?string
+    {
+        // Only access media if it's already loaded to avoid N+1 queries
+        if ($this->relationLoaded('media')) {
+            $media = $this->getMedia('images')->first();
+
+            // Use the authenticated API route for thumbnail
+            return $media ? route('api.media.show-conversion', [$media->id, 'thumb']) : null;
         }
 
         // If media is not loaded, return null

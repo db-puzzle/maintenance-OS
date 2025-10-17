@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, router, usePage, useForm } from '@inertiajs/react';
 import {
     Package,
-    Calendar,
     GitBranch,
     AlertCircle,
     CheckCircle,
@@ -19,7 +18,9 @@ import {
     Info,
     Save,
     ClipboardCheck,
+    Calendar,
 } from 'lucide-react';
+import StackIcon from '@/components/stack-icon';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -225,8 +226,8 @@ export default function ShowManufacturingOrder({
 
     // Breadcrumbs
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Production', href: '/production' },
-        { title: 'Manufacturing Orders', href: '/production/orders' },
+        { title: 'Home', href: '/home' },
+        { title: 'Ordens de Manufatura', href: '/production/orders' },
         { title: order.order_number, href: '' }
     ];
 
@@ -1038,15 +1039,34 @@ export default function ShowManufacturingOrder({
                     {generatingQr ? 'Gerando...' : 'Gerar QR'}
                 </Button>
 
+                {shouldShowRelease && canRelease && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span tabIndex={0}>
+                                <Button
+                                    onClick={handleRelease}
+                                    disabled={!canRelease}
+                                    variant="outline"
+                                >
+                                    <Play className="h-4 w-4 mr-2" />
+                                    Release
+                                </Button>
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{order.status === 'draft' ? 'Direct release to production floor' : 'Release scheduled order to production'}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                )}
+
                 {order.status === 'draft' && canPlan && hasRoute && (
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <span tabIndex={0}>
                                 <Button
                                     onClick={handlePlan}
-                                    variant="outline"
                                 >
-                                    <Calendar className="h-4 w-4 mr-2" />
+                                    <StackIcon className="h-4 w-4 mr-2" />
                                     Plan
                                 </Button>
                             </span>
@@ -1065,25 +1085,6 @@ export default function ShowManufacturingOrder({
                         <Clock className="h-4 w-4 mr-2" />
                         Schedule
                     </Button>
-                )}
-
-                {shouldShowRelease && canRelease && (
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <span tabIndex={0}>
-                                <Button
-                                    onClick={handleRelease}
-                                    disabled={!canRelease}
-                                >
-                                    <Play className="h-4 w-4 mr-2" />
-                                    Release
-                                </Button>
-                            </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{order.status === 'draft' ? 'Direct release to production floor' : 'Release scheduled order to production'}</p>
-                        </TooltipContent>
-                    </Tooltip>
                 )}
 
                 {order.status === 'released' && canStart && (
@@ -1128,7 +1129,7 @@ export default function ShowManufacturingOrder({
 
     return (
         <>
-            <AppLayout breadcrumbs={breadcrumbs}>
+            <AppLayout breadcrumbs={breadcrumbs} enableCompressedMode={true}>
                 <ShowLayout
                     title={order.order_number}
                     subtitle={subtitle}

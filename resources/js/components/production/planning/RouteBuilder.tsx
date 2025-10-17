@@ -18,6 +18,7 @@ export interface RouteStep {
     work_cell_id: number | null;
     setup_time_minutes?: number;
     cycle_time_minutes?: number;
+    use_workcell_throughput?: boolean;
     step_type: 'standard' | 'quality_check' | 'rework';
     is_required: boolean;
     quality_check_mode?: 'every_part' | 'entire_lot' | 'sampling';
@@ -86,6 +87,7 @@ export default function RouteBuilder({
         work_cell_id: string;
         setup_time_minutes: number;
         cycle_time_minutes: number;
+        use_workcell_throughput?: boolean;
         depends_on_step_id: string;
         can_start_when_dependency: 'completed';
         quality_check_mode?: string;
@@ -98,6 +100,7 @@ export default function RouteBuilder({
         work_cell_id: '',
         setup_time_minutes: 0,
         cycle_time_minutes: 0,
+        use_workcell_throughput: false,
         depends_on_step_id: '',
         can_start_when_dependency: 'completed',
         quality_check_mode: 'every_part',
@@ -165,6 +168,7 @@ export default function RouteBuilder({
                     work_cell_id: step.work_cell_id ?? null,
                     setup_time_minutes: step.setup_time_minutes || 0,
                     cycle_time_minutes: step.cycle_time_minutes || 0,
+                    use_workcell_throughput: step.use_workcell_throughput ?? false,
                     step_type: step.step_type || 'standard',
                     is_required: true,
                     quality_check_mode: step.quality_check_mode,
@@ -232,7 +236,11 @@ export default function RouteBuilder({
     // Track dirty state if callback provided
     useEffect(() => {
         if (onDirtyChange) {
-            const hasChanges = JSON.stringify(steps) !== JSON.stringify(originalStepsRef.current);
+            const stepsStr = JSON.stringify(steps);
+            const originalStr = JSON.stringify(originalStepsRef.current);
+            const hasChanges = stepsStr !== originalStr;
+
+
             onDirtyChange(hasChanges);
         }
     }, [steps, onDirtyChange]);
@@ -267,6 +275,7 @@ export default function RouteBuilder({
                 work_cell_id: selectedStep.work_cell_id?.toString() || '',
                 setup_time_minutes: selectedStep.setup_time_minutes || 0,
                 cycle_time_minutes: selectedStep.cycle_time_minutes || 0,
+                use_workcell_throughput: selectedStep.use_workcell_throughput ?? false,
                 depends_on_step_id: selectedStep.sequence > 1 ? steps[selectedStep.sequence - 2]?.id?.toString() : '',
                 can_start_when_dependency: 'completed',
                 quality_check_mode: selectedStep.quality_check_mode || 'every_part',
@@ -520,6 +529,7 @@ export default function RouteBuilder({
                                     work_cell_id: Object.prototype.hasOwnProperty.call(updates, 'work_cell_id') ? (updates.work_cell_id ?? null) : steps[index].work_cell_id,
                                     setup_time_minutes: Object.prototype.hasOwnProperty.call(updates, 'setup_time_minutes') ? updates.setup_time_minutes || 0 : steps[index].setup_time_minutes,
                                     cycle_time_minutes: Object.prototype.hasOwnProperty.call(updates, 'cycle_time_minutes') ? updates.cycle_time_minutes || 0 : steps[index].cycle_time_minutes,
+                                    use_workcell_throughput: Object.prototype.hasOwnProperty.call(updates, 'use_workcell_throughput') ? updates.use_workcell_throughput ?? false : steps[index].use_workcell_throughput,
                                     is_required: steps[index].is_required,
                                     step_type: Object.prototype.hasOwnProperty.call(updates, 'step_type') ? (updates.step_type || 'standard') : steps[index].step_type,
                                     quality_check_mode: Object.prototype.hasOwnProperty.call(updates, 'quality_check_mode') ? updates.quality_check_mode : steps[index].quality_check_mode,

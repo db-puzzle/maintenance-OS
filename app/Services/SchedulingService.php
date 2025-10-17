@@ -546,6 +546,7 @@ class SchedulingService
                         'has_step_time' => ($step->setup_time_minutes !== null && $step->cycle_time_minutes !== null),
                         'setup_time_minutes' => $step->setup_time_minutes,
                         'cycle_time_minutes' => $step->cycle_time_minutes,
+                        'use_workcell_throughput' => $step->use_workcell_throughput,
                         'has_work_cell_rate' => false,
                         'work_cell_rate' => null,
                         'effective_time_source' => null, // 'step' or 'work_cell'
@@ -554,7 +555,7 @@ class SchedulingService
                         'effective_total_time' => null,
                     ];
 
-                    // Check for work cell item rate
+                    // Check for work cell item rate or default times
                     if ($step->workCell) {
                         $itemRate = $step->workCell->itemRates->where('item_id', $order->item_id)->first();
                         if ($itemRate) {
@@ -567,28 +568,75 @@ class SchedulingService
                                 'cycle_time_minutes' => $itemRate->production_rate_per_hour > 0
                                     ? (60 / $itemRate->production_rate_per_hour)
                                     : null,
+                                'is_default' => false,
+                            ];
+                        } elseif ($step->workCell->default_production_rate_per_hour > 0) {
+                            // Fall back to work cell default times
+                            $stepData['has_work_cell_rate'] = true;
+                            $stepData['work_cell_rate'] = [
+                                'id' => null,
+                                'setup_time_minutes' => $step->workCell->default_setup_time_minutes ?? 0,
+                                'production_rate_per_hour' => $step->workCell->default_production_rate_per_hour,
+                                'unit_of_measure' => $step->workCell->default_unit_of_measure ?? 'PC',
+                                'cycle_time_minutes' => $step->workCell->default_production_rate_per_hour > 0
+                                    ? (60 / $step->workCell->default_production_rate_per_hour)
+                                    : null,
+                                'is_default' => true,
+                            ];
+
+                            // Add a warning issue about using default times
+                            $orderData['issues'][] = [
+                                'type' => 'using_default_time',
+                                'step_id' => $step->id,
+                                'step_name' => $step->name,
+                                'message' => "Step '{$step->name}' is using work cell default times. No specific rate configured for item '{$order->item->item_number}' on work cell '{$step->workCell->name}'",
                             ];
                         }
                     }
 
                     // Determine effective time source
-                    if ($stepData['has_step_time']) {
-                        $stepData['effective_time_source'] = 'step';
-                        $stepData['effective_setup_time'] = $step->setup_time_minutes;
-                        $stepData['effective_cycle_time'] = $step->cycle_time_minutes;
-                        $hasAnyTimes = true;
-                    } elseif ($stepData['has_work_cell_rate']) {
+                    // Check if we should use work cell throughput (when use_workcell_throughput is true)
+                    if ($step->use_workcell_throughput && $stepData['has_work_cell_rate']) {
                         $stepData['effective_time_source'] = 'work_cell';
                         $stepData['effective_setup_time'] = $stepData['work_cell_rate']['setup_time_minutes'];
                         $stepData['effective_cycle_time'] = $stepData['work_cell_rate']['cycle_time_minutes'];
                         $hasAnyTimes = true;
+                    } elseif (! $step->use_workcell_throughput && $stepData['has_step_time']) {
+                        // Use step-specific times when use_workcell_throughput is false or null
+                        $stepData['effective_time_source'] = 'step';
+                        $stepData['effective_setup_time'] = $step->setup_time_minutes;
+                        $stepData['effective_cycle_time'] = $step->cycle_time_minutes;
+                        $hasAnyTimes = true;
+                    } elseif ($step->use_workcell_throughput === null || $step->use_workcell_throughput === false) {
+                        // If use_workcell_throughput is not set or false, try to use step times first, then fall back to work cell rates
+                        if ($stepData['has_step_time']) {
+                            $stepData['effective_time_source'] = 'step';
+                            $stepData['effective_setup_time'] = $step->setup_time_minutes;
+                            $stepData['effective_cycle_time'] = $step->cycle_time_minutes;
+                            $hasAnyTimes = true;
+                        } elseif ($stepData['has_work_cell_rate']) {
+                            // Fall back to work cell rate if available
+                            $stepData['effective_time_source'] = 'work_cell';
+                            $stepData['effective_setup_time'] = $stepData['work_cell_rate']['setup_time_minutes'];
+                            $stepData['effective_cycle_time'] = $stepData['work_cell_rate']['cycle_time_minutes'];
+                            $hasAnyTimes = true;
+                        } else {
+                            $hasAllTimes = false;
+                            $orderData['issues'][] = [
+                                'type' => 'missing_time',
+                                'step_id' => $step->id,
+                                'step_name' => $step->name,
+                                'message' => "Step '{$step->name}' has no time parameters configured",
+                            ];
+                        }
                     } else {
+                        // use_workcell_throughput is true but no work cell rate exists
                         $hasAllTimes = false;
                         $orderData['issues'][] = [
                             'type' => 'missing_time',
                             'step_id' => $step->id,
                             'step_name' => $step->name,
-                            'message' => "Step '{$step->name}' has no time parameters configured",
+                            'message' => "Step '{$step->name}' is set to use work cell throughput but no work cell rate is configured",
                         ];
                     }
 
@@ -603,6 +651,21 @@ class SchedulingService
 
                 if (! $hasAllTimes) {
                     $orderData['time_parameter_status'] = $hasAnyTimes ? 'partial' : 'missing';
+                } else {
+                    // Check if we only have warnings (using default times)
+                    $hasOnlyWarnings = true;
+                    foreach ($orderData['issues'] as $issue) {
+                        if ($issue['type'] !== 'using_default_time') {
+                            $hasOnlyWarnings = false;
+                            break;
+                        }
+                    }
+
+                    // If we have all times but some are defaults, mark as valid but with warnings
+                    if ($hasOnlyWarnings && count($orderData['issues']) > 0) {
+                        // Keep status as valid but issues will show warnings
+                        $orderData['time_parameter_status'] = 'valid';
+                    }
                 }
             }
 

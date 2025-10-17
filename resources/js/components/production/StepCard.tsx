@@ -79,9 +79,15 @@ export function StepCard({
                     {showTime && (
                         <div className="flex items-center gap-2">
                             <Clock className="h-3 w-3" />
-                            <span>{step.cycle_time_minutes} min</span>
-                            {step.setup_time_minutes > 0 && (
-                                <span className="text-xs">(+{step.setup_time_minutes} min setup)</span>
+                            {step.use_workcell_throughput ? (
+                                <span className="text-muted-foreground">Using work cell throughput</span>
+                            ) : (
+                                <>
+                                    <span>{step.cycle_time_minutes} min</span>
+                                    {step.setup_time_minutes > 0 && (
+                                        <span className="text-xs">(+{step.setup_time_minutes} min setup)</span>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}

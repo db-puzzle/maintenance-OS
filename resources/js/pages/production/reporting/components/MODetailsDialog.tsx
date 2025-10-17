@@ -309,7 +309,7 @@ export function MODetailsDialog({
                                                                         )}
                                                                     </p>
                                                                     {/* Show timing information if available */}
-                                                                    {(step.setup_time_minutes > 0 || step.cycle_time_minutes > 0) && (
+                                                                    {(!step.use_workcell_throughput && (step.setup_time_minutes > 0 || step.cycle_time_minutes > 0)) && (
                                                                         <p className="text-xs text-muted-foreground mt-1">
                                                                             {step.setup_time_minutes > 0 && (
                                                                                 <>Setup: {step.setup_time_minutes}min</>
@@ -318,6 +318,11 @@ export function MODetailsDialog({
                                                                             {step.cycle_time_minutes > 0 && (
                                                                                 <>Cycle: {step.cycle_time_minutes}min</>
                                                                             )}
+                                                                        </p>
+                                                                    )}
+                                                                    {step.use_workcell_throughput && (
+                                                                        <p className="text-xs text-muted-foreground mt-1">
+                                                                            Using work cell throughput
                                                                         </p>
                                                                     )}
                                                                 </div>

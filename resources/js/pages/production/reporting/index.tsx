@@ -276,6 +276,7 @@ export default function ProductionReporting({
                 if (!order) return null;
                 return (
                     <ItemImagePreview
+                        primaryImageData={order.item?.primary_image_data}
                         primaryImageUrl={order.item?.primary_image_thumbnail_url || order.item?.primary_image_url}
                         imageCount={0}
                         className="w-12 h-12 cursor-pointer"

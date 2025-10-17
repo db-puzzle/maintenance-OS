@@ -34,6 +34,7 @@ return new class extends Migration
             // Time tracking
             $table->integer('setup_time_minutes')->default(0);
             $table->integer('cycle_time_minutes');
+            $table->boolean('use_workcell_throughput')->default(false);
             $table->timestamp('actual_start_time')->nullable();
             $table->timestamp('actual_end_time')->nullable();
 

@@ -197,8 +197,9 @@ class RouteTemplateController extends Controller
         try {
             $template = $this->templateService->saveAsTemplate($route, $validated);
 
-            return redirect()->route('production.templates.show', $template)
-                ->with('success', 'Route saved as template successfully.');
+            // Use back() to stay on the same page and let Inertia handle the response
+            // This preserves the state and prevents page refresh
+            return back()->with('success', 'Route saved as template successfully.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }

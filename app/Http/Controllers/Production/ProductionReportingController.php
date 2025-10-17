@@ -35,7 +35,7 @@ class ProductionReportingController extends BaseSearchController
             ->whereIn('status', ['released', 'in_progress', 'on_hold'])
             ->with([
                 'item:id,item_number,name,description,unit_of_measure',
-                'item.primaryImage',
+                'item.media',
                 'manufacturingRoute.steps.workCell',
                 'createdBy:id,name',
             ])

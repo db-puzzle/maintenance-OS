@@ -134,9 +134,6 @@ export const SaveAsTemplateDialog: React.FC<SaveAsTemplateDialogProps> = ({
 
         form.post(route(`production.routes.save-as-template`, manufacturingRoute.id), {
             onSuccess: () => {
-                // The backend will redirect to template show page, 
-                // which will immediately redirect back to where we came from
-                toast.success('Rota salva como template com sucesso');
                 onOpenChange(false);
                 form.reset();
             },
@@ -145,7 +142,9 @@ export const SaveAsTemplateDialog: React.FC<SaveAsTemplateDialogProps> = ({
                     form.setError('name', errors.name);
                 }
                 toast.error('Falha ao salvar template');
-            }
+            },
+            preserveState: true,
+            preserveScroll: true,
         });
     };
 

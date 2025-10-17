@@ -211,7 +211,7 @@ export default function Show({ category, items, activeTab, filters }: Props) {
         },
     ];
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} enableCompressedMode={true}>
             <Head title={`Categoria ${category.name}`} />
             <ShowLayout
                 title={category.name}

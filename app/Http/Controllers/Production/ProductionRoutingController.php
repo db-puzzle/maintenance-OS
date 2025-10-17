@@ -307,6 +307,7 @@ class ProductionRoutingController extends Controller
             'steps.*.setup_time_minutes' => 'required|numeric|min:0',
             'steps.*.cycle_time_minutes' => 'required|numeric|min:0',
             'steps.*.step_type' => 'required|in:standard,quality_check,rework',
+            'steps.*.use_workcell_throughput' => 'nullable|boolean',
         ]);
 
         DB::transaction(function () use ($routing, $validated) {
@@ -369,6 +370,7 @@ class ProductionRoutingController extends Controller
             'work_cell_id' => 'nullable|exists:work_cells,id',
             'setup_time_minutes' => 'required|integer|min:0',
             'cycle_time_minutes' => 'required|integer|min:0',
+            'use_workcell_throughput' => 'nullable|boolean',
             'depends_on_step_id' => [
                 function ($attribute, $value, $fail) use ($request) {
                     if ($request->step_number > 1 && empty($value)) {
@@ -423,6 +425,7 @@ class ProductionRoutingController extends Controller
             'work_cell_id' => 'nullable|exists:work_cells,id',
             'setup_time_minutes' => 'required|integer|min:0',
             'cycle_time_minutes' => 'required|integer|min:0',
+            'use_workcell_throughput' => 'nullable|boolean',
             'depends_on_step_id' => [
                 function ($attribute, $value, $fail) use ($step) {
                     if ($step->step_number > 1 && empty($value)) {
@@ -531,6 +534,7 @@ class ProductionRoutingController extends Controller
             'steps.*.work_cell_id' => 'nullable|exists:work_cells,id',
             'steps.*.setup_time_minutes' => 'required|integer|min:0',
             'steps.*.cycle_time_minutes' => 'required|integer|min:0',
+            'steps.*.use_workcell_throughput' => 'nullable|boolean',
             'steps.*.depends_on_step_id' => 'nullable|integer',
             'steps.*.can_start_when_dependency' => 'nullable|in:completed',
             'steps.*.quality_check_mode' => 'nullable|in:every_part,entire_lot,sampling',
@@ -584,6 +588,7 @@ class ProductionRoutingController extends Controller
                     'work_cell_id' => $stepData['work_cell_id'] ?? null,
                     'setup_time_minutes' => $stepData['setup_time_minutes'],
                     'cycle_time_minutes' => $stepData['cycle_time_minutes'],
+                    'use_workcell_throughput' => $stepData['use_workcell_throughput'] ?? false,
                     'can_start_when_dependency' => $stepData['can_start_when_dependency'] ?? 'completed',
                     'quality_check_mode' => $stepData['quality_check_mode'] ?? 'every_part',
                     'sampling_size' => $stepData['sampling_size'] ?? 0,
@@ -746,9 +751,17 @@ class ProductionRoutingController extends Controller
                             'work_cell_name' => $step->workCell?->name,
                             'setup_time_minutes' => $step->setup_time_minutes,
                             'cycle_time_minutes' => $step->cycle_time_minutes,
+                            'use_workcell_throughput' => $step->use_workcell_throughput,
                             'quality_check_mode' => $step->quality_check_mode,
                             'sampling_size' => $step->sampling_size,
                             'form_id' => $step->form_id,
+                            'depends_on_step_id' => $step->depends_on_step_id,
+                            'can_start_when_dependency' => $step->can_start_when_dependency,
+                            'dependency_start_condition' => $step->dependency_start_condition,
+                            'dependency_minimum_quantity' => $step->dependency_minimum_quantity,
+                            'dependency_minimum_percentage' => $step->dependency_minimum_percentage,
+                            'child_order_dependency_type' => $step->child_order_dependency_type,
+                            'child_order_minimum_quantity' => $step->child_order_minimum_quantity,
                         ];
                     }),
                 ];
@@ -773,6 +786,7 @@ class ProductionRoutingController extends Controller
             'Category',
             'Version',
             'Is Active',
+            'Template Metadata',
             'Step Number',
             'Step Name',
             'Step Description',
@@ -780,8 +794,17 @@ class ProductionRoutingController extends Controller
             'Work Cell',
             'Setup Time (Minutes)',
             'Cycle Time (Minutes)',
+            'Use Work Cell Default Times',
             'Quality Check Mode',
             'Sampling Size',
+            'Form ID',
+            'Depends on Step ID',
+            'Can Start When Dependency',
+            'Dependency Start Condition',
+            'Dependency Minimum Quantity',
+            'Dependency Minimum Percentage',
+            'Child Order Dependency Type',
+            'Child Order Minimum Quantity',
         ];
 
         $csv = fopen('php://temp', 'r+');
@@ -796,6 +819,7 @@ class ProductionRoutingController extends Controller
                     $template->itemCategory?->name,
                     $template->version,
                     $template->is_active ? 'Yes' : 'No',
+                    json_encode($template->template_metadata),
                     '', // Step Number
                     '', // Step Name
                     '', // Step Description
@@ -803,8 +827,17 @@ class ProductionRoutingController extends Controller
                     '', // Work Cell
                     '', // Setup Time
                     '', // Cycle Time
+                    '', // Use Work Cell Default Times
                     '', // Quality Check Mode
                     '', // Sampling Size
+                    '', // Form ID
+                    '', // Depends on Step ID
+                    '', // Can Start When Dependency
+                    '', // Dependency Start Condition
+                    '', // Dependency Minimum Quantity
+                    '', // Dependency Minimum Percentage
+                    '', // Child Order Dependency Type
+                    '', // Child Order Minimum Quantity
                 ]);
             } else {
                 // Export each step with template info
@@ -815,6 +848,7 @@ class ProductionRoutingController extends Controller
                         $template->itemCategory?->name,
                         $template->version,
                         $template->is_active ? 'Yes' : 'No',
+                        json_encode($template->template_metadata),
                         $step->step_number,
                         $step->name,
                         $step->description,
@@ -822,8 +856,17 @@ class ProductionRoutingController extends Controller
                         $step->workCell?->name,
                         $step->setup_time_minutes,
                         $step->cycle_time_minutes,
+                        $step->use_workcell_throughput ? 'Yes' : 'No',
                         $step->quality_check_mode,
                         $step->sampling_size,
+                        $step->form_id,
+                        $step->depends_on_step_id,
+                        $step->can_start_when_dependency,
+                        $step->dependency_start_condition,
+                        $step->dependency_minimum_quantity,
+                        $step->dependency_minimum_percentage,
+                        $step->child_order_dependency_type,
+                        $step->child_order_minimum_quantity,
                     ]);
                 }
             }

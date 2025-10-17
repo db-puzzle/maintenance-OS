@@ -173,8 +173,8 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
         },
     ];
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <ShowLayout title={sector.name} subtitle={subtitle} editRoute={route('asset-hierarchy.sectors.edit', sector.id)} tabs={tabs} />
+        <AppLayout breadcrumbs={breadcrumbs} enableCompressedMode={true}>
+            <ShowLayout title={sector.name} subtitle={subtitle} editRoute="" tabs={tabs} />
         </AppLayout>
     );
 }

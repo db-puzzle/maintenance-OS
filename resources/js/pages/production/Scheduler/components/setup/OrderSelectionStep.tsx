@@ -1,42 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, ChevronRight, AlertCircle } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import OrderSelectionPanel from '../OrderSelectionPanel';
 import FamilyVisualization from '../FamilyVisualization';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+
+// Declare the global route function
+declare const route: (name: string, params?: any) => string;
 
 interface OrderSelectionStepProps {
     orders: any[];
-    algorithms: Array<{ value: string; label: string }>;
     defaultStartDate: string;
     currentVersion?: any;
     activeScheduleVersion?: any;
-    onNext: (selectedOrders: number[], configData: any) => void;
+    onNext: (selectedOrders: number[], dateRange: { start_date: string; end_date: string }) => void;
 }
 
 export function OrderSelectionStep({
     orders,
-    algorithms,
     defaultStartDate,
-    currentVersion,
-    activeScheduleVersion,
+    currentVersion: _currentVersion,
+    activeScheduleVersion: _activeScheduleVersion,
     onNext,
 }: OrderSelectionStepProps) {
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
     const [families, setFamilies] = useState<any[]>([]);
     const [selectionMode, setSelectionMode] = useState<'individual' | 'family'>('family');
 
-    // Configuration state
-    const [algorithm, setAlgorithm] = useState(algorithms[0]?.value || 'asap');
+    // Date range state
     const [startDate, setStartDate] = useState(defaultStartDate || format(new Date(), 'yyyy-MM-dd'));
     const [endDate, setEndDate] = useState(format(new Date(new Date().setMonth(new Date().getMonth() + 3)), 'yyyy-MM-dd'));
-    const [respectLockedSchedules, setRespectLockedSchedules] = useState(true);
 
     const fetchFamilies = async (orderIds: number[]) => {
         if (orderIds.length === 0) {
@@ -64,102 +58,13 @@ export function OrderSelectionStep({
 
     const handleNext = () => {
         onNext(selectedOrders, {
-            algorithm,
             start_date: startDate,
             end_date: endDate,
-            respect_locked_schedules: respectLockedSchedules,
         });
     };
 
     return (
         <div className="space-y-6">
-            {/* Configuration Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Scheduling Configuration</CardTitle>
-                    <CardDescription>
-                        Configure the scheduling parameters for your production run
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Algorithm Selection */}
-                        <div className="space-y-2">
-                            <Label htmlFor="algorithm">Scheduling Algorithm</Label>
-                            <Select
-                                value={algorithm}
-                                onValueChange={setAlgorithm}
-                            >
-                                <SelectTrigger id="algorithm" className="w-full">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {algorithms.map((algo) => (
-                                        <SelectItem key={algo.value} value={algo.value}>
-                                            {algo.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {algorithm === 'due_date' && (
-                                <p className="text-xs text-muted-foreground">
-                                    Backward scheduling with auto-forward fallback
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Date Range */}
-                        <div className="space-y-2">
-                            <Label>Date Range</Label>
-                            <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-2 flex-1">
-                                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                                    <input
-                                        type="date"
-                                        value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
-                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                    />
-                                </div>
-                                <span className="text-sm text-muted-foreground">to</span>
-                                <input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    min={startDate}
-                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Respect Locked Schedules */}
-                    <div className="flex items-center space-x-2">
-                        <Checkbox
-                            id="respect-locked"
-                            checked={respectLockedSchedules}
-                            onCheckedChange={(checked) => setRespectLockedSchedules(!!checked)}
-                        />
-                        <Label
-                            htmlFor="respect-locked"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                            Respect locked schedules
-                        </Label>
-                    </div>
-
-                    {/* Version Info */}
-                    {activeScheduleVersion && (
-                        <Alert>
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>
-                                Working with schedule version <Badge variant="outline" className="ml-1">v{activeScheduleVersion.version_number}</Badge>
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                </CardContent>
-            </Card>
-
             {/* Order Selection */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
@@ -177,6 +82,12 @@ export function OrderSelectionStep({
                                 onSelectionChange={handleOrderSelection}
                                 selectionMode={selectionMode}
                                 onSelectionModeChange={setSelectionMode}
+                                dateRange={{
+                                    startDate,
+                                    endDate,
+                                    onStartDateChange: setStartDate,
+                                    onEndDateChange: setEndDate
+                                }}
                             />
                         </CardContent>
                     </Card>

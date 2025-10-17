@@ -5,6 +5,7 @@ import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { OrderSelectionStep } from './components/setup/OrderSelectionStep';
+import { AlgorithmSelectionStep } from './components/setup/AlgorithmSelectionStep';
 import { TimeParametersStep } from './components/setup/TimeParametersStep';
 import { ReviewStep } from './components/setup/ReviewStep';
 import { toast } from 'sonner';
@@ -24,7 +25,7 @@ interface Props {
     schedulingConfig?: any;
 }
 
-type Step = 'order-selection' | 'time-parameters' | 'review';
+type Step = 'order-selection' | 'time-parameters' | 'algorithm-selection' | 'review';
 
 const steps: { id: Step; title: string }[] = [
     {
@@ -34,6 +35,10 @@ const steps: { id: Step; title: string }[] = [
     {
         id: 'time-parameters',
         title: 'Configure Time',
+    },
+    {
+        id: 'algorithm-selection',
+        title: 'Choose Algorithm',
     },
     {
         id: 'review',
@@ -73,7 +78,6 @@ export default function SchedulerSetup({
 
     const breadcrumbs = [
         { title: 'Home', href: '/home' },
-        { title: 'Production', href: '#' },
         { title: 'Scheduler', href: route('production.scheduler.index') },
         { title: 'Setup', href: '#' },
     ];
@@ -135,24 +139,33 @@ export default function SchedulerSetup({
         }
     };
 
-    const handleOrderSelectionComplete = (orderIds: number[], configData: any) => {
+    const handleOrderSelectionComplete = (orderIds: number[], dateRange: any) => {
+        console.log('Order selection complete with dateRange:', dateRange);
         setSelectedOrders(orderIds);
         setData({
             ...data,
             manufacturing_order_ids: orderIds,
-            algorithm: configData.algorithm,
-            start_date: configData.start_date,
-            end_date: configData.end_date,
-            respect_locked_schedules: configData.respect_locked_schedules,
+            start_date: dateRange.start_date,
+            end_date: dateRange.end_date,
         });
 
-        // Fetch families and time parameters
+        // Fetch families and time parameters for the next step
         fetchFamilies(orderIds);
         fetchTimeParameters(orderIds);
         setCurrentStep('time-parameters');
     };
 
     const handleTimeParametersComplete = () => {
+        setCurrentStep('algorithm-selection');
+    };
+
+    const handleAlgorithmSelectionComplete = (algorithm: string, respectLockedSchedules: boolean) => {
+        setData({
+            ...data,
+            algorithm: algorithm,
+            respect_locked_schedules: respectLockedSchedules,
+        });
+
         setCurrentStep('review');
     };
 
@@ -183,7 +196,7 @@ export default function SchedulerSetup({
 
             <div className="relative flex h-[calc(100vh-3rem)] flex-col">
                 <div className="bg-background border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex-shrink-0">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Production Scheduler Setup</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Scheduler Setup</h1>
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                         Configure scheduling parameters, select manufacturing orders, and run the production scheduler
                     </p>
@@ -242,7 +255,6 @@ export default function SchedulerSetup({
                     {currentStep === 'order-selection' && (
                         <OrderSelectionStep
                             orders={orders}
-                            algorithms={algorithms}
                             defaultStartDate={defaultStartDate}
                             currentVersion={currentVersion}
                             activeScheduleVersion={activeScheduleVersion}
@@ -255,9 +267,24 @@ export default function SchedulerSetup({
                             orders={timeParameterData}
                             selectedOrders={selectedOrders}
                             loading={loadingTimeParams}
+                            startDate={data.start_date}
+                            endDate={data.end_date}
                             onNext={handleTimeParametersComplete}
                             onBack={handleBack}
-                            onRefresh={() => fetchTimeParameters(selectedOrders)}
+                            onRefresh={() => {
+                                console.log('Refreshing with dates:', { start: data.start_date, end: data.end_date });
+                                fetchTimeParameters(selectedOrders);
+                            }}
+                        />
+                    )}
+
+                    {currentStep === 'algorithm-selection' && (
+                        <AlgorithmSelectionStep
+                            algorithms={algorithms}
+                            initialAlgorithm={data.algorithm}
+                            initialRespectLockedSchedules={data.respect_locked_schedules}
+                            onNext={handleAlgorithmSelectionComplete}
+                            onBack={handleBack}
                         />
                     )}
 

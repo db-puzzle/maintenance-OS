@@ -368,7 +368,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
         },
     ];
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} enableCompressedMode={true}>
             <Head title={`Planta ${plant.name}`} />
             <ShowLayout title={plant.name} subtitle={subtitle} editRoute="" tabs={tabs} />
         </AppLayout>

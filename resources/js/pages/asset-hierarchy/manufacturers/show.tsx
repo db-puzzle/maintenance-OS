@@ -199,7 +199,7 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
         },
     ];
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} enableCompressedMode={true}>
             <Head title={`Fabricante ${manufacturer.name}`} />
             <ShowLayout
                 title={manufacturer.name}

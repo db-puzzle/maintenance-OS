@@ -441,6 +441,7 @@ class ManufacturingOrder extends Model
                             'step_type',
                             'setup_time_minutes',
                             'cycle_time_minutes',
+                            'use_workcell_throughput',
                             'child_order_dependency_type',
                             'child_order_minimum_quantity',
                             'status'
@@ -896,5 +897,47 @@ class ManufacturingOrder extends Model
     public function getIsCancelledAttribute(): bool
     {
         return $this->status === 'cancelled';
+    }
+
+    /**
+     * Check if this order has started production.
+     * An order is considered started if it has an actual start date
+     * or if any of its manufacturing steps have executions.
+     */
+    public function hasStartedProduction(): bool
+    {
+        // Check if order has actual_start_date
+        if ($this->actual_start_date) {
+            return true;
+        }
+
+        // Check if any steps have executions
+        if ($this->manufacturingRoute) {
+            return $this->manufacturingRoute->steps()
+                ->whereHas('executions')
+                ->exists();
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if this order's status can be reverted.
+     * Orders can only be reverted if they haven't started production
+     * and are not in a terminal state (completed/cancelled).
+     */
+    public function canRevertStatus(): bool
+    {
+        // Can't revert if order has started production
+        if ($this->hasStartedProduction()) {
+            return false;
+        }
+
+        // Can't revert completed or cancelled orders
+        if (in_array($this->status, ['completed', 'cancelled'])) {
+            return false;
+        }
+
+        return true;
     }
 }

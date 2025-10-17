@@ -178,30 +178,34 @@ class FamilyCapacityBookingService
      */
     protected function calculateStepDuration(ManufacturingStep $step): int
     {
-        // Route times take precedence
+        // Check if step explicitly uses work cell throughput
+        if ($step->use_workcell_throughput) {
+            // Use work cell rates
+            if ($step->workCell && $step->manufacturingRoute) {
+                $order = $step->manufacturingRoute->manufacturingOrder;
+                if ($order) {
+                    $itemRate = $step->workCell->itemRates()
+                        ->where('item_id', $order->item_id)
+                        ->first();
+
+                    if ($itemRate && $itemRate->units_per_hour > 0) {
+                        // Calculate time based on order quantity and rate
+                        $hours = $order->quantity / $itemRate->units_per_hour;
+
+                        return (int) ceil($hours * 60); // Convert to minutes
+                    }
+                }
+            }
+            throw new \RuntimeException("Work cell rates not available for step {$step->id}");
+        }
+
+        // Use step-specific times
         $routeTime = ($step->setup_time_minutes ?? 0) + ($step->cycle_time_minutes ?? 0);
         if ($routeTime > 0) {
             return $routeTime;
         }
 
-        // Fall back to work cell rates if available
-        if ($step->workCell && $step->manufacturingRoute) {
-            $order = $step->manufacturingRoute->manufacturingOrder;
-            if ($order) {
-                $itemRate = $step->workCell->itemRates()
-                    ->where('item_id', $order->item_id)
-                    ->first();
-
-                if ($itemRate && $itemRate->units_per_hour > 0) {
-                    // Calculate time based on order quantity and rate
-                    $hours = $order->quantity / $itemRate->units_per_hour;
-
-                    return (int) ceil($hours * 60); // Convert to minutes
-                }
-            }
-        }
-
-        // This should not happen if validation passed
+        // If no times specified, throw error
         throw new \RuntimeException("No time parameters available for step {$step->id}");
     }
 
@@ -324,21 +328,22 @@ class FamilyCapacityBookingService
         $setupTime = $dependencyStep->setup_time_minutes ?? 0;
         $cycleTime = $dependencyStep->cycle_time_minutes ?? 0;
 
-        if ($cycleTime > 0) {
-            // Use route step cycle time (time per unit)
-            $unitsPerMinute = 1 / $cycleTime;
-        } elseif ($dependencyStep->workCell) {
-            // Fall back to work cell throughput rate
+        if ($dependencyStep->use_workcell_throughput && $dependencyStep->workCell) {
+            // Use work cell throughput rate
             $itemRate = $dependencyStep->workCell->itemRates()
                 ->where('item_id', $order->item_id)
                 ->first();
 
             if ($itemRate && $itemRate->units_per_hour > 0) {
                 $unitsPerMinute = $itemRate->units_per_hour / 60;
+                $setupTime = $itemRate->setup_time_minutes ?? 0;
             } else {
                 // No rate available, use total duration
                 return $dependencySchedule->scheduledEnd;
             }
+        } elseif ($cycleTime > 0) {
+            // Use route step cycle time (time per unit)
+            $unitsPerMinute = 1 / $cycleTime;
         } else {
             return $dependencySchedule->scheduledEnd;
         }

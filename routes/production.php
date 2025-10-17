@@ -240,6 +240,13 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('shipments/{shipment}/photos', [ShipmentController::class, 'uploadPhotos'])->name('shipments.photos');
 
     // Work Cells
+    // Define specific routes before resource routes to avoid conflicts
+    Route::get('work-cells/export', [WorkCellController::class, 'export'])->name('work-cells.export-list');
+    Route::get('work-cells/import/wizard', [WorkCellController::class, 'importWizard'])->name('work-cells.import.wizard');
+    Route::post('work-cells/import', [WorkCellController::class, 'import'])->name('work-cells.import');
+    Route::post('work-cells/import/check-existing', [WorkCellController::class, 'checkExistingWorkCells'])->name('work-cells.import.check-existing');
+
+    // Resource routes come after specific routes
     Route::resource('work-cells', WorkCellController::class);
     Route::get('work-cells/{workCell}/check-dependencies', [WorkCellController::class, 'checkDependencies'])->name('work-cells.check-dependencies');
     Route::get('work-cells/{workCell}/dashboard', [WorkCellDashboardController::class, 'show'])->name('work-cells.dashboard');

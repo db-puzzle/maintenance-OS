@@ -258,7 +258,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
         },
     ];
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} enableCompressedMode={true}>
             <Head title={`Área ${area.name}`} />
             <ShowLayout title={area.name} subtitle={subtitle} editRoute={route('asset-hierarchy.areas.edit', area.id)} tabs={tabs} />
         </AppLayout>

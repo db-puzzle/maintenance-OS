@@ -5,6 +5,10 @@ import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
 import { EntityPagination } from '@/components/shared/EntityPagination';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Download, Upload, FileText } from 'lucide-react';
+import { downloadFile } from '@/utils/download';
 
 import { useEntityOperations } from '@/hooks/useEntityOperations';
 import { useSorting } from '@/hooks/useSorting';
@@ -64,8 +68,13 @@ interface Props {
         symbol?: string;
         uom_type: 'COUNT' | 'MASS' | 'LENGTH' | 'AREA' | 'VOLUME' | 'TIME';
     }[];
+    can?: {
+        create?: boolean;
+        import?: boolean;
+        export?: boolean;
+    };
 }
-export default function WorkCells({ workCells: initialWorkCells, filters, plants, shifts, manufacturers, unitsOfMeasure }: Props) {
+export default function WorkCells({ workCells: initialWorkCells, filters, plants, shifts, manufacturers, unitsOfMeasure, can }: Props) {
     const entityOps = useEntityOperations<WorkCell>({
         entityName: 'work-cell',
         entityLabel: 'Célula de Trabalho',
@@ -241,6 +250,23 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
             { preserveState: true, preserveScroll: true },
         );
     };
+
+    const handleExport = (format: 'json' | 'csv') => {
+        const params = new URLSearchParams();
+        params.append('format', format);
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                params.append(key, String(value));
+            }
+        });
+        const exportUrl = `${route('production.work-cells.export-list')}?${params.toString()}`;
+        const filename = `work-cells-${new Date().toISOString().split('T')[0]}.${format}`;
+        downloadFile(exportUrl, filename);
+    };
+
+    const handleImport = () => {
+        router.visit(route('production.work-cells.import.wizard'));
+    };
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Células de Trabalho" />
@@ -266,6 +292,35 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
                             columnVisibility={columnVisibility}
                             onColumnVisibilityChange={handleColumnVisibilityChange}
                         />
+                        {can?.import && (
+                            <Button
+                                variant="outline"
+                                onClick={handleImport}
+                            >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Importar
+                            </Button>
+                        )}
+                        {can?.export && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline">
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Exportar
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleExport('json')}>
+                                        <FileText className="h-4 w-4 mr-2" />
+                                        Exportar como JSON
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleExport('csv')}>
+                                        <FileText className="h-4 w-4 mr-2" />
+                                        Exportar como CSV
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
                     </div>
                 }
             >

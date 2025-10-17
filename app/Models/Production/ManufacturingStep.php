@@ -84,6 +84,7 @@ class ManufacturingStep extends Model
         'form_version_id',
         'setup_time_minutes',
         'cycle_time_minutes',
+        'use_workcell_throughput',
         'actual_start_time',
         'actual_end_time',
         'quality_result',
@@ -116,6 +117,7 @@ class ManufacturingStep extends Model
         'actual_start_time' => 'datetime',
         'actual_end_time' => 'datetime',
         'is_template' => 'boolean',
+        'use_workcell_throughput' => 'boolean',
         // Progressive flow casts
         'dependency_start_condition' => 'string',
         'dependency_minimum_percentage' => 'decimal:2',

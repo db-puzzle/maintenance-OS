@@ -794,7 +794,7 @@ export default function Show({
         },
     ];
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} enableCompressedMode={true}>
             <Head title={`Célula de Trabalho ${workCell.name}`} />
             <ShowLayout
                 title={workCell.name}

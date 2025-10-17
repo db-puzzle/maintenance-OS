@@ -13,6 +13,7 @@ use App\Models\Production\WorkCell;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class WorkCellController extends BaseSearchController
 {
@@ -52,7 +53,7 @@ class WorkCellController extends BaseSearchController
         }
 
         // Apply active filter
-        if ($request->has('is_active')) {
+        if ($request->has('is_active') && $request->input('is_active') !== null) {
             $query->where('is_active', $request->boolean('is_active'));
         }
 
@@ -105,6 +106,11 @@ class WorkCellController extends BaseSearchController
             'shifts' => $shifts,
             'manufacturers' => $manufacturers,
             'unitsOfMeasure' => $unitsOfMeasure,
+            'can' => [
+                'create' => auth()->user()->can('create', WorkCell::class),
+                'import' => auth()->user()->can('import', WorkCell::class),
+                'export' => auth()->user()->can('export', WorkCell::class),
+            ],
         ]);
     }
 
@@ -461,5 +467,395 @@ class WorkCellController extends BaseSearchController
         $sectors = $area->sectors()->orderBy('name')->get(['id', 'name']);
 
         return response()->json($sectors);
+    }
+
+    /**
+     * Export work cells to JSON or CSV.
+     */
+    public function export(Request $request)
+    {
+        $this->authorize('export', WorkCell::class);
+
+        $format = $request->input('format', 'json');
+
+        // Get filtered work cells based on request parameters
+        $query = WorkCell::query()
+            ->with(['plant', 'area', 'sector', 'shift', 'manufacturer']);
+
+        // Apply search filter
+        $search = $request->input('search');
+        if ($search) {
+            $searchConfig = [
+                'name',
+                'description',
+                [
+                    'relation' => 'plant',
+                    'columns' => ['name'],
+                ],
+                [
+                    'relation' => 'area',
+                    'columns' => ['name'],
+                ],
+                [
+                    'relation' => 'sector',
+                    'columns' => ['name'],
+                ],
+            ];
+            $query = $this->applySearchFilter($query, $search, $searchConfig);
+        }
+
+        // Apply filters
+        $query = $query
+            ->when($request->input('cell_type'), function ($query, $cellType) {
+                $query->where('cell_type', $cellType);
+            })
+            ->when($request->has('is_active') && $request->input('is_active') !== null, function ($query) use ($request) {
+                $query->where('is_active', $request->boolean('is_active'));
+            });
+
+        $workCells = $query->get();
+
+        if ($format === 'csv') {
+            return $this->exportCsv($workCells);
+        }
+
+        return $this->exportJson($workCells);
+    }
+
+    /**
+     * Export work cells as JSON.
+     */
+    protected function exportJson($workCells)
+    {
+        $exportData = [
+            'exported_at' => now()->toIso8601String(),
+            'exported_by' => auth()->user()->name,
+            'total_work_cells' => $workCells->count(),
+            'work_cells' => $workCells->map(function ($workCell) {
+                return [
+                    'name' => $workCell->name,
+                    'description' => $workCell->description,
+                    'cell_type' => $workCell->cell_type,
+                    'plant_name' => $workCell->plant?->name,
+                    'area_name' => $workCell->area?->name,
+                    'sector_name' => $workCell->sector?->name,
+                    'shift_name' => $workCell->shift?->name,
+                    'manufacturer_name' => $workCell->manufacturer?->name,
+                    'has_finite_capacity' => $workCell->has_finite_capacity,
+                    'default_production_rate_per_hour' => $workCell->default_production_rate_per_hour,
+                    'default_unit_of_measure' => $workCell->default_unit_of_measure,
+                    'is_active' => $workCell->is_active,
+                ];
+            }),
+        ];
+
+        $jsonContent = json_encode($exportData, JSON_PRETTY_PRINT);
+
+        return response($jsonContent)
+            ->header('Content-Type', 'application/json')
+            ->header('Content-Disposition', 'attachment; filename="work-cells-' . date('Y-m-d') . '.json"');
+    }
+
+    /**
+     * Export work cells as CSV.
+     */
+    protected function exportCsv($workCells)
+    {
+        $headers = [
+            'Name',
+            'Description',
+            'Cell Type',
+            'Plant',
+            'Area',
+            'Sector',
+            'Shift',
+            'Manufacturer',
+            'Has Finite Capacity',
+            'Default Production Rate',
+            'Default Unit of Measure',
+            'Is Active',
+        ];
+
+        $csv = fopen('php://temp', 'r+');
+        fputcsv($csv, $headers);
+
+        foreach ($workCells as $workCell) {
+            fputcsv($csv, [
+                $workCell->name,
+                $workCell->description,
+                $workCell->cell_type,
+                $workCell->plant?->name,
+                $workCell->area?->name,
+                $workCell->sector?->name,
+                $workCell->shift?->name,
+                $workCell->manufacturer?->name,
+                $workCell->has_finite_capacity ? 'Yes' : 'No',
+                $workCell->default_production_rate_per_hour,
+                $workCell->default_unit_of_measure,
+                $workCell->is_active ? 'Yes' : 'No',
+            ]);
+        }
+
+        rewind($csv);
+        $csvContent = stream_get_contents($csv);
+        fclose($csv);
+
+        return response($csvContent)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="work-cells-' . date('Y-m-d') . '.csv"');
+    }
+
+    /**
+     * Display the import wizard.
+     */
+    public function importWizard(): Response
+    {
+        $this->authorize('import', WorkCell::class);
+
+        return Inertia::render('production/work-cells/import/index', [
+            'supportedFormats' => ['csv', 'json'],
+        ]);
+    }
+
+    /**
+     * Check for existing work cells during import.
+     */
+    public function checkExistingWorkCells(Request $request)
+    {
+        $this->authorize('import', WorkCell::class);
+
+        $names = $request->input('names', []);
+
+        $existingWorkCells = WorkCell::whereIn('name', $names)
+            ->get(['id', 'name', 'cell_type', 'description'])
+            ->keyBy('name');
+
+        return response()->json([
+            'existing' => $existingWorkCells,
+            'count' => $existingWorkCells->count(),
+        ]);
+    }
+
+    /**
+     * Import work cells from file.
+     */
+    public function import(Request $request)
+    {
+        $this->authorize('import', WorkCell::class);
+
+        $request->validate([
+            'file' => 'required|file|mimes:csv,json|max:10240', // 10MB max
+            'update_existing' => 'boolean',
+            'skip_duplicates' => 'boolean',
+        ]);
+
+        $file = $request->file('file');
+        $updateExisting = $request->boolean('update_existing', true);
+        $skipDuplicates = $request->boolean('skip_duplicates', false);
+
+        $extension = $file->getClientOriginalExtension();
+
+        try {
+            if ($extension === 'json') {
+                $results = $this->importJson($file, $updateExisting, $skipDuplicates);
+            } else {
+                $results = $this->importCsv($file, $updateExisting, $skipDuplicates);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Import completed successfully',
+                'results' => $results,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Import failed: ' . $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Import work cells from JSON file.
+     */
+    protected function importJson($file, $updateExisting, $skipDuplicates)
+    {
+        $content = file_get_contents($file->getRealPath());
+        $data = json_decode($content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new \Exception('Invalid JSON file format');
+        }
+
+        $workCells = $data['work_cells'] ?? [];
+
+        return $this->processImportData($workCells, $updateExisting, $skipDuplicates);
+    }
+
+    /**
+     * Import work cells from CSV file.
+     */
+    protected function importCsv($file, $updateExisting, $skipDuplicates)
+    {
+        $csv = fopen($file->getRealPath(), 'r');
+        $headers = fgetcsv($csv);
+
+        // Normalize headers
+        $headers = array_map('trim', $headers);
+        $headers = array_map('strtolower', $headers);
+        $headers = array_map(function ($header) {
+            return str_replace(' ', '_', $header);
+        }, $headers);
+
+        $workCells = [];
+        while (($row = fgetcsv($csv)) !== false) {
+            if (count($row) !== count($headers)) {
+                continue;
+            }
+
+            $workCell = array_combine($headers, $row);
+
+            // Map CSV fields to expected format
+            $workCells[] = [
+                'name' => $workCell['name'] ?? '',
+                'description' => $workCell['description'] ?? '',
+                'cell_type' => $workCell['cell_type'] ?? 'internal',
+                'plant_name' => $workCell['plant'] ?? null,
+                'area_name' => $workCell['area'] ?? null,
+                'sector_name' => $workCell['sector'] ?? null,
+                'shift_name' => $workCell['shift'] ?? null,
+                'manufacturer_name' => $workCell['manufacturer'] ?? null,
+                'has_finite_capacity' => in_array(strtolower($workCell['has_finite_capacity'] ?? ''), ['yes', 'true', '1']),
+                'default_production_rate_per_hour' => is_numeric($workCell['default_production_rate'] ?? '') ? floatval($workCell['default_production_rate']) : null,
+                'default_unit_of_measure' => $workCell['default_unit_of_measure'] ?? null,
+                'is_active' => in_array(strtolower($workCell['is_active'] ?? ''), ['yes', 'true', '1']),
+            ];
+        }
+
+        fclose($csv);
+
+        return $this->processImportData($workCells, $updateExisting, $skipDuplicates);
+    }
+
+    /**
+     * Process imported work cell data.
+     */
+    protected function processImportData($workCells, $updateExisting, $skipDuplicates)
+    {
+        $created = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+
+        DB::beginTransaction();
+
+        try {
+            foreach ($workCells as $index => $workCellData) {
+                try {
+                    // Skip empty rows
+                    if (empty($workCellData['name'])) {
+                        continue;
+                    }
+
+                    // Check if work cell exists
+                    $existingWorkCell = WorkCell::where('name', $workCellData['name'])->first();
+
+                    if ($existingWorkCell) {
+                        if ($skipDuplicates) {
+                            $skipped++;
+                            continue;
+                        }
+
+                        if (! $updateExisting) {
+                            $errors[] = 'Row ' . ($index + 2) . ": Work cell '{$workCellData['name']}' already exists";
+                            continue;
+                        }
+                    }
+
+                    // Resolve relationships
+                    $plantId = null;
+                    $areaId = null;
+                    $sectorId = null;
+                    $shiftId = null;
+                    $manufacturerId = null;
+
+                    if (! empty($workCellData['plant_name'])) {
+                        $plant = Plant::where('name', $workCellData['plant_name'])->first();
+                        if ($plant) {
+                            $plantId = $plant->id;
+                        }
+                    }
+
+                    if (! empty($workCellData['area_name']) && $plantId) {
+                        $area = Area::where('name', $workCellData['area_name'])
+                            ->where('plant_id', $plantId)
+                            ->first();
+                        if ($area) {
+                            $areaId = $area->id;
+                        }
+                    }
+
+                    if (! empty($workCellData['sector_name']) && $areaId) {
+                        $sector = Sector::where('name', $workCellData['sector_name'])
+                            ->where('area_id', $areaId)
+                            ->first();
+                        if ($sector) {
+                            $sectorId = $sector->id;
+                        }
+                    }
+
+                    if (! empty($workCellData['shift_name'])) {
+                        $shift = Shift::where('name', $workCellData['shift_name'])->first();
+                        if ($shift) {
+                            $shiftId = $shift->id;
+                        }
+                    }
+
+                    if (! empty($workCellData['manufacturer_name'])) {
+                        $manufacturer = Manufacturer::where('name', $workCellData['manufacturer_name'])->first();
+                        if ($manufacturer) {
+                            $manufacturerId = $manufacturer->id;
+                        }
+                    }
+
+                    $attributes = [
+                        'name' => $workCellData['name'],
+                        'description' => $workCellData['description'] ?? null,
+                        'cell_type' => $workCellData['cell_type'] ?? 'internal',
+                        'plant_id' => $plantId,
+                        'area_id' => $areaId,
+                        'sector_id' => $sectorId,
+                        'shift_id' => $shiftId,
+                        'manufacturer_id' => $manufacturerId,
+                        'has_finite_capacity' => $workCellData['has_finite_capacity'] ?? true,
+                        'default_production_rate_per_hour' => $workCellData['default_production_rate_per_hour'] ?? null,
+                        'default_unit_of_measure' => $workCellData['default_unit_of_measure'] ?? null,
+                        'is_active' => $workCellData['is_active'] ?? true,
+                    ];
+
+                    if ($existingWorkCell && $updateExisting) {
+                        $existingWorkCell->update($attributes);
+                        $updated++;
+                    } else {
+                        WorkCell::create($attributes);
+                        $created++;
+                    }
+                } catch (\Exception $e) {
+                    $errors[] = 'Row ' . ($index + 2) . ': ' . $e->getMessage();
+                }
+            }
+
+            DB::commit();
+
+            return [
+                'created' => $created,
+                'updated' => $updated,
+                'skipped' => $skipped,
+                'errors' => $errors,
+            ];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 }

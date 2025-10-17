@@ -293,7 +293,7 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
         },
     ];
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} enableCompressedMode={true}>
             <Head title={`Turno ${shift.name}`} />
             <ShowLayout
                 title={shift.name}

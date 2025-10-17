@@ -8,6 +8,7 @@ import { type BreadcrumbItem, type SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
 import { type PropsWithChildren, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import CompressedModeContext from '@/contexts/CompressedModeContext';
 
 interface AppSidebarLayoutProps {
     breadcrumbs?: BreadcrumbItem[];
@@ -48,19 +49,21 @@ export default function AppSidebarLayout({
     };
 
     return (
-        <AppShell variant="sidebar">
-            <AppSidebar />
-            <AppContent variant="sidebar">
-                <AppSidebarHeader
-                    breadcrumbs={breadcrumbs}
-                    enableCompressedMode={enableCompressedMode}
-                    isCompressed={isCompressed}
-                    onCompressedChange={handleCompressedChange}
-                />
-                {children}
-            </AppContent>
-            {auth?.user && <TimezoneDetector currentTimezone={(auth.user.timezone as string) || 'UTC'} userId={auth.user.id} />}
-            <Toaster />
-        </AppShell>
+        <CompressedModeContext.Provider value={{ isCompressed }}>
+            <AppShell variant="sidebar">
+                <AppSidebar />
+                <AppContent variant="sidebar">
+                    <AppSidebarHeader
+                        breadcrumbs={breadcrumbs}
+                        enableCompressedMode={enableCompressedMode}
+                        isCompressed={isCompressed}
+                        onCompressedChange={handleCompressedChange}
+                    />
+                    {children}
+                </AppContent>
+                {auth?.user && <TimezoneDetector currentTimezone={(auth.user.timezone as string) || 'UTC'} userId={auth.user.id} />}
+                <Toaster />
+            </AppShell>
+        </CompressedModeContext.Provider>
     );
 }

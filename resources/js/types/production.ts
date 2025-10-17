@@ -283,6 +283,7 @@ export interface ManufacturingOrder {
     quantity_scrapped: number;
     unit_of_measure: string;
     status: 'draft' | 'planned' | 'scheduled' | 'released' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+    canRevertStatus?: boolean;
     priority: number;
     child_orders_count: number;
     completed_child_orders_count: number;
@@ -410,6 +411,7 @@ export interface ManufacturingStep {
     form_version_id?: number;
     setup_time_minutes: number;
     cycle_time_minutes: number;
+    use_workcell_throughput?: boolean;
     actual_start_time?: string;
     actual_end_time?: string;
     actual_duration_minutes?: number;

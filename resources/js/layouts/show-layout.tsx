@@ -2,12 +2,11 @@
 import { Button } from '@/components/ui/button';
 import { MainSelectionTab, MainSelectionTabList, MainSelectionTabTrigger } from '@/components/ui/main-selection-tab';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSidebar } from '@/components/ui/sidebar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
-import { Check, Maximize2, Minimize2 } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Check } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { useCompressedMode } from '@/contexts/CompressedModeContext';
 interface Tab {
     id: string;
     label: string;
@@ -24,8 +23,6 @@ interface ShowLayoutProps {
     defaultActiveTab?: string;
     activeTab?: string;
     onActiveTabChange?: (tabId: string) => void;
-    onCompressedChange?: (compressed: boolean) => void;
-    defaultCompressed?: boolean;
     actions?: ReactNode;
 }
 export default function ShowLayout({
@@ -38,39 +35,20 @@ export default function ShowLayout({
     defaultActiveTab,
     activeTab: controlledActiveTab,
     onActiveTabChange,
-    onCompressedChange,
-    defaultCompressed = false,
     actions,
 }: ShowLayoutProps) {
     const [internalActiveTab, setInternalActiveTab] = useState(defaultActiveTab || (tabs && tabs.length > 0 ? tabs[0].id : ''));
-    const [isCompressed, setIsCompressed] = useState(defaultCompressed);
-    const sidebarControls = useSidebar();
-    // Track previous compression state to detect changes
-    const prevIsCompressed = useRef(isCompressed);
+
+    // Get compressed state from context
+    const isCompressed = useCompressedMode();
+
     // Use controlled mode if activeTab and onActiveTabChange are provided
     const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalActiveTab;
     const setActiveTab = onActiveTabChange || setInternalActiveTab;
+
     // Simple animation class for all tabs
     const tabAnimationClass = 'animate-in fade-in-2 slide-in-from-top-5 duration-200';
-    useEffect(() => {
-        // Only sync sidebar when compression state actually changes
-        if (sidebarControls && !sidebarControls.isMobile && prevIsCompressed.current !== isCompressed) {
-            if (isCompressed) {
-                // Entering compressed mode - close sidebar
-                sidebarControls.setOpen(false);
-            } else {
-                // Exiting compressed mode - open sidebar
-                sidebarControls.setOpen(true);
-            }
-            // Update the previous state
-            prevIsCompressed.current = isCompressed;
-        }
-    }, [isCompressed, sidebarControls]);
-    const handleToggleCompressed = () => {
-        const newCompressed = !isCompressed;
-        setIsCompressed(newCompressed);
-        onCompressedChange?.(newCompressed);
-    };
+
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden">
             {/* Fixed Header Section */}
@@ -143,23 +121,6 @@ export default function ShowLayout({
                         {/* Buttons */}
                         <div className="flex items-center gap-2">
                             {actions}
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={handleToggleCompressed}
-                                            className={cn('h-8 w-8 flex-shrink-0 transition-all duration-200')}
-                                        >
-                                            {isCompressed ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{isCompressed ? 'Expandir visualização' : 'Comprimir visualização'}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
                             {showEditButton && (
                                 <Button asChild className="hidden sm:inline-flex">
                                     <Link href={editRoute}>Editar</Link>

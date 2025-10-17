@@ -114,6 +114,7 @@ class PlanningController extends Controller
             'steps.*.work_cell_id' => 'nullable|exists:work_cells,id',
             'steps.*.setup_time_minutes' => 'nullable|integer|min:0',
             'steps.*.cycle_time_minutes' => 'nullable|integer|min:0',
+            'steps.*.use_workcell_throughput' => 'nullable|boolean',
             'steps.*.step_type' => 'required|in:standard,quality_check,rework',
             'steps.*.is_required' => 'boolean',
             'steps.*.child_order_dependency_type' => 'nullable|in:none,all_children_completed,children_quantity',
@@ -232,7 +233,7 @@ class PlanningController extends Controller
         // Collect all order IDs to transition (including children if requested)
         $allOrderIds = collect($orderIds);
 
-        if ($includeChildren && $targetState === 'planned') {
+        if ($includeChildren && in_array($targetState, ['planned', 'released'])) {
             // For each order, collect all descendant IDs
             foreach ($orderIds as $orderId) {
                 $childIds = $this->collectAllDescendantIds($orderId);
@@ -245,22 +246,79 @@ class PlanningController extends Controller
 
         $orders = ManufacturingOrder::whereIn('id', $allOrderIds)->get();
 
+        $successCount = 0;
+        $errorMessages = [];
+        $skippedCount = 0;
+
         foreach ($orders as $order) {
             $this->authorize('update', $order);
 
-            // Apply transition rules
+            // Check if order can be transitioned
+            $canTransition = true;
+            $skipReason = null;
+
+            // Apply transition rules and validations
             if ($targetState === 'planned' && $order->status === 'draft') {
-                $order->status = 'planned';
-                $order->save();
+                if ($order->canBePlanned()) {
+                    $order->status = 'planned';
+                    $order->save();
+                    $successCount++;
+                } else {
+                    $skipReason = "Order {$order->order_number} cannot be planned - missing route or work cells";
+                    $skippedCount++;
+                }
+            } elseif ($targetState === 'released' && $order->status === 'planned') {
+                if ($order->canBeReleased()) {
+                    $order->status = 'released';
+                    $order->save();
+                    $successCount++;
+                } else {
+                    $skipReason = "Order {$order->order_number} cannot be released - missing work cells";
+                    $skippedCount++;
+                }
+            } elseif ($targetState === 'planned' && $order->status === 'released') {
+                if ($order->canRevertStatus()) {
+                    $order->status = 'planned';
+                    $order->save();
+                    $successCount++;
+                } else {
+                    $skipReason = "Order {$order->order_number} cannot be reverted - already started in production";
+                    $skippedCount++;
+                }
             } elseif ($targetState === 'draft' && $order->status === 'planned') {
-                $order->status = 'draft';
-                $order->save();
+                if ($order->canRevertStatus()) {
+                    $order->status = 'draft';
+                    $order->save();
+                    $successCount++;
+                } else {
+                    $skipReason = "Order {$order->order_number} cannot be reverted - already started in production";
+                    $skippedCount++;
+                }
+            } else {
+                $skipReason = "Invalid transition from {$order->status} to {$targetState} for order {$order->order_number}";
+                $skippedCount++;
             }
-            // Add other transition rules as needed
+
+            if ($skipReason) {
+                $errorMessages[] = $skipReason;
+            }
         }
 
-        // Return success response for Inertia to handle
-        return back()->with('success', count($allOrderIds) . ' manufacturing order(s) updated successfully.');
+        // Build response message
+        $message = '';
+        if ($successCount > 0) {
+            $message = "$successCount manufacturing order(s) updated successfully.";
+        }
+        if ($skippedCount > 0) {
+            $message .= " $skippedCount order(s) could not be updated.";
+        }
+
+        // Return response with appropriate status
+        if ($successCount > 0) {
+            return back()->with('success', $message);
+        } else {
+            return back()->withErrors($errorMessages)->with('error', 'No orders could be updated.');
+        }
     }
 
     /**
@@ -355,10 +413,13 @@ class PlanningController extends Controller
             }
         }
 
-        // Add has_route attribute efficiently
+        // Add has_route and canRevertStatus attributes efficiently
         $orders->each(function ($order) {
             $order->has_route = $order->relationLoaded('manufacturingRoute') &&
                                $order->manufacturingRoute !== null;
+
+            // Add canRevertStatus attribute
+            $order->canRevertStatus = $order->canRevertStatus();
         });
 
         // Build hierarchy in memory - pass the originally selected MO ID
@@ -493,18 +554,46 @@ class PlanningController extends Controller
     private function loadWorkCells()
     {
         return WorkCell::active()
-            ->select('id', 'name', 'description', 'cell_type', 'default_production_rate_per_hour', 'is_active')
+            ->select(
+                'id',
+                'name',
+                'description',
+                'cell_type',
+                'has_finite_capacity',
+                'default_production_rate_per_hour',
+                'default_unit_of_measure',
+                'default_setup_time_minutes',
+                'max_parallel_executions',
+                'shift_id',
+                'plant_id',
+                'area_id',
+                'sector_id',
+                'manufacturer_id',
+                'is_active'
+            )
             ->orderBy('name')
             ->get()
             ->map(function ($workCell) {
                 return [
                     'id' => $workCell->id,
                     'name' => $workCell->name,
-                    'code' => null, // No code field in work_cells table
                     'description' => $workCell->description,
+                    'cell_type' => $workCell->cell_type,
+                    'has_finite_capacity' => $workCell->has_finite_capacity,
+                    'default_production_rate_per_hour' => $workCell->default_production_rate_per_hour,
+                    'default_unit_of_measure' => $workCell->default_unit_of_measure,
+                    'default_setup_time_minutes' => $workCell->default_setup_time_minutes,
+                    'max_parallel_executions' => $workCell->max_parallel_executions,
+                    'shift_id' => $workCell->shift_id,
+                    'plant_id' => $workCell->plant_id,
+                    'area_id' => $workCell->area_id,
+                    'sector_id' => $workCell->sector_id,
+                    'manufacturer_id' => $workCell->manufacturer_id,
+                    'is_active' => $workCell->is_active,
+                    // Keep these legacy fields for backward compatibility
+                    'code' => null,
                     'type' => $workCell->cell_type,
                     'capacity' => $workCell->default_production_rate_per_hour ?? 0,
-                    'is_active' => $workCell->is_active,
                     'utilization' => rand(40, 95), // TODO: Calculate real utilization
                 ];
             });

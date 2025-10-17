@@ -6,12 +6,12 @@ import { MOStatusBadge } from './MOStatusBadge';
 import { MOPriorityBadge } from './MOPriorityBadge';
 import { MOProgressBar } from './MOProgressBar';
 import { MODetailsDialog } from './MODetailsDialog';
+import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { format, parseISO } from 'date-fns';
 import {
     Play,
     FileText,
     MoreHorizontal,
-    Package,
     Clock,
     AlertCircle,
     ChevronRight,
@@ -177,12 +177,14 @@ export function MOCardView({ orders, onOrderClick, onAction, showImages = true }
                         {/* Status-colored overlay */}
                         <div className={`absolute inset-0 rounded-lg ${statusColors}`} />
                         {/* Image */}
-                        <img
-                            src={getItemImageUrl(order.item, false)!} // Use full-size image
-                            alt={order.item?.name || 'Product'}
-                            className={`relative w-full h-full object-contain p-4 transition-all duration-300 ease-in-out ${animationState === 'exiting' ? 'scale-95 opacity-80' : 'scale-100 opacity-100'
-                                }`}
-                        />
+                        <div className="relative w-full h-full p-4">
+                            <ItemImagePreview
+                                primaryImageData={order.item?.primary_image_data}
+                                primaryImageUrl={getItemImageUrl(order.item, false) || ''}
+                                imageCount={0}
+                                className={`w-full h-full transition-all duration-300 ease-in-out ${animationState === 'exiting' ? 'scale-95 opacity-80' : 'scale-100 opacity-100'}`}
+                            />
+                        </div>
                     </div>
                 )}
 
@@ -212,23 +214,13 @@ export function MOCardView({ orders, onOrderClick, onAction, showImages = true }
                 {/* Item Info Section - Always present */}
                 <div className="flex items-start gap-3 mb-3">
                     {showImages && (
-                        imageUrl ? (
-                            <button
-                                onClick={(e) => toggleImageOverlay(order.id, e)}
-                                className="relative group cursor-pointer focus:outline-none flex-shrink-0 w-16 h-16"
-                            >
-                                <img
-                                    src={imageUrl}
-                                    alt={order.item?.name || 'Product'}
-                                    className="w-full h-full object-contain rounded transition-transform group-hover:scale-105"
-                                    style={{ backgroundColor: '#f3f4f6' }}
-                                />
-                            </button>
-                        ) : (
-                            <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
-                                <Package className="w-8 h-8 text-gray-400" />
-                            </div>
-                        )
+                        <ItemImagePreview
+                            primaryImageData={order.item?.primary_image_data}
+                            primaryImageUrl={imageUrl || ''}
+                            imageCount={0}
+                            className="w-16 h-16 cursor-pointer"
+                            onClick={(e) => toggleImageOverlay(order.id, e!)}
+                        />
                     )}
                     <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">

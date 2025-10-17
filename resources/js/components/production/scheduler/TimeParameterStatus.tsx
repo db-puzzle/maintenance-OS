@@ -20,11 +20,12 @@ import { cn } from '@/lib/utils';
 import TimeParameterForm from './TimeParameterForm';
 
 interface WorkCellRate {
-    id: number;
+    id: number | null;
     setup_time_minutes: number;
     production_rate_per_hour: number;
     unit_of_measure: string;
     cycle_time_minutes: number;
+    is_default?: boolean;
 }
 
 interface Step {
@@ -212,7 +213,9 @@ export default function TimeParameterStatus({ orders, onRefresh }: TimeParameter
                                                                 <Clock className="w-3 h-3" />
                                                                 Step Times
                                                             </div>
-                                                            {step.has_step_time ? (
+                                                            {step.use_workcell_throughput ? (
+                                                                <div className="ml-5 text-blue-600">Using work cell throughput</div>
+                                                            ) : step.has_step_time ? (
                                                                 <div className="ml-5 space-y-1">
                                                                     <div>Setup: {formatTime(step.setup_time_minutes)}</div>
                                                                     <div>Cycle: {formatTime(step.cycle_time_minutes)}</div>

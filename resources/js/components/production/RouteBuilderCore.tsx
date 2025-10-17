@@ -86,6 +86,7 @@ export default function RouteBuilderCore({
         work_cell_id: string;
         setup_time_minutes: number;
         cycle_time_minutes: number;
+        use_workcell_throughput: boolean;
         depends_on_step_id: string;
         can_start_when_dependency: 'completed';
         quality_check_mode?: string;
@@ -98,6 +99,7 @@ export default function RouteBuilderCore({
         work_cell_id: '',
         setup_time_minutes: 0,
         cycle_time_minutes: 0,
+        use_workcell_throughput: false,
         depends_on_step_id: '',
         can_start_when_dependency: 'completed',
         quality_check_mode: 'every_part',
@@ -119,6 +121,7 @@ export default function RouteBuilderCore({
                 work_cell_id: selectedStep.work_cell_id?.toString() || '',
                 setup_time_minutes: selectedStep.setup_time_minutes || 0,
                 cycle_time_minutes: selectedStep.cycle_time_minutes || 0,
+                use_workcell_throughput: selectedStep.use_workcell_throughput ?? false,
                 depends_on_step_id: selectedStep.depends_on_step_id?.toString() || '',
                 can_start_when_dependency: selectedStep.can_start_when_dependency || 'completed',
                 quality_check_mode: selectedStep.quality_check_mode || 'every_part',
@@ -155,6 +158,7 @@ export default function RouteBuilderCore({
                 work_cell_id: step.work_cell_id,
                 setup_time_minutes: step.setup_time_minutes,
                 cycle_time_minutes: step.cycle_time_minutes,
+                use_workcell_throughput: step.use_workcell_throughput ?? false,
                 depends_on_step_id: step.depends_on_step_id,
                 can_start_when_dependency: step.can_start_when_dependency,
                 quality_check_mode: step.quality_check_mode,
@@ -212,6 +216,7 @@ export default function RouteBuilderCore({
             status: 'pending',
             setup_time_minutes: 0,
             cycle_time_minutes: 0,
+            use_workcell_throughput: false,
             depends_on_step_id: previousStep ? previousStep.id : undefined,
             can_start_when_dependency: 'completed',
             isNew: true, // Mark as new step

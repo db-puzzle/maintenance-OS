@@ -26,6 +26,7 @@ export interface TimeParameterTreeNode extends GenericTreeNode {
         has_step_time: boolean;
         setup_time_minutes: number | null;
         cycle_time_minutes: number | null;
+        use_workcell_throughput: boolean | null;
         has_work_cell_rate: boolean;
         work_cell_rate: any;
         effective_time_source: 'step' | 'work_cell' | null;

@@ -35,6 +35,7 @@ import ApplyTemplateDialog from '@/components/production/planning/ApplyTemplateD
 import { SaveAsTemplateDialog } from '@/components/production/templates/SaveAsTemplateDialog';
 import { MOSelectionModal } from '@/components/production/planning/MOSelectionModal';
 import { MarkChildrenPlannedDialog } from '@/components/production/planning/MarkChildrenPlannedDialog';
+import { MarkChildrenReleasedDialog } from '@/components/production/planning/MarkChildrenReleasedDialog';
 // import { UnsavedChangesDialog } from '@/components/production/planning/UnsavedChangesDialog';
 // import WorkCellManager from '@/components/production/planning/WorkCellManager';
 // import BulkOperationsPanel from '@/components/production/planning/BulkOperationsPanel';
@@ -277,6 +278,14 @@ export default function PlanningPage({
         childrenCount: number;
     } | null>(null);
 
+    // Dialog state for marking children as released
+    const [showMarkChildrenReleasedDialog, setShowMarkChildrenReleasedDialog] = useState(false);
+    const [pendingReleasedTransition, setPendingReleasedTransition] = useState<{
+        orderIds: number[];
+        parentOrder: ManufacturingOrder | null;
+        childrenCount: number;
+    } | null>(null);
+
 
     // Use keyboard shortcuts hook
     usePlanningKeyboardShortcuts({
@@ -358,6 +367,7 @@ export default function PlanningPage({
                 work_cell_id: step.work_cell_id ?? null,
                 setup_time_minutes: step.setup_time_minutes || 0,
                 cycle_time_minutes: step.cycle_time_minutes || 0,
+                use_workcell_throughput: step.use_workcell_throughput ?? false, // Match RouteBuilder's conversion
                 step_type: step.step_type || 'standard',
                 is_required: true, // Default to true as ManufacturingStep doesn't have this field
                 quality_check_mode: step.quality_check_mode,
@@ -414,7 +424,39 @@ export default function PlanningPage({
         return totalChildren;
     }, [currentManufacturingOrders, findMOInHierarchy]);
 
-    // Handle marking as planned/draft
+    // Helper function to get button label based on status
+    const getStatusButtonLabel = useCallback(() => {
+        if (!activeMODetails) return '';
+
+        switch (activeMODetails.status) {
+            case 'draft':
+                return 'Marcar Planejada';
+            case 'planned':
+                return 'Liberar para Produção';
+            case 'released':
+                return activeMODetails.canRevertStatus
+                    ? 'Reverter para Planejada'
+                    : 'Ordem em Produção';
+            default:
+                return '';
+        }
+    }, [activeMODetails]);
+
+    // Helper function to get target state based on current status
+    const getTargetState = useCallback((currentStatus: string): 'draft' | 'planned' | 'released' | null => {
+        switch (currentStatus) {
+            case 'draft':
+                return 'planned';
+            case 'planned':
+                return 'released';
+            case 'released':
+                return 'planned';
+            default:
+                return null;
+        }
+    }, []);
+
+    // Handle marking as planned/draft/released
     const handleToggleStatus = useCallback(() => {
         if (selectedMOs.size === 0) {
             toast.error('Por favor, selecione ordens de fabricação para alterar o status.');
@@ -428,32 +470,59 @@ export default function PlanningPage({
         }
 
         // Determine target state based on current active MO status
-        const targetState = activeMODetails?.status === 'planned' ? 'draft' : 'planned';
+        const targetState = getTargetState(activeMODetails?.status || '');
 
-        // Check if transitioning to planned and if any selected order has children
-        if (targetState === 'planned') {
-            const orderIds = Array.from(selectedMOs);
-            const childrenCount = countChildrenForOrders(orderIds);
+        if (!targetState) {
+            toast.error('Não é possível alterar o status desta ordem.');
+            return;
+        }
 
-            if (childrenCount > 0 && activeMODetails) {
-                // Show dialog to ask about children
-                setPendingPlannedTransition({
-                    orderIds,
-                    parentOrder: activeMODetails,
-                    childrenCount
-                });
-                setShowMarkChildrenDialog(true);
+        // Check if this is a reversal and if the order can be reverted
+        if (activeMODetails?.status === 'released' && targetState === 'planned') {
+            if (!activeMODetails.canRevertStatus) {
+                toast.error('Esta ordem não pode ser revertida pois já foi iniciada na produção.');
                 return;
             }
         }
 
-        // No children or transitioning to draft - proceed directly
-        performStatusTransition(Array.from(selectedMOs), targetState, false);
-    }, [selectedMOs, activeMODetails, activeMO, sortField, sortDirection, hasUnsavedChanges, countChildrenForOrders]);
+        const orderIds = Array.from(selectedMOs);
+        const childrenCount = countChildrenForOrders(orderIds);
+
+        // Check if transitioning to planned and if any selected order has children
+        if (targetState === 'planned' && activeMODetails?.status === 'draft' && childrenCount > 0 && activeMODetails) {
+            // Show dialog to ask about children for draft -> planned
+            setPendingPlannedTransition({
+                orderIds,
+                parentOrder: activeMODetails,
+                childrenCount
+            });
+            setShowMarkChildrenDialog(true);
+            return;
+        }
+
+        // Check if transitioning to released and if any selected order has children
+        if (targetState === 'released' && childrenCount > 0 && activeMODetails) {
+            // Show dialog to ask about children for planned -> released
+            setPendingReleasedTransition({
+                orderIds,
+                parentOrder: activeMODetails,
+                childrenCount
+            });
+            setShowMarkChildrenReleasedDialog(true);
+            return;
+        }
+
+        // No children or transitioning without children consideration - proceed directly
+        performStatusTransition(orderIds, targetState, false);
+    }, [selectedMOs, activeMODetails, hasUnsavedChanges, countChildrenForOrders, getTargetState]);
 
     // Function to actually perform the status transition
-    const performStatusTransition = useCallback((orderIds: number[], targetState: 'planned' | 'draft', includeChildren: boolean) => {
-        const actionText = targetState === 'planned' ? 'marcada como planejada' : 'revertida para rascunho';
+    const performStatusTransition = useCallback((orderIds: number[], targetState: 'planned' | 'draft' | 'released', includeChildren: boolean) => {
+        const actionText = targetState === 'released'
+            ? 'liberada para produção'
+            : targetState === 'planned'
+                ? 'marcada como planejada'
+                : 'revertida para rascunho';
 
         PlanningService.bulkTransition(
             {
@@ -737,16 +806,20 @@ export default function PlanningPage({
                                                             variant="default"
                                                             size="sm"
                                                             onClick={handleToggleStatus}
-                                                            disabled={selectedMOs.size === 0}
+                                                            disabled={
+                                                                selectedMOs.size === 0 ||
+                                                                (activeMODetails?.status === 'released' && !activeMODetails?.canRevertStatus)
+                                                            }
                                                         >
-                                                            {activeMODetails?.status === 'planned' ? 'Marcar Draft' : 'Marcar Planejada'}
+                                                            {getStatusButtonLabel()}
                                                         </Button>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
                                                         <p>
-                                                            {activeMODetails?.status === 'planned'
-                                                                ? 'Reverter essa ordem para o estado Draft'
-                                                                : 'Transicionar essa ordem para o estado Planejado'}
+                                                            {activeMODetails?.status === 'draft' && 'Transicionar essa ordem para o estado Planejado'}
+                                                            {activeMODetails?.status === 'planned' && 'Liberar essa ordem para produção'}
+                                                            {activeMODetails?.status === 'released' && activeMODetails?.canRevertStatus && 'Reverter essa ordem para o estado Planejado'}
+                                                            {activeMODetails?.status === 'released' && !activeMODetails?.canRevertStatus && 'Esta ordem já foi iniciada na produção e não pode ser revertida'}
                                                         </p>
                                                     </TooltipContent>
                                                 </Tooltip>
@@ -959,6 +1032,24 @@ export default function PlanningPage({
                             includeChildren
                         );
                         setPendingPlannedTransition(null);
+                    }}
+                />
+            )}
+
+            {/* Mark Children as Released Dialog */}
+            {pendingReleasedTransition && pendingReleasedTransition.parentOrder && (
+                <MarkChildrenReleasedDialog
+                    open={showMarkChildrenReleasedDialog}
+                    onOpenChange={setShowMarkChildrenReleasedDialog}
+                    parentOrder={pendingReleasedTransition.parentOrder}
+                    childrenCount={pendingReleasedTransition.childrenCount}
+                    onConfirm={(includeChildren) => {
+                        performStatusTransition(
+                            pendingReleasedTransition.orderIds,
+                            'released',
+                            includeChildren
+                        );
+                        setPendingReleasedTransition(null);
                     }}
                 />
             )}

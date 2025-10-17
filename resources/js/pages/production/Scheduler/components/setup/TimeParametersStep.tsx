@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
-import TimeParameterHierarchicalView from '@/components/production/scheduler/TimeParameterHierarchicalView';
+import { TimeParametersGanttView } from './TimeParametersGanttView';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import TimeParameterForm from '@/components/production/scheduler/TimeParameterForm';
 
 interface TimeParametersStepProps {
     orders: any[];
     selectedOrders: number[];
     loading: boolean;
+    startDate: string;
+    endDate: string;
     onNext: () => void;
     onBack: () => void;
     onRefresh: () => void;
@@ -18,10 +21,17 @@ export function TimeParametersStep({
     orders,
     selectedOrders,
     loading,
+    startDate,
+    endDate,
     onNext,
     onBack,
     onRefresh,
 }: TimeParametersStepProps) {
+    const [editingStep, setEditingStep] = useState<{
+        orderId: number;
+        stepId: number;
+        step: any;
+    } | null>(null);
     // Check if all orders have valid time parameters
     const checkAllOrdersValid = (orderList: any[]): boolean => {
         return orderList.every(order => {
@@ -41,6 +51,31 @@ export function TimeParametersStep({
 
     const allValid = checkAllOrdersValid(orders);
     const invalidCount = countInvalidOrders(orders);
+
+    // Handle step editing
+    const handleEditStep = (orderId: number, stepId: number, step: any) => {
+        setEditingStep({ orderId, stepId, step });
+    };
+
+    // Get the current order being edited
+    const getEditingOrder = () => {
+        if (!editingStep) return null;
+
+        const findOrder = (orderList: any[]): any | null => {
+            for (const order of orderList) {
+                if (order.id === editingStep.orderId) return order;
+                if (order.children) {
+                    const found = findOrder(order.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+
+        return findOrder(orders);
+    };
+
+    const editingOrder = getEditingOrder();
 
     return (
         <div className="space-y-6">
@@ -79,8 +114,8 @@ export function TimeParametersStep({
                         </Alert>
                     )}
 
-                    {/* Time Parameter View */}
-                    <div className="border rounded-lg p-4 min-h-[400px] max-h-[600px] overflow-auto">
+                    {/* Time Parameter Gantt View */}
+                    <div className="min-h-[400px] max-h-[600px]">
                         {loading ? (
                             <div className="flex items-center justify-center h-32">
                                 <div className="text-center">
@@ -89,11 +124,12 @@ export function TimeParametersStep({
                                 </div>
                             </div>
                         ) : orders.length > 0 ? (
-                            <TimeParameterHierarchicalView
+                            <TimeParametersGanttView
                                 orders={orders}
-                                showThumbnails={true}
+                                startDate={startDate}
+                                endDate={endDate}
+                                onEditStep={handleEditStep}
                                 onRefresh={onRefresh}
-                                expandLevel={1}
                             />
                         ) : (
                             <div className="flex items-center justify-center h-32 text-muted-foreground">
@@ -155,6 +191,22 @@ export function TimeParametersStep({
                     <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
             </div>
+
+            {/* Edit Dialog */}
+            {editingStep && editingOrder && (
+                <TimeParameterForm
+                    open={true}
+                    onOpenChange={(open) => !open && setEditingStep(null)}
+                    step={editingStep.step}
+                    orderId={editingStep.orderId}
+                    orderQuantity={editingOrder.quantity}
+                    itemId={editingOrder.item?.id}
+                    onSuccess={() => {
+                        setEditingStep(null);
+                        onRefresh?.();
+                    }}
+                />
+            )}
         </div>
     );
 }

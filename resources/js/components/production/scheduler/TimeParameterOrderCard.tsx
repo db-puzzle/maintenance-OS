@@ -10,11 +10,11 @@ import {
 import { cn } from '@/lib/utils';
 import { formatNumber } from '@/utils/number';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
-import { 
-    Clock, 
-    Factory, 
-    AlertCircle, 
-    CheckCircle2, 
+import {
+    Clock,
+    Factory,
+    AlertCircle,
+    CheckCircle2,
     Edit2,
     AlertTriangle,
     Package
@@ -36,6 +36,7 @@ interface TimeParameterData {
         has_step_time: boolean;
         setup_time_minutes: number | null;
         cycle_time_minutes: number | null;
+        use_workcell_throughput: boolean | null;
         has_work_cell_rate: boolean;
         work_cell_rate: any;
         effective_time_source: 'step' | 'work_cell' | null;
@@ -194,9 +195,19 @@ export function TimeParameterOrderCard({
 
                 {/* Issues Summary */}
                 {!expanded && order.issues.length > 0 && (
-                    <div className="mt-2 flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
-                        <AlertCircle className="w-3 h-3" />
-                        <span>{order.issues.length} issue{order.issues.length > 1 ? 's' : ''}</span>
+                    <div className="mt-2 flex items-center gap-2 text-xs">
+                        {order.issues.filter(i => i.type !== 'using_default_time').length > 0 && (
+                            <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
+                                <AlertCircle className="w-3 h-3" />
+                                <span>{order.issues.filter(i => i.type !== 'using_default_time').length} error{order.issues.filter(i => i.type !== 'using_default_time').length > 1 ? 's' : ''}</span>
+                            </div>
+                        )}
+                        {order.issues.filter(i => i.type === 'using_default_time').length > 0 && (
+                            <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+                                <AlertTriangle className="w-3 h-3" />
+                                <span>{order.issues.filter(i => i.type === 'using_default_time').length} warning{order.issues.filter(i => i.type === 'using_default_time').length > 1 ? 's' : ''}</span>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -213,17 +224,42 @@ export function TimeParameterOrderCard({
                         <>
                             {/* Issues */}
                             {order.issues.length > 0 && (
-                                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md p-3">
-                                    <h4 className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">
-                                        Issues:
-                                    </h4>
-                                    <ul className="list-disc list-inside space-y-1">
-                                        {order.issues.map((issue, idx) => (
-                                            <li key={idx} className="text-sm text-red-700 dark:text-red-300">
-                                                {issue.message}
-                                            </li>
-                                        ))}
-                                    </ul>
+                                <div className="space-y-2">
+                                    {/* Separate errors and warnings */}
+                                    {order.issues.filter(issue => issue.type !== 'using_default_time').length > 0 && (
+                                        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md p-3">
+                                            <h4 className="text-sm font-medium text-red-800 dark:text-red-200 mb-2 flex items-center gap-2">
+                                                <AlertCircle className="w-4 h-4" />
+                                                Errors:
+                                            </h4>
+                                            <ul className="list-disc list-inside space-y-1">
+                                                {order.issues
+                                                    .filter(issue => issue.type !== 'using_default_time')
+                                                    .map((issue, idx) => (
+                                                        <li key={idx} className="text-sm text-red-700 dark:text-red-300">
+                                                            {issue.message}
+                                                        </li>
+                                                    ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    {order.issues.filter(issue => issue.type === 'using_default_time').length > 0 && (
+                                        <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-md p-3">
+                                            <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2 flex items-center gap-2">
+                                                <AlertTriangle className="w-4 h-4" />
+                                                Warnings:
+                                            </h4>
+                                            <ul className="list-disc list-inside space-y-1">
+                                                {order.issues
+                                                    .filter(issue => issue.type === 'using_default_time')
+                                                    .map((issue, idx) => (
+                                                        <li key={idx} className="text-sm text-yellow-700 dark:text-yellow-300">
+                                                            {issue.message}
+                                                        </li>
+                                                    ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -282,10 +318,25 @@ export function TimeParameterOrderCard({
                                                 <span className="font-medium">
                                                     Total: {formatTime(step.effective_total_time)}
                                                 </span>
+                                                {step.use_workcell_throughput && (
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={cn(
+                                                            "text-xs",
+                                                            step.work_cell_rate?.is_default && "border-yellow-500 text-yellow-700 dark:text-yellow-400"
+                                                        )}
+                                                    >
+                                                        <Factory className="w-3 h-3 mr-1" />
+                                                        {step.work_cell_rate?.is_default ? 'Default Rate' : 'Work Cell Rate'}
+                                                    </Badge>
+                                                )}
                                             </div>
                                         ) : (
                                             <div className="text-xs text-red-600 dark:text-red-400">
                                                 No time parameters configured
+                                                {step.use_workcell_throughput && !step.has_work_cell_rate && (
+                                                    <span className="ml-2">(Work cell rate not set)</span>
+                                                )}
                                             </div>
                                         )}
                                     </div>

@@ -129,8 +129,8 @@ export default function Show({ assetType, asset }: Props) {
         },
     ];
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <ShowLayout title={assetType.name} subtitle={subtitle} editRoute={route('asset-hierarchy.asset-types.edit', assetType.id)} tabs={tabs} />
+        <AppLayout breadcrumbs={breadcrumbs} enableCompressedMode={true}>
+            <ShowLayout title={assetType.name} subtitle={subtitle} editRoute="" tabs={tabs} />
         </AppLayout>
     );
 }

@@ -185,9 +185,17 @@ class RouteTemplateImportService
                     'work_cell_id' => $workCellId,
                     'setup_time_minutes' => $stepData['setup_time_minutes'] ?? 0,
                     'cycle_time_minutes' => $stepData['cycle_time_minutes'] ?? 0,
+                    'use_workcell_throughput' => $stepData['use_workcell_throughput'] ?? false,
                     'quality_check_mode' => $stepData['quality_check_mode'] ?? 'every_part',
                     'sampling_size' => $stepData['sampling_size'] ?? 0,
                     'form_id' => $stepData['form_id'] ?? null,
+                    'depends_on_step_id' => $stepData['depends_on_step_id'] ?? null,
+                    'can_start_when_dependency' => $stepData['can_start_when_dependency'] ?? 'completed',
+                    'dependency_start_condition' => $stepData['dependency_start_condition'] ?? 'completed',
+                    'dependency_minimum_quantity' => $stepData['dependency_minimum_quantity'] ?? null,
+                    'dependency_minimum_percentage' => $stepData['dependency_minimum_percentage'] ?? null,
+                    'child_order_dependency_type' => $stepData['child_order_dependency_type'] ?? 'none',
+                    'child_order_minimum_quantity' => $stepData['child_order_minimum_quantity'] ?? null,
                     'is_template' => true,
                     'status' => 'pending',
                 ]);
@@ -260,13 +268,28 @@ class RouteTemplateImportService
             $value = isset($row[$csvField]) ? $row[$csvField] : '';
 
             // Handle boolean fields
-            if (in_array($templateField, ['is_active'])) {
+            if (in_array($templateField, ['is_active', 'use_workcell_throughput'])) {
                 $value = in_array(strtolower($value), ['true', '1', 'yes', 'sim', 's']);
             }
 
             // Handle numeric fields
-            if (in_array($templateField, ['version', 'step_number', 'setup_time_minutes', 'cycle_time_minutes', 'sampling_size'])) {
+            if (in_array($templateField, ['version', 'step_number', 'setup_time_minutes', 'cycle_time_minutes', 'sampling_size', 'form_id', 'depends_on_step_id', 'dependency_minimum_quantity'])) {
                 $value = is_numeric($value) ? (int) $value : 0;
+            }
+
+            // Handle decimal fields
+            if (in_array($templateField, ['dependency_minimum_percentage', 'child_order_minimum_quantity'])) {
+                $value = is_numeric($value) ? (float) $value : 0;
+            }
+
+            // Handle JSON fields
+            if ($templateField === 'template_metadata') {
+                if (! empty($value)) {
+                    $decoded = json_decode($value, true);
+                    $value = $decoded !== null ? $decoded : [];
+                } else {
+                    $value = [];
+                }
             }
 
             $data[$templateField] = $value;

@@ -248,7 +248,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 };
             }
             return {
-                name: '5x10',
+                name: '5x2',
                 timezone: userTimezone,
                 schedules: weekdays.map((day) => ({
                     weekday: day.key,

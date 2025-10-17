@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TextInput } from '@/components/TextInput';
-import { Users, AlertCircle } from 'lucide-react';
+import { Users, AlertCircle, Calendar } from 'lucide-react';
 
 interface Order {
     id: number;
@@ -39,6 +39,12 @@ interface OrderSelectionPanelProps {
     onSelectionChange: (orderIds: number[]) => void;
     selectionMode: 'individual' | 'family';
     onSelectionModeChange: (mode: 'individual' | 'family') => void;
+    dateRange?: {
+        startDate: string;
+        endDate: string;
+        onStartDateChange: (date: string) => void;
+        onEndDateChange: (date: string) => void;
+    };
 }
 
 export default function OrderSelectionPanel({
@@ -46,7 +52,8 @@ export default function OrderSelectionPanel({
     selectedOrders,
     onSelectionChange,
     selectionMode,
-    onSelectionModeChange
+    onSelectionModeChange,
+    dateRange
 }: OrderSelectionPanelProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -154,6 +161,27 @@ export default function OrderSelectionPanel({
 
     return (
         <div className="h-full flex flex-col gap-3 min-h-0">
+
+            {/* Date Range */}
+            {dateRange && (
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <input
+                        type="date"
+                        value={dateRange.startDate}
+                        onChange={(e) => dateRange.onStartDateChange(e.target.value)}
+                        className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <span className="text-sm text-muted-foreground">to</span>
+                    <input
+                        type="date"
+                        value={dateRange.endDate}
+                        onChange={(e) => dateRange.onEndDateChange(e.target.value)}
+                        min={dateRange.startDate}
+                        className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                </div>
+            )}
 
             {/* Search and Filters */}
             <div className="flex gap-2 items-center flex-shrink-0">

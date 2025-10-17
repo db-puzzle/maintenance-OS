@@ -124,12 +124,12 @@ export default function RoutingShow({ routing, effectiveSteps, templates, workCe
         },
     ];
     const breadcrumbs = [
-        { title: 'Produção', href: '/production' },
-        { title: 'Roteiros', href: route('production.routing.index') },
+        { title: 'Home', href: '/' },
+        { title: 'Templates de Rotas', href: route('production.routing.index') },
         { title: routing.name, href: '' }
     ];
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} enableCompressedMode={true}>
             <Head title={`Roteiro - ${routing.name}`} />
             <ShowLayout
                 title={routing.name}

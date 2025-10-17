@@ -161,7 +161,6 @@ export default function ItemShow({
     const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
 
     const [isEditMode, setIsEditMode] = useState(isCreating);
-    const [isCompressed, setIsCompressed] = useState(false);
     const [categorySheetOpen, setCategorySheetOpen] = useState(false);
     const [generatingQr, setGeneratingQr] = useState(false);
     const [showCategoryWarning, setShowCategoryWarning] = useState(false);
@@ -1137,7 +1136,7 @@ export default function ItemShow({
     // };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} enableCompressedMode={true}>
             <Head title={isCreating ? 'Novo Item' : `Item ${item?.item_number}`} />
 
             <ShowLayout
@@ -1151,8 +1150,6 @@ export default function ItemShow({
                 }
                 editRoute=""
                 tabs={tabs}
-                defaultCompressed={isCompressed}
-                onCompressedChange={setIsCompressed}
                 actions={
                     !isCreating && item && can?.update && (
                         <Button
