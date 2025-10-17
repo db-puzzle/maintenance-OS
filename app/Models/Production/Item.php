@@ -2,6 +2,7 @@
 
 namespace App\Models\Production;
 
+use App\Models\Settings\UnitOfMeasure;
 use App\Models\User;
 use App\Traits\HasMediaTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -29,7 +30,7 @@ class Item extends Model implements HasMedia
         'is_active',
         'status',
         // 'current_bom_id', // REMOVED
-        'unit_of_measure',
+        'unit_of_measure_code',
         'weight',
         'dimensions',
         'list_price',
@@ -129,6 +130,14 @@ class Item extends Model implements HasMedia
     public function category(): BelongsTo
     {
         return $this->belongsTo(ItemCategory::class, 'item_category_id');
+    }
+
+    /**
+     * Get the unit of measure.
+     */
+    public function unitOfMeasure(): BelongsTo
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'unit_of_measure_code', 'code');
     }
 
     public function bomHistory(): HasMany
@@ -343,5 +352,21 @@ class Item extends Model implements HasMedia
         ]);
 
         return $history;
+    }
+
+    /**
+     * Backward compatibility accessor for old column name.
+     */
+    public function getUnitOfMeasureAttribute()
+    {
+        return $this->unit_of_measure_code;
+    }
+
+    /**
+     * Backward compatibility mutator for old column name.
+     */
+    public function setUnitOfMeasureAttribute($value)
+    {
+        $this->attributes['unit_of_measure_code'] = $value;
     }
 }

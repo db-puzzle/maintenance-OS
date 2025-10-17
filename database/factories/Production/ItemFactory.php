@@ -28,7 +28,7 @@ class ItemFactory extends Factory
             'is_phantom' => $isPhantom,
             'is_active' => $this->faker->boolean(90),
             'status' => $this->faker->randomElement(['active', 'inactive', 'prototype', 'discontinued']),
-            'unit_of_measure' => $this->faker->randomElement(['EA', 'KG', 'L', 'M', 'BOX', 'SET']),
+            'unit_of_measure_code' => $this->faker->randomElement(['PC', 'KG', 'L', 'M', 'BOX', 'SET']),
             'weight' => $this->faker->optional()->randomFloat(2, 0.01, 100),
             'dimensions' => $this->faker->optional()->passthrough([
                 'length' => $this->faker->numberBetween(1, 200),

@@ -4,6 +4,7 @@ namespace App\Models\Production;
 
 use App\Models\Forms\Form;
 use App\Models\Forms\FormVersion;
+use App\Services\Production\TimeFormatter;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ManufacturingStep extends Model
 {
     use HasFactory;
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = ['setup_time_minutes', 'cycle_time_minutes'];
 
     /**
      * Get the factory name for the model.
@@ -82,8 +90,8 @@ class ManufacturingStep extends Model
         'status',
         'form_id',
         'form_version_id',
-        'setup_time_minutes',
-        'cycle_time_minutes',
+        'setup_time_seconds',
+        'cycle_time_seconds',
         'use_workcell_throughput',
         'actual_start_time',
         'actual_end_time',
@@ -118,6 +126,8 @@ class ManufacturingStep extends Model
         'actual_end_time' => 'datetime',
         'is_template' => 'boolean',
         'use_workcell_throughput' => 'boolean',
+        'setup_time_seconds' => 'integer',
+        'cycle_time_seconds' => 'decimal:3',
         // Progressive flow casts
         'dependency_start_condition' => 'string',
         'dependency_minimum_percentage' => 'decimal:2',
@@ -448,7 +458,27 @@ class ManufacturingStep extends Model
     {
         $quantity = $this->manufacturingRoute->manufacturingOrder->quantity;
 
-        return $this->setup_time_minutes + ($this->cycle_time_minutes * $quantity);
+        return $this->setup_time_seconds + ($this->cycle_time_seconds * $quantity);
+    }
+
+    /**
+     * Format setup time for display.
+     */
+    public function formatSetupTime(string $scale = 'auto'): array
+    {
+        return TimeFormatter::formatDuration($this->setup_time_seconds, $scale);
+    }
+
+    /**
+     * Format cycle time for display.
+     */
+    public function formatCycleTime(string $mode = 'cycle_time', string $scale = 'auto'): array
+    {
+        if ($mode === 'throughput') {
+            return TimeFormatter::formatThroughput($this->cycle_time_seconds, $scale);
+        }
+
+        return TimeFormatter::formatCycleTime($this->cycle_time_seconds, $scale);
     }
 
     /**
@@ -476,15 +506,15 @@ class ManufacturingStep extends Model
     }
 
     /**
-     * Get estimated duration in minutes.
+     * Get estimated duration in seconds.
      */
     public function getEstimatedDuration(): int
     {
-        return ($this->setup_time_minutes ?? 0) + ($this->cycle_time_minutes ?? 30);
+        return ($this->setup_time_seconds ?? 0) + ($this->cycle_time_seconds ?? 30);
     }
 
     /**
-     * Get estimated remaining time in minutes.
+     * Get estimated remaining time in seconds.
      */
     public function getEstimatedRemainingTime(): int
     {
@@ -492,10 +522,10 @@ class ManufacturingStep extends Model
             return $this->getEstimatedDuration();
         }
 
-        $elapsedMinutes = $this->actual_start_time->diffInMinutes(now());
+        $elapsedSeconds = $this->actual_start_time->diffInSeconds(now());
         $estimatedDuration = $this->getEstimatedDuration();
 
-        return max(0, $estimatedDuration - $elapsedMinutes);
+        return max(0, $estimatedDuration - $elapsedSeconds);
     }
 
     /**
@@ -702,5 +732,31 @@ class ManufacturingStep extends Model
         }
 
         return $this->display_order;
+    }
+
+    /**
+     * Backward compatibility accessors for old column names.
+     */
+    public function getSetupTimeMinutesAttribute()
+    {
+        return round($this->setup_time_seconds / 60, 1);
+    }
+
+    public function getCycleTimeMinutesAttribute()
+    {
+        return round($this->cycle_time_seconds / 60, 1);
+    }
+
+    /**
+     * Backward compatibility mutators for old column names.
+     */
+    public function setSetupTimeMinutesAttribute($value)
+    {
+        $this->attributes['setup_time_seconds'] = intval($value * 60);
+    }
+
+    public function setCycleTimeMinutesAttribute($value)
+    {
+        $this->attributes['cycle_time_seconds'] = $value * 60;
     }
 }

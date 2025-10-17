@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('name', 255);
             $table->text('description')->nullable();
             $table->foreignId('item_category_id')->nullable()->constrained('item_categories');
-            
+
             // Item classification
             // DEPRECATED: item_type field - now determined by capabilities (can_be_sold, can_be_purchased, can_be_manufactured)
             // $table->enum('item_type', ['manufactured', 'purchased', 'phantom', 'service'])->default('manufactured');
@@ -26,46 +26,47 @@ return new class extends Migration
             $table->boolean('can_be_manufactured')->default(true);
             $table->boolean('is_phantom')->default(false);
             $table->boolean('is_active')->default(true);
-            
+
             // Status for sellable items
             $table->enum('status', ['active', 'inactive', 'prototype', 'discontinued'])->default('active');
-            
+
             // Physical attributes
-            $table->string('unit_of_measure', 20)->default('EA');
+            $table->string('unit_of_measure_code', 20)->default('PC');
+            $table->foreign('unit_of_measure_code')->references('code')->on('units_of_measure');
             $table->decimal('weight', 10, 4)->nullable();
             $table->json('dimensions')->nullable(); // {length, width, height, unit}
-            
+
             // Business attributes (when sold)
             $table->decimal('list_price', 10, 2)->nullable();
-            
+
             // Manufacturing attributes
             $table->decimal('manufacturing_cost', 10, 2)->nullable();
             $table->integer('manufacturing_lead_time_days')->default(0);
-            
+
             // Purchasing attributes
             $table->decimal('purchase_price', 10, 2)->nullable();
             $table->integer('purchase_lead_time_days')->default(0);
-            
+
             // Inventory tracking
             $table->boolean('track_inventory')->default(true);
             $table->decimal('min_stock_level', 10, 2)->nullable();
             $table->decimal('max_stock_level', 10, 2)->nullable();
             $table->decimal('reorder_point', 10, 2)->nullable();
-            
+
             // For purchased items
             $table->string('preferred_vendor', 255)->nullable();
             $table->string('vendor_item_number', 100)->nullable();
-            
+
             // Metadata
             $table->json('tags')->nullable();
             $table->json('custom_attributes')->nullable();
-            
+
             // Image relationship
             // $table->uuid('primary_image_id')->nullable(); // Removed: Using Spatie Media Library
-            
+
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->timestamps();
-            
+
             // Indexes
             $table->index('item_number');
             $table->index('status');

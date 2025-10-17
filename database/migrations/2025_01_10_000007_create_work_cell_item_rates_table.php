@@ -15,9 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('work_cell_id')->constrained('work_cells')->cascadeOnDelete();
             $table->foreignId('item_id')->constrained('items')->cascadeOnDelete();
-            $table->integer('setup_time_minutes')->default(0);
-            $table->decimal('production_rate_per_hour', 10, 3);
-            $table->string('unit_of_measure', 50);
+            $table->integer('setup_time_seconds')->default(0);
+            $table->decimal('cycle_time_seconds', 10, 3);
+            $table->string('unit_of_measure_code', 20);
+            $table->foreign('unit_of_measure_code')->references('code')->on('units_of_measure');
             $table->text('notes')->nullable();
             $table->timestamps();
 

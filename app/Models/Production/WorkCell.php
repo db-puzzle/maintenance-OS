@@ -7,6 +7,8 @@ use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\AssetHierarchy\Shift;
+use App\Models\Settings\UnitOfMeasure;
+use App\Services\Production\TimeFormatter;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,10 +23,12 @@ class WorkCell extends Model
         'description',
         'cell_type',
         'has_finite_capacity',
-        'default_production_rate_per_hour',
-        'default_unit_of_measure',
-        'default_setup_time_minutes',
+        'default_setup_time_seconds',
+        'default_cycle_time_seconds',
+        'default_unit_of_measure_code',
         'max_parallel_executions',
+        'time_display_preference',
+        'time_scale_preference',
         'shift_id',
         'plant_id',
         'area_id',
@@ -35,9 +39,11 @@ class WorkCell extends Model
 
     protected $casts = [
         'has_finite_capacity' => 'boolean',
-        'default_production_rate_per_hour' => 'decimal:3',
-        'default_setup_time_minutes' => 'integer',
+        'default_setup_time_seconds' => 'integer',
+        'default_cycle_time_seconds' => 'decimal:3',
         'max_parallel_executions' => 'integer',
+        'time_display_preference' => 'string',
+        'time_scale_preference' => 'string',
         'is_active' => 'boolean',
     ];
 
@@ -79,6 +85,14 @@ class WorkCell extends Model
     public function manufacturer(): BelongsTo
     {
         return $this->belongsTo(Manufacturer::class);
+    }
+
+    /**
+     * Get the unit of measure.
+     */
+    public function unitOfMeasure(): BelongsTo
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'default_unit_of_measure_code', 'code');
     }
 
     /**
@@ -172,23 +186,23 @@ class WorkCell extends Model
     }
 
     /**
-     * Get the effective production rate for an item (specific rate or default).
+     * Get the effective cycle time for an item (specific rate or default) in seconds.
      */
-    public function getEffectiveProductionRate(Item $item): float
+    public function getEffectiveCycleTime(Item $item): float
     {
         $itemRate = $this->getProductionRateForItem($item);
 
-        return $itemRate ? $itemRate->production_rate_per_hour : ($this->default_production_rate_per_hour ?? 0);
+        return $itemRate ? $itemRate->cycle_time_seconds : ($this->default_cycle_time_seconds ?? 0);
     }
 
     /**
-     * Get the effective setup time for an item (specific setup time or default).
+     * Get the effective setup time for an item (specific setup time or default) in seconds.
      */
     public function getEffectiveSetupTime(Item $item): int
     {
         $itemRate = $this->getProductionRateForItem($item);
 
-        return $itemRate ? $itemRate->setup_time_minutes : ($this->default_setup_time_minutes ?? 0);
+        return $itemRate ? $itemRate->setup_time_seconds : ($this->default_setup_time_seconds ?? 0);
     }
 
     /**
@@ -198,7 +212,27 @@ class WorkCell extends Model
     {
         $itemRate = $this->getProductionRateForItem($item);
 
-        return $itemRate ? $itemRate->unit_of_measure : ($this->default_unit_of_measure ?? 'PC');
+        return $itemRate ? $itemRate->unit_of_measure_code : ($this->default_unit_of_measure_code ?? 'PC');
+    }
+
+    /**
+     * Format setup time for display.
+     */
+    public function formatSetupTime(string $scale = 'auto'): array
+    {
+        return TimeFormatter::formatDuration($this->default_setup_time_seconds, $scale);
+    }
+
+    /**
+     * Format production rate for display.
+     */
+    public function formatProductionRate(string $mode = 'cycle_time', string $scale = 'auto'): array
+    {
+        if ($mode === 'throughput') {
+            return TimeFormatter::formatThroughput($this->default_cycle_time_seconds, $scale);
+        }
+
+        return TimeFormatter::formatCycleTime($this->default_cycle_time_seconds, $scale);
     }
 
     /**
@@ -372,6 +406,55 @@ class WorkCell extends Model
         $typeIndicator = $this->cell_type === 'external' ? ' (Ext)' : '';
 
         return "{$this->name}{$typeIndicator}";
+    }
+
+    /**
+     * Backward compatibility accessors for old column names.
+     * These will allow the application to continue working while we update all references.
+     */
+    public function getDefaultProductionRatePerHourAttribute()
+    {
+        // Convert cycle time (seconds per unit) to production rate (units per hour)
+        if ($this->default_cycle_time_seconds && $this->default_cycle_time_seconds > 0) {
+            return 3600 / $this->default_cycle_time_seconds;
+        }
+
+        return null;
+    }
+
+    public function getDefaultSetupTimeMinutesAttribute()
+    {
+        // Convert seconds to minutes
+        return round($this->default_setup_time_seconds / 60, 1);
+    }
+
+    public function getDefaultUnitOfMeasureAttribute()
+    {
+        return $this->default_unit_of_measure_code;
+    }
+
+    /**
+     * Backward compatibility mutators for old column names.
+     */
+    public function setDefaultProductionRatePerHourAttribute($value)
+    {
+        // Convert production rate (units per hour) to cycle time (seconds per unit)
+        if ($value && $value > 0) {
+            $this->attributes['default_cycle_time_seconds'] = 3600 / $value;
+        } else {
+            $this->attributes['default_cycle_time_seconds'] = null;
+        }
+    }
+
+    public function setDefaultSetupTimeMinutesAttribute($value)
+    {
+        // Convert minutes to seconds
+        $this->attributes['default_setup_time_seconds'] = $value * 60;
+    }
+
+    public function setDefaultUnitOfMeasureAttribute($value)
+    {
+        $this->attributes['default_unit_of_measure_code'] = $value;
     }
 
     /**

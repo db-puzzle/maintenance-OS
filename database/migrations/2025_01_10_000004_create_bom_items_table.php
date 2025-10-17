@@ -22,7 +22,8 @@ return new class extends Migration
 
             // BOM-specific attributes
             $table->decimal('quantity', 10, 4)->default(1);
-            $table->string('unit_of_measure', 20)->default('EA');
+            $table->string('unit_of_measure_code', 20)->default('PC');
+            $table->foreign('unit_of_measure_code')->references('code')->on('units_of_measure');
             $table->integer('level')->default(0); // Hierarchy level
             $table->integer('sequence_number')->nullable(); // Order within parent
 

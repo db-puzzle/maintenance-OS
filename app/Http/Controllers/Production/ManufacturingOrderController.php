@@ -273,8 +273,8 @@ class ManufacturingOrderController extends BaseSearchController
                 ->map(function ($template) {
                     // Calculate total estimated time
                     $template->estimated_time = $template->steps()
-                        ->sum(\DB::raw('COALESCE(setup_time_minutes, 0) + COALESCE(cycle_time_minutes, 0)'));
-                    
+                        ->sum(\DB::raw('(COALESCE(setup_time_seconds, 0) + COALESCE(cycle_time_seconds, 0)) / 60'));
+
                     // Set usage_count to 0 since we're no longer tracking template usage
                     $template->usage_count = 0;
 
@@ -606,7 +606,6 @@ class ManufacturingOrderController extends BaseSearchController
             // Use back() to stay on the current page (planning page)
             return back()
                 ->with('success', 'Template de rota aplicado com sucesso.');
-
         } catch (\Exception $e) {
             if ($request->wantsJson()) {
                 return response()->json([
@@ -633,12 +632,12 @@ class ManufacturingOrderController extends BaseSearchController
         $unauthorizedOrders = [];
         foreach ($validated['order_ids'] as $orderId) {
             $order = ManufacturingOrder::find($orderId);
-            if (!$order || !auth()->user()->can('update', $order)) {
+            if (! $order || ! auth()->user()->can('update', $order)) {
                 $unauthorizedOrders[] = $orderId;
             }
         }
 
-        if (!empty($unauthorizedOrders)) {
+        if (! empty($unauthorizedOrders)) {
             return response()->json([
                 'message' => 'You are not authorized to update some of the selected orders.',
                 'unauthorized_orders' => $unauthorizedOrders,
@@ -659,7 +658,6 @@ class ManufacturingOrderController extends BaseSearchController
             }
 
             return back()->with('bulkOperationResult', $results);
-
         } catch (\Exception $e) {
             if ($request->wantsJson()) {
                 return response()->json([
@@ -695,8 +693,8 @@ class ManufacturingOrderController extends BaseSearchController
             ->get()
             ->map(function ($template) {
                 $template->total_time = $template->steps()
-                    ->sum(\DB::raw('setup_time_minutes + cycle_time_minutes'));
-                
+                    ->sum(\DB::raw('(setup_time_seconds + cycle_time_seconds) / 60'));
+
                 // Set usage_count to 0 since we're no longer tracking template usage
                 $template->usage_count = 0;
 
@@ -808,7 +806,6 @@ class ManufacturingOrderController extends BaseSearchController
                     'status' => 'completed',
                     'actual_end_date' => now(),
                 ]);
-
             }
 
             // Create audit log
@@ -825,7 +822,6 @@ class ManufacturingOrderController extends BaseSearchController
 
         return back()->with('success', 'Production reported successfully.');
     }
-
 
     /**
      * Report progress on a specific step.

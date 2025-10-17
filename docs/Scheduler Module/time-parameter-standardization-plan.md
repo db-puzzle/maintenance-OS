@@ -23,6 +23,8 @@ This document outlines a comprehensive plan to standardize time management acros
 - **cycle_time_minutes** (integer): Time per unit (cycle time)
 - **use_workcell_throughput** (boolean): Flag to use work cell rates instead
 
+**Note**: Since we'll be modifying the original migrations directly (as the system will run `migrate:fresh`), we'll change these column names to their standardized versions.
+
 ### Current Issues
 
 1. **Inconsistent Time Units**: Mix of minutes and hours across different fields
@@ -52,82 +54,80 @@ This document outlines a comprehensive plan to standardize time management acros
 
 ### Database Schema Changes
 
-#### 1. New Migration: Standardize Time Fields
+#### 1. Update Existing Migration Files
 
-```sql
--- Update work_cells table
-ALTER TABLE work_cells 
-  ADD COLUMN default_setup_time_seconds INTEGER DEFAULT 0,
-  ADD COLUMN default_cycle_time_seconds DECIMAL(10,3) DEFAULT NULL,
-  ADD COLUMN time_display_preference ENUM('cycle_time', 'throughput') DEFAULT 'cycle_time',
-  ADD COLUMN time_scale_preference ENUM('seconds', 'minutes', 'hours', 'auto') DEFAULT 'auto';
+Since we will run `migrate:fresh`, we'll modify the original migration files directly:
 
--- Migrate existing data
-UPDATE work_cells 
-SET 
-  default_setup_time_seconds = default_setup_time_minutes * 60,
-  default_cycle_time_seconds = CASE 
-    WHEN default_production_rate_per_hour > 0 THEN 3600.0 / default_production_rate_per_hour
-    ELSE NULL
-  END;
+##### Update `2025_01_10_000006_create_work_cells_table.php`
 
--- Drop old columns after migration
-ALTER TABLE work_cells 
-  DROP COLUMN default_setup_time_minutes,
-  DROP COLUMN default_production_rate_per_hour;
+```php
+// Replace lines 20-25 with:
+// Capacity
+$table->boolean('has_finite_capacity')->default(true);
+$table->integer('default_setup_time_seconds')->default(0);
+$table->decimal('default_cycle_time_seconds', 10, 3)->nullable();
+$table->string('default_unit_of_measure_code', 20)->default('PC');
+$table->foreign('default_unit_of_measure_code')->references('code')->on('units_of_measure');
+$table->integer('max_parallel_executions')->default(1);
 
--- Update work_cell_item_rates table
-ALTER TABLE work_cell_item_rates
-  ADD COLUMN setup_time_seconds INTEGER DEFAULT 0,
-  ADD COLUMN cycle_time_seconds DECIMAL(10,3) NOT NULL;
-
--- Migrate existing data
-UPDATE work_cell_item_rates
-SET 
-  setup_time_seconds = setup_time_minutes * 60,
-  cycle_time_seconds = CASE 
-    WHEN production_rate_per_hour > 0 THEN 3600.0 / production_rate_per_hour
-    ELSE 60 -- Default 1 minute if no rate
-  END;
-
--- Drop old columns
-ALTER TABLE work_cell_item_rates
-  DROP COLUMN setup_time_minutes,
-  DROP COLUMN production_rate_per_hour;
-
--- Update manufacturing_steps table
-ALTER TABLE manufacturing_steps
-  ADD COLUMN setup_time_seconds INTEGER DEFAULT 0,
-  ADD COLUMN cycle_time_seconds DECIMAL(10,3) DEFAULT NULL;
-
--- Migrate existing data
-UPDATE manufacturing_steps
-SET 
-  setup_time_seconds = setup_time_minutes * 60,
-  cycle_time_seconds = cycle_time_minutes * 60;
-
--- Drop old columns
-ALTER TABLE manufacturing_steps
-  DROP COLUMN setup_time_minutes,
-  DROP COLUMN cycle_time_minutes;
+// Add after line 37 (before is_active):
+// Time display preferences
+$table->enum('time_display_preference', ['cycle_time', 'throughput'])->default('cycle_time');
+$table->enum('time_scale_preference', ['seconds', 'minutes', 'hours', 'auto'])->default('auto');
 ```
 
-#### 2. User Preferences Table
+##### Update `2025_01_10_000007_create_work_cell_item_rates_table.php`
 
-```sql
-CREATE TABLE user_time_preferences (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  user_id BIGINT NOT NULL,
-  entity_type ENUM('work_cell', 'global') NOT NULL,
-  entity_id BIGINT NULL,
-  display_mode ENUM('cycle_time', 'throughput') DEFAULT 'cycle_time',
-  time_scale ENUM('seconds', 'minutes', 'hours', 'auto') DEFAULT 'auto',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  UNIQUE KEY unique_user_entity (user_id, entity_type, entity_id)
-);
+```php
+// Replace lines 18-20 with:
+$table->integer('setup_time_seconds')->default(0);
+$table->decimal('cycle_time_seconds', 10, 3);
+$table->string('unit_of_measure_code', 20);
+$table->foreign('unit_of_measure_code')->references('code')->on('units_of_measure');
+```
+
+##### Update `2025_01_10_000011_create_manufacturing_steps_table.php`
+
+```php
+// Replace lines 35-36 with:
+$table->integer('setup_time_seconds')->default(0);
+$table->decimal('cycle_time_seconds', 10, 3)->nullable();
+```
+
+#### 2. New Migration: User Time Preferences Table
+
+Create a new migration file `2025_01_17_000001_create_user_time_preferences_table.php`:
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('user_time_preferences', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->enum('entity_type', ['work_cell', 'global']);
+            $table->unsignedBigInteger('entity_id')->nullable();
+            $table->enum('display_mode', ['cycle_time', 'throughput'])->default('cycle_time');
+            $table->enum('time_scale', ['seconds', 'minutes', 'hours', 'auto'])->default('auto');
+            $table->timestamps();
+            
+            $table->unique(['user_id', 'entity_type', 'entity_id']);
+            $table->index(['entity_type', 'entity_id']);
+        });
+    }
+    
+    public function down(): void
+    {
+        Schema::dropIfExists('user_time_preferences');
+    }
+};
 ```
 
 ### Model Updates
@@ -144,20 +144,8 @@ class WorkCell extends Model
         'time_scale_preference' => 'string',
     ];
 
-    // Accessor for backward compatibility
-    public function getDefaultSetupTimeMinutesAttribute(): float
-    {
-        return $this->default_setup_time_seconds / 60;
-    }
-
-    // Accessor for throughput calculation
-    public function getDefaultProductionRatePerHourAttribute(): ?float
-    {
-        if (!$this->default_cycle_time_seconds || $this->default_cycle_time_seconds <= 0) {
-            return null;
-        }
-        return 3600 / $this->default_cycle_time_seconds;
-    }
+    // NOTE: Since we're modifying the original migrations, we don't need backward
+    // compatibility accessors. The database will use the new column names from the start.
 
     // Helper methods
     public function formatSetupTime(string $scale = 'auto'): array
@@ -535,30 +523,32 @@ public function store(StoreWorkCellRequest $request)
 
 ### Migration Strategy
 
-1. **Phase 1: Database Migration**
-   - Create new columns with _seconds suffix
-   - Run data migration to convert existing values
-   - Keep old columns temporarily for rollback
+Since we're modifying the original migrations and running `migrate:fresh`:
+
+1. **Phase 1: Update Migration Files**
+   - Modify original migration files with new column names
+   - Create new migration for user_time_preferences table
+   - Update seeders to use new column names (if any)
 
 2. **Phase 2: Model Updates**
-   - Update models to use new columns
-   - Add accessors for backward compatibility
-   - Update relationships and scopes
+   - Update all model $fillable arrays
+   - Update model casts
+   - Add helper methods for formatting
 
 3. **Phase 3: Service Layer**
    - Implement TimeFormatter service
    - Implement TimePreferenceService
    - Update scheduling services to use seconds
 
-4. **Phase 4: UI Components**
-   - Deploy new TimeInput component
-   - Update existing forms to use new component
-   - Implement preference persistence
+4. **Phase 4: Update Existing Code**
+   - Update all controllers to use new column names
+   - Update all service classes
+   - Update factory files
 
-5. **Phase 5: Cleanup**
-   - Remove old columns from database
-   - Remove backward compatibility code
-   - Update all references
+5. **Phase 5: UI Components**
+   - Deploy new TimeInput component
+   - Update all forms to use new component
+   - Update all display logic
 
 ### Benefits
 
@@ -585,20 +575,143 @@ public function store(StoreWorkCellRequest $request)
    - Preference persistence
    - Display format switching
 
-### Rollback Plan
+### Implementation Notes
 
-1. Keep old columns for 2 release cycles
-2. Maintain backward compatibility accessors
-3. Feature flag for new UI components
-4. Database triggers to sync old/new columns during transition
+Since we're modifying the original migrations:
+
+1. **No Rollback Needed**: Clean start with new schema
+2. **Data Migration**: Any existing data will need to be exported/imported with conversions
+3. **Factory Updates**: All factory files must be updated to use new column names
+4. **Seeder Updates**: Any seeders must use the new column names
 
 ## Implementation Timeline
 
-- **Week 1-2**: Database schema changes and migrations
-- **Week 3-4**: Model and service layer updates
-- **Week 5-6**: React component development
-- **Week 7**: Integration and testing
-- **Week 8**: Deployment and monitoring
+- **Day 1**: Update all migration files and create user preferences migration
+- **Day 2-3**: Update models, factories, and seeders
+- **Day 4-5**: Implement TimeFormatter and TimePreferenceService
+- **Day 6-7**: Update all controllers and services to use new column names  
+- **Week 2**: Develop and test React TimeInput component
+- **Week 3**: Update all UI forms and displays
+- **Week 4**: Integration testing and final adjustments
+
+## Files to Update
+
+### Migration Files - Time Standardization
+1. `database/migrations/2025_01_10_000006_create_work_cells_table.php`
+2. `database/migrations/2025_01_10_000007_create_work_cell_item_rates_table.php`
+3. `database/migrations/2025_01_10_000011_create_manufacturing_steps_table.php`
+4. Create new: `database/migrations/2025_01_17_000001_create_user_time_preferences_table.php`
+
+### Migration Files - Unit of Measure Standardization
+1. `database/migrations/2025_01_10_000001_create_items_table.php` - Line 34: change to foreign key
+2. `database/migrations/2025_01_10_000004_create_bom_items_table.php` - Line 25: change to foreign key
+3. `database/migrations/2025_01_10_000009_create_manufacturing_orders_table.php` - Line 23: change to foreign key
+4. `database/migrations/2025_01_10_000015_create_shipment_items_table.php` - Line 24: change to foreign key
+
+### Model Files
+1. `app/Models/Production/WorkCell.php` - Update fillable, add UOM relationship
+2. `app/Models/Production/WorkCellItemRate.php` - Update fillable, add UOM relationship
+3. `app/Models/Production/ManufacturingStep.php` - Update fillable
+4. `app/Models/Production/Item.php` - Add UOM relationship
+5. `app/Models/Production/BomItem.php` - Add UOM relationship
+6. `app/Models/Production/ManufacturingOrder.php` - Add UOM relationship
+7. `app/Models/Production/ShipmentItem.php` - Add UOM relationship
+8. Create new: `app/Models/UserTimePreference.php`
+
+### Service Files
+1. Create new: `app/Services/Production/TimeFormatter.php`
+2. Create new: `app/Services/Production/TimePreferenceService.php`
+3. Update: `app/Services/Scheduling/FamilyCapacityBookingService.php`
+4. Update: `app/Services/SchedulingService.php`
+5. Update: All scheduler algorithm services in `app/Services/Scheduling/`
+
+### Controller Files
+1. `app/Http/Controllers/Production/WorkCellController.php` - Update validation rules for UOM
+2. `app/Http/Controllers/Production/ManufacturingStepController.php` - Update time field handling
+3. `app/Http/Controllers/Production/SchedulerController.php` - Update time calculations
+4. `app/Http/Controllers/Production/ItemController.php` - Update validation to use UOM codes
+5. `app/Http/Controllers/Production/ManufacturingOrderController.php` - Update validation to use UOM codes
+6. `app/Http/Controllers/Production/BillOfMaterialController.php` - Update validation to use UOM codes
+
+### Factory Files
+1. `database/factories/Production/WorkCellFactory.php` - Update to use UOM codes
+2. `database/factories/Production/WorkCellItemRateFactory.php` - Update to use UOM codes
+3. `database/factories/Production/ManufacturingStepFactory.php` - Update time fields
+4. `database/factories/Production/ItemFactory.php` - Update to use UOM codes
+5. `database/factories/Production/BomItemFactory.php` - Update to use UOM codes
+6. `database/factories/Production/ManufacturingOrderFactory.php` - Update to use UOM codes
+
+### React Components
+1. Create new: `resources/js/components/TimeInput.tsx`
+2. Update: `resources/js/components/production/CreateWorkCellSheet.tsx`
+3. Update: `resources/js/pages/production/work-cells/show.tsx`
+4. Update: `resources/js/components/production/scheduler/TimeParameterForm.tsx`
+5. Update: `resources/js/components/production/scheduler/TimeParameterStatus.tsx`
+
+### Utility Files
+1. Create new: `resources/js/utils/time-formatter.ts`
+2. Update: `resources/js/utils/date.ts`
+
+## Unit of Measure Consistency
+
+### Current State
+The system has a proper `units_of_measure` table and model, but many tables still use free-text string fields for UOM, leading to inconsistency.
+
+### Tables Currently Using String UOM Fields
+1. **items** - `unit_of_measure` (line 34)
+2. **bom_items** - `unit_of_measure` (line 25)
+3. **manufacturing_orders** - `unit_of_measure` (line 23)
+4. **shipment_items** - `unit_of_measure` (line 24)
+5. **work_cells** - `default_unit_of_measure` (line 23)
+6. **work_cell_item_rates** - `unit_of_measure` (line 20)
+
+### Recommended Approach
+
+1. **Use Foreign Keys**: Instead of string fields, use foreign key references to the `units_of_measure` table
+2. **Standardize Column Names**: Use `unit_of_measure_code` that references the `code` column
+3. **Maintain Flexibility**: The `code` column allows for familiar abbreviations while ensuring consistency
+
+### Migration Changes
+
+For each table, replace the string field with a foreign key:
+
+```php
+// Example for items table
+$table->string('unit_of_measure_code', 20)->default('PC');
+$table->foreign('unit_of_measure_code')->references('code')->on('units_of_measure');
+```
+
+### Model Relationships
+
+Add relationships to all affected models:
+
+```php
+public function unitOfMeasure(): BelongsTo
+{
+    return $this->belongsTo(UnitOfMeasure::class, 'unit_of_measure_code', 'code');
+}
+```
+
+### Controller Validation
+
+Update validation rules:
+
+```php
+'unit_of_measure_code' => 'required|exists:units_of_measure,code,is_active,1'
+```
+
+### Benefits
+- **Data Integrity**: No typos or variations (kg vs KG vs Kg)
+- **Conversion Support**: Built-in conversion between related units
+- **Type Safety**: Can't mix incompatible unit types
+- **UI Consistency**: Dropdown selection from valid units
+- **Automatic Validation**: Database enforces valid UOM codes
+
+### Implementation Notes
+- The UOM table is already seeded with common units
+- The UI can show code + name for clarity (e.g., "PC - Piece")
+- The system can validate unit compatibility in calculations
+- Consider adding UOM type validation (e.g., can't mix MASS with VOLUME)
 
 ## Future Enhancements
 
@@ -607,3 +720,4 @@ public function store(StoreWorkCellRequest $request)
 3. **Advanced Analytics**: Time-based performance metrics
 4. **AI Predictions**: ML-based cycle time predictions
 5. **Industry Standards**: Support for APICS/ISA-95 time formats
+6. **Custom UOM**: Allow users to define custom units for specific industries

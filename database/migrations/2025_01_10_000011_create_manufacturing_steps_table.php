@@ -32,8 +32,8 @@ return new class extends Migration
             $table->foreignId('form_version_id')->nullable()->constrained('form_versions');
 
             // Time tracking
-            $table->integer('setup_time_minutes')->default(0);
-            $table->integer('cycle_time_minutes');
+            $table->integer('setup_time_seconds')->default(0);
+            $table->decimal('cycle_time_seconds', 10, 3)->nullable();
             $table->boolean('use_workcell_throughput')->default(false);
             $table->timestamp('actual_start_time')->nullable();
             $table->timestamp('actual_end_time')->nullable();

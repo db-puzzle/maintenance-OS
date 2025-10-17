@@ -16,24 +16,25 @@ return new class extends Migration
             $table->foreignId('shipment_id')->constrained('shipments')->cascadeOnDelete();
             $table->foreignId('bom_item_id')->nullable()->constrained('bom_items');
             $table->foreignId('manufacturing_order_id')->nullable()->constrained('manufacturing_orders');
-            
+
             // Item details
             $table->string('item_number', 100);
             $table->text('description')->nullable();
             $table->decimal('quantity', 10, 2);
-            $table->string('unit_of_measure', 20)->default('EA');
-            
+            $table->string('unit_of_measure_code', 20)->default('PC');
+            $table->foreign('unit_of_measure_code')->references('code')->on('units_of_measure');
+
             // Packaging
             $table->string('package_number', 50)->nullable();
             $table->string('package_type', 50)->nullable();
             $table->decimal('weight', 10, 2)->nullable();
             $table->json('dimensions')->nullable();
-            
+
             // QR tracking
             $table->json('qr_codes')->nullable(); // Array of QR codes included
-            
+
             $table->timestamps();
-            
+
             $table->index('shipment_id');
             $table->index('package_number');
         });

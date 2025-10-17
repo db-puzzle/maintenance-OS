@@ -79,8 +79,6 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
         let validTemplates = 0;
         let totalTemplates = 0;
 
-        console.log('Performing client-side validation with mapping:', mapping);
-        console.log('File data preview:', file.data?.slice(0, 3));
 
         if (isJson && file.data) {
             // Validate JSON data

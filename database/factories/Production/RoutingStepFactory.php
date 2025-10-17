@@ -25,29 +25,44 @@ class RoutingStepFactory extends Factory
             'Cut', 'Mill', 'Drill', 'Turn', 'Grind', 'Bore', 'Tap', 'Ream',
             'Weld', 'Braze', 'Solder', 'Assemble', 'Press', 'Form', 'Bend',
             'Paint', 'Coat', 'Plate', 'Anodize', 'Heat Treat', 'Inspect',
-            'Test', 'Package', 'Clean', 'Deburr'
+            'Test', 'Package', 'Clean', 'Deburr',
         ];
 
         $operationName = fake()->randomElement($operations);
         $operationCode = strtoupper(substr($operationName, 0, 3)) . '-' . sprintf('%03d', fake()->numberBetween(1, 999));
 
         return [
-            'production_routing_id' => ManufacturingRoute::factory(),
-            'step_number' => 1,
-            'operation_code' => $operationCode,
+            'manufacturing_route_id' => ManufacturingRoute::factory(),
+            'display_order' => 0,
+            'step_number' => null,
+            'is_template' => false,
+            'step_type' => 'standard',
             'name' => $operationName . ' ' . fake()->words(2, true),
             'description' => fake()->optional(0.7)->sentence(),
             'work_cell_id' => WorkCell::factory(),
-            'setup_time_minutes' => fake()->numberBetween(5, 60),
-            'cycle_time_minutes' => fake()->numberBetween(1, 120),
-            'tear_down_time_minutes' => fake()->numberBetween(5, 30),
-            'labor_requirement' => fake()->numberBetween(1, 3),
-            'skill_requirements' => fake()->boolean(40) ? json_encode(fake()->randomElements([1, 2, 3, 4, 5], fake()->numberBetween(1, 2))) : null,
-            'tool_requirements' => fake()->boolean(40) ? json_encode(fake()->words(fake()->numberBetween(1, 3))) : null,
-            'work_instructions' => fake()->optional(0.7)->paragraphs(fake()->numberBetween(1, 3), true),
-            'safety_notes' => fake()->optional(0.3)->sentence(),
-            'quality_checkpoints' => fake()->boolean(50) ? json_encode(fake()->sentences(fake()->numberBetween(1, 3))) : null,
-            'attachments' => null,
+            'status' => 'pending',
+            'form_id' => null,
+            'form_version_id' => null,
+            'setup_time_seconds' => fake()->numberBetween(300, 3600), // 5-60 minutes
+            'cycle_time_seconds' => fake()->numberBetween(60, 7200), // 1-120 minutes
+            'use_workcell_throughput' => fake()->boolean(20),
+            'actual_start_time' => null,
+            'actual_end_time' => null,
+            'quality_result' => null,
+            'failure_action' => null,
+            'quality_check_mode' => 'every_part',
+            'sampling_size' => null,
+            'depends_on_step_id' => null,
+            'can_start_when_dependency' => 'completed',
+            'dependency_start_condition' => 'completed',
+            'dependency_minimum_quantity' => null,
+            'dependency_minimum_percentage' => null,
+            'cumulative_quantity_completed' => 0,
+            'cumulative_quantity_scrapped' => 0,
+            'child_order_dependency_type' => 'none',
+            'child_order_minimum_quantity' => null,
+            'scheduled_start' => null,
+            'scheduled_end' => null,
         ];
     }
 
@@ -77,9 +92,8 @@ class RoutingStepFactory extends Factory
     public function quick(): static
     {
         return $this->state(fn (array $attributes) => [
-            'setup_time_minutes' => fake()->numberBetween(1, 10),
-            'cycle_time_minutes' => fake()->numberBetween(1, 5),
-            'tear_down_time_minutes' => fake()->numberBetween(1, 5),
+            'setup_time_seconds' => fake()->numberBetween(60, 600), // 1-10 minutes
+            'cycle_time_seconds' => fake()->numberBetween(60, 300), // 1-5 minutes
         ]);
     }
 
@@ -89,14 +103,8 @@ class RoutingStepFactory extends Factory
     public function complex(): static
     {
         return $this->state(fn (array $attributes) => [
-            'setup_time_minutes' => fake()->numberBetween(30, 120),
-            'cycle_time_minutes' => fake()->numberBetween(60, 480),
-            'tear_down_time_minutes' => fake()->numberBetween(30, 60),
-            'labor_requirement' => fake()->numberBetween(2, 5),
-            'tool_requirements' => json_encode(fake()->words(fake()->numberBetween(3, 6))),
-            'work_instructions' => fake()->paragraphs(fake()->numberBetween(3, 5), true),
-            'safety_notes' => fake()->sentences(fake()->numberBetween(2, 4), true),
-            'quality_checkpoints' => json_encode(fake()->sentences(fake()->numberBetween(3, 5))),
+            'setup_time_seconds' => fake()->numberBetween(1800, 7200), // 30-120 minutes
+            'cycle_time_seconds' => fake()->numberBetween(3600, 28800), // 60-480 minutes
         ]);
     }
-} 
+}

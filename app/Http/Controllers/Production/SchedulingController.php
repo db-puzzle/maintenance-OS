@@ -116,8 +116,8 @@ class SchedulingController extends Controller
                 'manufacturingRoute' => $routeData,
                 'has_time_parameters' => $order->manufacturingRoute?->steps()
                     ->where(function ($query) {
-                        $query->whereNotNull('setup_time_minutes')
-                            ->orWhereNotNull('cycle_time_minutes');
+                        $query->whereNotNull('setup_time_seconds')
+                            ->orWhereNotNull('cycle_time_seconds');
                     })
                     ->exists() ?? false,
             ];

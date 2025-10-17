@@ -22,9 +22,7 @@ export const GanttGrid: React.FC<GanttGridProps> = ({ tasks, onTaskToggle }) => 
     // Column widths - no constraints, user can resize freely
     const [columns, setColumns] = useState<Column[]>([
         { key: 'sequence', title: '#', width: 50, minWidth: 30 },
-        { key: 'name', title: 'Name', width: 280, minWidth: 100 },
-        { key: 'complete', title: '% Complete', width: 120, minWidth: 60 },
-        { key: 'resources', title: 'Assigned Resources', width: 160, minWidth: 80 },
+        { key: 'name', title: 'Name', width: 400, minWidth: 100 },
     ]);
 
     const containerRef = useRef<HTMLDivElement>(null);
@@ -163,64 +161,6 @@ export const GanttGrid: React.FC<GanttGridProps> = ({ tasks, onTaskToggle }) => 
                                     )}>
                                         {task.order_number || task.name || 'Untitled'}
                                     </span>
-                                </div>
-
-                                {/* Percent Complete */}
-                                <div
-                                    className="flex items-center border-r px-3 flex-shrink-0"
-                                    style={{
-                                        width: `${columns[2].width}px`,
-                                        minWidth: `${columns[2].width}px`,
-                                        maxWidth: `${columns[2].width}px`
-                                    }}
-                                >
-                                    <div className="w-full">
-                                        <div className="relative h-5 bg-muted rounded-full overflow-hidden">
-                                            <div
-                                                className="absolute inset-y-0 left-0 bg-green-500 transition-all duration-300"
-                                                style={{ width: `${task.percentDone || task.percent_complete || 0}%` }}
-                                            />
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-xs font-medium">
-                                                    {task.percentDone || task.percent_complete || 0}%
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Assigned Resources */}
-                                <div
-                                    className="flex items-center gap-1 px-3 flex-shrink-0"
-                                    style={{
-                                        width: `${columns[3].width}px`,
-                                        minWidth: `${columns[3].width}px`,
-                                        maxWidth: `${columns[3].width}px`
-                                    }}
-                                >
-                                    {task.work_cells && task.work_cells.length > 0 && (
-                                        <>
-                                            {task.work_cells.slice(0, 3).map((workCell: any, idx: number) => (
-                                                <div
-                                                    key={idx}
-                                                    className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-semibold"
-                                                    title={workCell.name}
-                                                >
-                                                    {workCell.name.substring(0, 2).toUpperCase()}
-                                                </div>
-                                            ))}
-                                            {task.work_cells.length > 3 && (
-                                                <span className="text-xs text-muted-foreground">
-                                                    +{task.work_cells.length - 3}
-                                                </span>
-                                            )}
-                                        </>
-                                    )}
-                                    {(!task.work_cells || task.work_cells.length === 0) && (
-                                        <span className="text-xs text-muted-foreground">
-                                            {task.isParent ? 'Multiple' : 'Unassigned'}
-                                        </span>
-                                    )}
                                 </div>
                             </div>
                         ))}

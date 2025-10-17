@@ -2,6 +2,7 @@
 
 namespace App\Models\Production;
 
+use App\Models\Settings\UnitOfMeasure;
 use App\Models\User;
 use App\Traits\SmartProgressCalculator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -49,7 +50,7 @@ class ManufacturingOrder extends Model
         'quantity',
         'quantity_completed',
         'quantity_scrapped',
-        'unit_of_measure',
+        'unit_of_measure_code',
         'status',
         'hold_reason',
         'hold_at',
@@ -124,6 +125,14 @@ class ManufacturingOrder extends Model
     public function billOfMaterial(): BelongsTo
     {
         return $this->belongsTo(BillOfMaterial::class, 'bill_of_material_id');
+    }
+
+    /**
+     * Get the unit of measure.
+     */
+    public function unitOfMeasure(): BelongsTo
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'unit_of_measure_code', 'code');
     }
 
     /**
@@ -439,15 +448,15 @@ class ManufacturingOrder extends Model
                             'work_cell_id',
                             'display_order',
                             'step_type',
-                            'setup_time_minutes',
-                            'cycle_time_minutes',
+                            'setup_time_seconds',
+                            'cycle_time_seconds',
                             'use_workcell_throughput',
                             'child_order_dependency_type',
                             'child_order_minimum_quantity',
                             'status'
                         )
                             ->orderBy('display_order')
-                            ->with('workCell:id,name,cell_type,is_active,default_production_rate_per_hour');
+                            ->with('workCell');
                     }]);
             },
         ]);
@@ -939,5 +948,21 @@ class ManufacturingOrder extends Model
         }
 
         return true;
+    }
+
+    /**
+     * Backward compatibility accessor for old column name.
+     */
+    public function getUnitOfMeasureAttribute()
+    {
+        return $this->unit_of_measure_code;
+    }
+
+    /**
+     * Backward compatibility mutator for old column name.
+     */
+    public function setUnitOfMeasureAttribute($value)
+    {
+        $this->attributes['unit_of_measure_code'] = $value;
     }
 }

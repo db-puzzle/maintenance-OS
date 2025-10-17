@@ -296,8 +296,8 @@ class ManufacturingRoute extends Model
                         'work_cell_id',
                         'display_order',
                         'step_type',
-                        'setup_time_minutes',
-                        'cycle_time_minutes'
+                        'setup_time_seconds',
+                        'cycle_time_seconds'
                     )
                         ->orderBy('display_order');
                 },
@@ -320,14 +320,14 @@ class ManufacturingRoute extends Model
                 'work_cell_id',
                 'display_order',
                 'step_type',
-                'setup_time_minutes',
-                'cycle_time_minutes',
+                'setup_time_seconds',
+                'cycle_time_seconds',
                 'child_order_dependency_type',
                 'child_order_minimum_quantity',
                 'status'
             )
                 ->orderBy('display_order')
-                ->with('workCell:id,name,cell_type,is_active,default_production_rate_per_hour');
+                ->with('workCell');
         }]);
     }
 }

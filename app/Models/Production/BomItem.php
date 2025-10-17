@@ -2,6 +2,7 @@
 
 namespace App\Models\Production;
 
+use App\Models\Settings\UnitOfMeasure;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,7 +18,7 @@ class BomItem extends Model
         'parent_item_id',
         'item_id', // Now references items table
         'quantity',
-        'unit_of_measure',
+        'unit_of_measure_code',
         'level',
         'sequence_number',
         'reference_designators',
@@ -39,6 +40,14 @@ class BomItem extends Model
     public function item(): BelongsTo
     {
         return $this->belongsTo(Item::class);
+    }
+
+    /**
+     * Get the unit of measure.
+     */
+    public function unitOfMeasure(): BelongsTo
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'unit_of_measure_code', 'code');
     }
 
     /**
@@ -262,5 +271,21 @@ class BomItem extends Model
         }
 
         return $errors;
+    }
+
+    /**
+     * Backward compatibility accessor for old column name.
+     */
+    public function getUnitOfMeasureAttribute()
+    {
+        return $this->unit_of_measure_code;
+    }
+
+    /**
+     * Backward compatibility mutator for old column name.
+     */
+    public function setUnitOfMeasureAttribute($value)
+    {
+        $this->attributes['unit_of_measure_code'] = $value;
     }
 }

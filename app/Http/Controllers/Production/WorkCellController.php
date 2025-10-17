@@ -221,9 +221,14 @@ class WorkCellController extends BaseSearchController
             'description' => 'nullable|string',
             'cell_type' => 'required|in:internal,external',
             'has_finite_capacity' => 'boolean',
-            'default_production_rate_per_hour' => 'nullable|numeric|min:0.001',
-            'default_unit_of_measure' => 'nullable|string|max:50',
-            'default_setup_time_minutes' => 'integer|min:0|max:9999',
+            'default_setup_time' => 'nullable|array',
+            'default_setup_time.value' => 'nullable|numeric|min:0',
+            'default_setup_time.unit' => 'nullable|string|in:seconds,minutes,hours',
+            'default_production_rate' => 'nullable|array',
+            'default_production_rate.value' => 'nullable|numeric|min:0.001',
+            'default_production_rate.unit' => 'nullable|string',
+            'default_production_rate.mode' => 'nullable|string|in:cycle_time,throughput',
+            'default_unit_of_measure_code' => 'nullable|exists:units_of_measure,code,is_active,1',
             'max_parallel_executions' => 'integer|min:1|max:999',
             'shift_id' => 'nullable|exists:shifts,id',
             'plant_id' => 'nullable|exists:plants,id',
@@ -231,6 +236,10 @@ class WorkCellController extends BaseSearchController
             'sector_id' => 'nullable|exists:sectors,id',
             'manufacturer_id' => 'nullable|required_if:cell_type,external|exists:manufacturers,id',
             'is_active' => 'boolean',
+            'time_preferences' => 'nullable|array',
+            'time_preferences.display_mode' => 'nullable|string|in:cycle_time,throughput',
+            'time_preferences.time_scale' => 'nullable|string|in:seconds,minutes,hours,auto',
+            'save_as_user_preference' => 'nullable|boolean',
         ]);
 
         // Set defaults

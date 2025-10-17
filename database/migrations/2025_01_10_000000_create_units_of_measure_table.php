@@ -23,7 +23,7 @@ return new class extends Migration
             $table->integer('decimal_places')->default(2);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
+
             $table->index('uom_type');
             $table->index('is_active');
             $table->index('is_base_unit');

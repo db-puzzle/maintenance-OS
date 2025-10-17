@@ -113,7 +113,7 @@ export default function SchedulerSetup({
             const data = await response.json();
             setFamilies(data.families || []);
         } catch (error) {
-            console.error('Failed to fetch families:', error);
+            // Failed to fetch families
             toast.error('Failed to fetch order families');
         }
     };
@@ -132,7 +132,7 @@ export default function SchedulerSetup({
             });
             setTimeParameterData(response.data || []);
         } catch (error) {
-            console.error('Failed to fetch time parameters:', error);
+            // Failed to fetch time parameters
             toast.error('Failed to fetch time parameters');
         } finally {
             setLoadingTimeParams(false);
@@ -140,7 +140,6 @@ export default function SchedulerSetup({
     };
 
     const handleOrderSelectionComplete = (orderIds: number[], dateRange: any) => {
-        console.log('Order selection complete with dateRange:', dateRange);
         setSelectedOrders(orderIds);
         setData({
             ...data,
@@ -177,7 +176,7 @@ export default function SchedulerSetup({
                 toast.success('Scheduler started successfully');
             },
             onError: (errors) => {
-                console.error('Error starting scheduler:', errors);
+                // Error starting scheduler
                 toast.error('Failed to start scheduling. Please try again.');
             }
         });
@@ -272,7 +271,7 @@ export default function SchedulerSetup({
                             onNext={handleTimeParametersComplete}
                             onBack={handleBack}
                             onRefresh={() => {
-                                console.log('Refreshing with dates:', { start: data.start_date, end: data.end_date });
+                                // Refreshing with dates
                                 fetchTimeParameters(selectedOrders);
                             }}
                         />

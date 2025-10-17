@@ -10,6 +10,8 @@ import { router } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { ImportFile, FieldMapping, ImportOptions, ImportSession, ImportError } from '../types';
 
+declare const route: (name: string, params?: Record<string, string | number>) => string;
+
 interface Props {
     files: ImportFile[];
     mapping: FieldMapping;
@@ -26,6 +28,16 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
 
     const file = files[0];
 
+    // Helper function to get cookie value
+    const getCookie = (name: string): string | null => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) {
+            return parts.pop()?.split(';').shift() || null;
+        }
+        return null;
+    };
+
     useEffect(() => {
         startImport();
 
@@ -41,10 +53,20 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
             // Create form data for import
             const formData = new FormData();
             formData.append('file', file.file);
-            formData.append('mapping', JSON.stringify(mapping));
+
+            // Only append mapping for CSV files
+            const fileType = file.file.name.split('.').pop()?.toLowerCase();
+            if (fileType !== 'json' && Object.keys(mapping).length > 0) {
+                formData.append('mapping', JSON.stringify(mapping));
+            }
+
             formData.append('update_existing', options.updateExisting ? '1' : '0');
             formData.append('skip_duplicates', options.skipDuplicates ? '1' : '0');
             formData.append('session_id', session.id);
+
+            // Get CSRF token from the page's meta tag or cookie
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                getCookie('XSRF-TOKEN');
 
             // Start the import
             const response = await fetch(route('production.routing.import'), {
@@ -52,8 +74,10 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
                 body: formData,
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'X-CSRF-TOKEN': token || '',
+                    'Accept': 'application/json',
                 },
+                credentials: 'same-origin'
             });
 
             if (!response.ok) {
@@ -63,8 +87,32 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
             const result = await response.json();
 
             if (result.success || response.ok) {
-                // Start polling for progress or simulate if no polling endpoint
-                simulateProgress();
+                // Import completed successfully, update the session with real results
+                const completedSession: ImportSession = {
+                    ...currentSession,
+                    status: 'completed',
+                    processedTemplates: result.count || 0,
+                    successfulTemplates: result.count || 0,
+                    failedTemplates: 0,
+                    importedCount: result.count || 0,
+                    updatedCount: 0,
+                    skippedCount: result.skipped || 0,
+                    errors: result.errors || []
+                };
+
+                setCurrentSession(completedSession);
+                setIsProcessing(false);
+
+                // Show success message
+                toast.success(result.message || 'Importação concluída com sucesso!');
+
+                // Show warning about created work cells if any
+                if (result.created_work_cells && result.created_work_cells.length > 0) {
+                    toast.warning(`Células de trabalho criadas: ${result.created_work_cells.join(', ')}. Por favor, configure-as.`);
+                }
+
+                // Complete after a short delay
+                setTimeout(() => onComplete(completedSession), 1000);
             } else {
                 throw new Error(result.message || 'Import failed');
             }

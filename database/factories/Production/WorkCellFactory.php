@@ -35,10 +35,12 @@ class WorkCellFactory extends Factory
             'description' => fake()->optional(0.7)->sentence(),
             'cell_type' => $cellType,
             'has_finite_capacity' => fake()->boolean(90),
-            'default_production_rate_per_hour' => fake()->randomFloat(2, 10, 100),
-            'default_unit_of_measure' => fake()->randomElement(['PC', 'KG', 'L', 'M']),
-            'default_setup_time_minutes' => fake()->numberBetween(5, 60),
+            'default_setup_time_seconds' => fake()->numberBetween(300, 3600), // 5-60 minutes
+            'default_cycle_time_seconds' => fake()->randomFloat(2, 36, 360), // 0.01-0.1 hours per unit
+            'default_unit_of_measure_code' => fake()->randomElement(['PC', 'KG', 'L', 'M']),
             'max_parallel_executions' => fake()->numberBetween(1, 5),
+            'time_display_preference' => fake()->randomElement(['cycle_time', 'throughput']),
+            'time_scale_preference' => fake()->randomElement(['seconds', 'minutes', 'hours', 'auto']),
             'shift_id' => null, // Will be set if Shift exists
             'plant_id' => null, // Will be set if Plant exists
             'area_id' => null, // Will be set if Area exists

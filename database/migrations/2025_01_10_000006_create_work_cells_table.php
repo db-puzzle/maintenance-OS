@@ -19,10 +19,15 @@ return new class extends Migration
 
             // Capacity
             $table->boolean('has_finite_capacity')->default(true);
-            $table->decimal('default_production_rate_per_hour', 10, 3)->nullable();
-            $table->string('default_unit_of_measure', 50)->default('PC');
-            $table->integer('default_setup_time_minutes')->default(0);
+            $table->integer('default_setup_time_seconds')->default(0);
+            $table->decimal('default_cycle_time_seconds', 10, 3)->nullable();
+            $table->string('default_unit_of_measure_code', 20)->default('PC');
+            $table->foreign('default_unit_of_measure_code')->references('code')->on('units_of_measure');
             $table->integer('max_parallel_executions')->default(1);
+
+            // Time display preferences
+            $table->enum('time_display_preference', ['cycle_time', 'throughput'])->default('cycle_time');
+            $table->enum('time_scale_preference', ['seconds', 'minutes', 'hours', 'auto'])->default('auto');
 
             // Shift relationship (required for internal cells)
             $table->foreignId('shift_id')->nullable()->constrained('shifts');

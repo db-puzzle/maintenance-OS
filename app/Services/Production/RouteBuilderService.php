@@ -8,13 +8,12 @@ use Illuminate\Support\Facades\DB;
 
 class RouteBuilderService
 {
-
     /**
-     * Copy route from one order to another
+     * Copy route from one order to another.
      */
     public function copyRoute(ManufacturingOrder $sourceOrder, ManufacturingOrder $targetOrder): ?ManufacturingRoute
     {
-        if (!$sourceOrder->manufacturingRoute) {
+        if (! $sourceOrder->manufacturingRoute) {
             return null;
         }
 
@@ -52,19 +51,19 @@ class RouteBuilderService
     }
 
     /**
-     * Calculate route metrics
+     * Calculate route metrics.
      */
     public function calculateRouteMetrics(ManufacturingRoute $route): array
     {
         $steps = $route->steps;
-        
-        $totalSetupTime = $steps->sum('setup_time_minutes');
-        $totalCycleTime = $steps->sum('cycle_time_minutes');
+
+        $totalSetupTime = $steps->sum('setup_time_seconds') / 60;  // Convert to minutes for display
+        $totalCycleTime = $steps->sum('cycle_time_seconds') / 60;  // Convert to minutes for display
         $totalTime = $totalSetupTime + $totalCycleTime;
-        
-        $configuredSteps = $steps->filter(fn($step) => $step->work_cell_id !== null)->count();
-        $requiredSteps = $steps->filter(fn($step) => $step->is_required)->count();
-        
+
+        $configuredSteps = $steps->filter(fn ($step) => $step->work_cell_id !== null)->count();
+        $requiredSteps = $steps->filter(fn ($step) => $step->is_required)->count();
+
         return [
             'total_steps' => $steps->count(),
             'configured_steps' => $configuredSteps,
@@ -78,33 +77,33 @@ class RouteBuilderService
     }
 
     /**
-     * Validate route configuration
+     * Validate route configuration.
      */
     public function validateRoute(ManufacturingRoute $route): array
     {
         $errors = [];
         $warnings = [];
-        
+
         // Check if route has steps
         if ($route->steps->count() === 0) {
             $errors[] = 'Route has no steps configured.';
         }
-        
+
         // Check if all required steps have work cells
         $requiredStepsWithoutWorkCell = $route->steps
-            ->filter(fn($step) => $step->is_required && !$step->work_cell_id)
+            ->filter(fn ($step) => $step->is_required && ! $step->work_cell_id)
             ->count();
-            
+
         if ($requiredStepsWithoutWorkCell > 0) {
             $errors[] = "{$requiredStepsWithoutWorkCell} required step(s) do not have work cells assigned.";
         }
-        
+
         // Check for duplicate sequences
         $sequences = $route->steps->pluck('sequence')->toArray();
         if (count($sequences) !== count(array_unique($sequences))) {
             $errors[] = 'Route has duplicate sequence numbers.';
         }
-        
+
         // Check for gaps in sequence
         if ($route->steps->count() > 0) {
             $expectedSequences = range(1, $route->steps->count());
@@ -113,16 +112,16 @@ class RouteBuilderService
                 $warnings[] = 'Route has gaps in sequence numbers.';
             }
         }
-        
+
         // Check for missing time estimates
         $stepsWithoutTime = $route->steps
-            ->filter(fn($step) => !$step->setup_time_minutes && !$step->cycle_time_minutes)
+            ->filter(fn ($step) => ! $step->setup_time_minutes && ! $step->cycle_time_minutes)
             ->count();
-            
+
         if ($stepsWithoutTime > 0) {
             $warnings[] = "{$stepsWithoutTime} step(s) do not have time estimates.";
         }
-        
+
         return [
             'valid' => empty($errors),
             'errors' => $errors,

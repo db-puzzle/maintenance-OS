@@ -112,8 +112,8 @@ class PlanningController extends Controller
             'steps.*.name' => 'required|string|max:255',
             'steps.*.description' => 'nullable|string',
             'steps.*.work_cell_id' => 'nullable|exists:work_cells,id',
-            'steps.*.setup_time_minutes' => 'nullable|integer|min:0',
-            'steps.*.cycle_time_minutes' => 'nullable|integer|min:0',
+            'steps.*.setup_time_minutes' => 'nullable|numeric|min:0',
+            'steps.*.cycle_time_minutes' => 'nullable|numeric|min:0',
             'steps.*.use_workcell_throughput' => 'nullable|boolean',
             'steps.*.step_type' => 'required|in:standard,quality_check,rework',
             'steps.*.is_required' => 'boolean',
@@ -132,12 +132,27 @@ class PlanningController extends Controller
             $route->steps()->delete();
 
             // Create new steps
-            foreach ($validated['steps'] as $stepData) {
+            foreach ($validated['steps'] as $index => $stepData) {
                 // Ensure child order dependency fields are included
                 $stepData['child_order_dependency_type'] = $stepData['child_order_dependency_type'] ?? 'all_children_completed';
                 $stepData['child_order_minimum_quantity'] = $stepData['child_order_minimum_quantity'] ?? 0;
 
-                $route->steps()->create($stepData);
+                // Convert time values from minutes to seconds for the new columns
+                $stepDataToSave = $stepData;
+
+                // Convert setup_time_minutes to setup_time_seconds
+                if (isset($stepData['setup_time_minutes'])) {
+                    $stepDataToSave['setup_time_seconds'] = intval($stepData['setup_time_minutes'] * 60);
+                    unset($stepDataToSave['setup_time_minutes']);
+                }
+
+                // Convert cycle_time_minutes to cycle_time_seconds
+                if (isset($stepData['cycle_time_minutes'])) {
+                    $stepDataToSave['cycle_time_seconds'] = $stepData['cycle_time_minutes'] * 60;
+                    unset($stepDataToSave['cycle_time_minutes']);
+                }
+
+                $route->steps()->create($stepDataToSave);
             }
 
             // Note: Status transition from 'draft' to 'planned' should only happen
@@ -196,8 +211,8 @@ class PlanningController extends Controller
                     'name' => $step->name,
                     'description' => $step->description,
                     'work_cell_id' => $step->work_cell_id,
-                    'setup_time_minutes' => $step->setup_time_minutes,
-                    'cycle_time_minutes' => $step->cycle_time_minutes,
+                    'setup_time_seconds' => $step->setup_time_seconds,
+                    'cycle_time_seconds' => $step->cycle_time_seconds,
                     'display_order' => $step->display_order,
                     'step_type' => $step->step_type,
                     'is_required' => $step->is_required ?? true,
@@ -560,10 +575,12 @@ class PlanningController extends Controller
                 'description',
                 'cell_type',
                 'has_finite_capacity',
-                'default_production_rate_per_hour',
-                'default_unit_of_measure',
-                'default_setup_time_minutes',
+                'default_setup_time_seconds',
+                'default_cycle_time_seconds',
+                'default_unit_of_measure_code',
                 'max_parallel_executions',
+                'time_display_preference',
+                'time_scale_preference',
                 'shift_id',
                 'plant_id',
                 'area_id',
@@ -580,20 +597,25 @@ class PlanningController extends Controller
                     'description' => $workCell->description,
                     'cell_type' => $workCell->cell_type,
                     'has_finite_capacity' => $workCell->has_finite_capacity,
-                    'default_production_rate_per_hour' => $workCell->default_production_rate_per_hour,
-                    'default_unit_of_measure' => $workCell->default_unit_of_measure,
-                    'default_setup_time_minutes' => $workCell->default_setup_time_minutes,
+                    'default_setup_time_seconds' => $workCell->default_setup_time_seconds,
+                    'default_cycle_time_seconds' => $workCell->default_cycle_time_seconds,
+                    'default_unit_of_measure_code' => $workCell->default_unit_of_measure_code,
                     'max_parallel_executions' => $workCell->max_parallel_executions,
+                    'time_display_preference' => $workCell->time_display_preference,
+                    'time_scale_preference' => $workCell->time_scale_preference,
                     'shift_id' => $workCell->shift_id,
                     'plant_id' => $workCell->plant_id,
                     'area_id' => $workCell->area_id,
                     'sector_id' => $workCell->sector_id,
                     'manufacturer_id' => $workCell->manufacturer_id,
                     'is_active' => $workCell->is_active,
-                    // Keep these legacy fields for backward compatibility
+                    // Keep these legacy fields for backward compatibility during transition
+                    'default_production_rate_per_hour' => $workCell->default_cycle_time_seconds ? (3600 / $workCell->default_cycle_time_seconds) : null,
+                    'default_unit_of_measure' => $workCell->default_unit_of_measure_code,
+                    'default_setup_time_minutes' => round($workCell->default_setup_time_seconds / 60, 1),
                     'code' => null,
                     'type' => $workCell->cell_type,
-                    'capacity' => $workCell->default_production_rate_per_hour ?? 0,
+                    'capacity' => $workCell->default_cycle_time_seconds ? (3600 / $workCell->default_cycle_time_seconds) : 0,
                     'utilization' => rand(40, 95), // TODO: Calculate real utilization
                 ];
             });

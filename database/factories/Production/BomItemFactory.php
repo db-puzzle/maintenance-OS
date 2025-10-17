@@ -26,7 +26,7 @@ class BomItemFactory extends Factory
             'parent_item_id' => null,
             'item_id' => Item::factory(), // Reference to items table
             'quantity' => fake()->randomFloat(4, 0.0001, 100),
-            'unit_of_measure' => 'EA',
+            'unit_of_measure_code' => 'PC',
             'level' => 0,
             'sequence_number' => 1,
             'reference_designators' => fake()->optional(0.3)->words(3, true),

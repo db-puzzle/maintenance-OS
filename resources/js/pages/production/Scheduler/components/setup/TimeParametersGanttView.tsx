@@ -73,9 +73,6 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
 
     // Calculate viewConfig first, before using it in other hooks
     const viewConfig = useMemo(() => {
-        // Log input dates
-        console.log('TimeParametersGanttView input dates:', { startDate, endDate });
-
         // Ensure we always have valid dates
         let start: Date;
         let end: Date;
@@ -89,16 +86,12 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
                 start = new Date();
                 end = new Date();
                 end.setMonth(end.getMonth() + 3);
-                console.warn('Using default dates due to invalid input', { startDate, endDate });
             }
         } catch (error) {
-            console.error('Error parsing dates:', error);
             start = new Date();
             end = new Date();
             end.setMonth(end.getMonth() + 3);
         }
-
-        console.log('TimeParametersGanttView viewConfig:', { start, end });
 
         return {
             startDate: start,
@@ -402,7 +395,6 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
 
     // Check if we have valid date inputs
     if (!startDate || !endDate) {
-        console.error('TimeParametersGanttView: Invalid dates provided', { startDate, endDate });
         return (
             <div className="flex items-center justify-center h-full text-muted-foreground">
                 <p>Invalid date range provided</p>
@@ -541,7 +533,6 @@ const TimelineWithValidation: React.FC<{
         try {
             // Ensure viewConfig has valid dates
             if (!viewConfig || !viewConfig.startDate || !viewConfig.endDate) {
-                console.error('Invalid viewConfig in TimelineWithValidation:', viewConfig);
                 const now = new Date();
                 const later = new Date();
                 later.setMonth(later.getMonth() + 3);
@@ -561,7 +552,6 @@ const TimelineWithValidation: React.FC<{
                 containerWidth: 2000, // Base width
             });
         } catch (error) {
-            console.error('Error calculating timeline layout:', error);
             // Return a default layout
             const now = new Date();
             const later = new Date();

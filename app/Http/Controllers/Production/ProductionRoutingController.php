@@ -195,7 +195,7 @@ class ProductionRoutingController extends Controller
                 ->map(function ($template) {
                     // Calculate total estimated time
                     $template->estimated_time = $template->steps()
-                        ->sum(\DB::raw('COALESCE(setup_time_minutes, 0) + COALESCE(cycle_time_minutes, 0)'));
+                        ->sum(\DB::raw('(COALESCE(setup_time_seconds, 0) + COALESCE(cycle_time_seconds, 0)) / 60'));
 
                     // Set usage_count to 0 since we're no longer tracking template usage
                     $template->usage_count = 0;
@@ -959,6 +959,18 @@ class ProductionRoutingController extends Controller
                 $message .= " Warning: The following work cells were created with default settings and need configuration: {$workCellNames}";
             }
 
+            // Return JSON response for AJAX requests
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => count($result['errors']) === 0,
+                    'message' => $message,
+                    'count' => $result['count'],
+                    'skipped' => $result['skipped'] ?? 0,
+                    'errors' => $result['errors'],
+                    'created_work_cells' => $result['created_work_cells'] ?? [],
+                ]);
+            }
+
             if (count($result['errors']) > 0) {
                 return back()->with('warning', $message)
                     ->withErrors($result['errors']);
@@ -967,6 +979,14 @@ class ProductionRoutingController extends Controller
             return redirect()->route('production.routing.index')
                 ->with('success', $message);
         } catch (\Exception $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Import failed: ' . $e->getMessage(),
+                    'errors' => [['message' => $e->getMessage()]],
+                ], 422);
+            }
+
             return back()->withErrors(['file' => 'Import failed: ' . $e->getMessage()]);
         }
     }

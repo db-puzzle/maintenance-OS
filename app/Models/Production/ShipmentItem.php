@@ -2,6 +2,7 @@
 
 namespace App\Models\Production;
 
+use App\Models\Settings\UnitOfMeasure;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,7 +18,7 @@ class ShipmentItem extends Model
         'item_number',
         'description',
         'quantity',
-        'unit_of_measure',
+        'unit_of_measure_code',
         'package_number',
         'package_type',
         'weight',
@@ -57,6 +58,14 @@ class ShipmentItem extends Model
     }
 
     /**
+     * Get the unit of measure.
+     */
+    public function unitOfMeasure(): BelongsTo
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'unit_of_measure_code', 'code');
+    }
+
+    /**
      * Scope for items in a specific package.
      */
     public function scopeInPackage($query, $packageNumber)
@@ -69,13 +78,13 @@ class ShipmentItem extends Model
      */
     public function getVolumeAttribute()
     {
-        if (!$this->dimensions || !isset($this->dimensions['length']) || 
-            !isset($this->dimensions['width']) || !isset($this->dimensions['height'])) {
+        if (! $this->dimensions || ! isset($this->dimensions['length']) ||
+            ! isset($this->dimensions['width']) || ! isset($this->dimensions['height'])) {
             return null;
         }
 
-        return $this->dimensions['length'] * 
-               $this->dimensions['width'] * 
+        return $this->dimensions['length'] *
+               $this->dimensions['width'] *
                $this->dimensions['height'];
     }
 
@@ -85,14 +94,14 @@ class ShipmentItem extends Model
     public function getDimensionalWeightAttribute()
     {
         $volume = $this->volume;
-        
-        if (!$volume) {
+
+        if (! $volume) {
             return null;
         }
 
         // Standard dimensional weight factor (166 for inches, 5000 for cm)
         $factor = ($this->dimensions['unit'] ?? 'cm') === 'in' ? 166 : 5000;
-        
+
         return $volume / $factor;
     }
 
@@ -102,8 +111,8 @@ class ShipmentItem extends Model
     public function getBillableWeightAttribute()
     {
         $dimensionalWeight = $this->dimensional_weight;
-        
-        if (!$dimensionalWeight) {
+
+        if (! $dimensionalWeight) {
             return $this->weight;
         }
 
@@ -116,8 +125,8 @@ class ShipmentItem extends Model
     public function addQrCode($qrCode)
     {
         $qrCodes = $this->qr_codes ?? [];
-        
-        if (!in_array($qrCode, $qrCodes)) {
+
+        if (! in_array($qrCode, $qrCodes)) {
             $qrCodes[] = $qrCode;
             $this->update(['qr_codes' => $qrCodes]);
         }
@@ -130,7 +139,7 @@ class ShipmentItem extends Model
     {
         $qrCodes = $this->qr_codes ?? [];
         $qrCodes = array_values(array_diff($qrCodes, [$qrCode]));
-        
+
         $this->update(['qr_codes' => $qrCodes]);
     }
 
@@ -159,13 +168,13 @@ class ShipmentItem extends Model
     public function split($quantities)
     {
         $totalQuantity = array_sum($quantities);
-        
+
         if ($totalQuantity > $this->quantity) {
             throw new \Exception('Total split quantity exceeds item quantity.');
         }
 
         $newItems = [];
-        
+
         foreach ($quantities as $index => $quantity) {
             if ($index === 0) {
                 // Update the original item

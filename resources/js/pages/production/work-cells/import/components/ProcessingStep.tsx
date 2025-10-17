@@ -20,19 +20,30 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
 
     useEffect(() => {
         processImport();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const processImport = async () => {
         try {
             const formData = new FormData();
             formData.append('file', files[0].file);
-            formData.append('update_existing', options.updateExisting.toString());
-            formData.append('skip_duplicates', options.skipDuplicates.toString());
+
+            // Send boolean values as '1' or '0' for better Laravel compatibility
+            formData.append('update_existing', options.updateExisting ? '1' : '0');
+            formData.append('skip_duplicates', options.skipDuplicates ? '1' : '0');
 
             // Add field mapping for CSV files
             if (files[0].file.name.endsWith('.csv')) {
                 formData.append('mapping', JSON.stringify(mapping));
             }
+
+            // Debug: Log what we're sending
+            console.log('Sending import data:', {
+                file: files[0].file.name,
+                update_existing: options.updateExisting ? '1' : '0',
+                skip_duplicates: options.skipDuplicates ? '1' : '0',
+                hasMapping: files[0].file.name.endsWith('.csv')
+            });
 
             const response = await axios.post(
                 route('production.work-cells.import'),
@@ -73,15 +84,36 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
         } catch (error) {
             console.error('Import error:', error);
 
+            let errorMessage = 'Erro desconhecido ao processar importação';
+            let errors: Array<{ row: number; message: string }> = [];
+
+            if (axios.isAxiosError(error) && error.response) {
+                // Handle validation errors
+                if (error.response.status === 422 && error.response.data?.errors) {
+                    const validationErrors = error.response.data.errors;
+                    errors = Object.entries(validationErrors).map(([field, messages]) => ({
+                        row: 0,
+                        message: `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`
+                    }));
+                    errorMessage = error.response.data.message || 'Erro de validação';
+                } else {
+                    errorMessage = error.response.data?.message || error.message;
+                    errors = [{
+                        row: 0,
+                        message: errorMessage
+                    }];
+                }
+            } else {
+                errors = [{
+                    row: 0,
+                    message: errorMessage
+                }];
+            }
+
             const failedSession: ImportSession = {
                 ...currentSession,
                 status: 'failed',
-                errors: [{
-                    row: 0,
-                    message: axios.isAxiosError(error)
-                        ? error.response?.data?.message || error.message
-                        : 'Erro desconhecido ao processar importação'
-                }]
+                errors
             };
 
             setCurrentSession(failedSession);

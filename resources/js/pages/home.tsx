@@ -90,13 +90,13 @@ export default function Dashboard() {
             cards: [
                 {
                     title: 'Ordens de Manufatura',
-                    description: 'Crie e gerencie ordens de produção',
+                    description: 'Crie e gerencie ordens de manufatura',
                     href: '/production/orders',
                     icon: FileText,
                 },
                 {
-                    title: 'Rotas de Produção',
-                    description: 'Planeje e sequencie ordens',
+                    title: 'Planejamento',
+                    description: 'Determine as rotas de produção',
                     href: '/production/planning',
                     icon: Target,
                 },

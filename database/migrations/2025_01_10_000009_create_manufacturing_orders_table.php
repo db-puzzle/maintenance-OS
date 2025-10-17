@@ -20,7 +20,8 @@ return new class extends Migration
             $table->decimal('quantity', 10, 2);
             $table->decimal('quantity_completed', 10, 2)->default(0);
             $table->decimal('quantity_scrapped', 10, 2)->default(0);
-            $table->string('unit_of_measure', 20)->default('EA');
+            $table->string('unit_of_measure_code', 20)->default('PC');
+            $table->foreign('unit_of_measure_code')->references('code')->on('units_of_measure');
 
             // Smart progress tracking
             $table->decimal('smart_progress_percentage', 5, 2)->default(0)->comment('Calculated progress based on work units across hierarchy');

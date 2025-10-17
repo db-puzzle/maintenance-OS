@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { TimeParametersGanttView } from './TimeParametersGanttView';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import TimeParameterForm from '@/components/production/scheduler/TimeParameterForm';
 
@@ -79,66 +79,43 @@ export function TimeParametersStep({
 
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle>Time Parameter Configuration</CardTitle>
-                            <CardDescription>
-                                Verify and configure time parameters for the selected orders
-                            </CardDescription>
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={onRefresh}
-                            disabled={loading}
-                        >
-                            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                            Refresh
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    {/* Status Alert */}
-                    {!loading && (
-                        <Alert className={`mb-4 ${allValid ? 'border-green-500' : 'border-yellow-500'}`}>
-                            <AlertTitle className={allValid ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'}>
-                                {allValid ? 'All Time Parameters Valid' : 'Configuration Required'}
-                            </AlertTitle>
-                            <AlertDescription>
-                                {allValid
-                                    ? `All ${selectedOrders.length} orders have valid time parameters and are ready for scheduling.`
-                                    : `${invalidCount} order${invalidCount !== 1 ? 's' : ''} require${invalidCount === 1 ? 's' : ''} time parameter configuration before scheduling.`}
-                            </AlertDescription>
-                        </Alert>
-                    )}
+            {/* Status Alert */}
+            {!loading && (
+                <Alert className={`${allValid ? 'border-green-500' : 'border-yellow-500'}`}>
+                    <AlertTitle className={allValid ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'}>
+                        {allValid ? 'All Time Parameters Valid' : 'Configuration Required'}
+                    </AlertTitle>
+                    <AlertDescription>
+                        {allValid
+                            ? `All ${selectedOrders.length} orders have valid time parameters and are ready for scheduling.`
+                            : `${invalidCount} order${invalidCount !== 1 ? 's' : ''} require${invalidCount === 1 ? 's' : ''} time parameter configuration before scheduling.`}
+                    </AlertDescription>
+                </Alert>
+            )}
 
-                    {/* Time Parameter Gantt View */}
-                    <div className="min-h-[400px] max-h-[600px]">
-                        {loading ? (
-                            <div className="flex items-center justify-center h-32">
-                                <div className="text-center">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                                    <p className="text-sm text-muted-foreground">Loading time parameters...</p>
-                                </div>
-                            </div>
-                        ) : orders.length > 0 ? (
-                            <TimeParametersGanttView
-                                orders={orders}
-                                startDate={startDate}
-                                endDate={endDate}
-                                onEditStep={handleEditStep}
-                                onRefresh={onRefresh}
-                            />
-                        ) : (
-                            <div className="flex items-center justify-center h-32 text-muted-foreground">
-                                No orders to configure
-                            </div>
-                        )}
+            {/* Time Parameter Gantt View */}
+            <div className="h-[600px]">
+                {loading ? (
+                    <div className="flex items-center justify-center h-32">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                            <p className="text-sm text-muted-foreground">Loading time parameters...</p>
+                        </div>
                     </div>
-                </CardContent>
-            </Card>
+                ) : orders.length > 0 ? (
+                    <TimeParametersGanttView
+                        orders={orders}
+                        startDate={startDate}
+                        endDate={endDate}
+                        onEditStep={handleEditStep}
+                        onRefresh={onRefresh}
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-32 text-muted-foreground">
+                        No orders to configure
+                    </div>
+                )}
+            </div>
 
             {/* Instructions */}
             <Card>
