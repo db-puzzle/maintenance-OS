@@ -116,20 +116,20 @@ export default function BomIndex({ boms, filters }: Props) {
             key: 'bom_number',
             label: 'Número',
             sortable: true,
-            width: 'w-[150px]',
+            width: 'w-[180px]',
             render: (value: unknown) => <>{value || '-'}</>
         },
         {
             key: 'name',
             label: 'Nome',
             sortable: true,
-            width: 'w-[300px]',
+            width: 'w-[400px]',
             render: (value: unknown, row: BillOfMaterial) => (
                 <div>
                     <div className="font-medium">{value as React.ReactNode}</div>
                     {row.description ? (
                         <div className="text-muted-foreground text-sm">
-                            {row.description.length > 40 ? `${row.description.substring(0, 40)}...` : row.description}
+                            {row.description.length > 60 ? `${row.description.substring(0, 60)}...` : row.description}
                         </div>
                     ) : null}
                 </div>
@@ -139,36 +139,56 @@ export default function BomIndex({ boms, filters }: Props) {
             key: 'version',
             label: 'Versão',
             width: 'w-[100px]',
+            headerAlign: 'center',
             render: (value: unknown, row: BillOfMaterial) => {
                 const currentVersion = row.current_version?.version_number;
-                return currentVersion ? `v${currentVersion}` : '-';
+                return (
+                    <div className="text-center">
+                        {currentVersion ? `v${currentVersion}` : '-'}
+                    </div>
+                );
             }
         },
         {
             key: 'status',
             label: 'Status',
             sortable: true,
-            width: 'w-[120px]',
+            width: 'w-[140px]',
+            headerAlign: 'center',
             render: (value: unknown) => {
                 const labels: Record<string, string> = {
                     'active': 'Ativa',
                     'inactive': 'Inativa',
                     'draft': 'Rascunho'
                 };
-                return <>{labels[value as string] || value || '-'}</>;
+                return (
+                    <div className="text-center">
+                        {labels[value as string] || value || '-'}
+                    </div>
+                );
             }
         },
         {
             key: 'versions_count',
             label: 'Versões',
             width: 'w-[100px]',
-            render: (value: unknown, row: BillOfMaterial) => <>{row.versions_count || 0}</>
+            headerAlign: 'center',
+            render: (value: unknown, row: BillOfMaterial) => (
+                <div className="text-center">
+                    {row.versions_count || 0}
+                </div>
+            )
         },
         {
             key: 'item_masters_count',
             label: 'Componentes',
-            width: 'w-[120px]',
-            render: (value: unknown, row: BillOfMaterial) => <>{(row as BillOfMaterial & { item_masters_count?: number }).item_masters_count || 0}</>
+            width: 'w-[140px]',
+            headerAlign: 'center',
+            render: (value: unknown, row: BillOfMaterial) => (
+                <div className="text-center">
+                    {(row as BillOfMaterial & { item_masters_count?: number }).item_masters_count || 0}
+                </div>
+            )
         }
     ];
 

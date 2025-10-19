@@ -55,7 +55,7 @@ interface RouteTemplate {
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    manufacturingOrderId: number;
+    manufacturingOrderIds: number[];
     itemCategory?: string;
     itemNumber?: string;
     itemName?: string;
@@ -66,7 +66,7 @@ interface Props {
 export default function ApplyTemplateDialog({
     open,
     onOpenChange,
-    manufacturingOrderId,
+    manufacturingOrderIds,
     itemCategory,
     itemNumber,
     itemName,
@@ -234,26 +234,54 @@ export default function ApplyTemplateDialog({
 
         setIsApplying(true);
 
-        router.post(
-            route('production.orders.apply-template', { order: manufacturingOrderId }),
-            {
-                template_id: selectedTemplateId,
-            },
-            {
-                onSuccess: () => {
-                    setIsApplying(false);
-                    onOpenChange(false);
-                    onTemplateApplied?.();
+        if (manufacturingOrderIds.length === 1) {
+            // Single order - use the existing endpoint
+            router.post(
+                route('production.orders.apply-template', { order: manufacturingOrderIds[0] }),
+                {
+                    template_id: selectedTemplateId,
                 },
-                onError: (errors) => {
-                    setIsApplying(false);
-                    const errorMessage = errors.message || 'Falha ao aplicar template';
-                    toast.error(errorMessage);
+                {
+                    onSuccess: () => {
+                        setIsApplying(false);
+                        onOpenChange(false);
+                        onTemplateApplied?.();
+                        toast.success('Template aplicado com sucesso');
+                    },
+                    onError: (errors) => {
+                        setIsApplying(false);
+                        const errorMessage = errors.message || 'Falha ao aplicar template';
+                        toast.error(errorMessage);
+                    },
+                    preserveState: true,
+                    preserveScroll: true,
+                }
+            );
+        } else {
+            // Multiple orders - use the bulk endpoint
+            router.post(
+                route('production.orders.bulk-apply-template'),
+                {
+                    order_ids: manufacturingOrderIds,
+                    template_id: selectedTemplateId,
                 },
-                preserveState: true,
-                preserveScroll: true,
-            }
-        );
+                {
+                    onSuccess: () => {
+                        setIsApplying(false);
+                        onOpenChange(false);
+                        onTemplateApplied?.();
+                        toast.success(`Template aplicado com sucesso a ${manufacturingOrderIds.length} ordens`);
+                    },
+                    onError: (errors) => {
+                        setIsApplying(false);
+                        const errorMessage = errors.message || 'Falha ao aplicar template às ordens selecionadas';
+                        toast.error(errorMessage);
+                    },
+                    preserveState: true,
+                    preserveScroll: true,
+                }
+            );
+        }
     };
 
     const handleOpenChange = (open: boolean) => {
@@ -282,16 +310,28 @@ export default function ApplyTemplateDialog({
             <Dialog open={open} onOpenChange={handleOpenChange}>
                 <DialogContent className="!max-w-[70vw] w-[70vw] h-[80vh] flex flex-col p-0">
                     <DialogHeader className="mt-2 px-6 py-4 border-b">
-                        <DialogTitle>Aplicar Template de Rota</DialogTitle>
+                        <DialogTitle>
+                            Aplicar Template de Rota
+                            {manufacturingOrderIds.length > 1 && (
+                                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                    ({manufacturingOrderIds.length} ordens selecionadas)
+                                </span>
+                            )}
+                        </DialogTitle>
                         <DialogDescription>
-                            {itemNumber && itemName && (
+                            {manufacturingOrderIds.length === 1 && itemNumber && itemName && (
                                 <span className="ml-1 font-medium">
                                     Item: {itemNumber} - {itemName}
                                 </span>
                             )}
-                            {itemCategory && (
+                            {manufacturingOrderIds.length === 1 && itemCategory && (
                                 <span className="ml-1 text-muted-foreground">
                                     | Categoria: {itemCategory}
+                                </span>
+                            )}
+                            {manufacturingOrderIds.length > 1 && (
+                                <span className="ml-1 text-muted-foreground">
+                                    Aplicar o mesmo template a múltiplas ordens de manufatura
                                 </span>
                             )}
                         </DialogDescription>

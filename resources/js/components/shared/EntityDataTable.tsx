@@ -174,35 +174,35 @@ export function EntityDataTable<T>({
 
         return (
             <div className="w-full rounded-md border bg-background">
-                {/* Fixed Header */}
-                <div className="w-full border-b bg-muted">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="hover:bg-transparent">
+                <div className="w-full overflow-auto" style={{ maxHeight }}>
+                    <table className="w-full caption-bottom text-sm">
+                        <thead className="bg-muted sticky top-0 z-10">
+                            <tr className="border-b hover:bg-transparent">
                                 {visibleColumns.map((column, index) => (
-                                    <TableHead key={column.id} className={`${index === 0 ? 'pl-4' : ''} ${column.width || ''}`}>
+                                    <th
+                                        key={column.id}
+                                        className={cn(
+                                            "text-muted-foreground px-2 py-2 text-left align-middle font-medium whitespace-nowrap bg-muted",
+                                            index === 0 && 'pl-4',
+                                            column.width || ''
+                                        )}
+                                    >
                                         {column.header}
-                                    </TableHead>
+                                    </th>
                                 ))}
-                            </TableRow>
-                        </TableHeader>
-                    </Table>
-                </div>
-
-                {/* Scrollable Body */}
-                <div className="w-full overflow-auto" style={{ maxHeight: `calc(${maxHeight} - 41px)` }}>
-                    <Table>
-                        <TableBody>
+                            </tr>
+                        </thead>
+                        <tbody>
                             {tableData.length ? (
                                 tableData.map((row) => {
                                     const rowId = getRowId(row);
                                     const isSelected = selectedRows.has(rowId);
                                     return (
-                                        <TableRow
+                                        <tr
                                             key={rowId}
                                             data-state={isSelected ? "selected" : undefined}
                                             className={cn(
-                                                "transition-colors",
+                                                "border-b transition-colors",
                                                 isSelected && "bg-muted/50",
                                                 onRowClick && !isLoading && "cursor-pointer",
                                                 !isSelected && onRowClick && !isLoading && "hover:bg-muted/50",
@@ -228,9 +228,13 @@ export function EntityDataTable<T>({
                                             }}
                                         >
                                             {visibleColumns.map((column, index) => (
-                                                <TableCell
+                                                <td
                                                     key={column.id}
-                                                    className={`${index === 0 ? 'pl-4' : ''} ${column.width || ''}`}
+                                                    className={cn(
+                                                        "px-2 py-2 align-middle whitespace-nowrap",
+                                                        index === 0 && 'pl-4',
+                                                        column.width || ''
+                                                    )}
                                                     onClick={(e) => {
                                                         if (column.id === 'actions') {
                                                             e.stopPropagation();
@@ -238,20 +242,20 @@ export function EntityDataTable<T>({
                                                     }}
                                                 >
                                                     {column.cell({ original: row })}
-                                                </TableCell>
+                                                </td>
                                             ))}
-                                        </TableRow>
+                                        </tr>
                                     );
                                 })
                             ) : (
-                                <TableRow>
-                                    <TableCell colSpan={visibleColumns.length} className="h-24 pl-4 text-center">
+                                <tr className="border-b">
+                                    <td colSpan={visibleColumns.length} className="h-24 pl-4 text-center px-2 py-2 align-middle">
                                         {emptyMessage}
-                                    </TableCell>
-                                </TableRow>
+                                    </td>
+                                </tr>
                             )}
-                        </TableBody>
-                    </Table>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         );
@@ -292,7 +296,7 @@ export function EntityDataTable<T>({
                         {dataTableColumns
                             .filter((column) => column.id === 'actions' || effectiveColumnVisibility[column.id])
                             .map((column, index) => (
-                                <TableHead key={column.id} className={`${index === 0 ? 'pl-4' : ''} ${column.width || ''}`}>
+                                <TableHead key={column.id} className={`${index === 0 ? 'pl-4' : ''} ${column.width || ''} py-2`}>
                                     {column.header}
                                 </TableHead>
                             ))}
@@ -338,7 +342,7 @@ export function EntityDataTable<T>({
                                         .map((column, index) => (
                                             <TableCell
                                                 key={column.id}
-                                                className={`${index === 0 ? 'pl-4' : ''} ${column.width || ''}`}
+                                                className={`${index === 0 ? 'pl-4' : ''} ${column.width || ''} py-2`}
                                                 onClick={(e) => {
                                                     if (column.id === 'actions') {
                                                         e.stopPropagation();

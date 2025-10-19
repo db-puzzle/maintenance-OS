@@ -36,6 +36,7 @@ import { SaveAsTemplateDialog } from '@/components/production/templates/SaveAsTe
 import { MOSelectionModal } from '@/components/production/planning/MOSelectionModal';
 import { MarkChildrenPlannedDialog } from '@/components/production/planning/MarkChildrenPlannedDialog';
 import { MarkChildrenReleasedDialog } from '@/components/production/planning/MarkChildrenReleasedDialog';
+import { MultipleOrdersPanel } from '@/components/production/planning/MultipleOrdersPanel';
 // import { UnsavedChangesDialog } from '@/components/production/planning/UnsavedChangesDialog';
 // import WorkCellManager from '@/components/production/planning/WorkCellManager';
 // import BulkOperationsPanel from '@/components/production/planning/BulkOperationsPanel';
@@ -353,6 +354,18 @@ export default function PlanningPage({
         return findMOInHierarchy(currentManufacturingOrders, activeMO);
     }, [activeMO, currentManufacturingOrders, findMOInHierarchy]);
 
+    // Get all selected MO details for multiple selection panel
+    const selectedMODetails = useMemo(() => {
+        const details: ManufacturingOrder[] = [];
+        selectedMOs.forEach(moId => {
+            const mo = findMOInHierarchy(currentManufacturingOrders, moId);
+            if (mo) {
+                details.push(mo);
+            }
+        });
+        return details;
+    }, [selectedMOs, currentManufacturingOrders, findMOInHierarchy]);
+
     // Handle route steps change
     const handleRouteStepsChange = useCallback((steps: RouteStep[]) => {
         if (activeMO && activeMODetails) {
@@ -577,7 +590,7 @@ export default function PlanningPage({
                 sortDirection
             );
         }
-    }, []);
+    }, [sortField, sortDirection]);
 
     return (
         <AppLayout
@@ -751,10 +764,17 @@ export default function PlanningPage({
                                 <div className="flex items-center justify-between px-4 py-2">
                                     <div className="flex items-center space-x-4">
                                         {/* Item title on the left */}
-                                        {detailViewMode === 'route' && activeMODetails && (
+                                        {detailViewMode === 'route' && selectedMOs.size === 1 && activeMODetails && (
                                             <div className="flex items-center gap-3">
                                                 <h3 className="text-sm font-medium">
                                                     {activeMODetails.item?.item_number} - {activeMODetails.item?.name}
+                                                </h3>
+                                            </div>
+                                        )}
+                                        {detailViewMode === 'route' && selectedMOs.size > 1 && (
+                                            <div className="flex items-center gap-3">
+                                                <h3 className="text-sm font-medium">
+                                                    {selectedMOs.size} Manufacturing Orders Selected
                                                 </h3>
                                             </div>
                                         )}
@@ -769,18 +789,18 @@ export default function PlanningPage({
                                                         variant="outline"
                                                         size="sm"
                                                         onClick={() => setShowApplyTemplateDialog(true)}
-                                                        disabled={!activeMODetails || selectedMOs.size === 0}
+                                                        disabled={selectedMOs.size === 0}
                                                     >
                                                         <FileText className="h-4 w-4 mr-2" />
                                                         Templates
                                                     </Button>
                                                 </TooltipTrigger>
                                                 <TooltipContent>
-                                                    <p>Apply a route template to the selected order</p>
+                                                    <p>Apply a route template to the selected order{selectedMOs.size > 1 ? 's' : ''}</p>
                                                 </TooltipContent>
                                             </Tooltip>
 
-                                            {permissions.canPlanOrder && detailViewMode === 'route' && activeMODetails && (
+                                            {permissions.canPlanOrder && detailViewMode === 'route' && activeMODetails && selectedMOs.size === 1 && (
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
                                                         <Button
@@ -832,8 +852,15 @@ export default function PlanningPage({
 
                             {/* Content Area */}
                             <div className="flex-1 overflow-hidden flex flex-col">
-                                {/* Route Builder */}
-                                {detailViewMode === 'route' && activeMODetails && (
+                                {/* Show MultipleOrdersPanel when multiple MOs are selected */}
+                                {selectedMOs.size > 1 && detailViewMode === 'route' && (
+                                    <MultipleOrdersPanel
+                                        selectedOrders={selectedMODetails}
+                                        className="h-full"
+                                    />
+                                )}
+                                {/* Route Builder - only show when single MO is selected */}
+                                {selectedMOs.size === 1 && detailViewMode === 'route' && activeMODetails && (
                                     <div className="flex-1 min-h-0">
                                         <RouteBuilder
                                             manufacturingOrder={activeMODetails}
@@ -870,7 +897,7 @@ export default function PlanningPage({
                                         </div>
                                     </div>
                                 )}
-                                {!activeMODetails && detailViewMode === 'route' && (
+                                {selectedMOs.size === 0 && detailViewMode === 'route' && (
                                     <div className="flex flex-col items-center justify-center h-full text-muted-foreground bg-muted/10 dark:bg-muted/5">
                                         <List className="h-12 w-12 mb-4 opacity-50" />
                                         <p className="text-lg mb-2">No Manufacturing Order Selected</p>
@@ -920,14 +947,14 @@ export default function PlanningPage({
             )}
 
             {/* Apply Template Dialog */}
-            {activeMODetails && (
+            {selectedMOs.size > 0 && (
                 <ApplyTemplateDialog
                     open={showApplyTemplateDialog}
                     onOpenChange={setShowApplyTemplateDialog}
-                    manufacturingOrderId={activeMODetails.id}
-                    itemCategory={activeMODetails.item?.category?.name}
-                    itemNumber={activeMODetails.item?.item_number}
-                    itemName={activeMODetails.item?.name}
+                    manufacturingOrderIds={Array.from(selectedMOs)}
+                    itemCategory={selectedMOs.size === 1 ? activeMODetails?.item?.category?.name : undefined}
+                    itemNumber={selectedMOs.size === 1 ? activeMODetails?.item?.item_number : undefined}
+                    itemName={selectedMOs.size === 1 ? activeMODetails?.item?.name : undefined}
                     routeTemplates={routeTemplates}
                     onTemplateApplied={() => {
                         // Small delay to ensure backend has completed processing
