@@ -168,26 +168,31 @@ export function OrderCardCompact({
                         </TooltipProvider>
 
                         {/* Route Steps Indicator */}
-                        {(order.manufacturing_route || currentRouteSteps) && (
-                            <TooltipProvider delayDuration={700}>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            <StackIcon className="h-3 w-3 text-muted-foreground" />
-                                            <span className="text-xs text-muted-foreground select-none">
-                                                {currentRouteSteps?.length ?? order.manufacturing_route?.steps?.length ?? 0}
-                                            </span>
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p className="text-xs">
-                                            {(currentRouteSteps?.length ?? order.manufacturing_route?.steps?.length ?? 0)} {(currentRouteSteps?.length ?? order.manufacturing_route?.steps?.length ?? 0) === 1 ? 'etapa' : 'etapas'} configuradas
-                                            {currentRouteSteps && ' (unsaved)'}
-                                        </p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        )}
+                        {(order.manufacturing_route || currentRouteSteps !== undefined) && (() => {
+                            const stepCount = currentRouteSteps?.length ?? order.manufacturing_route?.steps?.length ?? 0;
+                            const hasNoSteps = stepCount === 0;
+
+                            return (
+                                <TooltipProvider delayDuration={700}>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                <StackIcon className={cn("h-3 w-3", hasNoSteps ? "text-red-500" : "text-muted-foreground")} />
+                                                <span className={cn("text-xs select-none", hasNoSteps ? "text-red-500" : "text-muted-foreground")}>
+                                                    {stepCount}
+                                                </span>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p className="text-xs">
+                                                {stepCount} {stepCount === 1 ? 'etapa' : 'etapas'} configuradas
+                                                {currentRouteSteps && ' (unsaved)'}
+                                            </p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            );
+                        })()}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5 select-none">
                         {order.item && (() => {

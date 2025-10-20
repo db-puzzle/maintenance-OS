@@ -170,6 +170,107 @@ class PlanningController extends Controller
     }
 
     /**
+     * Bulk save routes for multiple manufacturing orders.
+     */
+    public function bulkSaveRoutes(Request $request)
+    {
+        $validated = $request->validate([
+            'routes' => 'required|array',
+            'routes.*.order_id' => 'required|exists:manufacturing_orders,id',
+            'routes.*.steps' => 'required|array',
+            'routes.*.steps.*.sequence' => 'required|integer|min:1',
+            'routes.*.steps.*.name' => 'required|string|max:255',
+            'routes.*.steps.*.description' => 'nullable|string',
+            'routes.*.steps.*.work_cell_id' => 'nullable|exists:work_cells,id',
+            'routes.*.steps.*.setup_time_minutes' => 'nullable|numeric|min:0',
+            'routes.*.steps.*.cycle_time_minutes' => 'nullable|numeric|min:0',
+            'routes.*.steps.*.use_workcell_throughput' => 'nullable|boolean',
+            'routes.*.steps.*.step_type' => 'nullable|string|in:standard,qc_sampling,qc_100_percent',
+            'routes.*.steps.*.is_required' => 'nullable|boolean',
+            'routes.*.steps.*.child_order_dependency_type' => 'nullable|string|in:none,all_children_completed,children_quantity',
+            'routes.*.steps.*.child_order_minimum_quantity' => 'nullable|integer|min:0',
+        ]);
+
+        $results = [];
+        $errors = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($validated['routes'] as $routeData) {
+                $order = ManufacturingOrder::find($routeData['order_id']);
+
+                // Check authorization for each order
+                if (! auth()->user()->can('update', $order)) {
+                    $errors[] = "Unauthorized to update order {$order->order_number}";
+                    continue;
+                }
+
+                // Check if order status allows editing
+                if (! in_array($order->status, ['draft', 'planned', 'scheduled'])) {
+                    $errors[] = "Order {$order->order_number} cannot be edited in its current status";
+                    continue;
+                }
+
+                // Create or update route
+                $route = $order->manufacturingRoute ?? new ManufacturingRoute;
+                $route->manufacturing_order_id = $order->id;
+                $route->name = "Route for {$order->order_number}";
+                $route->save();
+
+                // Delete existing steps
+                $route->steps()->delete();
+
+                // Create new steps
+                foreach ($routeData['steps'] as $stepData) {
+                    // Ensure child order dependency fields are included
+                    $stepData['child_order_dependency_type'] = $stepData['child_order_dependency_type'] ?? 'all_children_completed';
+                    $stepData['child_order_minimum_quantity'] = $stepData['child_order_minimum_quantity'] ?? 0;
+
+                    // Convert time values from minutes to seconds for the new columns
+                    $stepDataToSave = $stepData;
+
+                    // Convert setup_time_minutes to setup_time_seconds
+                    if (isset($stepData['setup_time_minutes'])) {
+                        $stepDataToSave['setup_time_seconds'] = intval($stepData['setup_time_minutes'] * 60);
+                        unset($stepDataToSave['setup_time_minutes']);
+                    }
+
+                    // Convert cycle_time_minutes to cycle_time_seconds
+                    if (isset($stepData['cycle_time_minutes'])) {
+                        $stepDataToSave['cycle_time_seconds'] = $stepData['cycle_time_minutes'] * 60;
+                        unset($stepDataToSave['cycle_time_minutes']);
+                    }
+
+                    $route->steps()->create($stepDataToSave);
+                }
+
+                $results[] = $order->order_number;
+            }
+
+            DB::commit();
+
+            // Prepare the success message
+            $successCount = count($results);
+            $errorCount = count($errors);
+
+            if ($successCount > 0 && $errorCount === 0) {
+                $message = "Successfully saved routes for {$successCount} order" . ($successCount > 1 ? 's' : '');
+            } elseif ($successCount > 0 && $errorCount > 0) {
+                $message = "Saved routes for {$successCount} order" . ($successCount > 1 ? 's' : '') . ", but {$errorCount} failed";
+            } else {
+                $message = 'Failed to save any routes';
+            }
+
+            // Return with updated manufacturing orders data
+            return back()->with('success', $message);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return back()->with('error', 'Failed to save routes: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Apply a route template to a manufacturing order.
      */
     public function applyTemplate(Request $request, ManufacturingOrder $order)

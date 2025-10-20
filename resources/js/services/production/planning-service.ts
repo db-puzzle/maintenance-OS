@@ -81,20 +81,49 @@ export class PlanningService {
      */
     static async saveMultipleRoutes(
         changes: Array<{ orderId: number; steps: RouteStep[] }>,
-        activeMO: number | null,
-        selectedMO?: number
+        _activeMO: number | null,
+        _selectedMO?: number
     ): Promise<void> {
-        const savePromises = changes.map(change =>
-            this.saveRoute({
-                orderId: change.orderId,
-                steps: change.steps,
-                autoSave: true,
-                selectedMO: activeMO || selectedMO,
-            })
-        );
+        return new Promise((resolve, reject) => {
+            // Prepare the data for bulk save
+            const routes = changes.map(change => ({
+                order_id: change.orderId,
+                steps: change.steps.map(step => ({
+                    sequence: step.sequence,
+                    name: step.name,
+                    description: step.description || '',
+                    work_cell_id: step.work_cell_id || null,
+                    setup_time_minutes: step.setup_time_minutes || 0,
+                    cycle_time_minutes: step.cycle_time_minutes || 0,
+                    use_workcell_throughput: step.use_workcell_throughput ?? false,
+                    step_type: step.step_type || 'standard',
+                    is_required: step.is_required ?? true,
+                    child_order_dependency_type: step.gate_after?.dependency_type || 'all_children_completed',
+                    child_order_minimum_quantity: parseInt(String(step.gate_after?.minimum_quantity || 0)) || 0,
+                }))
+            }));
 
-        await Promise.all(savePromises);
-        toast.success(`Saved ${changes.length} route${changes.length > 1 ? 's' : ''} successfully`);
+            router.post(
+                window.route('production.planning.routes.bulk-save'),
+                {
+                    routes: routes,
+                },
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    only: ['manufacturingOrders'],
+                    onSuccess: () => {
+                        toast.success(`Saved ${changes.length} route${changes.length > 1 ? 's' : ''} successfully`);
+                        resolve();
+                    },
+                    onError: (errors) => {
+                        console.error('Failed to save routes:', errors);
+                        toast.error('Failed to save routes');
+                        reject(new Error('Failed to save routes'));
+                    }
+                }
+            );
+        });
     }
 
     /**

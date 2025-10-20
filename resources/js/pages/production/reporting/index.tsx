@@ -214,10 +214,27 @@ export default function ProductionReporting({
     const handleAction = (action: string, order: ManufacturingOrder) => {
         switch (action) {
             case 'start':
-                router.post(route('production.reporting.start', { order: order.id }));
+                // For routed orders with a current step, redirect to step execution
+                if (order.has_route && order.current_step) {
+                    router.visit(route('production.steps.execute', { step: order.current_step.id }));
+                } else {
+                    // For non-routed orders, use the standard start endpoint
+                    router.post(route('production.reporting.start', { order: order.id }));
+                }
                 break;
             case 'report':
-                setReportProductionOrder(order);
+                // For routed orders, redirect to step execution page
+                if (order.has_route) {
+                    if (order.current_step) {
+                        router.visit(route('production.steps.execute', { step: order.current_step.id }));
+                    } else {
+                        // No current step available (all steps might be completed)
+                        alert('No active steps available for execution. All steps may be completed.');
+                    }
+                } else {
+                    // For non-routed orders, use the order-level reporting dialog
+                    setReportProductionOrder(order);
+                }
                 break;
             case 'complete':
                 if (confirm('Are you sure you want to complete this order?')) {
@@ -395,9 +412,10 @@ export default function ProductionReporting({
                                 size="sm"
                                 variant="default"
                                 onClick={() => handleAction('start', order)}
+                                title={order.has_route ? 'Start first step execution' : 'Start production'}
                             >
                                 <Play className="w-4 h-4 mr-1" />
-                                Start
+                                {order.has_route ? 'Start Step' : 'Start'}
                             </Button>
                         )}
                         {order.status === 'in_progress' && (
@@ -405,9 +423,10 @@ export default function ProductionReporting({
                                 size="sm"
                                 variant="default"
                                 onClick={() => handleAction('report', order)}
+                                title={order.has_route ? 'Go to current step execution' : 'Report production progress'}
                             >
                                 <FileText className="w-4 h-4 mr-1" />
-                                Report
+                                {order.has_route ? 'Execute Step' : 'Report'}
                             </Button>
                         )}
                         <Button

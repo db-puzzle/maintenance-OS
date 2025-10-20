@@ -807,9 +807,50 @@ class ManufacturingOrder extends Model
         }
 
         return $this->manufacturingRoute->steps()
-            ->whereNotIn('status', ['completed', 'skipped'])
+            ->whereNotIn('status', ['completed', 'skipped', 'cancelled'])
             ->orderBy('display_order')
             ->first();
+    }
+
+    /**
+     * Get the current available step for a specific work cell.
+     * Returns the step that is ready to be executed at the given work cell.
+     */
+    public function getCurrentStepForWorkCell($workCellId)
+    {
+        if (! $this->has_route) {
+            return null;
+        }
+
+        // Get all steps for this work cell that aren't completed
+        $stepsQuery = $this->manufacturingRoute->steps()
+            ->where('work_cell_id', $workCellId)
+            ->whereNotIn('status', ['completed', 'skipped', 'cancelled'])
+            ->with(['dependency'])
+            ->orderBy('display_order');
+
+        $steps = $stepsQuery->get();
+
+        // Find the first step that can actually be started
+        foreach ($steps as $step) {
+            // Check if this step is blocked by an earlier step at a different work cell
+            $hasBlockingStep = $this->manufacturingRoute->steps()
+                ->where('display_order', '<', $step->display_order)
+                ->whereNotIn('status', ['completed', 'skipped', 'cancelled'])
+                ->where('work_cell_id', '!=', $workCellId)
+                ->exists();
+
+            if ($hasBlockingStep) {
+                continue; // This step is not ready yet
+            }
+
+            // Check if the step's dependencies are met
+            if ($step->canStart()) {
+                return $step;
+            }
+        }
+
+        return null;
     }
 
     /**

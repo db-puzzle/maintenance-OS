@@ -9,6 +9,7 @@ Route::middleware(['auth', 'verified'])->prefix('production/planning')->name('pr
 
     // Route Management
     Route::post('/orders/{order}/route', [PlanningController::class, 'saveRoute'])->name('orders.save-route');
+    Route::post('/routes/bulk-save', [PlanningController::class, 'bulkSaveRoutes'])->name('routes.bulk-save');
     Route::post('/routes/templates', [PlanningController::class, 'saveAsTemplate'])->name('routes.save-as-template');
 
     // Bulk Operations

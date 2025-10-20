@@ -34,7 +34,7 @@ class ProductionReportingController extends BaseSearchController
         $baseQuery = ManufacturingOrder::query()
             ->whereIn('status', ['released', 'in_progress', 'on_hold'])
             ->with([
-                'item:id,item_number,name,description,unit_of_measure',
+                'item:id,item_number,name,description,unit_of_measure_code',
                 'item.media',
                 'manufacturingRoute.steps.workCell',
                 'createdBy:id,name',
@@ -55,11 +55,90 @@ class ProductionReportingController extends BaseSearchController
             $baseQuery = $this->applySearchFilter($baseQuery, $request->search, $searchConfig);
         }
 
-        // Apply work cell filter for operators
+        // Apply work cell filter - only show MOs with steps ready for this work cell
         if ($request->work_cell_id) {
             $baseQuery->whereHas('manufacturingRoute.steps', function ($query) use ($request) {
                 $query->where('work_cell_id', $request->work_cell_id)
-                    ->whereNotIn('status', ['completed', 'skipped']);
+                    ->whereNotIn('status', ['completed', 'skipped', 'cancelled'])
+                    ->where(function ($q) {
+                        // Step must either have no dependencies or have its dependencies met
+                        $q->whereNull('depends_on_step_id')
+                            ->orWhere(function ($stepQuery) {
+                                // For steps with dependencies, check if they're met
+                                $stepQuery->whereNotNull('depends_on_step_id')
+                                    ->where(function ($depCheck) {
+                                        // Simple completed dependency
+                                        $depCheck->where('dependency_start_condition', 'completed')
+                                            ->whereHas('dependency', function ($dep) {
+                                                $dep->where('status', 'completed');
+                                            });
+                                    })->orWhere(function ($depCheck) {
+                                        // Immediate dependency (can start when previous is in progress)
+                                        $depCheck->where('dependency_start_condition', 'immediate')
+                                            ->whereHas('dependency', function ($dep) {
+                                                $dep->whereIn('status', ['in_progress', 'completed']);
+                                            });
+                                    })->orWhere(function ($depCheck) {
+                                        // Quantity-based dependency
+                                        $depCheck->where('dependency_start_condition', 'quantity_based')
+                                            ->whereRaw('EXISTS (
+                                                SELECT 1 FROM manufacturing_steps AS dep_step
+                                                WHERE dep_step.id = manufacturing_steps.depends_on_step_id
+                                                AND dep_step.cumulative_quantity_completed >= manufacturing_steps.dependency_minimum_quantity
+                                            )');
+                                    })->orWhere(function ($depCheck) {
+                                        // Percentage-based dependency
+                                        $depCheck->where('dependency_start_condition', 'percentage_based')
+                                            ->whereRaw('EXISTS (
+                                                SELECT 1 FROM manufacturing_steps AS dep_step
+                                                JOIN manufacturing_routes AS mr ON dep_step.manufacturing_route_id = mr.id
+                                                JOIN manufacturing_orders AS mo ON mr.manufacturing_order_id = mo.id
+                                                WHERE dep_step.id = manufacturing_steps.depends_on_step_id
+                                                AND mo.quantity > 0
+                                                AND (dep_step.cumulative_quantity_completed * 100.0 / mo.quantity) >= manufacturing_steps.dependency_minimum_percentage
+                                            )');
+                                    });
+                            });
+                    })
+                    // Also check that there are no earlier incomplete steps at different work cells
+                    ->whereNotExists(function ($q) use ($request) {
+                        $q->select('id')
+                            ->from('manufacturing_steps as earlier_steps')
+                            ->whereColumn('earlier_steps.manufacturing_route_id', 'manufacturing_steps.manufacturing_route_id')
+                            ->whereColumn('earlier_steps.display_order', '<', 'manufacturing_steps.display_order')
+                            ->whereNotIn('earlier_steps.status', ['completed', 'skipped', 'cancelled'])
+                            ->where('earlier_steps.work_cell_id', '!=', $request->work_cell_id);
+                    })
+                    // Check child order dependencies
+                    ->where(function ($q) {
+                        // Either no child order dependency
+                        $q->where('child_order_dependency_type', 'none')
+                            ->orWhere('child_order_dependency_type', null)
+                            // Or child order dependencies are met
+                            ->orWhere(function ($childDepQuery) {
+                                $childDepQuery->where('child_order_dependency_type', 'all_children_completed')
+                                    ->whereRaw('NOT EXISTS (
+                                        SELECT 1 FROM manufacturing_orders AS parent_mo
+                                        JOIN manufacturing_routes AS parent_route ON parent_mo.id = parent_route.manufacturing_order_id
+                                        WHERE parent_route.id = manufacturing_steps.manufacturing_route_id
+                                        AND EXISTS (
+                                            SELECT 1 FROM manufacturing_orders AS child_mo
+                                            WHERE child_mo.parent_id = parent_mo.id
+                                            AND child_mo.status NOT IN (\'completed\', \'cancelled\')
+                                        )
+                                    )');
+                            })->orWhere(function ($childDepQuery) {
+                                $childDepQuery->where('child_order_dependency_type', 'children_quantity')
+                                    ->whereRaw('(
+                                        SELECT MIN(COALESCE(child_mo.quantity_completed, 0))
+                                        FROM manufacturing_orders AS parent_mo
+                                        JOIN manufacturing_routes AS parent_route ON parent_mo.id = parent_route.manufacturing_order_id
+                                        JOIN manufacturing_orders AS child_mo ON child_mo.parent_id = parent_mo.id
+                                        WHERE parent_route.id = manufacturing_steps.manufacturing_route_id
+                                        AND child_mo.status != \'cancelled\'
+                                    ) >= manufacturing_steps.child_order_minimum_quantity');
+                            });
+                    });
             });
         }
 
@@ -206,11 +285,17 @@ class ProductionReportingController extends BaseSearchController
         $orders = $baseQuery->paginate($request->per_page ?? 20);
 
         // Add computed attributes to each order
-        $orders->through(function ($order) {
+        $orders->through(function ($order) use ($request) {
             $order->append(['progress_percentage', 'has_route']);
 
             // Add current step info
-            $currentStep = $order->getCurrentStep();
+            // If a work cell is selected, get the current step for that work cell
+            if ($request->work_cell_id) {
+                $currentStep = $order->getCurrentStepForWorkCell($request->work_cell_id);
+            } else {
+                $currentStep = $order->getCurrentStep();
+            }
+
             if ($currentStep) {
                 $currentStep->load('workCell');
                 $order->setAttribute('current_step', $currentStep);
@@ -235,7 +320,7 @@ class ProductionReportingController extends BaseSearchController
         if ($user->can('execute', ManufacturingStep::class)) {
             $myWork = ManufacturingOrder::query()
                 ->with([
-                    'item:id,item_number,name,description,unit_of_measure',
+                    'item:id,item_number,name,description,unit_of_measure_code',
                     'manufacturingRoute.steps' => function ($query) {
                         $query->whereIn('status', ['in_progress', 'on_hold'])
                             ->with('workCell');
