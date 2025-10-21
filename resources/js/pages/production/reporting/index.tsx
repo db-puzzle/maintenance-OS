@@ -623,6 +623,7 @@ export default function ProductionReporting({
                         onOrderClick={setSelectedOrder}
                         onAction={handleAction}
                         showImages={showImages}
+                        canUpdate={canUpdate}
                     />
                 )}
 

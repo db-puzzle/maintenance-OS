@@ -113,6 +113,15 @@ class WorkCell extends Model
     }
 
     /**
+     * Get the currently running manufacturing steps for this work cell.
+     */
+    public function currentManufacturingSteps(): HasMany
+    {
+        return $this->hasMany(ManufacturingStep::class)
+            ->where('status', 'in_progress');
+    }
+
+    /**
      * Get the item rates for this work cell.
      */
     public function itemRates(): HasMany

@@ -98,7 +98,7 @@ export function OrderCardCompact({
                             <HoverCardTrigger asChild>
                                 <div className="pointer-events-none">
                                     <ItemImagePreview
-                                        primaryImageUrl={order.item.primary_image_thumbnail_url || order.item.primary_image_url}
+                                        primaryImageUrl={order.item.primary_image_thumbnail_url || order.item.primary_image_url || order.item.thumbnail_url}
                                         imageCount={order.item.media?.length || 0}
                                         className="w-10 h-10 pointer-events-auto"
                                     />
@@ -110,10 +110,10 @@ export function OrderCardCompact({
                                 align="start"
                             >
                                 <div className="pointer-events-auto">
-                                    {order.item.primary_image_url ? (
+                                    {(order.item.primary_image_url || order.item.thumbnail_url) ? (
                                         <div>
                                             <ImageWithBlurEffect
-                                                src={order.item.primary_image_url}
+                                                src={order.item.primary_image_url || order.item.thumbnail_url || ''}
                                                 alt={`${order.item.name} - imagem ampliada`}
                                                 containerClassName="w-full h-80"
                                             />

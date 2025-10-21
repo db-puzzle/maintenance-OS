@@ -1,15 +1,19 @@
-import React from 'react';
-import { router } from '@inertiajs/react';
+import React, { useState } from 'react';
+import { Head, router } from '@inertiajs/react';
 import { Link } from '@inertiajs/react';
-import { PlayCircle, CheckCircle, AlertCircle, TrendingUp, QrCode, Activity } from 'lucide-react';
+import { PlayCircle, CheckCircle, AlertCircle, TrendingUp, QrCode, Activity, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
+import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { ColumnConfig } from '@/types/shared';
 import { ManufacturingOrder, WorkCell } from '@/types/production';
 import { cn } from '@/lib/utils';
+
+// Declare the global route function from Ziggy
+declare const route: (name: string, params?: Record<string, string | number>) => string;
 interface Props {
     stats: {
         inProduction: number;
@@ -131,12 +135,20 @@ function WorkCellCard({
     );
 }
 export default function ProductionDashboard({ stats, workCells, activeOrders }: Props) {
+    const [searchValue, setSearchValue] = useState('');
+
     const handleCellClick = (cell: WorkCell) => {
         console.log('Cell clicked:', cell);
         // Navigate to cell details or open modal
     };
+
     const handleOrderClick = (order: ManufacturingOrder) => {
-        router.visit(window.route('production.planning.orders.show', order.id));
+        router.visit(route('production.orders.show', { order: order.id }));
+    };
+
+    const handleSearch = (value: string) => {
+        setSearchValue(value);
+        // Could implement filtering logic here if needed
     };
     const activeOrderColumns: ColumnConfig<ManufacturingOrder>[] = [
         {
@@ -236,14 +248,47 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
         }
     ];
     const breadcrumbs = [
-        { title: 'Produção', href: '/' },
-        { title: 'Rastreamento', href: '' }
+        { title: 'Home', href: '/home' },
+        { title: 'Produção', href: '#' },
+        { title: 'Dashboard', href: '#' }
     ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <div className="p-6 space-y-6">
+            <Head title="Dashboard de Produção" />
+
+            <ListLayout
+                title="Dashboard de Produção"
+                description="Visão geral e KPIs da produção em tempo real"
+                searchPlaceholder="Buscar ordens, itens ou células..."
+                searchValue={searchValue}
+                onSearchChange={handleSearch}
+                createButtonText=""
+                actions={
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.reload()}
+                        >
+                            <RefreshCw className="h-4 w-4 mr-1" />
+                            Atualizar
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                        >
+                            <Link href={route('production.tracking.scan')}>
+                                <QrCode className="h-4 w-4 mr-2" />
+                                Scanner QR
+                            </Link>
+                        </Button>
+                    </div>
+                }
+            >
                 {/* KPI Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <KpiCard
                         title="Em Produção"
                         value={stats.inProduction}
@@ -292,14 +337,8 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                 </Card>
                 {/* Active Production Orders */}
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
+                    <CardHeader>
                         <CardTitle>Ordens em Produção</CardTitle>
-                        <Button variant="outline" size="sm" asChild>
-                            <Link href={window.route('production.tracking.scan')}>
-                                <QrCode className="h-4 w-4 mr-2" />
-                                Scanner QR
-                            </Link>
-                        </Button>
                     </CardHeader>
                     <CardContent>
                         <EntityDataTable
@@ -309,7 +348,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                         />
                     </CardContent>
                 </Card>
-            </div>
+            </ListLayout>
         </AppLayout>
     );
 } 

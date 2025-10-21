@@ -398,13 +398,32 @@ class ProductionReportingController extends BaseSearchController
 
             return back()->with('success', 'Production started successfully.');
         } else {
-            // Routed MO - redirect to step execution
-            $currentStep = $order->getCurrentStep();
-            if (! $currentStep) {
-                return back()->with('error', 'No available steps to start.');
+            // Routed MO - For now, just update the order status
+            // In the future, this could handle step-by-step execution
+            if ($order->status !== 'released') {
+                return back()->with('error', 'Order must be released before starting production.');
             }
 
-            return redirect()->route('production.steps.execute', $currentStep);
+            $order->update([
+                'status' => 'in_progress',
+                'actual_start_date' => now(),
+            ]);
+
+            // Start the first step if available
+            $currentStep = $order->getCurrentStep();
+            if ($currentStep && $currentStep->status === 'queued') {
+                $currentStep->update([
+                    'status' => 'in_progress',
+                    'actual_start_time' => now(),
+                ]);
+            }
+
+            activity()
+                ->performedOn($order)
+                ->causedBy(auth()->user())
+                ->log('Production started');
+
+            return back()->with('success', 'Production started successfully.');
         }
     }
 

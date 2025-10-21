@@ -218,7 +218,10 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
 
     // Production Tracking
     Route::prefix('tracking')->name('tracking.')->group(function () {
-        Route::get('/', [ProductionTrackingController::class, 'index'])->name('dashboard');
+        Route::get('/', [ProductionTrackingController::class, 'index'])->name('index');
+        Route::get('/dashboard', [ProductionTrackingController::class, 'dashboard'])->name('dashboard');
+        Route::get('/mo-viewer', [\App\Http\Controllers\Production\MOViewerController::class, 'index'])->name('mo-viewer');
+        Route::get('/mo-viewer/{orderId}/refresh', [\App\Http\Controllers\Production\MOViewerController::class, 'refresh'])->name('mo-viewer.refresh');
         Route::get('/scan', [QrTrackingController::class, 'scan'])->name('scan');
         Route::post('/scan', [QrTrackingController::class, 'processScan'])->name('scan.process');
         Route::post('/scan/handle', [QrTrackingController::class, 'handleScan'])->name('scan.handle');

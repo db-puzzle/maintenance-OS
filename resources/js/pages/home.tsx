@@ -21,7 +21,10 @@ import {
     Settings,
     Building,
     MapPin,
-    Clock
+    Clock,
+    LayoutDashboard,
+    QrCode,
+    Clipboard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -125,6 +128,30 @@ export default function Dashboard() {
             subtitle: 'Acompanhe a produção em tempo real',
             icon: Factory,
             cards: [
+                {
+                    title: 'Dashboard de Produção',
+                    description: 'Visão geral e KPIs da produção',
+                    href: '/production/tracking/dashboard',
+                    icon: LayoutDashboard,
+                },
+                {
+                    title: 'Acompanhamento de Produção',
+                    description: 'Visão hierárquica do progresso das ordens',
+                    href: '/production/tracking/mo-viewer',
+                    icon: ChartGantt,
+                },
+                {
+                    title: 'Rastreamento',
+                    description: 'Acompanhe trabalhos em execução',
+                    href: '/production/tracking',
+                    icon: Clipboard,
+                },
+                {
+                    title: 'Scanner QR',
+                    description: 'Escaneie códigos QR para rastrear produção',
+                    href: '/production/tracking/scan',
+                    icon: QrCode,
+                },
                 {
                     title: 'Apontamento',
                     description: 'Registre apontamentos de produção',

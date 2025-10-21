@@ -24,9 +24,10 @@ interface MOCardViewProps {
     onOrderClick: (order: ManufacturingOrder) => void;
     onAction: (action: string, order: ManufacturingOrder) => void;
     showImages?: boolean;
+    canUpdate?: boolean;
 }
 
-export function MOCardView({ orders, onOrderClick, onAction, showImages = true }: MOCardViewProps) {
+export function MOCardView({ orders, onOrderClick, onAction, showImages = true, canUpdate = false }: MOCardViewProps) {
     const [selectedOrder, setSelectedOrder] = useState<ManufacturingOrder | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [imageOverlays, setImageOverlays] = useState<Record<number, boolean>>({});
@@ -324,6 +325,7 @@ export function MOCardView({ orders, onOrderClick, onAction, showImages = true }
                 isOpen={isDialogOpen}
                 onOpenChange={setIsDialogOpen}
                 onAction={onAction}
+                canUpdate={canUpdate}
             />
         </>
     );

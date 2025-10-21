@@ -72,12 +72,12 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#34d399\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"php artisan schedule:work\" \"npm run dev\" --names=server,queue,logs,scheduler,vite"
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#34d399\" \"php artisan serve\" \"php artisan queue:listen --queue=scheduling,default --tries=1\" \"php artisan pail --timeout=0\" \"php artisan schedule:work\" \"npm run dev\" --names=server,queue,logs,scheduler,vite"
         ],
         "dev:ssr": [
             "npm run build:ssr",
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#34d399\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"php artisan schedule:work\" \"php artisan inertia:start-ssr\" --names=server,queue,logs,scheduler,ssr"
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#34d399\" \"php artisan serve\" \"php artisan queue:listen --queue=scheduling,default --tries=1\" \"php artisan pail --timeout=0\" \"php artisan schedule:work\" \"php artisan inertia:start-ssr\" --names=server,queue,logs,scheduler,ssr"
         ]
     },
     "extra": {

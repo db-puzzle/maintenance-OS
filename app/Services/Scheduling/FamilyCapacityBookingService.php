@@ -115,7 +115,7 @@ class FamilyCapacityBookingService
                             'duration_minutes' => $duration,
                             'earliest_start' => $earliestStart->format('Y-m-d H:i:s'),
                         ]);
-                        
+
                         DB::rollback();
 
                         return null;
@@ -165,16 +165,21 @@ class FamilyCapacityBookingService
             foreach ($order->manufacturingRoute->steps as $step) {
                 $hasStepTime = ($step->setup_time_seconds ?? 0) + ($step->cycle_time_seconds ?? 0) > 0;
                 $hasWorkCellRate = false;
+                $hasWorkCellDefaultTime = false;
 
                 // Check if work cell has capacity settings
                 if ($step->workCell) {
-                    // Check for work cell item rates or constraints
+                    // Check for work cell item rates
                     $hasWorkCellRate = $step->workCell->itemRates()
                         ->where('item_id', $order->item_id)
                         ->exists();
+
+                    // Check for work cell default times
+                    $hasWorkCellDefaultTime = ($step->workCell->default_setup_time_seconds ?? 0) +
+                                             ($step->workCell->default_cycle_time_seconds ?? 0) > 0;
                 }
 
-                if (! $hasStepTime && ! $hasWorkCellRate) {
+                if (! $hasStepTime && ! $hasWorkCellRate && ! $hasWorkCellDefaultTime) {
                     $valid = false;
                     $errors[] = [
                         'order' => $order->order_number,
@@ -200,40 +205,69 @@ class FamilyCapacityBookingService
 
     /**
      * Calculate step duration considering route times and work cell rates.
+     * Priority order:
+     * 1. Step-specific times (if not using work cell throughput)
+     * 2. Item-specific work cell rates (if using work cell throughput or as fallback)
+     * 3. Work cell default times (as final fallback).
      */
     protected function calculateStepDuration(ManufacturingStep $step): int
     {
-        // Check if step explicitly uses work cell throughput
-        if ($step->use_workcell_throughput) {
-            // Use work cell rates
-            if ($step->workCell && $step->manufacturingRoute) {
-                $order = $step->manufacturingRoute->manufacturingOrder;
-                if ($order) {
-                    $itemRate = $step->workCell->itemRates()
-                        ->where('item_id', $order->item_id)
-                        ->first();
+        $order = null;
+        if ($step->manufacturingRoute) {
+            $order = $step->manufacturingRoute->manufacturingOrder;
+        }
 
-                    if ($itemRate && $itemRate->cycle_time_seconds > 0) {
-                        // Calculate total time: setup + (cycle time * quantity)
-                        $totalSeconds = $itemRate->setup_time_seconds + ($itemRate->cycle_time_seconds * $order->quantity);
-                        
-                        // Convert to minutes for compatibility
-                        return (int) ceil($totalSeconds / 60);
-                    }
+        // Priority 1: Use step-specific times if available and not explicitly using work cell throughput
+        if (! $step->use_workcell_throughput) {
+            $routeTimeSeconds = ($step->setup_time_seconds ?? 0) + ($step->cycle_time_seconds ?? 0);
+            if ($routeTimeSeconds > 0) {
+                // If there's an order quantity, calculate total time
+                if ($order && $order->quantity > 0 && $step->cycle_time_seconds > 0) {
+                    $totalSeconds = ($step->setup_time_seconds ?? 0) + ($step->cycle_time_seconds * $order->quantity);
+
+                    return (int) ceil($totalSeconds / 60);
                 }
+
+                // Otherwise just return the sum of setup and cycle time
+                return (int) ceil($routeTimeSeconds / 60);
             }
-            throw new \RuntimeException("Work cell rates not available for step {$step->id}");
         }
 
-        // Use step-specific times (in seconds)
-        $routeTimeSeconds = ($step->setup_time_seconds ?? 0) + ($step->cycle_time_seconds ?? 0);
-        if ($routeTimeSeconds > 0) {
-            // Convert seconds to minutes for compatibility with current system
-            return (int) ceil($routeTimeSeconds / 60);
+        // Priority 2: Use item-specific work cell rates
+        if ($step->workCell && $order) {
+            $itemRate = $step->workCell->itemRates()
+                ->where('item_id', $order->item_id)
+                ->first();
+
+            if ($itemRate && $itemRate->cycle_time_seconds > 0) {
+                // Calculate total time: setup + (cycle time * quantity)
+                $totalSeconds = $itemRate->setup_time_seconds + ($itemRate->cycle_time_seconds * $order->quantity);
+
+                return (int) ceil($totalSeconds / 60);
+            }
         }
 
-        // If no times specified, throw error
-        throw new \RuntimeException("No time parameters available for step {$step->id}");
+        // Priority 3: Use work cell default times
+        if ($step->workCell) {
+            $defaultTimeSeconds = ($step->workCell->default_setup_time_seconds ?? 0) +
+                                 ($step->workCell->default_cycle_time_seconds ?? 0);
+
+            if ($defaultTimeSeconds > 0) {
+                // If there's an order quantity and a default cycle time, calculate total time
+                if ($order && $order->quantity > 0 && $step->workCell->default_cycle_time_seconds > 0) {
+                    $totalSeconds = ($step->workCell->default_setup_time_seconds ?? 0) +
+                                   ($step->workCell->default_cycle_time_seconds * $order->quantity);
+
+                    return (int) ceil($totalSeconds / 60);
+                }
+
+                // Otherwise just return the sum of setup and cycle time
+                return (int) ceil($defaultTimeSeconds / 60);
+            }
+        }
+
+        // If no times available anywhere, throw error
+        throw new \RuntimeException("No time parameters available for step {$step->id}. Please configure either step times, item-specific work cell rates, or work cell default times.");
     }
 
     /**
@@ -351,27 +385,37 @@ class FamilyCapacityBookingService
         $totalQuantity = $order->quantity;
         $quantityAtPercentage = ($totalQuantity * $percentage) / 100;
 
-        // Get the production rate (convert from seconds)
-        $setupTimeMinutes = ($dependencyStep->setup_time_seconds ?? 0) / 60;
-        $cycleTimeMinutes = ($dependencyStep->cycle_time_seconds ?? 0) / 60;
+        // Get the production rate using the same hierarchy as calculateStepDuration
+        $setupTimeMinutes = 0;
+        $cycleTimeSeconds = 0;
 
-        if ($dependencyStep->use_workcell_throughput && $dependencyStep->workCell) {
-            // Use work cell throughput rate
+        // Priority 1: Step-specific times (if not using work cell throughput)
+        if (! $dependencyStep->use_workcell_throughput && $dependencyStep->cycle_time_seconds > 0) {
+            $setupTimeMinutes = ($dependencyStep->setup_time_seconds ?? 0) / 60;
+            $cycleTimeSeconds = $dependencyStep->cycle_time_seconds;
+        }
+        // Priority 2: Item-specific work cell rates
+        elseif ($dependencyStep->workCell) {
             $itemRate = $dependencyStep->workCell->itemRates()
                 ->where('item_id', $order->item_id)
                 ->first();
 
             if ($itemRate && $itemRate->cycle_time_seconds > 0) {
-                $unitsPerMinute = 60 / $itemRate->cycle_time_seconds; // Convert cycle time to units per minute
                 $setupTimeMinutes = ($itemRate->setup_time_seconds ?? 0) / 60;
-            } else {
-                // No rate available, use total duration
-                return $dependencySchedule->scheduledEnd;
+                $cycleTimeSeconds = $itemRate->cycle_time_seconds;
             }
-        } elseif ($cycleTimeMinutes > 0) {
-            // Use route step cycle time (time per unit)
-            $unitsPerMinute = 1 / $cycleTimeMinutes;
+            // Priority 3: Work cell default times
+            elseif ($dependencyStep->workCell->default_cycle_time_seconds > 0) {
+                $setupTimeMinutes = ($dependencyStep->workCell->default_setup_time_seconds ?? 0) / 60;
+                $cycleTimeSeconds = $dependencyStep->workCell->default_cycle_time_seconds;
+            }
+        }
+
+        // Calculate units per minute
+        if ($cycleTimeSeconds > 0) {
+            $unitsPerMinute = 60 / $cycleTimeSeconds;
         } else {
+            // No rate available, use total duration
             return $dependencySchedule->scheduledEnd;
         }
 

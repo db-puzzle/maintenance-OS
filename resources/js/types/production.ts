@@ -98,6 +98,7 @@ export interface Item {
     primary_image_url?: string;
     primary_image_data?: { url: string; blurhash?: string | null };
     primary_image_thumbnail_url?: string;
+    thumbnail_url?: string; // Generic thumbnail URL fallback
     created_by?: User;
     created_at: string;
     updated_at: string;
