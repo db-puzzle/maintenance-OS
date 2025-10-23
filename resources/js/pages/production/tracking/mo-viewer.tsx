@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     RefreshCw,
-    AlertCircle,
     Clock,
     Package,
     ChevronRight,
@@ -18,7 +16,13 @@ import {
     AlertTriangle,
     User,
     TrendingDown,
-    MoreVertical
+    MoreVertical,
+    Search,
+    LayoutList,
+    LayoutGrid,
+    ZoomIn,
+    ZoomOut,
+    RotateCcw
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -32,6 +36,11 @@ import { GenericHierarchicalTreeView, NodeRenderProps } from '@/components/produ
 import { HierarchicalViewHeader } from '@/components/production/shared/HierarchicalViewHeader';
 import { useTreeExpansion } from '@/components/production/shared/useTreeExpansion';
 import { OrderCardCompact } from '@/components/production/manufacturing-order/OrderCardCompact';
+import { MOSelectionModal } from '@/components/production/planning/MOSelectionModal';
+import { MOViewerCanvas, MOData, MOStep } from '@/components/production/mo-viewer/MOViewerCanvas';
+import { StepStatus } from '@/components/production/mo-viewer/MOViewerStepBox';
+import { toast } from 'sonner';
+import axios from 'axios';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
@@ -66,6 +75,7 @@ interface ManufacturingOrderHierarchy {
     status: string;
     priority: number;
     level: number;
+    parent_id?: number;
     item?: {
         id: number;
         item_number: string;
@@ -111,7 +121,6 @@ interface ManufacturingOrderHierarchy {
 
 interface PageProps {
     orders: ManufacturingOrderHierarchy[];
-    statusCounts: Record<string, number>;
     workCells: Array<{ id: number; name: string; }>;
     filters: {
         search?: string;
@@ -289,7 +298,6 @@ const MOViewerHierarchicalView: React.FC<{
 
 export default function MOViewer({
     orders = [],
-    statusCounts = {},
     filters = {},
     canUpdate: _canUpdate = false
 }: PageProps) {
@@ -299,29 +307,79 @@ export default function MOViewer({
     const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set());
     const [selectedOrders, setSelectedOrders] = useState<Set<number>>(new Set());
     const [searchValue, setSearchValue] = useState(filters.search || '');
-    const [selectedStatuses, setSelectedStatuses] = useState<string[]>(() => {
-        if (filters.statuses) {
-            return Array.isArray(filters.statuses) ? filters.statuses : filters.statuses.split(',');
-        }
-        return ['released', 'in_progress', 'on_hold'];
-    });
+    const [viewMode, setViewMode] = useState<'hierarchical' | 'canvas'>('canvas');
 
+    // New states for MO selection
+    const [showMOSelectionModal, setShowMOSelectionModal] = useState(orders.length === 0);
+    const [selectedMOId, setSelectedMOId] = useState<number | null>(null);
+    const [loadingMO, setLoadingMO] = useState(false);
+    const [moHierarchy, setMOHierarchy] = useState<ManufacturingOrderHierarchy[]>([]);
+    const [canvasScale, setCanvasScale] = useState(1);
 
     // Debounce timer ref
     const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Handle MO selection from modal
+    const handleMOSelection = useCallback(async (orderIds: number[]) => {
+        if (orderIds.length === 0) return;
+
+        const orderId = orderIds[0]; // Take the first order
+
+        setSelectedMOId(orderId);
+        setShowMOSelectionModal(false);
+        setLoadingMO(true);
+
+        try {
+            // Fetch the complete hierarchy for the selected MO
+            const url = route('production.tracking.mo-viewer.hierarchy', { orderId });
+
+            const response = await axios.get(url);
+
+            if (response.data.order) {
+                setMOHierarchy([response.data.order]);
+                toast.success('Ordem carregada com sucesso');
+            } else {
+                toast.error('Dados da ordem não encontrados');
+                setShowMOSelectionModal(true);
+            }
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 404) {
+                    toast.error('Ordem não encontrada');
+                } else if (error.response?.status === 403) {
+                    toast.error('Sem permissão para visualizar esta ordem');
+                } else {
+                    toast.error(`Erro ao carregar hierarquia da ordem: ${error.response?.data?.error || error.message}`);
+                }
+            } else {
+                toast.error('Erro ao carregar hierarquia da ordem');
+            }
+
+            setShowMOSelectionModal(true); // Reopen modal on error
+        } finally {
+            setLoadingMO(false);
+        }
+    }, []);
+
     // Auto-refresh
     useEffect(() => {
-        if (!autoRefresh) return;
+        if (!autoRefresh || !selectedMOId || loadingMO) return;
 
         const interval = setInterval(() => {
-            router.reload({
-                only: ['orders', 'statusCounts']
-            });
+            // Refresh the specific MO hierarchy
+            if (selectedMOId) {
+                axios.get(route('production.tracking.mo-viewer.hierarchy', { orderId: selectedMOId }))
+                    .then(response => {
+                        setMOHierarchy([response.data.order]);
+                    })
+                    .catch(error => {
+                        console.error('Error refreshing MO hierarchy:', error);
+                    });
+            }
         }, 30000);
 
         return () => clearInterval(interval);
-    }, [autoRefresh]);
+    }, [autoRefresh, selectedMOId, loadingMO]);
 
     // Cleanup timer on unmount
     useEffect(() => {
@@ -350,21 +408,6 @@ export default function MOViewer({
         }, 500);
     };
 
-    const handleStatusToggle = (status: string, checked: boolean) => {
-        const newStatuses = checked
-            ? [...selectedStatuses, status]
-            : selectedStatuses.filter(s => s !== status);
-
-        setSelectedStatuses(newStatuses);
-
-        router.get(route('production.tracking.mo-viewer'), {
-            ...filters,
-            statuses: newStatuses.join(',')
-        }, {
-            preserveState: true,
-            preserveScroll: true
-        });
-    };
 
     const toggleStep = (orderId: number) => {
         setExpandedSteps(prev => {
@@ -400,37 +443,15 @@ export default function MOViewer({
 
     const breadcrumbs = [
         { title: 'Home', href: '/home' },
-        { title: 'Produção', href: '#' },
-        { title: 'Acompanhamento de Produção', href: '#' }
+        { title: 'Status da Ordem', href: '#' }
     ];
 
-    // Status cards
-    const statusCards = [
-        {
-            key: 'released',
-            label: 'Liberadas',
-            count: statusCounts.released || 0,
-            icon: Package,
-            color: 'text-muted-foreground'
-        },
-        {
-            key: 'in_progress',
-            label: 'Em Andamento',
-            count: statusCounts.in_progress || 0,
-            icon: Clock,
-            color: 'text-muted-foreground'
-        },
-        {
-            key: 'on_hold',
-            label: 'Suspensas',
-            count: statusCounts.on_hold || 0,
-            icon: AlertCircle,
-            color: 'text-muted-foreground'
-        }
-    ];
+    // Determine which orders to display
+    const displayOrders = moHierarchy.length > 0 ? moHierarchy : orders;
+
 
     // Count alerts
-    const alertCount = orders.reduce((sum, order) => {
+    const alertCount = displayOrders.reduce((sum, order) => {
         const countAlerts = (o: ManufacturingOrderHierarchy): number => {
             let count = 0;
             if (o.has_quality_issues) count++;
@@ -441,153 +462,300 @@ export default function MOViewer({
         return sum + countAlerts(order);
     }, 0);
 
+    // Zoom controls for canvas
+    const handleZoomIn = () => setCanvasScale(prev => Math.min(prev + 0.1, 2));
+    const handleZoomOut = () => setCanvasScale(prev => Math.max(prev - 0.1, 0.5));
+    const handleResetZoom = () => setCanvasScale(1);
+
+    // Transform orders to canvas format
+    const transformToCanvasData = useCallback((orders: ManufacturingOrderHierarchy[]): MOData[] => {
+        return orders.map(order => ({
+            id: order.id,
+            order_number: order.order_number,
+            parent_id: order.parent_id,
+            steps: (order.route_steps || []).map(step => ({
+                id: step.id,
+                name: step.name,
+                workcell_name: step.work_cell?.name,
+                status: ('viewer_status' in step ? (step as RouteStep & { viewer_status: StepStatus }).viewer_status : mapStepStatus(step.status)),
+                step_number: step.step_number,
+                depends_on_step_id: ('depends_on_step_id' in step ? (step as RouteStep & { depends_on_step_id?: number }).depends_on_step_id : undefined)
+            } as MOStep)),
+            children: order.children ? transformToCanvasData(order.children) : undefined
+        }));
+    }, []);
+
+    // Helper to map step status if viewer_status is not available
+    const mapStepStatus = (status: string): StepStatus => {
+        const statusMap: Record<string, StepStatus> = {
+            'pending': 'not_ready',
+            'queued': 'ready',
+            'in_progress': 'in_progress',
+            'on_hold': 'on_hold',
+            'awaiting_quality': 'in_progress',
+            'completed': 'completed',
+            'skipped': 'cancelled',
+            'cancelled': 'cancelled'
+        };
+        return statusMap[status] || 'not_ready';
+    };
+
+    const canvasData = useMemo(() => transformToCanvasData(displayOrders), [displayOrders, transformToCanvasData]);
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Acompanhamento de Produção" />
 
-            <ListLayout
-                title="Acompanhamento de Produção"
-                description="Visão hierárquica do progresso das ordens de manufatura"
-                searchPlaceholder="Buscar por número da ordem ou nome do item..."
-                searchValue={searchValue}
-                onSearchChange={handleSearch}
-                createButtonText=""
-                actions={
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setAutoRefresh(!autoRefresh)}
-                            className={cn(
-                                'flex items-center gap-2',
-                                autoRefresh && 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100'
-                            )}
-                        >
-                            <Clock className="h-4 w-4" />
-                            Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => router.reload()}
-                        >
-                            <RefreshCw className="h-4 w-4 mr-1" />
-                            Atualizar
-                        </Button>
-                        <div className="flex items-center gap-2 ml-4">
-                            <Checkbox
-                                id="show-steps"
-                                checked={showRouteSteps}
-                                onCheckedChange={(checked) => setShowRouteSteps(!!checked)}
-                            />
-                            <label htmlFor="show-steps" className="text-sm cursor-pointer">
-                                Mostrar etapas
-                            </label>
-                        </div>
-                        <div className="flex items-center gap-2 ml-2">
-                            <Checkbox
-                                id="show-thumbnails"
-                                checked={showThumbnails}
-                                onCheckedChange={(checked) => setShowThumbnails(!!checked)}
-                            />
-                            <label htmlFor="show-thumbnails" className="text-sm cursor-pointer">
-                                Mostrar imagens
-                            </label>
+            <div className="relative flex h-[calc(100vh-3rem)] flex-col">
+                {/* Fixed Header Section with proper background */}
+                <div className="bg-background border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+                    <div className="px-6 py-4 lg:px-8">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 space-y-1">
+                                <h1 className="text-xl leading-7 lg:text-2xl text-foreground font-semibold">
+                                    {selectedMOId && moHierarchy.length > 0
+                                        ? `Ordem ${moHierarchy[0].order_number}`
+                                        : "Status da Ordem de Manufatura"}
+                                </h1>
+                                <p className="text-muted-foreground text-sm leading-5">
+                                    {selectedMOId && moHierarchy.length > 0 && moHierarchy[0].item
+                                        ? `${moHierarchy[0].item.item_number} - ${moHierarchy[0].item.name}`
+                                        : "Selecione uma ordem para visualizar o progresso"}
+                                </p>
+                            </div>
                         </div>
                     </div>
-                }
-            >
-                {/* Alert Strip */}
-                {alertCount > 0 && (
-                    <div className="mb-4 p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-orange-600" />
-                        <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
-                            {alertCount} alerta{alertCount > 1 ? 's' : ''} de produção
-                        </span>
-                    </div>
-                )}
 
-                {/* Status Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    {statusCards.map(card => {
-                        const isSelected = selectedStatuses.includes(card.key);
-                        return (
-                            <Card
-                                key={card.key}
-                                variant="compact"
-                                className={cn(
-                                    "cursor-pointer transition-all",
-                                    "hover:shadow-md",
-                                    isSelected && "border-blue-600 bg-blue-50 dark:bg-blue-950/20"
-                                )}
-                                onClick={() => handleStatusToggle(card.key, !isSelected)}
-                            >
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-muted-foreground">
-                                                {card.label}
-                                            </p>
-                                            <p className="text-2xl font-bold">{card.count}</p>
-                                        </div>
-                                        <card.icon className={cn("h-8 w-8", card.color)} strokeWidth={1} />
+                    {/* Search and actions bar */}
+                    <div className="px-6 py-4 lg:px-8 border-t border-gray-200 dark:border-gray-800">
+                        <div className="flex items-center justify-between">
+                            <div className="relative w-[380px]">
+                                <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+                                <Input
+                                    className="pl-9 h-10"
+                                    type="search"
+                                    placeholder="Buscar por número da ordem ou nome do item..."
+                                    value={searchValue}
+                                    onChange={(e) => handleSearch(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowMOSelectionModal(true)}
+                                    className="flex items-center gap-2"
+                                >
+                                    <Search className="h-4 w-4" />
+                                    {selectedMOId ? 'Alterar Ordem' : 'Selecionar Ordem'}
+                                </Button>
+
+                                {/* View mode toggle */}
+                                <div className="flex items-center gap-1 border rounded-md p-1">
+                                    <Button
+                                        variant={viewMode === 'hierarchical' ? 'default' : 'ghost'}
+                                        size="sm"
+                                        onClick={() => setViewMode('hierarchical')}
+                                        className="h-7 px-2"
+                                    >
+                                        <LayoutList className="h-4 w-4 mr-1" />
+                                        Lista
+                                    </Button>
+                                    <Button
+                                        variant={viewMode === 'canvas' ? 'default' : 'ghost'}
+                                        size="sm"
+                                        onClick={() => setViewMode('canvas')}
+                                        className="h-7 px-2"
+                                    >
+                                        <LayoutGrid className="h-4 w-4 mr-1" />
+                                        Canvas
+                                    </Button>
+                                </div>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setAutoRefresh(!autoRefresh)}
+                                    className={cn(
+                                        'flex items-center gap-2',
+                                        autoRefresh && 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100'
+                                    )}
+                                >
+                                    <Clock className="h-4 w-4" />
+                                    Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => router.reload()}
+                                >
+                                    <RefreshCw className="h-4 w-4 mr-1" />
+                                    Atualizar
+                                </Button>
+
+                                {/* Zoom controls - only show for canvas view */}
+                                {viewMode === 'canvas' && (
+                                    <div className="flex items-center gap-1 border rounded-md p-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={handleZoomOut}
+                                            disabled={canvasScale <= 0.5}
+                                            className="h-7 w-7"
+                                        >
+                                            <ZoomOut className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={handleResetZoom}
+                                            className="h-7 w-7"
+                                        >
+                                            <RotateCcw className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={handleZoomIn}
+                                            disabled={canvasScale >= 2}
+                                            className="h-7 w-7"
+                                        >
+                                            <ZoomIn className="h-4 w-4" />
+                                        </Button>
+                                        <span className="text-sm px-2">{Math.round(canvasScale * 100)}%</span>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        );
-                    })}
-                </div>
+                                )}
 
-                {/* Main Content - Hierarchical View with Route Steps */}
-                <div className="h-[calc(100vh-320px)]">
-                    <div className="h-full">
-                        {selectedOrders.size > 0 && (
-                            <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
-                                <h3 className="text-sm font-semibold">
-                                    {selectedOrders.size === 1
-                                        ? `Ordem Selecionada: ${orders.find(o => selectedOrders.has(o.id))?.order_number || ''}`
-                                        : `${selectedOrders.size} Ordens Selecionadas`}
-                                </h3>
-                                {selectedOrders.size === 1 && (
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                                                <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => {
-                                                const orderId = Array.from(selectedOrders)[0];
-                                                handleViewDetails(orderId);
-                                            }}>
-                                                Ver detalhes
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => {
-                                                const orderId = Array.from(selectedOrders)[0];
-                                                router.visit(route('production.orders.show', { order: orderId }));
-                                            }}>
-                                                Abrir ordem
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                {viewMode === 'hierarchical' && (
+                                    <>
+                                        <div className="flex items-center gap-2 ml-4">
+                                            <Checkbox
+                                                id="show-steps"
+                                                checked={showRouteSteps}
+                                                onCheckedChange={(checked) => setShowRouteSteps(!!checked)}
+                                            />
+                                            <label htmlFor="show-steps" className="text-sm cursor-pointer">
+                                                Mostrar etapas
+                                            </label>
+                                        </div>
+                                        <div className="flex items-center gap-2 ml-2">
+                                            <Checkbox
+                                                id="show-thumbnails"
+                                                checked={showThumbnails}
+                                                onCheckedChange={(checked) => setShowThumbnails(!!checked)}
+                                            />
+                                            <label htmlFor="show-thumbnails" className="text-sm cursor-pointer">
+                                                Mostrar imagens
+                                            </label>
+                                        </div>
+                                    </>
                                 )}
                             </div>
-                        )}
-                        <MOViewerHierarchicalView
-                            orders={orders}
-                            selectedOrders={selectedOrders}
-                            onOrderSelect={handleOrderSelect}
-                            searchQuery={searchValue}
-                            showThumbnails={showThumbnails}
-                            showRouteSteps={showRouteSteps}
-                            expandedSteps={expandedSteps}
-                            onToggleStep={toggleStep}
-                            onToggleThumbnails={setShowThumbnails}
-                        />
+                        </div>
                     </div>
                 </div>
-            </ListLayout>
 
+                {/* Scrollable Content Area */}
+                <div className="flex-1 overflow-y-auto px-6 py-4 lg:px-8">
+                    {/* Alert Strip */}
+                    {alertCount > 0 && (
+                        <div className="mb-4 p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-orange-600" />
+                            <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                                {alertCount} alerta{alertCount > 1 ? 's' : ''} de produção
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Main Content - Hierarchical View with Route Steps */}
+                    {loadingMO ? (
+                        <div className="flex items-center justify-center h-full">
+                            <div className="text-center">
+                                <RefreshCw className="h-8 w-8 text-muted-foreground animate-spin mx-auto mb-4" />
+                                <p className="text-muted-foreground">Carregando hierarquia da ordem...</p>
+                            </div>
+                        </div>
+                    ) : !selectedMOId ? (
+                        <div className="flex items-center justify-center h-full">
+                            <div className="text-center">
+                                <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                <h3 className="text-lg font-medium mb-2">Nenhuma ordem selecionada</h3>
+                                <p className="text-muted-foreground mb-4">
+                                    Clique no botão "Selecionar Ordem" para escolher uma ordem de manufatura
+                                </p>
+                                <Button onClick={() => setShowMOSelectionModal(true)}>
+                                    <Search className="h-4 w-4 mr-2" />
+                                    Selecionar Ordem
+                                </Button>
+                            </div>
+                        </div>
+                    ) : viewMode === 'canvas' ? (
+                        <MOViewerCanvas
+                            orders={canvasData}
+                            onStepClick={(orderId, stepId) => {
+                                console.log('Step clicked:', orderId, stepId);
+                            }}
+                            scale={canvasScale}
+                            className="h-full"
+                        />
+                    ) : (
+                        <div className="h-full">
+                            {selectedOrders.size > 0 && (
+                                <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
+                                    <h3 className="text-sm font-semibold">
+                                        {selectedOrders.size === 1
+                                            ? `Ordem Selecionada: ${displayOrders.find(o => selectedOrders.has(o.id))?.order_number || ''}`
+                                            : `${selectedOrders.size} Ordens Selecionadas`}
+                                    </h3>
+                                    {selectedOrders.size === 1 && (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6">
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => {
+                                                    const orderId = Array.from(selectedOrders)[0];
+                                                    handleViewDetails(orderId);
+                                                }}>
+                                                    Ver detalhes
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => {
+                                                    const orderId = Array.from(selectedOrders)[0];
+                                                    router.visit(route('production.orders.show', { order: orderId }));
+                                                }}>
+                                                    Abrir ordem
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    )}
+                                </div>
+                            )}
+                            <MOViewerHierarchicalView
+                                orders={moHierarchy.length > 0 ? moHierarchy : orders}
+                                selectedOrders={selectedOrders}
+                                onOrderSelect={handleOrderSelect}
+                                searchQuery={searchValue}
+                                showThumbnails={showThumbnails}
+                                showRouteSteps={showRouteSteps}
+                                expandedSteps={expandedSteps}
+                                onToggleStep={toggleStep}
+                                onToggleThumbnails={setShowThumbnails}
+                            />
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* MO Selection Modal */}
+            <MOSelectionModal
+                open={showMOSelectionModal}
+                onOpenChange={setShowMOSelectionModal}
+                onSelect={handleMOSelection}
+                selectedIds={selectedMOId ? new Set([selectedMOId]) : new Set()}
+                multiSelect={false}
+            />
         </AppLayout>
     );
 }

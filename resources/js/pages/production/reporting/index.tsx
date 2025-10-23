@@ -28,7 +28,7 @@ import { MOStatusBadge } from '@/pages/production/reporting/components/MOStatusB
 import { MOPriorityBadge } from '@/pages/production/reporting/components/MOPriorityBadge';
 import { MOProgressBar } from '@/pages/production/reporting/components/MOProgressBar';
 import { MOCardView } from '@/pages/production/reporting/components/MOCardView';
-import { MODetailsDialog } from '@/pages/production/reporting/components/MODetailsDialog';
+import { ProductionDialog } from '@/pages/production/reporting/components/ProductionDialog';
 import { ReportProductionDialog } from '@/pages/production/reporting/components/ReportProductionDialog';
 import { ReportScrapDialog } from '@/pages/production/reporting/components/ReportScrapDialog';
 import { HoldProductionDialog } from '@/pages/production/reporting/components/HoldProductionDialog';
@@ -656,7 +656,7 @@ export default function ProductionReporting({
             </ListLayout>
 
             {/* Order Detail Dialog */}
-            <MODetailsDialog
+            <ProductionDialog
                 order={selectedOrder}
                 isOpen={!!selectedOrder}
                 onOpenChange={(open) => {

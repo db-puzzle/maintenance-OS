@@ -23,8 +23,7 @@ import {
     MapPin,
     Clock,
     LayoutDashboard,
-    QrCode,
-    Clipboard
+    QrCode
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -110,12 +109,6 @@ export default function Dashboard() {
                     icon: Calendar,
                 },
                 {
-                    title: 'Células de Trabalho',
-                    description: 'Configure células produtivas',
-                    href: '/production/work-cells',
-                    icon: Wrench,
-                },
-                {
                     title: 'Templates de Rotas',
                     description: 'Defina rotas de produção padrão',
                     href: '/production/routing',
@@ -129,34 +122,22 @@ export default function Dashboard() {
             icon: Factory,
             cards: [
                 {
-                    title: 'Dashboard de Produção',
-                    description: 'Visão geral e KPIs da produção',
-                    href: '/production/tracking/dashboard',
-                    icon: LayoutDashboard,
+                    title: 'Apontamento',
+                    description: 'Registre apontamentos de produção',
+                    href: '/production/reporting',
+                    icon: FileSearch,
                 },
                 {
-                    title: 'Acompanhamento de Produção',
+                    title: 'Status de Ordem',
                     description: 'Visão hierárquica do progresso das ordens',
                     href: '/production/tracking/mo-viewer',
                     icon: ChartGantt,
-                },
-                {
-                    title: 'Rastreamento',
-                    description: 'Acompanhe trabalhos em execução',
-                    href: '/production/tracking',
-                    icon: Clipboard,
                 },
                 {
                     title: 'Scanner QR',
                     description: 'Escaneie códigos QR para rastrear produção',
                     href: '/production/tracking/scan',
                     icon: QrCode,
-                },
-                {
-                    title: 'Apontamento',
-                    description: 'Registre apontamentos de produção',
-                    href: '/production/reporting',
-                    icon: FileSearch,
                 },
             ],
         },

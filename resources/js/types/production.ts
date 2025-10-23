@@ -412,6 +412,8 @@ export interface ManufacturingStep {
     form_version_id?: number;
     setup_time_minutes: number;
     cycle_time_minutes: number;
+    setup_time_seconds?: number;
+    cycle_time_seconds?: number;
     use_workcell_throughput?: boolean;
     actual_start_time?: string;
     actual_end_time?: string;
@@ -422,6 +424,12 @@ export interface ManufacturingStep {
     sampling_size?: number;
     depends_on_step_id?: number;
     can_start_when_dependency?: 'completed';
+    // Progressive flow fields
+    dependency_start_condition?: 'completed' | 'quantity_based' | 'percentage_based' | 'immediate';
+    dependency_minimum_quantity?: number;
+    dependency_minimum_percentage?: number;
+    cumulative_quantity_completed?: number;
+    cumulative_quantity_scrapped?: number;
     // Child order dependency fields
     child_order_dependency_type?: 'none' | 'all_children_completed' | 'children_quantity';
     child_order_minimum_quantity?: number;
@@ -456,6 +464,9 @@ export interface ManufacturingStepExecution {
     form_execution_id?: number;
     progress_percentage?: number;
     actual_duration_minutes?: number;
+    // Progressive flow fields
+    quantity_completed?: number;
+    quantity_scrapped?: number;
 }
 
 export interface ProductionExecution {

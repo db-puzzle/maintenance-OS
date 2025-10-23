@@ -5,10 +5,9 @@ namespace App\Http\Controllers\Production;
 use App\Http\Controllers\Controller;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\WorkCell;
-use App\Models\Production\ManufacturingStep;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class MOViewerController extends Controller
 {
@@ -27,13 +26,13 @@ class MOViewerController extends Controller
         ]);
 
         // Default to showing only active statuses if not specified
-        if (!isset($filters['statuses']) || empty($filters['statuses'])) {
+        if (! isset($filters['statuses']) || empty($filters['statuses'])) {
             $filters['statuses'] = 'released,in_progress,on_hold';
         }
 
         // Convert comma-separated statuses to array
-        $statusFilter = is_string($filters['statuses']) 
-            ? explode(',', $filters['statuses']) 
+        $statusFilter = is_string($filters['statuses'])
+            ? explode(',', $filters['statuses'])
             : $filters['statuses'];
 
         // Build the query for manufacturing orders with active production
@@ -41,7 +40,7 @@ class MOViewerController extends Controller
             ->with([
                 'item.media',
                 'parent:id,order_number',
-                'children' => function ($query) use ($statusFilter, $filters) {
+                'children' => function ($query) use ($statusFilter) {
                     $query->whereIn('status', $statusFilter)
                         ->with([
                             'item.media',
@@ -56,11 +55,11 @@ class MOViewerController extends Controller
                                                     'children' => function ($query) use ($statusFilter) {
                                                         $query->whereIn('status', $statusFilter)
                                                             ->with(['item.media']);
-                                                    }
+                                                    },
                                                 ]);
-                                        }
+                                        },
                                     ]);
-                            }
+                            },
                         ]);
                 },
                 'manufacturingRoute.steps' => function ($query) {
@@ -68,16 +67,16 @@ class MOViewerController extends Controller
                         'workCell:id,name',
                         'currentExecution' => function ($query) {
                             $query->with('executedBy:id,name');
-                        }
+                        },
                     ])
-                    ->orderBy('step_number');
-                }
+                        ->orderBy('step_number');
+                },
             ])
             ->whereIn('status', $statusFilter)
             ->whereNull('parent_id'); // Only get top-level orders
 
         // Apply search filter
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
@@ -121,7 +120,7 @@ class MOViewerController extends Controller
     }
 
     /**
-     * Transform orders into hierarchical structure with production metrics
+     * Transform orders into hierarchical structure with production metrics.
      */
     private function transformOrdersHierarchy($orders)
     {
@@ -131,7 +130,7 @@ class MOViewerController extends Controller
     }
 
     /**
-     * Transform a single order with its hierarchy
+     * Transform a single order with its hierarchy.
      */
     private function transformOrder($order, $level = 0)
     {
@@ -146,7 +145,7 @@ class MOViewerController extends Controller
         if ($order->manufacturingRoute) {
             foreach ($order->manufacturingRoute->steps as $step) {
                 $totalSteps++;
-                
+
                 if ($step->status === 'completed') {
                     $completedSteps++;
                 } elseif ($step->status === 'in_progress') {
@@ -154,10 +153,10 @@ class MOViewerController extends Controller
                 }
 
                 // Check for quality issues (rejection rate > 5%)
-                $rejectionRate = $step->quantity_completed > 0 
-                    ? ($step->quantity_scrapped / ($step->quantity_completed + $step->quantity_scrapped)) * 100 
+                $rejectionRate = $step->quantity_completed > 0
+                    ? ($step->quantity_scrapped / ($step->quantity_completed + $step->quantity_scrapped)) * 100
                     : 0;
-                
+
                 if ($rejectionRate > 5) {
                     $hasQualityIssues = true;
                 }
@@ -176,15 +175,20 @@ class MOViewerController extends Controller
                 $cycleTime = $step->cycle_time_seconds ?? 0;
                 $totalTime = $setupTime + ($cycleTime * $step->quantity);
 
+                // Map step status to viewer status format
+                $viewerStatus = $this->mapStepStatusToViewerStatus($step->status);
+
                 $routeSteps[] = [
                     'id' => $step->id,
                     'name' => $step->name ?? "Step {$step->step_number}",
                     'step_number' => $step->step_number,
                     'status' => $step->status,
+                    'viewer_status' => $viewerStatus,
                     'work_cell' => $step->workCell ? [
                         'id' => $step->workCell->id,
                         'name' => $step->workCell->name,
                     ] : null,
+                    'workcell_name' => $step->workCell?->name,
                     'quantity_completed' => $step->quantity_completed,
                     'quantity_scrapped' => $step->quantity_scrapped,
                     'quantity_total' => $step->quantity,
@@ -198,6 +202,7 @@ class MOViewerController extends Controller
                     'setup_time_seconds' => $setupTime,
                     'cycle_time_seconds' => $cycleTime,
                     'total_time_seconds' => $totalTime,
+                    'depends_on_step_id' => $step->depends_on_step_id,
                 ];
             }
         }
@@ -206,14 +211,14 @@ class MOViewerController extends Controller
         $overallProgress = $totalSteps > 0 ? round(($completedSteps / $totalSteps) * 100) : 0;
 
         // Calculate production progress based on quantities
-        $productionProgress = $order->quantity > 0 
-            ? round(($order->quantity_completed / $order->quantity) * 100) 
+        $productionProgress = $order->quantity > 0
+            ? round(($order->quantity_completed / $order->quantity) * 100)
             : 0;
 
         // Check if order is overdue
-        $isOverdue = $order->requested_date 
-            && $order->requested_date < now() 
-            && !in_array($order->status, ['completed', 'cancelled']);
+        $isOverdue = $order->requested_date
+            && $order->requested_date < now()
+            && ! in_array($order->status, ['completed', 'cancelled']);
 
         // Build the transformed order object
         $transformed = [
@@ -267,7 +272,7 @@ class MOViewerController extends Controller
     }
 
     /**
-     * Refresh data for a specific order family
+     * Refresh data for a specific order family.
      */
     public function refresh(Request $request, $orderId)
     {
@@ -284,9 +289,9 @@ class MOViewerController extends Controller
                             'children' => function ($query) {
                                 $query->with([
                                     'item.media',
-                                    'children.item.media'
+                                    'children.item.media',
                                 ]);
-                            }
+                            },
                         ]);
                     },
                     'manufacturingRoute.steps.workCell',
@@ -300,5 +305,143 @@ class MOViewerController extends Controller
         return response()->json([
             'order' => $this->transformOrder($order),
         ]);
+    }
+
+    /**
+     * Get complete hierarchy for a specific order (including parent if child)
+     * This method supports ALL order states (draft, planned, released, etc.).
+     */
+    public function hierarchy(Request $request, $orderId)
+    {
+        try {
+            $this->authorize('view', ManufacturingOrder::class);
+
+            $order = ManufacturingOrder::find($orderId);
+
+            if (! $order) {
+                return response()->json(['error' => 'Order not found'], 404);
+            }
+
+            // If this is a child order, get the root parent
+            $rootOrder = $order;
+            $parentChain = [];
+
+            while ($rootOrder->parent_id) {
+                $parentChain[] = $rootOrder->parent_id;
+                $rootOrder = ManufacturingOrder::find($rootOrder->parent_id);
+
+                if (! $rootOrder) {
+                    return response()->json(['error' => 'Parent order not found'], 404);
+                }
+            }
+
+            // Now load the complete hierarchy from the root
+            // NO STATUS FILTERING - we want to see all orders regardless of state
+            $rootOrder->load([
+                'item.media',
+                'children' => function ($query) {
+                    // NO status filtering here - load ALL children
+                    $query->with([
+                        'item.media',
+                        'children' => function ($query) {
+                            // NO status filtering here either
+                            $query->with([
+                                'item.media',
+                                'children' => function ($query) {
+                                    $query->with([
+                                        'item.media',
+                                        'children' => function ($query) {
+                                            $query->with(['item.media']);
+                                        },
+                                        'manufacturingRoute.steps' => function ($query) {
+                                            $query->with([
+                                                'workCell:id,name',
+                                                'currentExecution' => function ($query) {
+                                                    $query->with('executedBy:id,name');
+                                                },
+                                            ])
+                                                ->orderBy('step_number');
+                                        },
+                                    ]);
+                                },
+                                'manufacturingRoute.steps' => function ($query) {
+                                    $query->with([
+                                        'workCell:id,name',
+                                        'currentExecution' => function ($query) {
+                                            $query->with('executedBy:id,name');
+                                        },
+                                    ])
+                                        ->orderBy('step_number');
+                                },
+                            ]);
+                        },
+                        'manufacturingRoute.steps' => function ($query) {
+                            $query->with([
+                                'workCell:id,name',
+                                'currentExecution' => function ($query) {
+                                    $query->with('executedBy:id,name');
+                                },
+                            ])
+                                ->orderBy('step_number');
+                        },
+                    ]);
+                },
+                'manufacturingRoute.steps' => function ($query) {
+                    $query->with([
+                        'workCell:id,name',
+                        'currentExecution' => function ($query) {
+                            $query->with('executedBy:id,name');
+                        },
+                    ])
+                        ->orderBy('step_number');
+                },
+            ]);
+
+            // Count total orders in hierarchy for logging
+            $totalOrders = 1; // root
+            $countChildren = function ($order) use (&$countChildren, &$totalOrders) {
+                if ($order->children) {
+                    foreach ($order->children as $child) {
+                        $totalOrders++;
+                        $countChildren($child);
+                    }
+                }
+            };
+            $countChildren($rootOrder);
+
+            return response()->json([
+                'order' => $this->transformOrder($rootOrder),
+            ]);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        } catch (\Exception $e) {
+            // Only log unexpected errors, not normal operation
+            \Log::error('MOViewer hierarchy - Unexpected error', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => 'Internal server error'], 500);
+        }
+    }
+
+    /**
+     * Map manufacturing step status to viewer status format.
+     */
+    private function mapStepStatusToViewerStatus(string $stepStatus): string
+    {
+        // Map from ManufacturingStep statuses to MOViewer statuses
+        $statusMap = [
+            'pending' => 'not_ready',
+            'queued' => 'ready',
+            'in_progress' => 'in_progress',
+            'on_hold' => 'on_hold',
+            'awaiting_quality' => 'in_progress',
+            'completed' => 'completed',
+            'skipped' => 'cancelled',
+            'cancelled' => 'cancelled',
+        ];
+
+        return $statusMap[$stepStatus] ?? 'not_ready';
     }
 }

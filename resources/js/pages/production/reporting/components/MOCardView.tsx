@@ -5,7 +5,7 @@ import { ManufacturingOrder } from '@/types/production';
 import { MOStatusBadge } from './MOStatusBadge';
 import { MOPriorityBadge } from './MOPriorityBadge';
 import { MOProgressBar } from './MOProgressBar';
-import { MODetailsDialog } from './MODetailsDialog';
+import { ProductionDialog } from './ProductionDialog';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { format, parseISO } from 'date-fns';
 import {
@@ -37,12 +37,12 @@ export function MOCardView({ orders, onOrderClick, onAction, showImages = true, 
     const getItemImageUrl = (item: ManufacturingOrder['item'], preferThumbnail: boolean = true) => {
         if (!item) return null;
 
-        // Check for primaryImage object first
-        if (item.primaryImage) {
+        // Check for primary_image_data object first
+        if (item.primary_image_data?.url) {
             if (preferThumbnail) {
-                return item.primaryImage.thumbnail_url || item.primaryImage.url;
+                return item.primary_image_thumbnail_url || item.primary_image_data.url;
             } else {
-                return item.primaryImage.url;
+                return item.primary_image_data.url;
             }
         }
 
@@ -320,7 +320,7 @@ export function MOCardView({ orders, onOrderClick, onAction, showImages = true, 
             </div>
 
             {/* Dialog for order details */}
-            <MODetailsDialog
+            <ProductionDialog
                 order={selectedOrder}
                 isOpen={isDialogOpen}
                 onOpenChange={setIsDialogOpen}

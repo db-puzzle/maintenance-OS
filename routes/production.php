@@ -11,7 +11,7 @@ use App\Http\Controllers\Production\ManufacturingStepController;
 use App\Http\Controllers\Production\ProductionExecutionController;
 use App\Http\Controllers\Production\ProductionRoutingController;
 use App\Http\Controllers\Production\ProductionScheduleController;
-use App\Http\Controllers\Production\ProductionTrackingController;
+// use App\Http\Controllers\Production\ProductionTrackingController; // Controller not implemented
 use App\Http\Controllers\Production\QrCodeController;
 use App\Http\Controllers\Production\QrTagController;
 use App\Http\Controllers\Production\QrTagServeController;
@@ -218,10 +218,11 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
 
     // Production Tracking
     Route::prefix('tracking')->name('tracking.')->group(function () {
-        Route::get('/', [ProductionTrackingController::class, 'index'])->name('index');
-        Route::get('/dashboard', [ProductionTrackingController::class, 'dashboard'])->name('dashboard');
+        // Route::get('/', [ProductionTrackingController::class, 'index'])->name('index'); // Controller not implemented
+        // Route::get('/dashboard', [ProductionTrackingController::class, 'dashboard'])->name('dashboard'); // Controller not implemented
         Route::get('/mo-viewer', [\App\Http\Controllers\Production\MOViewerController::class, 'index'])->name('mo-viewer');
         Route::get('/mo-viewer/{orderId}/refresh', [\App\Http\Controllers\Production\MOViewerController::class, 'refresh'])->name('mo-viewer.refresh');
+        Route::get('/mo-viewer/{orderId}/hierarchy', [\App\Http\Controllers\Production\MOViewerController::class, 'hierarchy'])->name('mo-viewer.hierarchy');
         Route::get('/scan', [QrTrackingController::class, 'scan'])->name('scan');
         Route::post('/scan', [QrTrackingController::class, 'processScan'])->name('scan.process');
         Route::post('/scan/handle', [QrTrackingController::class, 'handleScan'])->name('scan.handle');
@@ -236,6 +237,14 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
         Route::post('/{order}/hold', [\App\Http\Controllers\Production\ProductionReportingController::class, 'holdProduction'])->name('hold');
         Route::post('/{order}/resume', [\App\Http\Controllers\Production\ProductionReportingController::class, 'resumeProduction'])->name('resume');
         Route::post('/{order}/scrap', [\App\Http\Controllers\Production\ProductionReportingController::class, 'reportScrap'])->name('scrap');
+
+        // Step-level execution routes
+        Route::prefix('steps')->name('steps.')->group(function () {
+            Route::get('/orders/{order}/step-status', [\App\Http\Controllers\Production\StepExecutionController::class, 'getOrderStepStatus'])->name('order-status');
+            Route::post('/{step}/start', [\App\Http\Controllers\Production\StepExecutionController::class, 'startStep'])->name('start');
+            Route::post('/executions/{execution}/progress', [\App\Http\Controllers\Production\StepExecutionController::class, 'reportProgress'])->name('report-progress');
+            Route::post('/executions/{execution}/complete', [\App\Http\Controllers\Production\StepExecutionController::class, 'completeStep'])->name('complete');
+        });
     });
 
     // Shipments
