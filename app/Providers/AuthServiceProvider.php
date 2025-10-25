@@ -18,6 +18,7 @@ use App\Models\Production\ManufacturingOrderDependency;
 use App\Models\Production\ManufacturingOrderFlow;
 use App\Models\Production\ManufacturingRoute;
 use App\Models\Production\ManufacturingStep;
+use App\Models\Production\ManufacturingStepExecution;
 use App\Models\Production\ProductionSchedule;
 use App\Models\Production\QrTracking;
 use App\Models\Production\ScheduleVersion;
@@ -39,6 +40,7 @@ use App\Policies\Production\ManufacturingOrderDependencyPolicy;
 use App\Policies\Production\ManufacturingOrderFlowPolicy;
 use App\Policies\Production\ManufacturingOrderPolicy;
 use App\Policies\Production\ManufacturingRoutePolicy;
+use App\Policies\Production\ManufacturingStepExecutionPolicy;
 use App\Policies\Production\ManufacturingStepPolicy;
 use App\Policies\Production\ProductionSchedulePolicy;
 use App\Policies\Production\QrTrackingPolicy;
@@ -89,6 +91,7 @@ class AuthServiceProvider extends ServiceProvider
         ManufacturingOrderFlow::class => ManufacturingOrderFlowPolicy::class,
         ManufacturingRoute::class => ManufacturingRoutePolicy::class,
         ManufacturingStep::class => ManufacturingStepPolicy::class,
+        ManufacturingStepExecution::class => ManufacturingStepExecutionPolicy::class,
         Item::class => ItemPolicy::class,
         ItemCategory::class => ItemCategoryPolicy::class,
         BillOfMaterial::class => BillOfMaterialPolicy::class,

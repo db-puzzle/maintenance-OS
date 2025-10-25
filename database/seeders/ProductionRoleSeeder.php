@@ -17,7 +17,7 @@ class ProductionRoleSeeder extends Seeder
             ['name' => 'production-manager'],
             [
                 'display_name' => 'Production Manager',
-                'description' => 'Full control over production module'
+                'description' => 'Full control over production module',
             ]
         );
 
@@ -30,7 +30,7 @@ class ProductionRoleSeeder extends Seeder
             'production.orders.delete',
             'production.orders.release',
             'production.orders.cancel',
-            
+
             // All route permissions
             'production.routes.viewAny',
             'production.routes.view',
@@ -38,7 +38,7 @@ class ProductionRoleSeeder extends Seeder
             'production.routes.update',
             'production.routes.delete',
             'production.routes.createFromTemplate',
-            
+
             // All step permissions
             'production.steps.viewAny',
             'production.steps.view',
@@ -46,7 +46,9 @@ class ProductionRoleSeeder extends Seeder
             'production.steps.execute',
             'production.steps.executeQualityCheck',
             'production.steps.handleRework',
-            
+            'production.steps.photos',
+            'production.steps.photos',
+
             // All template permissions
             'production.templates.viewAny',
             'production.templates.view',
@@ -54,7 +56,7 @@ class ProductionRoleSeeder extends Seeder
             'production.templates.update',
             'production.templates.delete',
             'production.templates.duplicate',
-            
+
             // All item permissions
             'production.items.viewAny',
             'production.items.view',
@@ -63,13 +65,13 @@ class ProductionRoleSeeder extends Seeder
             'production.items.delete',
             'production.bom.import',
             'production.bom.manage',
-            
+
             // All quality permissions
             'production.quality.executeCheck',
             'production.quality.recordResult',
             'production.quality.initiateRework',
             'production.quality.scrapPart',
-            
+
             // All shipment permissions
             'production.shipments.viewAny',
             'production.shipments.view',
@@ -78,14 +80,14 @@ class ProductionRoleSeeder extends Seeder
             'production.shipments.delete',
             'production.shipments.uploadPhotos',
             'production.shipments.markDelivered',
-            
+
             // All work cell permissions
             'production.workcells.viewAny',
             'production.workcells.view',
             'production.workcells.create',
             'production.workcells.update',
             'production.workcells.delete',
-            
+
             // All scheduling permissions
             'production.schedule.view',
             'production.schedule.create',
@@ -96,7 +98,7 @@ class ProductionRoleSeeder extends Seeder
             'production.schedule.resolveAlerts',
             'production.schedule.createSnapshot',
             'production.schedule.restoreSnapshot',
-            
+
             // All report permissions
             'production.reports.viewProductionMetrics',
             'production.reports.viewQualityMetrics',
@@ -109,7 +111,7 @@ class ProductionRoleSeeder extends Seeder
             ['name' => 'production-planner'],
             [
                 'display_name' => 'Production Planner',
-                'description' => 'Plans and schedules production'
+                'description' => 'Plans and schedules production',
             ]
         );
 
@@ -159,7 +161,7 @@ class ProductionRoleSeeder extends Seeder
             ['name' => 'shop-floor-supervisor'],
             [
                 'display_name' => 'Shop Floor Supervisor',
-                'description' => 'Supervises production execution'
+                'description' => 'Supervises production execution',
             ]
         );
 
@@ -175,6 +177,7 @@ class ProductionRoleSeeder extends Seeder
             'production.steps.execute',
             'production.steps.executeQualityCheck',
             'production.steps.handleRework',
+            'production.steps.photos',
             'production.quality.executeCheck',
             'production.quality.recordResult',
             'production.quality.initiateRework',
@@ -193,7 +196,7 @@ class ProductionRoleSeeder extends Seeder
             ['name' => 'machine-operator'],
             [
                 'display_name' => 'Machine Operator',
-                'description' => 'Executes manufacturing steps'
+                'description' => 'Executes manufacturing steps',
             ]
         );
 
@@ -201,6 +204,7 @@ class ProductionRoleSeeder extends Seeder
             'production.orders.view',
             'production.steps.view',
             'production.steps.execute',
+            'production.steps.photos',
             'production.workcells.view',
             // View scheduling only
             'production.schedule.view',
@@ -211,7 +215,7 @@ class ProductionRoleSeeder extends Seeder
             ['name' => 'quality-inspector'],
             [
                 'display_name' => 'Quality Inspector',
-                'description' => 'Performs quality checks'
+                'description' => 'Performs quality checks',
             ]
         );
 
@@ -233,7 +237,7 @@ class ProductionRoleSeeder extends Seeder
             ['name' => 'shipping-coordinator'],
             [
                 'display_name' => 'Shipping Coordinator',
-                'description' => 'Manages shipments'
+                'description' => 'Manages shipments',
             ]
         );
 
@@ -254,7 +258,7 @@ class ProductionRoleSeeder extends Seeder
             ['name' => 'production-viewer'],
             [
                 'display_name' => 'Production Viewer',
-                'description' => 'Read-only access to production data'
+                'description' => 'Read-only access to production data',
             ]
         );
 
@@ -280,4 +284,4 @@ class ProductionRoleSeeder extends Seeder
             'production.schedule.view',
         ]);
     }
-} 
+}

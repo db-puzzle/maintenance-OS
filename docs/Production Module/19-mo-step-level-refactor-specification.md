@@ -1373,10 +1373,46 @@ class StepExecutionPhotoTest extends TestCase
 
 ### 7.3 Permission Updates
 
-Add new permissions:
-- `production.steps.execute` - Execute manufacturing steps
-- `production.steps.photos` - Capture step photos
+#### 7.3.1 Permission and Policy Implementation Status ✅
+
+**IMPORTANT**: The required permission and policy have already been implemented and are ready to use:
+
+1. **Permission Added** ✅
+   - `production.steps.photos` - "Take photos during step execution"
+   - Added to both `PermissionSeeder.php` and `ProductionPermissionSeeder.php`
+
+2. **Policy Created** ✅
+   - `ManufacturingStepExecutionPolicy` has been created at `app/Policies/Production/ManufacturingStepExecutionPolicy.php`
+   - Policy is registered in `AuthServiceProvider.php`
+   - Methods implemented:
+     - `view()` - Uses existing `production.steps.view` permission
+     - `update()` - Uses existing `production.steps.execute` permission  
+     - `takePhotos()` - Uses new `production.steps.photos` permission
+     - `deletePhotos()` - Uses new `production.steps.photos` permission
+     - `reportProduction()` - Uses existing `production.steps.execute` permission
+
+3. **Roles Updated** ✅
+   - Production Manager - Has the permission
+   - Production Supervisor - Has the permission
+   - Machine Operator - Has the permission
+
+#### 7.3.2 Implementation Notes
+
+When implementing the controllers:
+- Use `$this->authorize('update', $execution)` for general step execution updates
+- Use `$this->authorize('takePhotos', $execution)` specifically for photo upload endpoints
+- Use `$this->authorize('deletePhotos', $execution)` for photo deletion endpoints
+
+The policy automatically handles:
+- Work cell assignment checks for technicians
+- Preventing updates to completed executions
+- Photo deletion restrictions based on user role
+
+#### 7.3.3 Existing Permissions Used
 - `production.steps.view` - View step details
+- `production.steps.execute` - Execute manufacturing steps and report progress
+- `production.orders.view` - View manufacturing orders
+- `production.orders.reportProduction` - Report production on orders
 
 ## 8. Performance Considerations
 

@@ -45,6 +45,7 @@ class ProductionPermissionSeeder extends Seeder
             'production.steps.executeQualityCheck' => 'Execute quality checks',
             'production.steps.handleRework' => 'Handle rework decisions',
             'production.steps.configureDependencies' => 'Configure step dependencies',
+            'production.steps.photos' => 'Take photos during step execution',
         ];
 
         // Route Templates
