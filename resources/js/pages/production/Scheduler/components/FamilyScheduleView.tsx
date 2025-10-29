@@ -27,7 +27,7 @@ interface FamilyScheduleViewProps {
                 scheduled_start: string;
                 scheduled_end: string;
                 is_locked: boolean;
-                conflicts: any[];
+                conflicts: Array<{ id: string; description: string }>;
             }>;
         }>;
         metrics: {

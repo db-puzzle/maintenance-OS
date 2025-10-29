@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Calendar, Zap, Users, ArrowRight, SquareDashedMousePointer } from 'lucide-react';
+import { Clock, Calendar, ArrowRight, SquareDashedMousePointer } from 'lucide-react';
 import { format } from 'date-fns';
 import {
     Dialog,
@@ -35,11 +35,11 @@ interface SchedulerOrderSelectionProps {
     onSchedulerStarted?: (jobData: { job_id: string; websocket_channel: string; version_id: number }) => void;
     algorithms: Array<{ value: string; label: string }>;
     defaultStartDate: string;
-    activeScheduleVersion: any;
-    currentVersion: any;
-    orders: any[];
-    workCells: any[];
-    filters: any;
+    activeScheduleVersion: { id: number; name: string } | null;
+    currentVersion: { id: number; name: string } | null;
+    orders: Array<{ id: number; order_number: string; item: { name: string }; family_id?: number }>;
+    workCells: Array<{ id: number; name: string }>;
+    filters: Record<string, unknown>;
 }
 
 // Family Empty State Component
@@ -79,7 +79,7 @@ const FamilyEmptyState = () => {
 export default function SchedulerOrderSelection({
     open,
     onOpenChange,
-    onRunScheduler,
+    onRunScheduler: _onRunScheduler,
     onSchedulerStarted,
     algorithms,
     defaultStartDate,
@@ -90,12 +90,12 @@ export default function SchedulerOrderSelection({
     filters
 }: SchedulerOrderSelectionProps) {
 
-    const { schedulingConfig, flash } = usePage().props as any;
+    const { schedulingConfig, flash } = usePage().props as { schedulingConfig: { time_horizon_days: number }; flash: { success?: string; error?: string; schedulingJob?: { job_id: string; websocket_channel: string; version_id: number } } & Record<string, unknown> };
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
-    const [families, setFamilies] = useState<any[]>([]);
+    const [families, setFamilies] = useState<Array<{ id: number; name: string; orders: Array<{ id: number }> }>>([]);
     const [selectionMode, setSelectionMode] = useState<'individual' | 'family'>('family');
     const [isValidating, setIsValidating] = useState(false);
-    const [validationResult, setValidationResult] = useState<any>(null);
+    const [validationResult, setValidationResult] = useState<{ is_valid: boolean; errors: string[]; warnings: string[] } | null>(null);
 
     // Monitor flash data for scheduling job response
     useEffect(() => {
@@ -127,7 +127,7 @@ export default function SchedulerOrderSelection({
         start_date: defaultStartDate,
         end_date: filters?.end_date || format(new Date().setMonth(new Date().getMonth() + 3), 'yyyy-MM-dd'),
         manufacturing_order_ids: [] as number[],
-        respect_locked_schedules: (schedulingConfig as any)?.locked_schedules_enabled || true,
+        respect_locked_schedules: schedulingConfig?.locked_schedules_enabled || true,
     });
 
     // Handle family selection mode
@@ -179,7 +179,7 @@ export default function SchedulerOrderSelection({
             onSuccess: (page) => {
                 setIsValidating(false);
                 // Check the validation result from the page props
-                const validation = (page.props as any).flash?.validation;
+                const validation = (page.props as { flash?: { validation?: { is_valid: boolean; errors: string[]; warnings: string[] } } }).flash?.validation;
                 if (validation) {
                     setValidationResult(validation);
                     if (validation.valid) {

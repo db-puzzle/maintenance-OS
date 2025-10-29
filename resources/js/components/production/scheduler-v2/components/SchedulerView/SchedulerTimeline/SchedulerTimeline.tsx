@@ -7,15 +7,40 @@ import { calculateTimelineLayout } from '../../../utils/timelineCalculations';
 import { cn } from '@/lib/utils';
 import { ZoomLevel } from '../../../utils/zoomConfig';
 
+interface WorkCell {
+    id: number;
+    scheduled_steps?: Allocation[];
+}
+
+interface Allocation {
+    id: string;
+    is_locked?: boolean;
+    planned_start_date: string;
+    planned_end_date: string;
+}
+
+interface DraggedAllocation extends Allocation {
+    originalWorkCellId: number;
+    initialX: number;
+    offsetX: number;
+    targetWorkCellId?: number;
+}
+
+interface AllocationUpdate {
+    scheduled_start?: string;
+    scheduled_end?: string;
+    workcell_id?: number;
+}
+
 interface SchedulerTimelineProps {
-    workCells: any[];
-    allocations: any[];
+    workCells: WorkCell[];
+    allocations: Allocation[];
     viewConfig: {
         startDate: Date;
         endDate: Date;
     };
     zoomLevel: ZoomLevel;
-    onAllocationUpdate: (allocationId: string, updates: any) => void;
+    onAllocationUpdate: (allocationId: string, updates: AllocationUpdate) => void;
     onScrollContainerRef?: (container: HTMLElement | null) => void;
 }
 
@@ -28,7 +53,7 @@ export const SchedulerTimeline: React.FC<SchedulerTimelineProps> = ({
     onScrollContainerRef,
 }) => {
     const [selectedAllocationId, setSelectedAllocationId] = useState<string | null>(null);
-    const [draggedAllocation, setDraggedAllocation] = useState<any>(null);
+    const [draggedAllocation, setDraggedAllocation] = useState<DraggedAllocation | null>(null);
 
     // Calculate timeline dimensions and layout
     const timelineLayout = calculateTimelineLayout({
@@ -42,7 +67,7 @@ export const SchedulerTimeline: React.FC<SchedulerTimelineProps> = ({
     const timelineHeight = workCells.length * rowHeight;
 
     // Handle allocation drag
-    const handleAllocationDragStart = (e: React.MouseEvent, allocation: any, workCellId: number) => {
+    const handleAllocationDragStart = (e: React.MouseEvent, allocation: Allocation, workCellId: number) => {
         if (allocation.is_locked) return;
 
         setDraggedAllocation({

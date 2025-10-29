@@ -41,6 +41,7 @@ import { MOViewerCanvas, MOData, MOStep } from '@/components/production/mo-viewe
 import { StepStatus } from '@/components/production/mo-viewer/MOViewerStepBox';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { MOStepActionDialog } from '@/pages/production/reporting/components/MOStepActionDialog';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
@@ -67,6 +68,7 @@ interface RouteStep {
     setup_time_seconds?: number;
     cycle_time_seconds?: number;
     total_time_seconds?: number;
+    depends_on_step_id?: number;
 }
 
 interface ManufacturingOrderHierarchy {
@@ -141,7 +143,11 @@ const MOViewerHierarchicalView: React.FC<{
     expandedSteps: Set<number>;
     onToggleStep: (orderId: number) => void;
     onToggleThumbnails?: (show: boolean) => void;
-}> = ({ orders, selectedOrders, onOrderSelect, searchQuery: _searchQuery, showThumbnails, showRouteSteps, expandedSteps, onToggleStep, onToggleThumbnails }) => {
+    highlightedSteps: Set<number>;
+    onSelectAllPrecedents: (orderId: number, stepId: number) => void;
+    onSelectImmediatePrecedents: (orderId: number, stepId: number) => void;
+    onStepClick: (orderId: number, stepId: number) => void;
+}> = ({ orders, selectedOrders, onOrderSelect, searchQuery: _searchQuery, showThumbnails, showRouteSteps, expandedSteps, onToggleStep, onToggleThumbnails, highlightedSteps, onSelectAllPrecedents, onSelectImmediatePrecedents, onStepClick }) => {
     // Use tree expansion hook
     const {
         expanded,
@@ -198,44 +204,91 @@ const MOViewerHierarchicalView: React.FC<{
                 {/* Route Steps */}
                 {showRouteSteps && areStepsExpanded && hasSteps && (
                     <div className="ml-12 mt-2 space-y-1 mb-2">
-                        {order.route_steps.map((step) => (
-                            <div
-                                key={step.id}
-                                className={cn(
-                                    "flex items-center gap-2 px-3 py-1.5 text-xs rounded border-l-2",
-                                    step.status === 'completed' && "border-l-green-500 bg-green-50 dark:bg-green-950/20",
-                                    step.status === 'in_progress' && "border-l-blue-500 bg-blue-50 dark:bg-blue-950/20",
-                                    step.status === 'queued' && "border-l-gray-400",
-                                    step.has_quality_issue && "border-l-red-500",
-                                    step.has_delay && "border-l-orange-500"
-                                )}
-                            >
-                                <span className="text-[10px] text-muted-foreground">#{step.step_number}</span>
-                                <span className="flex-1 truncate">{step.name}</span>
-                                {step.work_cell && (
-                                    <Badge variant="outline" className="text-[10px] px-1 py-0">
-                                        {step.work_cell.name}
-                                    </Badge>
-                                )}
-                                {step.current_operator && (
-                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                        <User className="h-3 w-3" />
-                                        {step.current_operator.name.split(' ')[0]}
+                        {order.route_steps.map((step, stepIndex) => {
+                            const isHighlighted = highlightedSteps.has(step.id);
+                            const isFirstStep = stepIndex === 0 || step.step_number === 1;
+                            const hasChildOrders = order.children && order.children.length > 0;
+                            const canSelectPrecedents = step.depends_on_step_id || (isFirstStep && hasChildOrders);
+
+
+                            return (
+                                <div
+                                    key={step.id}
+                                    className={cn(
+                                        "flex items-center gap-2 px-3 py-1.5 text-xs rounded border-l-2 relative transition-all duration-300 group cursor-pointer hover:bg-accent/50",
+                                        step.status === 'completed' && "border-l-green-500 bg-green-50 dark:bg-green-950/20",
+                                        step.status === 'in_progress' && "border-l-blue-500 bg-blue-50 dark:bg-blue-950/20",
+                                        step.status === 'queued' && "border-l-gray-400",
+                                        step.has_quality_issue && "border-l-red-500",
+                                        step.has_delay && "border-l-orange-500",
+                                        isHighlighted && "border-ring ring-ring/10 ring-[2px]"
+                                    )}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onStepClick(order.id, step.id);
+                                    }}
+                                >
+                                    <span className="text-[10px] text-muted-foreground">#{step.step_number}</span>
+                                    <span className="flex-1 truncate">{step.name}</span>
+                                    {step.work_cell && (
+                                        <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                            {step.work_cell.name}
+                                        </Badge>
+                                    )}
+                                    {step.current_operator && (
+                                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                            <User className="h-3 w-3" />
+                                            {step.current_operator.name.split(' ')[0]}
+                                        </div>
+                                    )}
+                                    <div className="flex items-center gap-1">
+                                        {step.status === 'completed' && <CheckCircle2 className="h-3 w-3 text-green-600" />}
+                                        {step.status === 'in_progress' && <Clock className="h-3 w-3 text-blue-600 animate-pulse" />}
+                                        {step.has_quality_issue && <AlertTriangle className="h-3 w-3 text-red-600" />}
+                                        {step.has_delay && <TrendingDown className="h-3 w-3 text-orange-600" />}
                                     </div>
-                                )}
-                                <div className="flex items-center gap-1">
-                                    {step.status === 'completed' && <CheckCircle2 className="h-3 w-3 text-green-600" />}
-                                    {step.status === 'in_progress' && <Clock className="h-3 w-3 text-blue-600 animate-pulse" />}
-                                    {step.has_quality_issue && <AlertTriangle className="h-3 w-3 text-red-600" />}
-                                    {step.has_delay && <TrendingDown className="h-3 w-3 text-orange-600" />}
+
+                                    {/* Dropdown Menu - Hidden by default, shown on hover */}
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-5 w-5 p-0 hover:bg-accent opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <MoreVertical className="h-3 w-3" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-64">
+                                            <DropdownMenuItem
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onSelectImmediatePrecedents(order.id, step.id);
+                                                }}
+                                                disabled={!canSelectPrecedents}
+                                            >
+                                                Selecionar precedentes imediatos
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onSelectAllPrecedents(order.id, step.id);
+                                                }}
+                                                disabled={!canSelectPrecedents}
+                                            >
+                                                Selecionar todos os precedentes
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>
         );
-    }, [selectedOrders, showThumbnails, showRouteSteps, expandedSteps, onToggleStep, onOrderSelect]);
+    }, [selectedOrders, showThumbnails, showRouteSteps, expandedSteps, onToggleStep, onOrderSelect, highlightedSteps, onSelectAllPrecedents, onSelectImmediatePrecedents, onStepClick]);
 
     // Calculate total orders count
     const countAllOrders = (orderList: ManufacturingOrderHierarchy[]): number => {
@@ -307,6 +360,7 @@ export default function MOViewer({
     const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set());
     const [selectedOrders, setSelectedOrders] = useState<Set<number>>(new Set());
     const [searchValue, setSearchValue] = useState(filters.search || '');
+    const [highlightedSteps, setHighlightedSteps] = useState<Set<number>>(new Set());
     const [viewMode, setViewMode] = useState<'hierarchical' | 'canvas'>('canvas');
 
     // New states for MO selection
@@ -315,6 +369,11 @@ export default function MOViewer({
     const [loadingMO, setLoadingMO] = useState(false);
     const [moHierarchy, setMOHierarchy] = useState<ManufacturingOrderHierarchy[]>([]);
     const [canvasScale, setCanvasScale] = useState(1);
+
+    // States for MO Details Dialog
+    const [showMODetailsDialog, setShowMODetailsDialog] = useState(false);
+    const [selectedMOForDialog, setSelectedMOForDialog] = useState<ManufacturingOrderHierarchy | null>(null);
+    const [selectedStepId, setSelectedStepId] = useState<number | undefined>(undefined);
 
     // Debounce timer ref
     const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -360,6 +419,156 @@ export default function MOViewer({
             setLoadingMO(false);
         }
     }, []);
+
+    // Function to find all precedent steps recursively within a single MO
+    const findAllPrecedentSteps = useCallback((steps: RouteStep[], targetStepId: number): Set<number> => {
+        const precedents = new Set<number>();
+
+        const findPrecedents = (stepId: number) => {
+            const step = steps.find(s => s.id === stepId);
+            if (step?.depends_on_step_id) {
+                precedents.add(step.depends_on_step_id);
+                // Recursively find precedents of the precedent
+                findPrecedents(step.depends_on_step_id);
+            }
+        };
+
+        findPrecedents(targetStepId);
+        return precedents;
+    }, []);
+
+    // Handle selecting immediate precedents only
+    const handleSelectImmediatePrecedents = useCallback((orderId: number, stepId: number) => {
+        const allPrecedents = new Set<number>();
+
+        // Create a map of all orders for easy lookup
+        const findAllOrders = (orders: ManufacturingOrderHierarchy[]): Map<number, ManufacturingOrderHierarchy> => {
+            const orderMap = new Map<number, ManufacturingOrderHierarchy>();
+            const traverse = (orderList: ManufacturingOrderHierarchy[]) => {
+                orderList.forEach(order => {
+                    orderMap.set(order.id, order);
+                    if (order.children && order.children.length > 0) {
+                        traverse(order.children);
+                    }
+                });
+            };
+            traverse(orders);
+            return orderMap;
+        };
+
+        const sourceOrders = moHierarchy.length > 0 ? moHierarchy : orders;
+        const allOrdersMap = findAllOrders(sourceOrders);
+        const targetOrder = allOrdersMap.get(orderId);
+
+        if (!targetOrder || !targetOrder.route_steps) {
+            return;
+        }
+
+        // Find the target step
+        const targetStep = targetOrder.route_steps.find(s => s.id === stepId);
+        const stepIndex = targetOrder.route_steps.findIndex(s => s.id === stepId);
+        const isFirstStep = targetStep?.step_number === 1 || stepIndex === 0;
+
+        // If this is the first step and the MO has children, add only the last step of each child MO
+        if (isFirstStep && targetOrder.children && targetOrder.children.length > 0) {
+            targetOrder.children.forEach(child => {
+                if (child.route_steps && child.route_steps.length > 0) {
+                    // Add only the last step of each child MO
+                    const lastStep = child.route_steps[child.route_steps.length - 1];
+                    allPrecedents.add(lastStep.id);
+                }
+            });
+        } else if (targetStep?.depends_on_step_id) {
+            // If it has a direct precedent, just add that one
+            allPrecedents.add(targetStep.depends_on_step_id);
+        }
+
+        setHighlightedSteps(allPrecedents);
+    }, [moHierarchy, orders]);
+
+    // Handle selecting all precedents including child MO steps
+    const handleSelectAllPrecedents = useCallback((orderId: number, stepId: number) => {
+
+        const allPrecedents = new Set<number>();
+
+        // Find all orders in the hierarchy
+        const findAllOrders = (orders: ManufacturingOrderHierarchy[]): Map<number, ManufacturingOrderHierarchy> => {
+            const orderMap = new Map<number, ManufacturingOrderHierarchy>();
+
+            const traverse = (orderList: ManufacturingOrderHierarchy[]) => {
+                for (const order of orderList) {
+                    orderMap.set(order.id, order);
+                    if (order.children) {
+                        traverse(order.children);
+                    }
+                }
+            };
+
+            traverse(orders);
+            return orderMap;
+        };
+
+        const sourceOrders = moHierarchy.length > 0 ? moHierarchy : orders;
+
+        const allOrdersMap = findAllOrders(sourceOrders);
+
+        const targetOrder = allOrdersMap.get(orderId);
+
+        if (!targetOrder || !targetOrder.route_steps) {
+            return;
+        }
+
+        // Find precedents within the same MO
+        const localPrecedents = findAllPrecedentSteps(targetOrder.route_steps, stepId);
+        localPrecedents.forEach(id => allPrecedents.add(id));
+
+        // Helper to add all steps from child MOs
+        const addAllChildSteps = (order: ManufacturingOrderHierarchy) => {
+            if (!order.children || order.children.length === 0) return;
+
+            order.children.forEach(child => {
+                // Add all steps from this child MO
+                if (child.route_steps) {
+                    child.route_steps.forEach(step => {
+                        allPrecedents.add(step.id);
+                    });
+                }
+                // Recursively add steps from its children
+                addAllChildSteps(child);
+            });
+        };
+
+        // For the target step, check if it's the first step of the MO
+        const targetStep = targetOrder.route_steps.find(s => s.id === stepId);
+        const stepIndex = targetOrder.route_steps.findIndex(s => s.id === stepId);
+        const isFirstStep = targetStep?.step_number === 1 || stepIndex === 0;
+
+        // If this is the first step of the MO and the MO has children, 
+        // add all steps from child MOs as precedents
+        if (isFirstStep && targetOrder.children && targetOrder.children.length > 0) {
+            addAllChildSteps(targetOrder);
+        }
+
+        // Also check if any of the local precedents are first steps of their MOs
+        // and add their child MO steps
+        localPrecedents.forEach(precedentStepId => {
+            // Find which MO this precedent step belongs to
+            for (const [_moId, mo] of allOrdersMap) {
+                if (mo.route_steps?.some(s => s.id === precedentStepId)) {
+                    const precedentStep = mo.route_steps.find(s => s.id === precedentStepId);
+                    const isPrecedentFirstStep = precedentStep?.step_number === 1 ||
+                        mo.route_steps.findIndex(s => s.id === precedentStepId) === 0;
+
+                    if (isPrecedentFirstStep && mo.children && mo.children.length > 0) {
+                        addAllChildSteps(mo);
+                    }
+                    break;
+                }
+            }
+        });
+
+        setHighlightedSteps(allPrecedents);
+    }, [moHierarchy, orders, findAllPrecedentSteps]);
 
     // Auto-refresh
     useEffect(() => {
@@ -473,6 +682,8 @@ export default function MOViewer({
             id: order.id,
             order_number: order.order_number,
             parent_id: order.parent_id,
+            item_number: order.item?.item_number,
+            item_name: order.item?.name,
             steps: (order.route_steps || []).map(step => ({
                 id: step.id,
                 name: step.name,
@@ -500,7 +711,94 @@ export default function MOViewer({
         return statusMap[status] || 'not_ready';
     };
 
-    const canvasData = useMemo(() => transformToCanvasData(displayOrders), [displayOrders, transformToCanvasData]);
+    const canvasData = useMemo(() => {
+        const data = transformToCanvasData(displayOrders);
+        return data;
+    }, [displayOrders, transformToCanvasData]);
+
+    // Handle step click to open MO Details Dialog
+    const handleStepClick = useCallback((orderId: number, stepId: number) => {
+        console.log('[MOViewer] handleStepClick triggered', { orderId, stepId });
+
+        // Clear any highlights
+        setHighlightedSteps(new Set());
+
+        // Find the MO in the hierarchy
+        const findOrderInHierarchy = (orders: ManufacturingOrderHierarchy[], targetId: number): ManufacturingOrderHierarchy | null => {
+            for (const order of orders) {
+                if (order.id === targetId) return order;
+                if (order.children) {
+                    const found = findOrderInHierarchy(order.children, targetId);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+
+        const order = findOrderInHierarchy(displayOrders, orderId);
+        if (!order) {
+            console.error('[MOViewer] Order not found in hierarchy', { orderId });
+            toast.error('Ordem não encontrada');
+            return;
+        }
+
+        console.log('[MOViewer] Found order', {
+            orderId: order.id,
+            orderNumber: order.order_number,
+            routeSteps: order.route_steps?.length || 0
+        });
+
+        // For now, use the existing order data structure
+        // The MODetailsDialog will handle fetching additional data if needed
+        const fullOrder = {
+            ...order,
+            // Ensure manufacturing_route exists with steps
+            manufacturing_route: order.manufacturing_route || {
+                id: 0,
+                name: '',
+                steps: order.route_steps?.map((step) => ({
+                    ...step,
+                    id: step.id,
+                    manufacturing_route_id: 0,
+                    step_number: step.step_number,
+                    name: step.name,
+                    work_cell: step.work_cell,
+                    work_cell_id: step.work_cell?.id,
+                    status: step.status,
+                    executions: [], // Will be loaded by the dialog if needed
+                    cumulative_quantity_completed: step.quantity_completed,
+                    cumulative_quantity_scrapped: step.quantity_scrapped,
+                }))
+            },
+            has_route: true,
+        };
+
+        // Find the clicked step
+        const targetStep = fullOrder.manufacturing_route?.steps?.find((s) => s.id === stepId);
+        if (targetStep) {
+            fullOrder.current_step = targetStep;
+            console.log('[MOViewer] Found target step', {
+                stepId: targetStep.id,
+                stepName: targetStep.name,
+                stepStatus: targetStep.status,
+                viewerStatus: targetStep.viewer_status,
+                canStart: targetStep.can_start,
+                cannotStartReason: targetStep.cannot_start_reason
+            });
+        } else {
+            console.warn('[MOViewer] Target step not found', { stepId });
+        }
+
+        console.log('[MOViewer] Opening MOStepActionDialog with order', {
+            orderId: fullOrder.id,
+            stepId,
+            hasCurrentStep: !!fullOrder.current_step
+        });
+
+        setSelectedMOForDialog(fullOrder);
+        setSelectedStepId(stepId);
+        setShowMODetailsDialog(true);
+    }, [displayOrders]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -656,9 +954,12 @@ export default function MOViewer({
                 </div>
 
                 {/* Scrollable Content Area */}
-                <div className="flex-1 overflow-y-auto px-6 py-4 lg:px-8">
+                <div className={cn(
+                    "flex-1 overflow-y-auto",
+                    viewMode !== 'canvas' && "px-6 py-4 lg:px-8"
+                )}>
                     {/* Alert Strip */}
-                    {alertCount > 0 && (
+                    {alertCount > 0 && viewMode !== 'canvas' && (
                         <div className="mb-4 p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg flex items-center gap-2">
                             <AlertTriangle className="h-4 w-4 text-orange-600" />
                             <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
@@ -690,14 +991,21 @@ export default function MOViewer({
                             </div>
                         </div>
                     ) : viewMode === 'canvas' ? (
-                        <MOViewerCanvas
-                            orders={canvasData}
-                            onStepClick={(orderId, stepId) => {
-                                console.log('Step clicked:', orderId, stepId);
-                            }}
-                            scale={canvasScale}
-                            className="h-full"
-                        />
+                        <div className="h-full">
+                            <MOViewerCanvas
+                                orders={canvasData}
+                                onStepClick={handleStepClick}
+                                scale={canvasScale}
+                                className="h-full"
+                                highlightedSteps={highlightedSteps}
+                                onSelectPrecedents={handleSelectAllPrecedents}
+                                onSelectImmediatePrecedents={handleSelectImmediatePrecedents}
+                                onCanvasClick={() => {
+                                    // Clear highlights when clicking on canvas background
+                                    setHighlightedSteps(new Set());
+                                }}
+                            />
+                        </div>
                     ) : (
                         <div className="h-full">
                             {selectedOrders.size > 0 && (
@@ -742,6 +1050,10 @@ export default function MOViewer({
                                 expandedSteps={expandedSteps}
                                 onToggleStep={toggleStep}
                                 onToggleThumbnails={setShowThumbnails}
+                                highlightedSteps={highlightedSteps}
+                                onSelectAllPrecedents={handleSelectAllPrecedents}
+                                onSelectImmediatePrecedents={handleSelectImmediatePrecedents}
+                                onStepClick={handleStepClick}
                             />
                         </div>
                     )}
@@ -755,6 +1067,14 @@ export default function MOViewer({
                 onSelect={handleMOSelection}
                 selectedIds={selectedMOId ? new Set([selectedMOId]) : new Set()}
                 multiSelect={false}
+            />
+
+            {/* MO Step Action Dialog */}
+            <MOStepActionDialog
+                order={selectedMOForDialog}
+                isOpen={showMODetailsDialog}
+                onOpenChange={setShowMODetailsDialog}
+                activeStepId={selectedStepId}
             />
         </AppLayout>
     );

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Production;
 
-use App\Models\Item;
+use App\Models\Production\Item;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingRoute;
 use App\Models\Production\ManufacturingStep;

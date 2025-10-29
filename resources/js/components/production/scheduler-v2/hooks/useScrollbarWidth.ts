@@ -9,7 +9,7 @@ export const useScrollbarWidth = () => {
             const outer = document.createElement('div');
             outer.style.visibility = 'hidden';
             outer.style.overflow = 'scroll';
-            (outer.style as any).msOverflowStyle = 'scrollbar'; // needed for IE
+            (outer.style as CSSStyleDeclaration & { msOverflowStyle?: string }).msOverflowStyle = 'scrollbar'; // needed for IE
             document.body.appendChild(outer);
 
             // Create inner div

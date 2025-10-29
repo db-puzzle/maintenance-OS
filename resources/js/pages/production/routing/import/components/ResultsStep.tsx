@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { router } from '@inertiajs/react';
-import { ImportSession, ImportError } from '../types';
+import { ImportSession } from '../types';
 
 interface Props {
     session: ImportSession;

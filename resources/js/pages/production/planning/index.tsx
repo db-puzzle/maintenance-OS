@@ -527,7 +527,7 @@ export default function PlanningPage({
 
         // No children or transitioning without children consideration - proceed directly
         performStatusTransition(orderIds, targetState, false);
-    }, [selectedMOs, activeMODetails, hasUnsavedChanges, countChildrenForOrders, getTargetState]);
+    }, [selectedMOs, activeMODetails, hasUnsavedChanges, countChildrenForOrders, getTargetState, performStatusTransition]);
 
     // Function to actually perform the status transition
     const performStatusTransition = useCallback((orderIds: number[], targetState: 'planned' | 'draft' | 'released', includeChildren: boolean) => {

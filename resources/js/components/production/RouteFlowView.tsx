@@ -46,7 +46,7 @@ export default function RouteFlowView({
     onStepAdd,
     onStepDelete,
     onStepUpdate: _onStepUpdate,
-    onGateUpdate,
+    onGateUpdate: _onGateUpdate,
     canEdit,
     viewMode = false,
     parentMO,

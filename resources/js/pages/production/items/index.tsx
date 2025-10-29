@@ -272,7 +272,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             // Check if category has route templates based on the route_templates_count
             const hasRouteTemplate = item.category &&
                 (item.category.has_route_template ||
-                    (item.category as any).route_templates_count > 0);
+                    (item.category as { route_templates_count?: number }).route_templates_count! > 0);
 
             return (
                 <div className="text-sm">

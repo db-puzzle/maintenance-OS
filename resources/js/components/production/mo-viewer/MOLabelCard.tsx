@@ -7,6 +7,8 @@ export interface MOLabelCardProps {
     level: number;
     isParent?: boolean;
     hasChildren?: boolean;
+    itemNumber?: string;
+    itemName?: string;
     className?: string;
 }
 
@@ -16,16 +18,22 @@ export interface MOLabelCardProps {
  */
 export function MOLabelCard({
     orderNumber,
-    level,
     isParent = false,
     hasChildren = false,
+    itemNumber,
+    itemName,
     className
 }: MOLabelCardProps) {
+    // Format item display text
+    const itemText = itemNumber && itemName
+        ? `${itemNumber} - ${itemName}`
+        : itemName || itemNumber || 'Manufacturing Order';
+
     return (
         <div
             className={cn(
-                // Match step card size: w-40 h-16
-                "w-40 h-16 px-3 py-2",
+                // Increased width to w-52 (30% wider) to fit more characters
+                "w-52 h-16 px-3 py-2",
                 "rounded-md border",
                 "bg-background shadow-sm",
                 "flex flex-col justify-center",
@@ -45,8 +53,8 @@ export function MOLabelCard({
                     )} title={orderNumber}>
                         {orderNumber}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                        Manufacturing Order
+                    <div className="text-xs text-muted-foreground truncate" title={itemText}>
+                        {itemText}
                     </div>
                 </div>
             </div>

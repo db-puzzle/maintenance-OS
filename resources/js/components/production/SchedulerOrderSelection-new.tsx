@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Calendar, ArrowRight, SquareDashedMousePointer, AlertCircle, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { Clock, Calendar, ArrowRight, SquareDashedMousePointer, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import {
     Dialog,
@@ -15,7 +15,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import OrderSelectionPanel from '@/pages/production/scheduler/components/OrderSelectionPanel';
 import FamilyVisualization from '@/pages/production/scheduler/components/FamilyVisualization';
 import ValidationModal from '@/pages/production/scheduler/components/ValidationModal';
@@ -38,11 +37,11 @@ interface SchedulerOrderSelectionProps {
     onSchedulerStarted?: (jobData: { job_id: string; websocket_channel: string; version_id: number }) => void;
     algorithms: Array<{ value: string; label: string }>;
     defaultStartDate: string;
-    activeScheduleVersion: any;
-    currentVersion: any;
-    orders: any[];
-    workCells: any[];
-    filters: any;
+    activeScheduleVersion: { id: number; name: string } | null;
+    currentVersion: { id: number; name: string } | null;
+    orders: Array<{ id: number; order_number: string; item: { name: string }; family_id?: number }>;
+    workCells: Array<{ id: number; name: string }>;
+    filters: Record<string, unknown>;
 }
 
 // Step Indicator Component
@@ -112,21 +111,20 @@ export default function SchedulerOrderSelection({
     currentVersion,
     orders,
     workCells: _workCells,
-    filters
+    filters: _filters
 }: SchedulerOrderSelectionProps) {
 
-    const { schedulingConfig, flash } = usePage().props as any;
+    const { flash } = usePage().props as { flash: { success?: string; error?: string } };
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
-    const [families, setFamilies] = useState<any[]>([]);
+    const [families, setFamilies] = useState<Array<{ id: number; name: string; orders: Array<{ id: number }> }>>([]);
     const [selectionMode, setSelectionMode] = useState<'individual' | 'family'>('family');
-    const [isValidating, setIsValidating] = useState(false);
-    const [validationResult, setValidationResult] = useState<any>(null);
-    const [timeParameterData, setTimeParameterData] = useState<any[]>([]);
+    const [validationResult, setValidationResult] = useState<{ is_valid: boolean; errors: string[]; warnings: string[] } | null>(null);
+    const [timeParameterData, setTimeParameterData] = useState<Array<{ order_id: number; total_duration_seconds: number; estimated_completion_date: string; time_parameter_status?: string }>>([]);
     const [loadingTimeParams, setLoadingTimeParams] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
 
     // Initialize form with useForm hook
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors: _errors } = useForm({
         version_id: currentVersion?.id || 0,
         algorithm: algorithms[0]?.value || 'asap',
         start_date: defaultStartDate || format(new Date(), 'yyyy-MM-dd'),
@@ -195,17 +193,15 @@ export default function SchedulerOrderSelection({
     };
 
     const handleRunScheduler = () => {
-        setIsValidating(true);
         post(route('production.scheduler.run'), {
             preserveState: true,
             preserveScroll: true,
             onSuccess: () => {
-                setIsValidating(false);
+                // Success handled by flash message
             },
             onError: (errors) => {
                 console.error('Error starting scheduler:', errors);
                 alert('Failed to start scheduling. Please try again.');
-                setIsValidating(false);
             }
         });
     };

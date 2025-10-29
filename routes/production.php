@@ -18,6 +18,7 @@ use App\Http\Controllers\Production\QrTagServeController;
 use App\Http\Controllers\Production\QrTrackingController;
 use App\Http\Controllers\Production\RouteTemplateController;
 use App\Http\Controllers\Production\ShipmentController;
+use App\Http\Controllers\Production\StepExecutionController;
 use App\Http\Controllers\Production\WorkCellController;
 use App\Http\Controllers\Production\WorkCellDashboardController;
 use App\Http\Controllers\Production\WorkCellParallelResourceController;
@@ -166,12 +167,13 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('routing/{routing}/steps/from-template', [ProductionRoutingController::class, 'createStepsFromTemplate'])->name('routing.steps.from-template');
 
     // Manufacturing Steps
-    Route::get('steps/{step}/execute', [ManufacturingStepController::class, 'execute'])->name('steps.execute');
-    Route::post('steps/{step}/start', [ManufacturingStepController::class, 'start'])->name('steps.start');
-    Route::post('steps/{step}/executions/{execution}/hold', [ManufacturingStepController::class, 'hold'])->name('steps.hold');
-    Route::post('steps/{step}/executions/{execution}/resume', [ManufacturingStepController::class, 'resume'])->name('steps.resume');
-    Route::post('steps/{step}/executions/{execution}/quality', [ManufacturingStepController::class, 'recordQualityResult'])->name('steps.quality');
-    Route::post('steps/{step}/executions/{execution}/complete', [ManufacturingStepController::class, 'complete'])->name('steps.complete');
+    // Step execution routes - deprecated in favor of production.reporting.steps.* routes
+    // Route::get('steps/{step}/execute', [ManufacturingStepController::class, 'execute'])->name('steps.execute');
+    // Route::post('steps/{step}/start', [ManufacturingStepController::class, 'start'])->name('steps.start');
+    // Route::post('steps/{step}/executions/{execution}/hold', [ManufacturingStepController::class, 'hold'])->name('steps.hold');
+    // Route::post('steps/{step}/executions/{execution}/resume', [ManufacturingStepController::class, 'resume'])->name('steps.resume');
+    // Route::post('steps/{step}/executions/{execution}/quality', [ManufacturingStepController::class, 'recordQualityResult'])->name('steps.quality');
+    // Route::post('steps/{step}/executions/{execution}/complete', [ManufacturingStepController::class, 'complete'])->name('steps.complete');
     Route::post('steps/{step}/report-progress', [ManufacturingOrderController::class, 'reportStepProgress'])->name('steps.report-progress');
     Route::post('steps/{step}/update-dependencies', [ManufacturingStepController::class, 'updateDependencies'])->name('steps.update-dependencies');
 
@@ -228,22 +230,47 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
         Route::post('/scan/handle', [QrTrackingController::class, 'handleScan'])->name('scan.handle');
     });
 
-    // Production Reporting (New unified interface)
+    // Production Reporting (Step-centric interface)
     Route::prefix('reporting')->name('reporting.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Production\ProductionReportingController::class, 'index'])->name('index');
-        Route::post('/{order}/start', [\App\Http\Controllers\Production\ProductionReportingController::class, 'startProduction'])->name('start');
-        Route::post('/{order}/report', [\App\Http\Controllers\Production\ProductionReportingController::class, 'reportProduction'])->name('report');
-        Route::post('/{order}/complete', [\App\Http\Controllers\Production\ProductionReportingController::class, 'completeProduction'])->name('complete');
-        Route::post('/{order}/hold', [\App\Http\Controllers\Production\ProductionReportingController::class, 'holdProduction'])->name('hold');
-        Route::post('/{order}/resume', [\App\Http\Controllers\Production\ProductionReportingController::class, 'resumeProduction'])->name('resume');
-        Route::post('/{order}/scrap', [\App\Http\Controllers\Production\ProductionReportingController::class, 'reportScrap'])->name('scrap');
 
-        // Step-level execution routes
+        // Step execution endpoints (Inertia routes)
         Route::prefix('steps')->name('steps.')->group(function () {
-            Route::get('/orders/{order}/step-status', [\App\Http\Controllers\Production\StepExecutionController::class, 'getOrderStepStatus'])->name('order-status');
-            Route::post('/{step}/start', [\App\Http\Controllers\Production\StepExecutionController::class, 'startStep'])->name('start');
-            Route::post('/executions/{execution}/progress', [\App\Http\Controllers\Production\StepExecutionController::class, 'reportProgress'])->name('report-progress');
-            Route::post('/executions/{execution}/complete', [\App\Http\Controllers\Production\StepExecutionController::class, 'completeStep'])->name('complete');
+            Route::post('/start', [StepExecutionController::class, 'start'])
+                ->name('start');
+
+            Route::post('/force-start', [StepExecutionController::class, 'forceStart'])
+                ->name('force-start');
+
+            Route::post('/{step}/skip', [StepExecutionController::class, 'skipStep'])
+                ->name('skip');
+
+            Route::post('/{step}/hold', [StepExecutionController::class, 'putOnHold'])
+                ->name('hold');
+
+            Route::post('/{step}/resume', [StepExecutionController::class, 'resumeFromHold'])
+                ->name('resume');
+
+            Route::post('/{step}/cancel', [StepExecutionController::class, 'cancelStep'])
+                ->name('cancel');
+
+            Route::post('/{step}/quality-result', [StepExecutionController::class, 'recordQualityResult'])
+                ->name('quality-result');
+
+            Route::get('/{step}/dependencies', [StepExecutionController::class, 'getDependencies'])
+                ->name('dependencies');
+
+            Route::get('/{step}/quality-requirements', [StepExecutionController::class, 'getQualityRequirements'])
+                ->name('quality-requirements');
+
+            Route::post('/{execution}/report', [StepExecutionController::class, 'reportProgress'])
+                ->name('report');
+
+            Route::post('/{execution}/upload-photo', [StepExecutionController::class, 'uploadPhoto'])
+                ->name('upload-photo');
+
+            Route::delete('/{execution}/photo/{media}', [StepExecutionController::class, 'deletePhoto'])
+                ->name('delete-photo');
         });
     });
 

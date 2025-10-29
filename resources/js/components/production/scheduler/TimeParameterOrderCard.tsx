@@ -14,7 +14,6 @@ import {
     Clock,
     Factory,
     AlertCircle,
-    CheckCircle2,
     Edit2,
     AlertTriangle,
     Package
@@ -23,7 +22,11 @@ import {
 interface TimeParameterData {
     id: number;
     order_number: string;
-    item: any;
+    item: {
+        id: number;
+        name: string;
+        item_number: string;
+    };
     quantity: number;
     status: string;
     has_route: boolean;
@@ -32,13 +35,18 @@ interface TimeParameterData {
         id: number;
         name: string;
         work_cell_id: number | null;
-        work_cell: any;
+        work_cell: {
+            id: number;
+            name: string;
+        } | null;
         has_step_time: boolean;
         setup_time_minutes: number | null;
         cycle_time_minutes: number | null;
         use_workcell_throughput: boolean | null;
         has_work_cell_rate: boolean;
-        work_cell_rate: any;
+        work_cell_rate: {
+            production_rate_per_hour?: number;
+        } | null;
         effective_time_source: 'step' | 'work_cell' | null;
         effective_setup_time: number | null;
         effective_cycle_time: number | null;
@@ -59,7 +67,7 @@ interface TimeParameterOrderCardProps {
     order: TimeParameterData;
     isSelected: boolean;
     showThumbnails?: boolean;
-    onEditStep: (orderId: number, stepId: number, step: any) => void;
+    onEditStep: (orderId: number, stepId: number, step: TimeParameterData['steps'][0]) => void;
     expanded?: boolean;
     onToggleExpand?: () => void;
     depth?: number;
@@ -72,18 +80,18 @@ export function TimeParameterOrderCard({
     onEditStep,
     expanded = false,
     onToggleExpand,
-    depth = 0,
+    depth: _depth = 0,
 }: TimeParameterOrderCardProps) {
-    const getStatusIcon = (status: 'valid' | 'partial' | 'missing') => {
-        switch (status) {
-            case 'valid':
-                return <CheckCircle2 className="w-4 h-4 text-green-500" />;
-            case 'partial':
-                return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
-            case 'missing':
-                return <AlertCircle className="w-4 h-4 text-red-500" />;
-        }
-    };
+    // const getStatusIcon = (status: 'valid' | 'partial' | 'missing') => {
+    //     switch (status) {
+    //         case 'valid':
+    //             return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+    //         case 'partial':
+    //             return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
+    //         case 'missing':
+    //             return <AlertCircle className="w-4 h-4 text-red-500" />;
+    //     }
+    // };
 
     const getStatusBadge = (status: 'valid' | 'partial' | 'missing') => {
         switch (status) {

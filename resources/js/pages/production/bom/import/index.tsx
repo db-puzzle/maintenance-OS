@@ -113,7 +113,7 @@ export default function BomImportWizard({ supportedFormats }: Props) {
         } catch (error) {
             console.error('Failed to upload file:', error);
 
-            const axiosError = error as any;
+            const axiosError = error as { response?: { status: number; data: { message?: string; errors?: Record<string, string[]> } } };
             if (axiosError.response?.status === 422) {
                 const errorData = axiosError.response.data;
 

@@ -33,8 +33,7 @@ class RoutingStepFactory extends Factory
 
         return [
             'manufacturing_route_id' => ManufacturingRoute::factory(),
-            'display_order' => 0,
-            'step_number' => null,
+            'step_number' => 1,
             'is_template' => false,
             'step_type' => 'standard',
             'name' => $operationName . ' ' . fake()->words(2, true),

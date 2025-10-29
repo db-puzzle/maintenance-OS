@@ -335,6 +335,9 @@ class ProductionRoutingController extends Controller
                     $routing->steps()->create($stepData);
                 }
             }
+
+            // Set up step dependencies based on step_number sequence
+            $routing->setupStepDependencies();
         });
 
         return response()->json([
@@ -754,6 +757,7 @@ class ProductionRoutingController extends Controller
                             'use_workcell_throughput' => $step->use_workcell_throughput,
                             'quality_check_mode' => $step->quality_check_mode,
                             'sampling_size' => $step->sampling_size,
+                            'quality_specifications' => $step->quality_specifications,
                             'form_id' => $step->form_id,
                             'depends_on_step_id' => $step->depends_on_step_id,
                             'can_start_when_dependency' => $step->can_start_when_dependency,
@@ -797,6 +801,7 @@ class ProductionRoutingController extends Controller
             'Use Work Cell Default Times',
             'Quality Check Mode',
             'Sampling Size',
+            'Quality Specifications',
             'Form ID',
             'Depends on Step ID',
             'Can Start When Dependency',
@@ -830,6 +835,7 @@ class ProductionRoutingController extends Controller
                     '', // Use Work Cell Default Times
                     '', // Quality Check Mode
                     '', // Sampling Size
+                    '', // Quality Specifications
                     '', // Form ID
                     '', // Depends on Step ID
                     '', // Can Start When Dependency
@@ -859,6 +865,7 @@ class ProductionRoutingController extends Controller
                         $step->use_workcell_throughput ? 'Yes' : 'No',
                         $step->quality_check_mode,
                         $step->sampling_size,
+                        $step->quality_specifications ? json_encode($step->quality_specifications) : '',
                         $step->form_id,
                         $step->depends_on_step_id,
                         $step->can_start_when_dependency,

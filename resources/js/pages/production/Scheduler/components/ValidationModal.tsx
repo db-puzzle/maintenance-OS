@@ -11,8 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, AlertCircle, AlertTriangle, Info } from 'lucide-react';
-import { router } from '@inertiajs/react';
+import { ExternalLink, AlertCircle, AlertTriangle } from 'lucide-react';
 
 interface ValidationError {
     order_id?: number;

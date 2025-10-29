@@ -50,12 +50,12 @@ export default function SchedulerProgress({
     });
     const [status, setStatus] = useState<'running' | 'completed' | 'failed'>('running');
     const [error, setError] = useState<string | null>(null);
-    const [_result, _setResult] = useState<any>(null);
+    const [_result, _setResult] = useState<{ version_id: number; message: string } | null>(null);
 
     useEffect(() => {
         if (!open || !jobId || !versionId) return;
 
-        let intervalId: NodeJS.Timeout | undefined;
+        const intervalId: NodeJS.Timeout | undefined = setInterval(pollProgress, 1000);
         let pollCount = 0;
         const maxPolls = 120; // Poll for max 2 minutes (120 * 1 second)
 
@@ -148,9 +148,6 @@ export default function SchedulerProgress({
 
         // Start polling immediately
         pollProgress();
-
-        // Poll every second
-        intervalId = setInterval(pollProgress, 1000);
 
         return () => {
             if (intervalId) {

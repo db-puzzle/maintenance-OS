@@ -3,13 +3,17 @@
 namespace App\Models\Production;
 
 use App\Models\User;
+use App\Traits\HasMediaTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class ManufacturingStepExecution extends Model
+class ManufacturingStepExecution extends Model implements HasMedia
 {
     use HasFactory;
+    use HasMediaTrait;
 
     public const STATUSES = [
         'queued' => 'Queued',
@@ -48,6 +52,26 @@ class ManufacturingStepExecution extends Model
         // Progressive flow fields
         'quantity_completed',
         'quantity_scrapped',
+        // New fields for enhanced tracking
+        'production_notes',
+        'scrap_reason',
+        'time_spent_minutes',
+        'photo_count',
+        'last_photo_at',
+        'hold_reason',
+        'hold_notes',
+        // State transition fields
+        'force_started',
+        'force_start_reason',
+        'previous_state',
+        'held_by',
+        'held_at',
+        'resumed_by',
+        'quality_checked_by',
+        'quality_checked_at',
+        'quality_failure_reason',
+        'quality_failure_action',
+        'rework_step_id',
     ];
 
     protected $casts = [
@@ -55,9 +79,15 @@ class ManufacturingStepExecution extends Model
         'completed_at' => 'datetime',
         'on_hold_at' => 'datetime',
         'resumed_at' => 'datetime',
+        'last_photo_at' => 'datetime',
+        'held_at' => 'datetime',
+        'quality_checked_at' => 'datetime',
         'total_hold_duration' => 'integer',
         'quantity_completed' => 'integer',
         'quantity_scrapped' => 'integer',
+        'time_spent_minutes' => 'integer',
+        'photo_count' => 'integer',
+        'force_started' => 'boolean',
     ];
 
     /**
@@ -119,7 +149,7 @@ class ManufacturingStepExecution extends Model
         }
 
         $holdDuration = $this->on_hold_at->diffInMinutes(now());
-        
+
         $this->update([
             'status' => 'in_progress',
             'resumed_at' => now(),
@@ -133,7 +163,7 @@ class ManufacturingStepExecution extends Model
      */
     public function complete(array $data = []): void
     {
-        if (!in_array($this->status, ['in_progress', 'on_hold'])) {
+        if (! in_array($this->status, ['in_progress', 'on_hold'])) {
             throw new \Exception('Execution must be in progress or on hold to complete');
         }
 
@@ -172,11 +202,12 @@ class ManufacturingStepExecution extends Model
      */
     public function getActualDurationAttribute(): ?int
     {
-        if (!$this->started_at || !$this->completed_at) {
+        if (! $this->started_at || ! $this->completed_at) {
             return null;
         }
 
         $totalMinutes = $this->started_at->diffInMinutes($this->completed_at);
+
         return $totalMinutes - $this->total_hold_duration;
     }
 
@@ -185,7 +216,7 @@ class ManufacturingStepExecution extends Model
      */
     public function getCycleTimePerPartAttribute(): ?float
     {
-        if (!$this->actual_duration || !$this->total_parts) {
+        if (! $this->actual_duration || ! $this->total_parts) {
             return null;
         }
 
@@ -249,17 +280,17 @@ class ManufacturingStepExecution extends Model
     {
         $this->increment('quantity_completed', $completed);
         $this->increment('quantity_scrapped', $scrapped);
-        
+
         // Update cumulative quantities on the step
         $this->manufacturingStep->updateCumulativeQuantities($completed, $scrapped);
-        
+
         // Update order quantities
         $order = $this->manufacturingOrder;
         $order->increment('quantity_completed', $completed);
         if ($scrapped > 0) {
             $order->increment('quantity_scrapped', $scrapped);
         }
-        
+
         // If this is a last step, propagate to parent order
         if ($this->manufacturingStep->isLastStep()) {
             // Get the service to handle parent order update
@@ -274,5 +305,87 @@ class ManufacturingStepExecution extends Model
     public function getTotalQuantityReportedAttribute(): int
     {
         return $this->quantity_completed + $this->quantity_scrapped;
+    }
+
+    /**
+     * Register media collections.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('step_photos')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/heic'])
+            ->useDisk('public')
+            ->singleFile(false); // Allow multiple files
+    }
+
+    /**
+     * Custom media conversions for step photos.
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        // Optimized display version (for laptop screen 1:1)
+        $this->addMediaConversion('display')
+            ->width(1920)
+            ->height(1080)
+            ->quality(85)
+            ->optimize()
+            ->nonQueued()
+            ->performOnCollections('step_photos');
+    }
+
+    /**
+     * Get step photos with metadata.
+     */
+    public function getStepPhotos()
+    {
+        return $this->getMedia('step_photos')->map(function ($media) {
+            return [
+                'id' => $media->id,
+                'url' => $media->getUrl(),
+                'display_url' => $media->getUrl('display'),
+                'uploaded_by' => $media->getCustomProperty('uploaded_by'),
+                'uploaded_at' => $media->getCustomProperty('uploaded_at'),
+                'file_size' => $media->size,
+                'mime_type' => $media->mime_type,
+            ];
+        });
+    }
+
+    /**
+     * Check if can proceed to next step based on gate quantity.
+     */
+    public function canProceedToNextStep(): bool
+    {
+        $step = $this->manufacturingStep;
+        $nextStep = $step->getNextStep();
+
+        if (! $nextStep) {
+            return false;
+        }
+
+        // Check gate quantity based on dependency configuration
+        return $this->meetsGateRequirements($nextStep);
+    }
+
+    private function meetsGateRequirements($nextStep): bool
+    {
+        switch ($nextStep->dependency_start_condition) {
+            case 'completed':
+                return $this->status === 'completed';
+
+            case 'quantity_based':
+                return $this->quantity_completed >= $nextStep->dependency_minimum_quantity;
+
+            case 'percentage_based':
+                $percentComplete = ($this->quantity_completed / $this->manufacturingOrder->quantity) * 100;
+
+                return $percentComplete >= $nextStep->dependency_minimum_percentage;
+
+            case 'immediate':
+                return $this->status !== 'pending';
+
+            default:
+                return false;
+        }
     }
 }

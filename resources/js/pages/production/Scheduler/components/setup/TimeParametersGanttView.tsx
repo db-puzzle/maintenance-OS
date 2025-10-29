@@ -15,31 +15,41 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { WorkCell } from '@/types/production';
+
+interface TimeParameterStep {
+    id: number;
+    name: string;
+    work_cell_id: number | null;
+    work_cell: WorkCell | null;
+    has_step_time: boolean;
+    setup_time_minutes: number | null;
+    cycle_time_minutes: number | null;
+    use_workcell_throughput: boolean | null;
+    has_work_cell_rate: boolean;
+    work_cell_rate: {
+        setup_time_minutes: number;
+        production_rate_per_hour: number;
+        unit_of_measure: string;
+    } | null;
+    effective_time_source: 'step' | 'work_cell' | null;
+    effective_setup_time: number | null;
+    effective_cycle_time: number | null;
+    effective_total_time: number | null;
+}
 
 interface TimeParameterOrder {
     id: number;
     order_number: string;
-    item: any;
+    item: {
+        id: number;
+        name: string;
+    } | null;
     quantity: number;
     status: string;
     has_route: boolean;
     time_parameter_status: 'valid' | 'partial' | 'missing';
-    steps: Array<{
-        id: number;
-        name: string;
-        work_cell_id: number | null;
-        work_cell: any;
-        has_step_time: boolean;
-        setup_time_minutes: number | null;
-        cycle_time_minutes: number | null;
-        use_workcell_throughput: boolean | null;
-        has_work_cell_rate: boolean;
-        work_cell_rate: any;
-        effective_time_source: 'step' | 'work_cell' | null;
-        effective_setup_time: number | null;
-        effective_cycle_time: number | null;
-        effective_total_time: number | null;
-    }>;
+    steps: TimeParameterStep[];
     issues: Array<{
         type: string;
         step_id?: number;
@@ -53,7 +63,7 @@ interface TimeParametersGanttViewProps {
     orders: TimeParameterOrder[];
     startDate: string;
     endDate: string;
-    onEditStep?: (orderId: number, stepId: number, step: any) => void;
+    onEditStep?: (orderId: number, stepId: number, step: TimeParameterStep) => void;
     onRefresh?: () => void;
 }
 
@@ -87,7 +97,7 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
                 end = new Date();
                 end.setMonth(end.getMonth() + 3);
             }
-        } catch (error) {
+        } catch {
             start = new Date();
             end = new Date();
             end.setMonth(end.getMonth() + 3);
@@ -101,12 +111,12 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
 
     // Calculate fictitious duration for missing time parameters
     const calculateFictitiousDuration = useCallback((
-        entity: { type: 'order' | 'step'; data: any },
-        allOrders: any[],
-        parentOrder?: any
+        entity: { type: 'order' | 'step'; data: TimeParameterOrder | TimeParameterStep },
+        allOrders: TimeParameterOrder[],
+        parentOrder?: TimeParameterOrder
     ): number => {
         if (entity.type === 'step') {
-            const step = entity.data;
+            const step = entity.data as TimeParameterStep;
             // If step has valid time, use it
             if (step.effective_total_time !== null) {
                 return step.effective_total_time / 60; // Convert minutes to hours
@@ -114,12 +124,12 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
 
             // Find sibling steps with valid times
             if (parentOrder && parentOrder.steps) {
-                const validSiblings = parentOrder.steps.filter((s: any) =>
+                const validSiblings = parentOrder.steps.filter((s) =>
                     s.id !== step.id && s.effective_total_time !== null
                 );
                 if (validSiblings.length > 0) {
-                    const avgMinutes = validSiblings.reduce((sum: number, s: any) =>
-                        sum + s.effective_total_time, 0
+                    const avgMinutes = validSiblings.reduce((sum, s) =>
+                        sum + (s.effective_total_time ?? 0), 0
                     ) / validSiblings.length;
                     return avgMinutes / 60;
                 }
@@ -128,13 +138,13 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
             // Default for steps: 8 hours
             return 8;
         } else {
-            const order = entity.data;
+            const order = entity.data as TimeParameterOrder;
 
             // Calculate total duration from steps if they have times
-            const stepsWithTimes = order.steps?.filter((s: any) => s.effective_total_time !== null) || [];
+            const stepsWithTimes = order.steps?.filter((s) => s.effective_total_time !== null) || [];
             if (stepsWithTimes.length > 0) {
-                const totalMinutes = stepsWithTimes.reduce((sum: number, s: any) =>
-                    sum + s.effective_total_time, 0
+                const totalMinutes = stepsWithTimes.reduce((sum, s) =>
+                    sum + (s.effective_total_time ?? 0), 0
                 );
 
                 // If all steps have times, return the sum
@@ -149,10 +159,11 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
             }
 
             // Find sibling orders at same level
-            const findSiblings = (searchOrders: any[], targetId: number, parentId?: number): any[] => {
-                const siblings: any[] = [];
+            const findSiblings = (searchOrders: TimeParameterOrder[], targetId: number, parentId?: number): TimeParameterOrder[] => {
+                const siblings: TimeParameterOrder[] = [];
                 for (const o of searchOrders) {
-                    if (o.id !== targetId && o.parent_id === parentId) {
+                    const orderWithParent = o as TimeParameterOrder & { parent_id?: number };
+                    if (o.id !== targetId && orderWithParent.parent_id === parentId) {
                         siblings.push(o);
                     }
                     if (o.children) {
@@ -162,15 +173,16 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
                 return siblings;
             };
 
-            const siblings = findSiblings(allOrders, order.id, (order as any).parent_id);
+            const orderWithParent = order as TimeParameterOrder & { parent_id?: number };
+            const siblings = findSiblings(allOrders, order.id, orderWithParent.parent_id);
             const validSiblings = siblings.filter(s => {
-                const siblingSteps = s.steps?.filter((step: any) => step.effective_total_time !== null) || [];
+                const siblingSteps = s.steps?.filter((step) => step.effective_total_time !== null) || [];
                 return siblingSteps.length > 0;
             });
 
             if (validSiblings.length > 0) {
                 const durations = validSiblings.map(s => {
-                    const totalMinutes = s.steps.reduce((sum: number, step: any) =>
+                    const totalMinutes = s.steps.reduce((sum, step) =>
                         sum + (step.effective_total_time || 0), 0
                     );
                     return totalMinutes / 60;
@@ -185,7 +197,35 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
 
     // Transform orders to Gantt format
     const transformedData = useMemo(() => {
-        const tasks: any[] = [];
+        const tasks: Array<{
+            id: string | number;
+            type: 'order' | 'step';
+            name: string;
+            order_number?: string;
+            status?: string;
+            parentId?: number | string;
+            orderId?: number;
+            isParent?: boolean;
+            level: number;
+            hasChildren?: boolean;
+            expanded?: boolean;
+            steps?: unknown[];
+            time_parameter_status?: string;
+            has_missing_times?: boolean;
+            is_fictitious?: boolean;
+            planned_start_date?: string;
+            planned_end_date?: string;
+            percent_complete?: number;
+            manufacturing_step_id?: number;
+            sequence_number?: number;
+            work_cell_id?: number | null;
+            work_cell?: WorkCell | null;
+            duration_hours?: number;
+            setup_time_hours?: number;
+            has_valid_time?: boolean;
+            predecessors?: unknown[];
+            successors?: unknown[];
+        }> = [];
 
         // If no orders, return empty array
         if (!orders || orders.length === 0) {
@@ -215,7 +255,7 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
                 priority: 50,
                 requested_date: orderStartDate.toISOString(), // Will update later
                 quantity: order.quantity,
-                parent_order_id: (order as any).parent_id,
+                parent_order_id: (order as TimeParameterOrder & { parent_id?: number }).parent_id,
                 parentId: parentId, // For hierarchy display
                 isParent: true,
                 level: parentLevel,
@@ -352,7 +392,7 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
         });
     }, []);
 
-    const handleStepUpdate = useCallback((step: any) => {
+    const handleStepUpdate = useCallback((step: { id: string }) => {
         // Extract order ID and step ID from the combined ID
         const [orderIdStr, stepIdStr] = step.id.split('-');
         const orderId = parseInt(orderIdStr);
@@ -521,10 +561,25 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
 
 // Custom timeline component with validation indicators
 const TimelineWithValidation: React.FC<{
-    tasks: any[];
-    viewConfig: any;
+    tasks: Array<{
+        id: string | number;
+        type: 'order' | 'step';
+        name: string;
+        order_number?: string;
+        status?: string;
+        duration_hours: number;
+        is_fictitious?: boolean;
+        has_missing_times?: boolean;
+        is_locked?: boolean;
+        level?: number;
+        orderId?: number;
+    }>;
+    viewConfig: {
+        startDate: Date;
+        endDate: Date;
+    };
     zoomLevel: ZoomLevel;
-    onStepUpdate: (step: any) => void;
+    onStepUpdate: (step: { id: string }) => void;
 }> = ({ tasks, viewConfig, zoomLevel, onStepUpdate }) => {
     const { registerScrollContainer: _registerScrollContainer } = useScrollSync();
 
@@ -551,7 +606,7 @@ const TimelineWithValidation: React.FC<{
                 zoomLevel,
                 containerWidth: 2000, // Base width
             });
-        } catch (error) {
+        } catch {
             // Return a default layout
             const now = new Date();
             const later = new Date();

@@ -4,14 +4,41 @@ import { GanttTimeline } from './GanttTimeline/GanttTimeline';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup, ImperativePanelGroupHandle } from '@/components/ui/resizable';
 import { ZoomLevel } from '../../utils/zoomConfig';
 
+interface Step {
+    id: string;
+    planned_start_date: string;
+    planned_end_date: string;
+}
+
+interface Order {
+    id: number;
+    expanded?: boolean;
+    children?: Order[];
+    steps?: Step[];
+}
+
+interface Task extends Partial<Order>, Partial<Step> {
+    isParent?: boolean;
+    level: number;
+    type: 'order' | 'step';
+    hasChildren?: boolean;
+    parentId?: number;
+    orderId?: number;
+}
+
+interface StepUpdate {
+    planned_start_date?: string;
+    planned_end_date?: string;
+}
+
 interface GanttViewProps {
-    orders: any[]; // Manufacturing orders with steps
+    orders: Order[]; // Manufacturing orders with steps
     viewConfig: {
         startDate: Date;
         endDate: Date;
     };
     zoomLevel: ZoomLevel;
-    onStepUpdate: (stepId: string, updates: any) => void;
+    onStepUpdate: (stepId: string, updates: StepUpdate) => void;
     onOrderToggle: (orderId: number) => void;
     leftPanelSize: number;
     onLeftPanelResize: (size: number) => void;
@@ -34,9 +61,9 @@ export const GanttView: React.FC<GanttViewProps> = ({
 }) => {
     // Flatten orders and their steps for display
     const visibleTasks = useMemo(() => {
-        const tasks: any[] = [];
+        const tasks: Task[] = [];
 
-        const processOrder = (order: any, parentLevel: number = 0) => {
+        const processOrder = (order: Order, parentLevel: number = 0) => {
             // Add the order itself as a parent task
             tasks.push({
                 ...order,
@@ -48,14 +75,14 @@ export const GanttView: React.FC<GanttViewProps> = ({
 
             // Process child orders first (if any)
             if (order.expanded !== false && order.children) {
-                order.children.forEach((childOrder: any) => {
+                order.children.forEach((childOrder: Order) => {
                     processOrder(childOrder, parentLevel + 1);
                 });
             }
 
             // Then add steps if order is expanded
             if (order.expanded !== false && order.steps) {
-                order.steps.forEach((step: any) => {
+                order.steps.forEach((step: Step) => {
                     tasks.push({
                         ...step,
                         parentId: order.id,
@@ -136,7 +163,7 @@ export const GanttView: React.FC<GanttViewProps> = ({
                         const numericId = typeof taskId === 'string' ? parseInt(taskId, 10) : taskId;
 
                         // Search for order recursively in the hierarchy
-                        const findOrder = (orderList: any[]): any => {
+                        const findOrder = (orderList: Order[]): Order | null => {
                             for (const order of orderList) {
                                 if (order.id === numericId) {
                                     return order;

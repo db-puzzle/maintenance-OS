@@ -5,15 +5,34 @@ import { ChevronLeft, Play, Clock, Calendar, Package, Users } from 'lucide-react
 import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ManufacturingOrder } from '@/types/production';
+
+interface OrderFamily {
+    family_id: string;
+    family_name: string;
+    orders: number[];
+}
+
+interface SchedulerData {
+    algorithm: string;
+    start_date: string;
+    end_date: string;
+    respect_locked_schedules: boolean;
+}
+
+interface Algorithm {
+    value: string;
+    label: string;
+}
 
 interface ReviewStepProps {
-    data: any;
+    data: SchedulerData;
     selectedOrders: number[];
-    orders: any[];
-    families: any[];
-    algorithms: Array<{ value: string; label: string }>;
+    orders: ManufacturingOrder[];
+    families: OrderFamily[];
+    algorithms: Algorithm[];
     processing: boolean;
-    errors: any;
+    errors: Record<string, string> | undefined;
     onBack: () => void;
     onRunScheduler: () => void;
 }
@@ -33,12 +52,12 @@ export function ReviewStep({
     const algorithmLabel = algorithms.find(a => a.value === data.algorithm)?.label || data.algorithm;
 
     // Group orders by status
-    const ordersByStatus = selectedOrdersData.reduce((acc, order) => {
+    const ordersByStatus = selectedOrdersData.reduce<Record<string, ManufacturingOrder[]>>((acc, order) => {
         const status = order.status || 'pending';
         if (!acc[status]) acc[status] = [];
         acc[status].push(order);
         return acc;
-    }, {} as Record<string, any[]>);
+    }, {});
 
     // Calculate total quantity
     const totalQuantity = selectedOrdersData.reduce((sum, order) => sum + (order.quantity || 0), 0);
@@ -151,7 +170,7 @@ export function ReviewStep({
                                 </span>
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                                {statusOrders.map((order: any) => (
+                                {statusOrders.map((order) => (
                                     <div key={order.id} className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
                                         <Badge variant="outline" className="text-xs">
                                             {order.order_number}

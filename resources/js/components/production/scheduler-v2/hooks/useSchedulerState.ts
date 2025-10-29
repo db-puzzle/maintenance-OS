@@ -1,9 +1,24 @@
 import { useMemo } from 'react';
 import { ZoomLevel } from '../utils/zoomConfig';
 
+interface Step {
+    planned_start_date: string;
+    planned_end_date: string;
+}
+
+interface Order {
+    steps: Step[];
+    children?: Order[];
+}
+
+interface WorkCell {
+    id: number;
+    name: string;
+}
+
 interface UseSchedulerStateProps {
-    orders: any[];
-    workCells: any[];
+    orders: Order[];
+    workCells: WorkCell[];
     viewConfig: {
         startDate: Date;
         endDate: Date;
@@ -25,15 +40,15 @@ export const useSchedulerState = ({
                 return false;
             }
 
-            const hasVisibleSteps = order.steps.some((step: any) => {
+            const hasVisibleSteps = order.steps.some((step: Step) => {
                 const stepStart = new Date(step.planned_start_date);
                 const stepEnd = new Date(step.planned_end_date);
                 return stepEnd >= viewConfig.startDate && stepStart <= viewConfig.endDate;
             });
 
             // Also check child orders recursively
-            const hasVisibleChildren = order.children?.some((child: any) => {
-                return child.steps.some((step: any) => {
+            const hasVisibleChildren = order.children?.some((child: Order) => {
+                return child.steps.some((step: Step) => {
                     const stepStart = new Date(step.planned_start_date);
                     const stepEnd = new Date(step.planned_end_date);
                     return stepEnd >= viewConfig.startDate && stepStart <= viewConfig.endDate;
@@ -48,9 +63,9 @@ export const useSchedulerState = ({
 
     // Flatten all steps for allocation view
     const allocations = useMemo(() => {
-        const allSteps: any[] = [];
+        const allSteps: Step[] = [];
 
-        const collectSteps = (orderList: any[]) => {
+        const collectSteps = (orderList: Order[]) => {
             orderList.forEach(order => {
                 allSteps.push(...order.steps);
                 if (order.children) {

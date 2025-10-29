@@ -5,21 +5,21 @@ import { Toolbar } from './components/Toolbar/Toolbar';
 import { GanttView } from './components/GanttView/GanttView';
 import { SchedulerView } from './components/SchedulerView/SchedulerView';
 import { useSchedulerState } from './hooks/useSchedulerState';
-import { ScheduleVersion, ScheduleAlert } from '@/types/scheduler';
+import { ScheduleVersion } from '@/types/scheduler';
 import { WorkCell } from '@/types/production';
 import { ZoomLevel, getDefaultZoomLevel, getZoomLevelById, getNextZoomLevel } from './utils/zoomConfig';
 import { calculateTimelineLayout } from './utils/timelineCalculations';
+import { SchedulerOrder, AlertStats, SchedulerFilters } from './types';
 
 interface Props {
-    steps: any[]; // Manufacturing orders with steps
+    steps: SchedulerOrder[]; // Manufacturing orders with steps
     workCells: WorkCell[];
     currentVersion: ScheduleVersion;
     publishedVersion?: ScheduleVersion;
-    alerts: ScheduleAlert[];
-    alertStats: any;
+    alertStats: AlertStats;
     schedulingAlgorithms: Record<string, string>;
-    filters: any;
-    onUpdate: (schedule: any) => void;
+    filters: SchedulerFilters;
+    onUpdate: (schedule: { version_id: number; changes: Array<{ step_id: number; start: string; end: string }> }) => void;
     onOrderToggle: (orderId: number) => void;
     onOpenOrderSelection: () => void;
 }
@@ -29,7 +29,6 @@ export const ProductionScheduler: React.FC<Props> = ({
     workCells,
     currentVersion,
     publishedVersion,
-    alerts,
     alertStats,
     schedulingAlgorithms,
     filters,
@@ -89,7 +88,7 @@ export const ProductionScheduler: React.FC<Props> = ({
     });
 
     // Helper to calculate the center date based on scroll position
-    const calculateCenterDate = useCallback((scrollContainer: HTMLElement, layout: any) => {
+    const calculateCenterDate = useCallback((scrollContainer: HTMLElement, layout: { getDateForPosition: (x: number) => Date }) => {
         const scrollLeft = scrollContainer.scrollLeft;
         const containerWidth = scrollContainer.clientWidth;
         const centerX = scrollLeft + containerWidth / 2;
@@ -97,7 +96,7 @@ export const ProductionScheduler: React.FC<Props> = ({
     }, []);
 
     // Helper to scroll to maintain center date after zoom
-    const maintainZoomCenter = useCallback((scrollContainer: HTMLElement, centerDate: Date, newLayout: any) => {
+    const maintainZoomCenter = useCallback((scrollContainer: HTMLElement, centerDate: Date, newLayout: { getPositionForDate: (date: Date) => number }) => {
         const centerX = newLayout.getPositionForDate(centerDate);
         const containerWidth = scrollContainer.clientWidth;
         const newScrollLeft = centerX - containerWidth / 2;
@@ -207,12 +206,12 @@ export const ProductionScheduler: React.FC<Props> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleZoomIn, handleZoomOut, handleZoomFit]);
 
-    const handleStepUpdate = useCallback((stepId: string, updates: any) => {
+    const handleStepUpdate = useCallback((stepId: string, updates: { start?: Date; end?: Date }) => {
         // Handle step updates
         onUpdate({ id: stepId, ...updates });
     }, [onUpdate]);
 
-    const handleAllocationUpdate = useCallback((allocationId: string, updates: any) => {
+    const handleAllocationUpdate = useCallback((allocationId: string, updates: { quantity?: number; start?: Date; end?: Date }) => {
         // Handle work cell allocation updates
         onUpdate({ id: allocationId, ...updates });
     }, [onUpdate]);

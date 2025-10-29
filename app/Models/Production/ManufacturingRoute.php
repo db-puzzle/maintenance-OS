@@ -97,11 +97,7 @@ class ManufacturingRoute extends Model
      */
     public function steps(): HasMany
     {
-        if ($this->is_template) {
-            return $this->hasMany(ManufacturingStep::class)->orderBy('step_number');
-        }
-
-        return $this->hasMany(ManufacturingStep::class)->orderBy('display_order');
+        return $this->hasMany(ManufacturingStep::class)->orderBy('step_number');
     }
 
     /**
@@ -125,8 +121,7 @@ class ManufacturingRoute extends Model
 
         foreach ($template->steps as $templateStep) {
             $newStep = $this->steps()->create([
-                'display_order' => $templateStep->step_number * 10,
-                'step_number' => $templateStep->step_number, // Keep for reference
+                'step_number' => $templateStep->step_number,
                 'step_type' => $templateStep->step_type,
                 'name' => $templateStep->name,
                 'description' => $templateStep->description,
@@ -134,10 +129,20 @@ class ManufacturingRoute extends Model
                 'form_id' => $templateStep->form_id,
                 'setup_time_minutes' => $templateStep->setup_time_minutes,
                 'cycle_time_minutes' => $templateStep->cycle_time_minutes,
+                'use_workcell_throughput' => $templateStep->use_workcell_throughput ?? false,
                 'quality_check_mode' => $templateStep->quality_check_mode,
                 'sampling_size' => $templateStep->sampling_size,
+                'quality_specifications' => $templateStep->quality_specifications,
+                'can_start_when_dependency' => $templateStep->can_start_when_dependency ?? 'completed',
                 'status' => 'pending',
                 'is_template' => false,
+                // Progressive flow fields
+                'dependency_start_condition' => $templateStep->dependency_start_condition ?? 'completed',
+                'dependency_minimum_quantity' => $templateStep->dependency_minimum_quantity,
+                'dependency_minimum_percentage' => $templateStep->dependency_minimum_percentage,
+                // Child order dependency fields
+                'child_order_dependency_type' => $templateStep->child_order_dependency_type ?? 'none',
+                'child_order_minimum_quantity' => $templateStep->child_order_minimum_quantity,
             ]);
 
             $stepMapping[$templateStep->id] = $newStep;
@@ -149,10 +154,11 @@ class ManufacturingRoute extends Model
 
     /**
      * Set up step dependencies based on sequential order.
+     * Creates explicit dependency chain to support future reordering functionality.
      */
-    protected function setupStepDependencies(): void
+    public function setupStepDependencies(): void
     {
-        $steps = $this->steps()->with('manufacturingRoute')->orderBy('display_order')->get();
+        $steps = $this->steps()->with('manufacturingRoute')->orderBy('step_number')->get();
         $previousStep = null;
 
         foreach ($steps as $step) {
@@ -294,12 +300,12 @@ class ManufacturingRoute extends Model
                         'manufacturing_route_id',
                         'name',
                         'work_cell_id',
-                        'display_order',
+                        'step_number',
                         'step_type',
                         'setup_time_seconds',
                         'cycle_time_seconds'
                     )
-                        ->orderBy('display_order');
+                        ->orderBy('step_number');
                 },
                 'createdBy:id,name',
                 'itemCategory:id,name',
@@ -318,7 +324,7 @@ class ManufacturingRoute extends Model
                 'manufacturing_route_id',
                 'name',
                 'work_cell_id',
-                'display_order',
+                'step_number',
                 'step_type',
                 'setup_time_seconds',
                 'cycle_time_seconds',
@@ -326,7 +332,7 @@ class ManufacturingRoute extends Model
                 'child_order_minimum_quantity',
                 'status'
             )
-                ->orderBy('display_order')
+                ->orderBy('step_number')
                 ->with('workCell');
         }]);
     }

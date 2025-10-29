@@ -31,23 +31,23 @@ class ManufacturingStepController extends Controller
             'form',
             'executions.executedBy',
         ])
-        ->when($request->route_id, function ($query, $routeId) {
-            $query->where('manufacturing_route_id', $routeId);
-        })
-        ->when($request->status, function ($query, $status) {
-            $query->where('status', $status);
-        })
-        ->when($request->work_cell_id, function ($query, $workCellId) {
-            $query->where('work_cell_id', $workCellId);
-        })
-        ->orderBy('step_number')
-        ->paginate(20)
-        ->withQueryString();
+            ->when($request->route_id, function ($query, $routeId) {
+                $query->where('manufacturing_route_id', $routeId);
+            })
+            ->when($request->status, function ($query, $status) {
+                $query->where('status', $status);
+            })
+            ->when($request->work_cell_id, function ($query, $workCellId) {
+                $query->where('work_cell_id', $workCellId);
+            })
+            ->orderBy('step_number')
+            ->paginate(20)
+            ->withQueryString();
 
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -77,7 +77,7 @@ class ManufacturingStepController extends Controller
         if ($user->hasRole('machine-operator')) {
             // Machine operators can only execute steps in their assigned work cells
             $assignedWorkCells = $user->assignedWorkCells()->pluck('id');
-            $canExecute = $assignedWorkCells->contains($step->work_cell_id) && 
+            $canExecute = $assignedWorkCells->contains($step->work_cell_id) &&
                          $user->can('production.steps.execute');
         } else {
             $canExecute = $user->can('production.steps.execute');
@@ -86,12 +86,14 @@ class ManufacturingStepController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
      * Show the step execution interface.
+     *
+     * @deprecated Use ProductionReportingController methods instead
      */
     public function execute(ManufacturingStep $step)
     {
@@ -107,7 +109,7 @@ class ManufacturingStepController extends Controller
                 $query->where('status', '!=', 'completed')
                     ->orderBy('created_at', 'desc')
                     ->first();
-            }
+            },
         ]);
 
         // Get current execution if exists
@@ -123,6 +125,8 @@ class ManufacturingStepController extends Controller
 
     /**
      * Start execution of a manufacturing step.
+     *
+     * @deprecated Use ProductionReportingController::startStep instead
      */
     public function start(Request $request, ManufacturingStep $step)
     {
@@ -137,17 +141,18 @@ class ManufacturingStepController extends Controller
 
         try {
             // Check if step can be started (dependencies met)
-            if (!$step->canStart()) {
+            if (! $step->canStart()) {
                 $step->load('dependency');
                 $message = 'Esta etapa não pode ser iniciada.';
                 if ($step->dependency) {
                     $message .= ' A etapa anterior "' . $step->dependency->name . '" deve ser concluída primeiro.';
                 }
+
                 return back()->withErrors(['error' => $message]);
             }
-            
+
             $execution = $this->orderService->executeStep($step, $validated);
-            
+
             return back()->with('success', 'Step execution started successfully.');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
@@ -172,6 +177,8 @@ class ManufacturingStepController extends Controller
 
     /**
      * Display quality check form for a step.
+     *
+     * @deprecated Quality check is now handled in ProductionReportingController
      */
     public function qualityCheck(ManufacturingStep $step)
     {
@@ -187,7 +194,7 @@ class ManufacturingStepController extends Controller
                 $query->where('status', 'in_progress')
                     ->orWhere(function ($q) {
                         $q->where('status', 'completed')
-                          ->whereNull('quality_result');
+                            ->whereNull('quality_result');
                     });
             },
         ]);
@@ -195,12 +202,14 @@ class ManufacturingStepController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
      * Record quality check results.
+     *
+     * @deprecated Use ProductionReportingController::recordQualityResult instead
      */
     public function recordQualityResult(Request $request, ManufacturingStep $step, ManufacturingStepExecution $execution)
     {
@@ -247,7 +256,7 @@ class ManufacturingStepController extends Controller
             'dependency' => function ($query) {
                 $query->with(['executions' => function ($q) {
                     $q->where('quality_result', 'failed')
-                      ->where('failure_action', 'rework');
+                        ->where('failure_action', 'rework');
                 }]);
             },
         ]);
@@ -255,28 +264,31 @@ class ManufacturingStepController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
      * Put step execution on hold.
+     *
+     * @deprecated Use ProductionReportingController::holdStep instead
      */
     public function hold(Request $request, ManufacturingStep $step, ManufacturingStepExecution $execution)
     {
         $this->authorize('execute', $step);
-        
+
         if ($execution->manufacturing_step_id !== $step->id) {
             abort(404);
         }
-        
+
         $validated = $request->validate([
             'reason' => 'required|string|max:255',
             'notes' => 'nullable|string',
         ]);
-        
+
         try {
             $execution->putOnHold($validated['reason'], $validated['notes']);
+
             return back()->with('success', 'Step paused successfully.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
@@ -285,21 +297,24 @@ class ManufacturingStepController extends Controller
 
     /**
      * Resume step execution from hold.
+     *
+     * @deprecated Use ProductionReportingController::resumeStep instead
      */
     public function resume(Request $request, ManufacturingStep $step, ManufacturingStepExecution $execution)
     {
         $this->authorize('execute', $step);
-        
+
         if ($execution->manufacturing_step_id !== $step->id) {
             abort(404);
         }
-        
+
         $validated = $request->validate([
             'notes' => 'nullable|string',
         ]);
-        
+
         try {
             $execution->resume($validated['notes'] ?? null);
+
             return back()->with('success', 'Step resumed successfully.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
@@ -308,23 +323,26 @@ class ManufacturingStepController extends Controller
 
     /**
      * Complete step execution.
+     *
+     * @deprecated Use ProductionReportingController::reportStep instead
      */
     public function complete(Request $request, ManufacturingStep $step, ManufacturingStepExecution $execution)
     {
         $this->authorize('execute', $step);
-        
+
         if ($execution->manufacturing_step_id !== $step->id) {
             abort(404);
         }
-        
+
         $validated = $request->validate([
             'notes' => 'nullable|string',
             'quantity_completed' => 'required|integer|min:0',
             'quantity_scrapped' => 'nullable|integer|min:0',
         ]);
-        
+
         try {
             $this->orderService->completeExecution($execution, $validated);
+
             return back()->with('success', 'Step completed successfully.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());

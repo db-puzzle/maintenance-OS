@@ -2,8 +2,15 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Lock } from 'lucide-react';
 
+interface Step {
+    name: string;
+    status: string;
+    is_locked?: boolean;
+    percent_complete: number;
+}
+
 interface StepBarProps {
-    step: any;
+    step: Step;
     x: number;
     y: number;
     width: number;
@@ -43,7 +50,7 @@ export const StepBar: React.FC<StepBarProps> = ({
         }
     };
 
-    const progressWidth = (width * step.percent_complete) / 100;
+    // const progressWidth = (width * step.percent_complete) / 100; // Unused variable
 
     return (
         <div

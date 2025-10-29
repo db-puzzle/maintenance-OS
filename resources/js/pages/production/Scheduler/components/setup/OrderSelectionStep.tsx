@@ -5,15 +5,23 @@ import { format } from 'date-fns';
 import OrderSelectionPanel from '../OrderSelectionPanel';
 import FamilyVisualization from '../FamilyVisualization';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ManufacturingOrder } from '@/types/production';
+import { ScheduleVersion } from '@/types/scheduler';
 
 // Declare the global route function
-declare const route: (name: string, params?: any) => string;
+declare const route: (name: string, params?: Record<string, string | number | undefined>) => string;
+
+interface OrderFamily {
+    family_id: string;
+    family_name: string;
+    orders: number[];
+}
 
 interface OrderSelectionStepProps {
-    orders: any[];
+    orders: ManufacturingOrder[];
     defaultStartDate: string;
-    currentVersion?: any;
-    activeScheduleVersion?: any;
+    currentVersion?: ScheduleVersion;
+    activeScheduleVersion?: ScheduleVersion;
     onNext: (selectedOrders: number[], dateRange: { start_date: string; end_date: string }) => void;
 }
 
@@ -25,7 +33,7 @@ export function OrderSelectionStep({
     onNext,
 }: OrderSelectionStepProps) {
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
-    const [families, setFamilies] = useState<any[]>([]);
+    const [families, setFamilies] = useState<OrderFamily[]>([]);
     const [selectionMode, setSelectionMode] = useState<'individual' | 'family'>('family');
 
     // Date range state

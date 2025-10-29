@@ -1,0 +1,4 @@
+---
+When building controller methods use Laravel ORM built-in methods whenever possible.
+alwaysApply: true
+---

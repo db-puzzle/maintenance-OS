@@ -2,13 +2,73 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { PageProps, BreadcrumbItem } from '@/types';
-import { ManufacturingOrder, WorkCell } from '@/types/production';
+import { ManufacturingOrder, WorkCell, ManufacturingStep } from '@/types/production';
 import { ScheduleVersion, ProductionSchedule, ScheduleAlert } from '@/types/scheduler';
 import { ScrollSyncProvider } from '@/components/production/scheduler-v2/contexts/ScrollSyncContext';
 import { ProductionScheduler } from '@/components/production/scheduler-v2/ProductionScheduler';
 import { formatNumber } from '@/utils/number';
 import SchedulerProgress from '@/components/production/SchedulerProgress';
-import { toast } from 'sonner';
+
+interface ScheduleStep {
+    id: string;
+    manufacturing_step_id: number;
+    sequence_number: number;
+    name: string;
+    description?: string;
+    work_cell_id?: number;
+    work_cell?: WorkCell;
+    planned_start_date?: string;
+    planned_end_date?: string;
+    actual_start_date?: string;
+    actual_end_date?: string;
+    duration_hours: number;
+    setup_time_hours: number;
+    status: string;
+    percent_complete: number;
+    quantity_completed: string;
+    quantity_remaining: string;
+    parent_step_id: number | null;
+    is_milestone: boolean;
+    level: number;
+    expanded: boolean;
+    operation_type: string;
+    required_resources: unknown[];
+    predecessors: number[];
+    successors: number[];
+    can_start: boolean;
+    is_critical_path: boolean;
+    slack_hours: number;
+    is_locked?: boolean;
+    locked_by?: number;
+    locked_at?: string;
+}
+
+interface TransformedOrder {
+    id: number;
+    order_number: string;
+    name: string;
+    status: string;
+    priority: number;
+    requested_date?: string;
+    quantity: string;
+    unit_of_measure?: string;
+    parent_order_id?: number;
+    children: TransformedOrder[];
+    steps: ScheduleStep[];
+    expanded: boolean;
+    level: number;
+}
+
+interface FlashData {
+    success?: boolean;
+    schedulingJob?: {
+        job_id: string;
+        websocket_channel: string;
+        version_id: number;
+    };
+    job_id?: string;
+    [key: string]: unknown;
+}
 
 interface Props extends PageProps {
     currentVersion?: ScheduleVersion;
@@ -40,7 +100,7 @@ interface Props extends PageProps {
     schedulingAlgorithms?: Record<string, string>;
     algorithms?: Array<{ value: string; label: string }>;
     defaultStartDate?: string;
-    activeScheduleVersion?: any;
+    activeScheduleVersion?: ScheduleVersion;
 }
 
 export default function SchedulerV2Index({
@@ -61,16 +121,16 @@ export default function SchedulerV2Index({
     // Use real props data from backend
     const currentVersion = propsCurrentVersion;
     const publishedVersion = propsPublishedVersion;
-    const orders = propsOrders || [];
-    const workCells = propsWorkCells || [];
-    const filters = propsFilters || { start_date: '', end_date: '' };
+    const orders = useMemo(() => propsOrders || [], [propsOrders]);
+    const workCells = useMemo(() => propsWorkCells || [], [propsWorkCells]);
+    const filters = useMemo(() => propsFilters || { start_date: '', end_date: '' }, [propsFilters]);
     const schedulingAlgorithms = propsSchedulingAlgorithms || {};
-    const algorithms = propsAlgorithms || [];
-    const defaultStartDate = propsDefaultStartDate || new Date().toISOString().split('T')[0];
-    const activeScheduleVersion = propsActiveScheduleVersion;
+    const _algorithms = propsAlgorithms || [];
+    const _defaultStartDate = propsDefaultStartDate || new Date().toISOString().split('T')[0];
+    const _activeScheduleVersion = propsActiveScheduleVersion;
 
     // Get flash data from page props
-    const { flash } = usePage().props as any;
+    const { flash } = usePage().props as PageProps & { flash: FlashData };
 
 
     const [schedules, setSchedules] = useState(propsSchedules || []);
@@ -94,7 +154,7 @@ export default function SchedulerV2Index({
 
     // Track expanded state for orders
     const [expandedOrders, setExpandedOrders] = useState<Set<number>>(
-        new Set(orders.map((o: any) => o.id)) // All expanded by default
+        new Set(orders.map((o) => o.id)) // All expanded by default
     );
 
     // Track if scheduling is in progress
@@ -111,9 +171,9 @@ export default function SchedulerV2Index({
         const ordersData = orders;
 
         // Group schedules by manufacturing order and transform to steps
-        const orderStepsMap = new Map<number, any[]>();
+        const orderStepsMap = new Map<number, ScheduleStep[]>();
 
-        schedules.forEach((schedule: any) => {
+        schedules.forEach((schedule) => {
             const step = schedule.manufacturing_step;
             const route = step?.manufacturing_route;
             const orderId = route?.manufacturing_order_id;
@@ -128,25 +188,25 @@ export default function SchedulerV2Index({
             orderStepsMap.get(orderId)!.push({
                 id: `${orderId}-${schedule.id}`, // Create unique ID by combining order ID and schedule ID
                 manufacturing_step_id: step.id,
-                sequence_number: (step as any).step_number || 0,
+                sequence_number: (step as ManufacturingStep & { step_number?: number }).step_number || 0,
                 name: step.name,
                 description: step.description,
                 work_cell_id: schedule.work_cell_id,
-                work_cell: workCells.find((wc: any) => wc.id === schedule.work_cell_id),
+                work_cell: workCells.find((wc) => wc.id === schedule.work_cell_id),
 
                 // Scheduling fields
                 planned_start_date: schedule.scheduled_start,
                 planned_end_date: schedule.scheduled_end,
-                actual_start_date: (step as any).actual_start_date,
-                actual_end_date: (step as any).actual_end_date,
-                duration_hours: (step as any).estimated_duration || 0,
-                setup_time_hours: (step as any).setup_time || 0,
+                actual_start_date: (step as ManufacturingStep & { actual_start_date?: string }).actual_start_date,
+                actual_end_date: (step as ManufacturingStep & { actual_end_date?: string }).actual_end_date,
+                duration_hours: (step as ManufacturingStep & { estimated_duration?: number }).estimated_duration || 0,
+                setup_time_hours: (step as ManufacturingStep & { setup_time?: number }).setup_time || 0,
 
                 // Progress tracking
                 status: step.status,
-                percent_complete: (step as any).progress_percentage || 0,
-                quantity_completed: formatNumber((step as any).quantity_completed || 0),
-                quantity_remaining: formatNumber((step as any).quantity_remaining || 0),
+                percent_complete: (step as ManufacturingStep & { progress_percentage?: number }).progress_percentage || 0,
+                quantity_completed: formatNumber((step as ManufacturingStep & { quantity_completed?: number }).quantity_completed || 0),
+                quantity_remaining: formatNumber((step as ManufacturingStep & { quantity_remaining?: number }).quantity_remaining || 0),
 
                 // Hierarchy
                 parent_step_id: null, // Will be set based on BOM structure if needed
@@ -155,12 +215,12 @@ export default function SchedulerV2Index({
                 expanded: true,
 
                 // Manufacturing specifics
-                operation_type: (step as any).step_type || 'production',
+                operation_type: (step as ManufacturingStep & { step_type?: string }).step_type || 'production',
                 required_resources: [],
 
                 // Dependencies
-                predecessors: (step as any).depends_on_step_id ? [(step as any).depends_on_step_id] : [],
-                successors: (step as any).dependents?.map((d: any) => d.dependent_step_id) || [],
+                predecessors: (step as ManufacturingStep & { depends_on_step_id?: number }).depends_on_step_id ? [(step as ManufacturingStep & { depends_on_step_id?: number }).depends_on_step_id!] : [],
+                successors: (step as ManufacturingStep & { dependents?: Array<{ dependent_step_id: number }> }).dependents?.map((d) => d.dependent_step_id) || [],
 
                 // UI helpers
                 can_start: step.status !== 'pending',
@@ -175,7 +235,7 @@ export default function SchedulerV2Index({
         });
 
         // Transform orders with their steps
-        const transformedOrders = ordersData.map((order: any) => {
+        const transformedOrders: TransformedOrder[] = ordersData.map((order) => {
             const orderSteps = orderStepsMap.get(order.id) || [];
 
             return {
@@ -187,8 +247,8 @@ export default function SchedulerV2Index({
                 requested_date: order.requested_date,
                 quantity: formatNumber(order.quantity),
                 unit_of_measure: order.unit_of_measure,
-                parent_order_id: (order as any).parent_id,
-                children: [] as any[], // Will be populated based on parent_order_id relationships
+                parent_order_id: (order as ManufacturingOrder & { parent_id?: number }).parent_id,
+                children: [] as TransformedOrder[], // Will be populated based on parent_order_id relationships
                 steps: orderSteps,
                 expanded: expandedOrders.has(order.id), // Use expandedOrders state
                 level: 0,
@@ -196,8 +256,8 @@ export default function SchedulerV2Index({
         });
 
         // Build parent-child relationships
-        const orderMap = new Map(transformedOrders.map((o: any) => [o.id, o]));
-        transformedOrders.forEach((order: any) => {
+        const orderMap = new Map(transformedOrders.map((o) => [o.id, o]));
+        transformedOrders.forEach((order) => {
             if (order.parent_order_id) {
                 const parent = orderMap.get(order.parent_order_id);
                 if (parent) {
@@ -208,21 +268,21 @@ export default function SchedulerV2Index({
         });
 
         // Filter out child orders from root level
-        const rootOrders = transformedOrders.filter((o: any) => !o.parent_order_id);
+        const rootOrders = transformedOrders.filter((o) => !o.parent_order_id);
 
 
         return {
             orders: rootOrders,
-            workCells: workCells.map((wc: any) => ({
+            workCells: workCells.map((wc) => ({
                 ...wc,
                 scheduled_steps: Array.from(orderStepsMap.values())
                     .flat()
-                    .filter((step: any) => step.work_cell_id === wc.id)
-                    .map((step: any) => ({
+                    .filter((step) => step.work_cell_id === wc.id)
+                    .map((step) => ({
                         step_id: step.id,
                         start_time: step.planned_start_date,
                         end_time: step.planned_end_date,
-                        manufacturing_order_id: ordersData.find((o: any) =>
+                        manufacturing_order_id: ordersData.find((o) =>
                             orderStepsMap.get(o.id)?.some(s => s.id === step.id)
                         )?.id,
                         status: step.status,
@@ -231,9 +291,9 @@ export default function SchedulerV2Index({
         };
     }, [orders, schedules, workCells, expandedOrders]);
 
-    const handleScheduleUpdate = useCallback((updatedSchedule: any) => {
+    const handleScheduleUpdate = useCallback((updatedSchedule: ProductionSchedule) => {
         // Update local state
-        setSchedules((prev: any) => prev.map((s: any) =>
+        setSchedules((prev) => prev.map((s) =>
             s.id === updatedSchedule.id ? updatedSchedule : s
         ));
 
@@ -250,18 +310,6 @@ export default function SchedulerV2Index({
                 newSet.add(orderId);
             }
             return newSet;
-        });
-    }, []);
-
-    // Handle running scheduler from order selection modal
-    const handleRunScheduler = useCallback((data: any) => {
-        router.post(route('production.scheduler.run'), data, {
-            onSuccess: () => {
-                toast.success('Scheduling started');
-            },
-            onError: () => {
-                toast.error('Failed to start scheduling');
-            },
         });
     }, []);
 

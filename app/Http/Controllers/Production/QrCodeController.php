@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Production;
 use App\Http\Controllers\Controller;
 use App\Models\Production\Item;
 use App\Models\Production\ManufacturingOrder;
+use App\Models\Production\ManufacturingStepExecution;
 use App\Models\QrScanLog;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,29 +22,29 @@ class QrCodeController extends Controller
     public function handleItemScan(Request $request, string $itemNumber)
     {
         $item = Item::where('item_number', $itemNumber)->firstOrFail();
-        
+
         // Log the scan
         $this->logScan($request, 'item', $itemNumber);
-        
+
         // Check if request is from in-app scanner
         if ($this->isInAppRequest($request)) {
             // Return data for in-app navigation
             return response()->json([
                 'type' => 'item',
                 'redirect' => route('production.items.show', $item),
-                'data' => $item
+                'data' => $item,
             ]);
         }
-        
+
         // Return mobile-optimized Inertia page
         return Inertia::render('production/qr/ItemScan', [
             'item' => $item->load(['category', 'primaryBom']),
             'can' => [
                 'view' => $request->user()?->can('view', $item) ?? false,
                 'update' => $request->user()?->can('update', $item) ?? false,
-                'execute_steps' => $request->user()?->can('production.steps.execute') ?? false
+                'execute_steps' => $request->user()?->can('production.steps.execute') ?? false,
             ],
-            'actions' => $this->getAvailableActions($request->user(), $item)
+            'actions' => $this->getAvailableActions($request->user(), $item),
         ]);
     }
 
@@ -52,37 +53,29 @@ class QrCodeController extends Controller
         $order = ManufacturingOrder::where('order_number', $orderNumber)
             ->with(['item', 'manufacturingRoute.steps', 'children'])
             ->firstOrFail();
-        
+
         // Log the scan
         $this->logScan($request, 'order', $orderNumber);
-        
-        // Check if request is from in-app scanner
-        if ($this->isInAppRequest($request)) {
-            return response()->json([
-                'type' => 'order',
-                'redirect' => route('production.orders.show', $order),
-                'data' => $order
-            ]);
-        }
-        
-        // Return mobile-optimized Inertia page
-        return Inertia::render('production/qr/OrderScan', [
-            'order' => $order,
-            'currentStep' => $order->getCurrentStep(),
-            'can' => [
-                'view' => $request->user()?->can('view', $order) ?? false,
-                'execute_steps' => $request->user()?->can('production.steps.execute') ?? false,
-                'update_quality' => $request->user()?->can('production.quality.executeCheck') ?? false
-            ],
-            'actions' => $this->getAvailableOrderActions($request->user(), $order)
+
+        // Get current active step execution
+        $activeExecution = ManufacturingStepExecution::where('manufacturing_order_id', $order->id)
+            ->whereIn('status', ['in_progress', 'queued'])
+            ->with(['manufacturingStep', 'media'])
+            ->orderBy('manufacturing_step_id')
+            ->first();
+
+        // Always redirect to production reporting with the specific MO and step
+        return redirect()->route('production.reporting.index', [
+            'selected_mo' => $order->id,
+            'active_step' => $activeExecution?->manufacturing_step_id,
         ]);
     }
 
     private function logScan(Request $request, string $type, string $resourceId): void
     {
-        $agent = new Agent();
+        $agent = new Agent;
         $agent->setUserAgent($request->userAgent());
-        
+
         QrScanLog::create([
             'resource_type' => $type,
             'resource_id' => $resourceId,
@@ -94,16 +87,16 @@ class QrCodeController extends Controller
             'metadata' => [
                 'referer' => $request->header('referer'),
                 'platform' => $agent->platform(),
-                'browser' => $agent->browser()
+                'browser' => $agent->browser(),
             ],
-            'scanned_at' => now()
+            'scanned_at' => now(),
         ]);
     }
 
     private function isInAppRequest(Request $request): bool
     {
         // Check for custom header set by in-app scanner
-        return $request->hasHeader('X-App-Scanner') || 
+        return $request->hasHeader('X-App-Scanner') ||
                $request->expectsJson() ||
                str_contains($request->userAgent() ?? '', 'AppWebView');
     }
@@ -111,23 +104,23 @@ class QrCodeController extends Controller
     private function getAvailableActions($user, Item $item): array
     {
         $actions = [];
-        
+
         if ($user?->can('production.orders.create')) {
             $actions[] = [
                 'label' => 'Criar Ordem de Manufatura',
                 'route' => route('production.orders.create', ['item_id' => $item->id]),
-                'icon' => 'Factory'
+                'icon' => 'Factory',
             ];
         }
-        
+
         if ($item->primaryBom && $user?->can('view', $item->primaryBom)) {
             $actions[] = [
                 'label' => 'Ver BOM',
                 'route' => route('production.bom.show', $item->primaryBom),
-                'icon' => 'Package'
+                'icon' => 'Package',
             ];
         }
-        
+
         return $actions;
     }
 
@@ -135,24 +128,24 @@ class QrCodeController extends Controller
     {
         $actions = [];
         $currentStep = $order->getCurrentStep();
-        
+
         if ($currentStep && $user?->can('production.steps.execute')) {
             $actions[] = [
                 'label' => $currentStep->status === 'pending' ? 'Iniciar Etapa' : 'Concluir Etapa',
                 'route' => route('production.steps.execute', $currentStep),
                 'icon' => 'Play',
-                'primary' => true
+                'primary' => true,
             ];
         }
-        
+
         if ($currentStep && $currentStep->step_type === 'quality_check' && $user?->can('production.quality.executeCheck')) {
             $actions[] = [
                 'label' => 'Executar Verificação de Qualidade',
                 'route' => route('production.steps.execute', $currentStep),
-                'icon' => 'CheckCircle'
+                'icon' => 'CheckCircle',
             ];
         }
-        
+
         return $actions;
     }
 }

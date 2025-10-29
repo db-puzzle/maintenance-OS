@@ -2,14 +2,13 @@ import React from 'react';
 
 interface BulkOperationsPanelProps {
     selectedMOs: number[];
-    templates: any[];
-    permissions: any;
+    templates: Array<{ id: number; name: string }>;
+    permissions: { canBulkEdit: boolean };
 }
 
 export default function BulkOperationsPanel({
     selectedMOs,
-    templates,
-    permissions
+    templates
 }: BulkOperationsPanelProps) {
     return (
         <div className="p-4">

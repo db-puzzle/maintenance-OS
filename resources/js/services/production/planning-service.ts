@@ -219,7 +219,7 @@ export class PlanningService {
             sortDirection?: string;
         } = {}
     ): Promise<void> {
-        const requestData: any = { ...params };
+        const requestData: Record<string, string | number | string[]> = { ...params };
 
         // Include selection state if provided
         if (options.userSelection && options.userSelection.length > 0) {
@@ -261,7 +261,7 @@ export class PlanningService {
         sortField?: string,
         sortDirection?: string
     ): void {
-        const params: any = { selectedMO: moId };
+        const params: Record<string, string | number> = { selectedMO: moId };
 
         if (userSelection && userSelection.length > 0) {
             params.userSelection = userSelection.join(',');

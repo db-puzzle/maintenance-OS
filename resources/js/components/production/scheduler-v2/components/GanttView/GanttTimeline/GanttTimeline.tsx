@@ -8,15 +8,47 @@ import { calculateTimelineLayout } from '../../../utils/timelineCalculations';
 import { cn } from '@/lib/utils';
 import { ZoomLevel } from '../../../utils/zoomConfig';
 
+interface Step {
+    id: string;
+    planned_start_date: string;
+    planned_end_date: string;
+    is_locked?: boolean;
+}
+
+interface Order {
+    id: string;
+    steps?: Step[];
+    children?: Order[];
+}
+
+interface Task {
+    type: string;
+    id: string;
+    level?: number;
+    data?: Order | Step;
+}
+
+interface StepUpdate {
+    planned_start_date?: string;
+    planned_end_date?: string;
+    scheduled_start?: string;
+    scheduled_end?: string;
+}
+
+interface DraggedStep extends Step {
+    initialX: number;
+    offsetX: number;
+}
+
 interface GanttTimelineProps {
-    tasks: any[];
+    tasks: Task[];
     viewConfig: {
         startDate: Date;
         endDate: Date;
     };
     zoomLevel: ZoomLevel;
     timelineWidth: number;
-    onStepUpdate: (stepId: string, updates: any) => void;
+    onStepUpdate: (stepId: string, updates: StepUpdate) => void;
     showDependencies: boolean;
     onScrollContainerRef?: (container: HTMLElement | null) => void;
 }
@@ -32,7 +64,7 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
 }) => {
     const _canvasRef = useRef<HTMLCanvasElement>(null);
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
-    const [draggedStep, setDraggedStep] = useState<any>(null);
+    const [draggedStep, setDraggedStep] = useState<DraggedStep | null>(null);
 
     // Calculate timeline dimensions and layout
     const timelineLayout = calculateTimelineLayout({
@@ -56,7 +88,7 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
     const timelineHeight = rows.length * rowHeight;
 
     // Handle step drag
-    const handleStepDragStart = (e: React.MouseEvent, step: any) => {
+    const handleStepDragStart = (e: React.MouseEvent, step: Step) => {
         if (step.is_locked) return;
 
         setDraggedStep({
@@ -184,12 +216,12 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                             const order = row.data;
 
                             // Calculate span including child orders
-                            const getAllDatesFromOrder = (order: any): { starts: Date[], ends: Date[] } => {
+                            const getAllDatesFromOrder = (order: Order): { starts: Date[], ends: Date[] } => {
                                 const dates = { starts: [] as Date[], ends: [] as Date[] };
 
                                 // Add dates from direct steps
                                 if (order.steps && order.steps.length > 0) {
-                                    order.steps.forEach((step: any) => {
+                                    order.steps.forEach((step: Step) => {
                                         dates.starts.push(new Date(step.planned_start_date));
                                         dates.ends.push(new Date(step.planned_end_date));
                                     });
@@ -197,7 +229,7 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
 
                                 // Add dates from child orders recursively
                                 if (order.children && order.children.length > 0) {
-                                    order.children.forEach((child: any) => {
+                                    order.children.forEach((child: Order) => {
                                         const childDates = getAllDatesFromOrder(child);
                                         dates.starts.push(...childDates.starts);
                                         dates.ends.push(...childDates.ends);

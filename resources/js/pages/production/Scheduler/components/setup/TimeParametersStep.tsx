@@ -5,9 +5,21 @@ import { TimeParametersGanttView } from './TimeParametersGanttView';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import TimeParameterForm from '@/components/production/scheduler/TimeParameterForm';
+import { ManufacturingOrder, ManufacturingStep } from '@/types/production';
+
+interface OrderWithTimeParams extends ManufacturingOrder {
+    time_parameter_status?: string;
+    children?: OrderWithTimeParams[];
+}
+
+interface StepEditState {
+    orderId: number;
+    stepId: number;
+    step: ManufacturingStep;
+}
 
 interface TimeParametersStepProps {
-    orders: any[];
+    orders: OrderWithTimeParams[];
     selectedOrders: number[];
     loading: boolean;
     startDate: string;
@@ -27,13 +39,9 @@ export function TimeParametersStep({
     onBack,
     onRefresh,
 }: TimeParametersStepProps) {
-    const [editingStep, setEditingStep] = useState<{
-        orderId: number;
-        stepId: number;
-        step: any;
-    } | null>(null);
+    const [editingStep, setEditingStep] = useState<StepEditState | null>(null);
     // Check if all orders have valid time parameters
-    const checkAllOrdersValid = (orderList: any[]): boolean => {
+    const checkAllOrdersValid = (orderList: OrderWithTimeParams[]): boolean => {
         return orderList.every(order => {
             const isValid = order.time_parameter_status === 'valid';
             const childrenValid = order.children ? checkAllOrdersValid(order.children) : true;
@@ -41,7 +49,7 @@ export function TimeParametersStep({
         });
     };
 
-    const countInvalidOrders = (orderList: any[]): number => {
+    const countInvalidOrders = (orderList: OrderWithTimeParams[]): number => {
         return orderList.reduce((count, order) => {
             const orderInvalid = order.time_parameter_status !== 'valid' ? 1 : 0;
             const childrenInvalid = order.children ? countInvalidOrders(order.children) : 0;
@@ -53,7 +61,7 @@ export function TimeParametersStep({
     const invalidCount = countInvalidOrders(orders);
 
     // Handle step editing
-    const handleEditStep = (orderId: number, stepId: number, step: any) => {
+    const handleEditStep = (orderId: number, stepId: number, step: ManufacturingStep) => {
         setEditingStep({ orderId, stepId, step });
     };
 
@@ -61,7 +69,7 @@ export function TimeParametersStep({
     const getEditingOrder = () => {
         if (!editingStep) return null;
 
-        const findOrder = (orderList: any[]): any | null => {
+        const findOrder = (orderList: OrderWithTimeParams[]): OrderWithTimeParams | null => {
             for (const order of orderList) {
                 if (order.id === editingStep.orderId) return order;
                 if (order.children) {

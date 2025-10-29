@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -21,11 +21,7 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
     const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
     const [_existingWorkCells, setExistingWorkCells] = useState<Record<string, WorkCellPreview>>({});
 
-    useEffect(() => {
-        validateFile();
-    }, []);
-
-    const validateFile = async () => {
+    const validateFile = useCallback(async () => {
         setIsValidating(true);
 
         try {
@@ -137,7 +133,11 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
         } finally {
             setIsValidating(false);
         }
-    };
+    }, [files, mapping, options]);
+
+    useEffect(() => {
+        validateFile();
+    }, [validateFile]);
 
     const handleProceed = () => {
         // Create a mock session for now - in a real implementation this would create a server session

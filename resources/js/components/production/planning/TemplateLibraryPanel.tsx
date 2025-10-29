@@ -1,15 +1,13 @@
 import React from 'react';
 
 interface TemplateLibraryPanelProps {
-    templates: any[];
-    permissions: any;
+    templates: Array<{ id: number; name: string; description?: string }>;
+    permissions: { canApplyTemplate: boolean };
     onApplyTemplate: (templateId: number) => void;
 }
 
 export default function TemplateLibraryPanel({
-    templates,
-    permissions,
-    onApplyTemplate
+    templates
 }: TemplateLibraryPanelProps) {
     return (
         <div className="p-4">

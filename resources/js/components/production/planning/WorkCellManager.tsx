@@ -10,8 +10,7 @@ interface WorkCellManagerProps {
 }
 
 export default function WorkCellManager({
-    workCells,
-    permissions
+    workCells
 }: WorkCellManagerProps) {
     return (
         <div className="p-4">

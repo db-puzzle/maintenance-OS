@@ -14,8 +14,7 @@ return new class extends Migration
         Schema::create('manufacturing_steps', function (Blueprint $table) {
             $table->id();
             $table->foreignId('manufacturing_route_id')->constrained('manufacturing_routes')->cascadeOnDelete();
-            $table->integer('display_order')->default(0);
-            $table->integer('step_number')->nullable(); // For templates
+            $table->integer('step_number')->default(1);
             $table->boolean('is_template')->default(false);
             $table->enum('step_type', ['standard', 'quality_check', 'rework'])->default('standard');
             $table->string('name', 255);
@@ -63,9 +62,22 @@ return new class extends Migration
             $table->timestamp('scheduled_start')->nullable();
             $table->timestamp('scheduled_end')->nullable();
 
+            // Additional state tracking fields
+            $table->string('skip_reason')->nullable();
+            $table->foreignId('skipped_by')->nullable()->constrained('users');
+            $table->timestamp('skipped_at')->nullable();
+            $table->string('cancellation_reason')->nullable();
+            $table->foreignId('cancelled_by')->nullable()->constrained('users');
+            $table->timestamp('cancelled_at')->nullable();
+            $table->boolean('quality_form_required')->default(false);
+            $table->string('quality_form_url')->nullable();
+            $table->json('quality_specifications')->nullable();
+            $table->foreignId('assigned_inspector_id')->nullable()->constrained('users');
+            $table->foreignId('original_step_id')->nullable()->constrained('manufacturing_steps');
+            $table->string('rework_reason')->nullable();
+
             $table->timestamps();
 
-            $table->index(['manufacturing_route_id', 'display_order']);
             $table->index(['manufacturing_route_id', 'step_number']);
             $table->index('status');
             $table->index('step_type');

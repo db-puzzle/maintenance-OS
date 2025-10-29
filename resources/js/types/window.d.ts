@@ -1,4 +1,4 @@
 interface Window {
-    Echo: any;
-    route: (name: string, params?: any) => string;
+    Echo: unknown;
+    route: (name: string, params?: Record<string, string | number | boolean | (string | number | boolean)[]>) => string;
 }

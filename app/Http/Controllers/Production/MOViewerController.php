@@ -178,6 +178,31 @@ class MOViewerController extends Controller
                 // Map step status to viewer status format
                 $viewerStatus = $this->mapStepStatusToViewerStatus($step->status);
 
+                // Check if step can start and determine reason if not
+                $canStart = $step->canStart();
+                $cannotStartReason = null;
+
+                if (! $canStart) {
+                    // Determine the reason why the step cannot start
+                    if (! $step->checkStepDependencies()) {
+                        $cannotStartReason = 'Step dependencies not met';
+                    } elseif (! $step->checkChildOrderDependencies()) {
+                        $cannotStartReason = 'Child order dependencies not met';
+                    } else {
+                        $cannotStartReason = 'Unknown reason';
+                    }
+                }
+
+                // Log step status transformation
+                \Log::info('[MOViewerController] Transforming step status', [
+                    'step_id' => $step->id,
+                    'step_name' => $step->name,
+                    'original_status' => $step->status,
+                    'viewer_status' => $viewerStatus,
+                    'can_start' => $canStart,
+                    'cannot_start_reason' => $cannotStartReason,
+                ]);
+
                 $routeSteps[] = [
                     'id' => $step->id,
                     'name' => $step->name ?? "Step {$step->step_number}",
@@ -203,6 +228,8 @@ class MOViewerController extends Controller
                     'cycle_time_seconds' => $cycleTime,
                     'total_time_seconds' => $totalTime,
                     'depends_on_step_id' => $step->depends_on_step_id,
+                    'can_start' => $canStart,
+                    'cannot_start_reason' => $cannotStartReason,
                 ];
             }
         }
@@ -408,6 +435,15 @@ class MOViewerController extends Controller
                 }
             };
             $countChildren($rootOrder);
+
+            \Log::info('[MOViewerController] Returning hierarchy for order', [
+                'order_id' => $orderId,
+                'root_order_id' => $rootOrder->id,
+                'total_orders' => $totalOrders,
+                'root_status' => $rootOrder->status,
+                'has_route' => $rootOrder->has_route,
+                'steps_count' => $rootOrder->manufacturingRoute?->steps?->count() ?? 0,
+            ]);
 
             return response()->json([
                 'order' => $this->transformOrder($rootOrder),

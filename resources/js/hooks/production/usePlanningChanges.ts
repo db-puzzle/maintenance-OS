@@ -134,7 +134,7 @@ export function usePlanningChanges(
             toast.error('Failed to update priorities');
             setTimeout(() => setMOSaveStatus('idle'), 3000);
         }
-    }, [moChangesStore, allowNavigation, activeMO, selectedMO, getCurrentState, restoreState]);
+    }, [moChangesStore, allowNavigation, activeMO, selectedMO, getCurrentState, restoreState, sortDirection, sortField]);
 
     // Save all changes
     const saveAllChanges = useCallback(async () => {

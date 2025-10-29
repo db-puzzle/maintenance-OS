@@ -1,21 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ManufacturingOrder, ManufacturingStep, ManufacturingStepExecution } from '@/types/production';
-import { format, parseISO, differenceInDays } from 'date-fns';
 import {
     Play,
-    FileText,
     CheckCircle,
     AlertCircle,
-    ChevronRight,
-    Package,
-    Clock,
-    Timer,
-    Zap,
-    Plus,
-    Minus,
-    Trash2,
-    Pause,
-    SkipForward,
     Activity,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,13 +16,9 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MOStatusBadge } from './MOStatusBadge';
 import { MOPriorityBadge } from './MOPriorityBadge';
-import { router } from '@inertiajs/react';
-import { cn } from '@/lib/utils';
 import { formatNumber } from '@/utils/number';
-import { MOCompletionDialog } from './MOCompletionDialog';
 import { StepCard } from './StepCard';
 import { StepReportingInterface } from './StepReportingInterface';
 import axios from 'axios';
@@ -49,7 +33,6 @@ interface MOStepExecutionDialogProps {
     order: ManufacturingOrder | null;
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
-    onAction: (action: string, order: ManufacturingOrder) => void;
     canUpdate?: boolean;
 }
 
@@ -57,13 +40,11 @@ export function MOStepExecutionDialog({
     order,
     isOpen,
     onOpenChange,
-    onAction,
     canUpdate = true
 }: MOStepExecutionDialogProps) {
     const [steps, setSteps] = useState<StepWithStatus[]>([]);
     const [activeStep, setActiveStep] = useState<StepWithStatus | null>(null);
     const [activeExecution, setActiveExecution] = useState<ManufacturingStepExecution | null>(null);
-    const [loading, setLoading] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
 
     // Load step status when dialog opens or order changes
@@ -71,7 +52,7 @@ export function MOStepExecutionDialog({
         if (order?.has_route && isOpen) {
             loadStepStatus();
         }
-    }, [order?.id, isOpen, refreshKey]);
+    }, [order?.id, order?.has_route, isOpen, refreshKey, loadStepStatus]);
 
     // Automatically set active step based on current execution
     useEffect(() => {
@@ -87,19 +68,16 @@ export function MOStepExecutionDialog({
         }
     }, [steps]);
 
-    const loadStepStatus = async () => {
+    const loadStepStatus = useCallback(async () => {
         if (!order) return;
 
-        setLoading(true);
         try {
             const response = await axios.get(window.route('production.reporting.steps.order-status', order.id));
             setSteps(response.data.steps || []);
         } catch (error) {
             console.error('Failed to load step status:', error);
-        } finally {
-            setLoading(false);
         }
-    };
+    }, [order]);
 
     const handleStartStep = async (step: StepWithStatus) => {
         try {
@@ -107,9 +85,14 @@ export function MOStepExecutionDialog({
             setActiveExecution(response.data.execution);
             // Refresh step status
             setRefreshKey(prev => prev + 1);
-        } catch (error: any) {
+        } catch (error) {
             console.error('Failed to start step:', error);
-            alert(error.response?.data?.message || 'Failed to start step execution');
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as { response?: { data?: { message?: string } } };
+                alert(axiosError.response?.data?.message || 'Failed to start step execution');
+            } else {
+                alert('Failed to start step execution');
+            }
         }
     };
 
@@ -120,30 +103,9 @@ export function MOStepExecutionDialog({
 
     if (!order) return null;
 
-    // Helper function to get image URL
-    const getItemImageUrl = (item: ManufacturingOrder['item'], preferThumbnail: boolean = true) => {
-        if (!item) return null;
+    // Removed unused getItemImageUrl function
 
-        // Check for primary_image_data object first
-        if (item.primary_image_data?.url) {
-            if (preferThumbnail) {
-                return item.primary_image_thumbnail_url || item.primary_image_data.url;
-            } else {
-                return item.primary_image_data.url;
-            }
-        }
-
-        // Fallback to direct URL properties
-        if (preferThumbnail) {
-            return item.primary_image_thumbnail_url || item.primary_image_url;
-        } else {
-            return item.primary_image_url;
-        }
-    };
-
-    const isOverdue = order.requested_date &&
-        parseISO(order.requested_date) < new Date() &&
-        !['completed', 'cancelled'].includes(order.status);
+    // Removed unused isOverdue variable
 
     const renderDialogContent = () => {
         // Check if order has a route

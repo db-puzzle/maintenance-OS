@@ -69,7 +69,7 @@ export function ConfigurationStep({ files, onNext, onBack }: Props) {
         return field ? field.label : value;
     };
 
-    const getUnmappedFields = (): string[] => {
+    const _getUnmappedFields = (): string[] => {
         const mappedValues = Object.values(fieldMapping);
         return csvFields
             .filter(f => !mappedValues.includes(f.value))

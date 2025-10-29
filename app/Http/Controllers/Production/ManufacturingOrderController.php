@@ -249,7 +249,7 @@ class ManufacturingOrderController extends BaseSearchController
             },
             'manufacturingRoute.steps' => function ($query) {
                 $query->with(['workCell', 'dependentSteps'])
-                    ->orderBy('display_order');
+                    ->orderBy('step_number');
             },
             'createdBy',
             'childDependencies.childOrder.item',

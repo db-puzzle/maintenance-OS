@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Settings2, ToggleLeft } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { TextInput } from '@/components/TextInput';
@@ -61,16 +61,16 @@ export const TimeInput: React.FC<TimeInputProps> = ({
     const [inputValue, setInputValue] = useState('');
 
     // Determine actual scale
-    const getActualScale = (seconds: number): 'seconds' | 'minutes' | 'hours' => {
+    const getActualScale = useCallback((seconds: number): 'seconds' | 'minutes' | 'hours' => {
         if (localScale !== 'auto') return localScale;
 
         if (seconds >= 3600) return 'hours';
         if (seconds >= 60) return 'minutes';
         return 'seconds';
-    };
+    }, [localScale]);
 
     // Convert from seconds to display value
-    const convertFromSeconds = (seconds: number): number => {
+    const convertFromSeconds = useCallback((seconds: number): number => {
         const actualScale = getActualScale(seconds);
 
         if (mode === 'throughput' || (mode === 'cycle_time' && localDisplayMode === 'throughput')) {
@@ -83,7 +83,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({
             const divisor = actualScale === 'hours' ? 3600 : actualScale === 'minutes' ? 60 : 1;
             return seconds / divisor;
         }
-    };
+    }, [getActualScale, mode, localDisplayMode]);
 
     // Convert from display value to seconds
     const convertToSeconds = (displayValue: number): number => {
@@ -105,7 +105,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({
     useEffect(() => {
         const displayValue = convertFromSeconds(value);
         setInputValue(displayValue.toFixed(2));
-    }, [value, localScale, localDisplayMode]);
+    }, [value, localScale, localDisplayMode, convertFromSeconds]);
 
     // Get unit label
     const getUnitLabel = (): string => {
@@ -124,7 +124,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({
 
     // Handle scale change
     const handleScaleChange = (newScale: string) => {
-        setLocalScale(newScale as any);
+        setLocalScale(newScale as 'seconds' | 'minutes' | 'hours' | 'auto');
         onPreferenceChange?.(localDisplayMode, newScale);
     };
 

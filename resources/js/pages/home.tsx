@@ -22,7 +22,6 @@ import {
     Building,
     MapPin,
     Clock,
-    LayoutDashboard,
     QrCode
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

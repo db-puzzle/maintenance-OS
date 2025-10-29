@@ -41,7 +41,7 @@ export function useMediaUpload(options: UseMediaUploadOptions) {
         return null;
     }, [allowedMimeTypes, maxFileSize]);
 
-    const uploadFile = useCallback(async (file: File, customProperties?: Record<string, any>) => {
+    const uploadFile = useCallback(async (file: File, customProperties?: Record<string, unknown>) => {
         const fileId = `${file.name}-${Date.now()}`;
 
         // Validate file
@@ -94,7 +94,7 @@ export function useMediaUpload(options: UseMediaUploadOptions) {
                         }
                     },
                     onSuccess: (page) => {
-                        const media = (page.props as any).media;
+                        const media = (page.props as { media?: Media }).media;
                         setProgress(prev => ({
                             ...prev,
                             [fileId]: {
@@ -138,7 +138,7 @@ export function useMediaUpload(options: UseMediaUploadOptions) {
         }
     }, [options, validateFile]);
 
-    const uploadMultiple = useCallback(async (files: File[], customProperties?: Record<string, any>) => {
+    const uploadMultiple = useCallback(async (files: File[], customProperties?: Record<string, unknown>) => {
         for (const file of files) {
             await uploadFile(file, customProperties);
         }

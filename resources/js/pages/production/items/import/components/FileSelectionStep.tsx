@@ -117,12 +117,12 @@ export function FileSelectionStep({ supportedFormats, onNext }: Props) {
                         setIsProcessing(false);
                         return;
                     }
-                } catch (parseError: any) {
+                } catch (parseError: unknown) {
                     // JSON parsing failed - provide helpful error message
                     console.error('JSON parse error:', parseError);
 
                     // Try to extract line/column from error message
-                    const errorMessage = parseError.message || '';
+                    const errorMessage = (parseError as { message?: string }).message || '';
                     const positionMatch = errorMessage.match(/position (\d+)/);
 
                     if (positionMatch) {

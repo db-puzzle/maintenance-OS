@@ -16,11 +16,21 @@ import { AlertCircle, Clock, Factory } from 'lucide-react';
 import { TextInput } from '@/components/TextInput';
 import { createFormAdapter } from '@/utils/form-adapters';
 
+interface Step {
+    id: number;
+    has_step_time: boolean;
+    setup_time_minutes?: number;
+    cycle_time_minutes?: number;
+    work_cell?: {
+        id: number;
+        production_rate_per_hour?: number;
+    };
+}
+
 interface TimeParameterFormProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    step: any;
-    orderId: number;
+    step: Step;
     orderQuantity: number;
     itemId?: number;
     onSuccess?: () => void;
@@ -30,7 +40,6 @@ export default function TimeParameterForm({
     open,
     onOpenChange,
     step,
-    orderId,
     orderQuantity,
     itemId,
     onSuccess,

@@ -1,13 +1,11 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import {
-    Plus,
     Save,
     FileText,
     AlertCircle,
     CheckCircle2,
-    Clock,
-    Factory
+    Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +23,6 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import CreateWorkCellSheet from '@/components/production/CreateWorkCellSheet';
 import { ManufacturingOrder, WorkCell } from '@/types';
 import RouteBuilderCanvas from '@/components/production/RouteBuilderCanvas';
@@ -43,17 +40,9 @@ interface RouteStep {
     is_required: boolean;
 }
 
-interface RouteTemplate {
-    id: number;
-    name: string;
-    description?: string;
-    steps: RouteStep[];
-}
-
 interface RouteBuilderProps {
     manufacturingOrder: ManufacturingOrder;
     workCells: WorkCell[];
-    templates: RouteTemplate[];
     permissions: {
         canCreateRoute: boolean;
         canEditRoute: boolean;
@@ -66,7 +55,6 @@ interface RouteBuilderProps {
 export default function RouteBuilder({
     manufacturingOrder,
     workCells,
-    templates,
     permissions,
     onDirtyChange
 }: RouteBuilderProps) {
@@ -74,7 +62,7 @@ export default function RouteBuilder({
     const [steps, setSteps] = useState<RouteStep[]>([]);
     const [selectedStep, setSelectedStep] = useState<RouteStep | null>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const [draggedStep, setDraggedStep] = useState<any>(null);
+    const [draggedStep, setDraggedStep] = useState<RouteStep | null>(null);
     const [showCreateWorkCell, setShowCreateWorkCell] = useState(false);
     const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
     const [templateName, setTemplateName] = useState('');
@@ -177,7 +165,7 @@ export default function RouteBuilder({
         } finally {
             setIsSaving(false);
         }
-    }, [steps, manufacturingOrder.id, onDirtyChange]);
+    }, [steps, manufacturingOrder.id, onDirtyChange, permissions.canEditRoute]);
 
     // Save as template
     const handleSaveAsTemplate = useCallback(async () => {
@@ -216,14 +204,14 @@ export default function RouteBuilder({
         }
     }, [templateName, templateDescription, steps, manufacturingOrder.item_id]);
 
-    // Apply template
-    const handleApplyTemplate = useCallback((templateId: number) => {
-        const template = templates.find(t => t.id === templateId);
-        if (template) {
-            setSteps(template.steps || []);
-            toast.success(`Route template "${template.name}" has been applied.`);
-        }
-    }, [templates]);
+    // Apply template - currently unused but kept for future use
+    // const handleApplyTemplate = useCallback((templateId: number) => {
+    //     const template = templates.find(t => t.id === templateId);
+    //     if (template) {
+    //         setSteps(template.steps || []);
+    //         toast.success(`Route template "${template.name}" has been applied.`);
+    //     }
+    // }, [templates]);
 
     return (
         <div className="h-full flex flex-col">

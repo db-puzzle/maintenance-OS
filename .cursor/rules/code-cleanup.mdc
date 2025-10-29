@@ -1,5 +1,5 @@
 ---
-description:After a set of changes are made to a file, always run a lint on that file and correct any linting errors found on that file
+description:After a set of changes are made to a file, always run a lint on that file and correct any linting errors found on that file. Don't run lin on all files, just on the files you modified.
 globs:
 alwaysApply: true
 ---

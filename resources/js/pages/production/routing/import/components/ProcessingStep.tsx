@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -6,7 +6,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { router } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { ImportFile, FieldMapping, ImportOptions, ImportSession, ImportError } from '../types';
 
@@ -46,9 +45,49 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
                 clearInterval(pollingInterval);
             }
         };
-    }, []);
+    }, [startImport, pollingInterval]); // Include all dependencies
 
-    const startImport = async () => {
+    const simulateProgress = useCallback(() => {
+        // This is a fallback simulation when real import is not available
+        let processed = 0;
+        const total = currentSession.totalTemplates;
+
+        const interval = setInterval(() => {
+            processed += Math.floor(Math.random() * 3) + 1;
+            processed = Math.min(processed, total);
+
+            const successRate = 0.9; // 90% success rate
+            const successful = Math.floor(processed * successRate);
+            const failed = processed - successful;
+
+            const updatedSession: ImportSession = {
+                ...currentSession,
+                status: processed === total ? 'completed' : 'processing',
+                processedTemplates: processed,
+                successfulTemplates: successful,
+                failedTemplates: failed,
+                importedCount: Math.floor(successful * 0.7),
+                updatedCount: Math.floor(successful * 0.3),
+                errors: failed > 0 ? generateDummyErrors(failed) : []
+            };
+
+            setCurrentSession(updatedSession);
+
+            if (processed > 0) {
+                updateRecentErrors(updatedSession.errors || []);
+            }
+
+            if (processed === total) {
+                clearInterval(interval);
+                setIsProcessing(false);
+                setTimeout(() => onComplete(updatedSession), 1000);
+            }
+        }, 800);
+
+        setPollingInterval(interval);
+    }, [currentSession, onComplete]);
+
+    const startImport = useCallback(async () => {
         try {
             // Create form data for import
             const formData = new FormData();
@@ -123,78 +162,7 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
             // Simulate progress for demo purposes
             simulateProgress();
         }
-    };
-
-    const startPolling = () => {
-        const interval = setInterval(async () => {
-            try {
-                const response = await fetch(route('production.routing.import.status', { session: session.id }), {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to get status');
-                }
-
-                const status = await response.json();
-                updateSession(status);
-
-                // Stop polling if complete
-                if (status.status === 'completed' || status.status === 'failed') {
-                    clearInterval(interval);
-                    setIsProcessing(false);
-                    onComplete(status);
-                }
-            } catch (error) {
-                console.error('Polling error:', error);
-                // Continue polling
-            }
-        }, 1000); // Poll every second
-
-        setPollingInterval(interval);
-    };
-
-    const simulateProgress = () => {
-        // This is a fallback simulation when real import is not available
-        let processed = 0;
-        const total = currentSession.totalTemplates;
-
-        const interval = setInterval(() => {
-            processed += Math.floor(Math.random() * 3) + 1;
-            processed = Math.min(processed, total);
-
-            const successRate = 0.9; // 90% success rate
-            const successful = Math.floor(processed * successRate);
-            const failed = processed - successful;
-
-            const updatedSession: ImportSession = {
-                ...currentSession,
-                status: processed === total ? 'completed' : 'processing',
-                processedTemplates: processed,
-                successfulTemplates: successful,
-                failedTemplates: failed,
-                importedCount: Math.floor(successful * 0.7),
-                updatedCount: Math.floor(successful * 0.3),
-                errors: failed > 0 ? generateDummyErrors(failed) : []
-            };
-
-            setCurrentSession(updatedSession);
-
-            if (processed > 0) {
-                updateRecentErrors(updatedSession.errors || []);
-            }
-
-            if (processed === total) {
-                clearInterval(interval);
-                setIsProcessing(false);
-                setTimeout(() => onComplete(updatedSession), 1000);
-            }
-        }, 800);
-
-        setPollingInterval(interval);
-    };
+    }, [file, mapping, options, session.id, currentSession, onComplete, simulateProgress]);
 
     const generateDummyErrors = (count: number): ImportError[] => {
         const errors: ImportError[] = [];
@@ -209,7 +177,7 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
         return errors;
     };
 
-    const updateSession = (newSession: ImportSession) => {
+    const _updateSession = (newSession: ImportSession) => {
         setCurrentSession(newSession);
 
         // Update recent errors

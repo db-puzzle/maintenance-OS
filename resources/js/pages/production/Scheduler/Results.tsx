@@ -5,34 +5,37 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import {
-    BarChart3,
     Calendar,
-    Clock,
     Users,
-    CheckCircle,
     AlertTriangle,
     ArrowLeft,
-    Download,
-    Eye
+    Download
 } from 'lucide-react';
 import FamilyScheduleView from './components/FamilyScheduleView';
 import MetricsDisplay from './components/MetricsDisplay';
 import AlertsList from './components/AlertsList';
+import { ScheduleVersion, ScheduleAlert } from '@/types/scheduler';
+
+interface ScheduleFamily {
+    top_parent: string;
+    [key: string]: unknown;
+}
+
+interface ScheduleMetrics {
+    total_steps: number;
+    families_processed: number;
+    average_utilization: number;
+    makespan: number;
+    on_time_rate: number;
+    fallbacks_used?: number;
+}
 
 interface ResultsPageProps {
-    version: any;
-    metrics: {
-        total_steps: number;
-        families_processed: number;
-        average_utilization: number;
-        makespan: number;
-        on_time_rate: number;
-        fallbacks_used?: number;
-    };
-    families: any[];
-    alerts: any[];
+    version: ScheduleVersion;
+    metrics: ScheduleMetrics;
+    families: ScheduleFamily[];
+    alerts: ScheduleAlert[];
 }
 
 export default function Results({
@@ -42,7 +45,6 @@ export default function Results({
     alerts
 }: ResultsPageProps) {
     const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'family' | 'timeline'>('family');
 
     const criticalAlerts = alerts.filter(a => a.severity === 'error');
     const warningAlerts = alerts.filter(a => a.severity === 'warning');

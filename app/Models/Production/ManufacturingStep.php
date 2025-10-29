@@ -80,8 +80,7 @@ class ManufacturingStep extends Model
 
     protected $fillable = [
         'manufacturing_route_id',
-        'display_order',
-        'step_number', // For templates
+        'step_number',
         'is_template',
         'step_type',
         'name',
@@ -99,6 +98,7 @@ class ManufacturingStep extends Model
         'failure_action',
         'quality_check_mode',
         'sampling_size',
+        'quality_specifications',
         'depends_on_step_id',
         'can_start_when_dependency',
         // Progressive flow fields
@@ -121,6 +121,7 @@ class ManufacturingStep extends Model
         'quality_result' => 'string',
         'failure_action' => 'string',
         'quality_check_mode' => 'string',
+        'quality_specifications' => 'array',
         'can_start_when_dependency' => 'string',
         'actual_start_time' => 'datetime',
         'actual_end_time' => 'datetime',
@@ -261,15 +262,34 @@ class ManufacturingStep extends Model
      */
     public function canStart(): bool
     {
+        \Log::info('[ManufacturingStep] canStart() called', [
+            'step_id' => $this->id,
+            'step_name' => $this->name,
+            'status' => $this->status,
+            'depends_on_step_id' => $this->depends_on_step_id,
+        ]);
+
         // Check step dependencies first
         if (! $this->checkStepDependencies()) {
+            \Log::info('[ManufacturingStep] Step dependencies not met', [
+                'step_id' => $this->id,
+            ]);
+
             return false;
         }
 
         // Then check child order dependencies
         if (! $this->checkChildOrderDependencies()) {
+            \Log::info('[ManufacturingStep] Child order dependencies not met', [
+                'step_id' => $this->id,
+            ]);
+
             return false;
         }
+
+        \Log::info('[ManufacturingStep] All dependencies met, can start', [
+            'step_id' => $this->id,
+        ]);
 
         return true;
     }
@@ -277,7 +297,7 @@ class ManufacturingStep extends Model
     /**
      * Check step dependencies.
      */
-    protected function checkStepDependencies(): bool
+    public function checkStepDependencies(): bool
     {
         // If no step dependency, can start
         if (! $this->depends_on_step_id) {
@@ -314,7 +334,7 @@ class ManufacturingStep extends Model
     /**
      * Check child order dependencies.
      */
-    protected function checkChildOrderDependencies(): bool
+    public function checkChildOrderDependencies(): bool
     {
         // If no child order dependency, can start
         if ($this->child_order_dependency_type === 'none') {
@@ -396,10 +416,10 @@ class ManufacturingStep extends Model
     public function createReworkStep(): ManufacturingStep
     {
         $route = $this->manufacturingRoute;
-        $maxDisplayOrder = $route->steps()->max('display_order') ?? 0;
+        $maxStepNumber = $route->steps()->max('step_number') ?? 0;
 
         return $route->steps()->create([
-            'display_order' => $maxDisplayOrder + 10,
+            'step_number' => $maxStepNumber + 1,
             'step_type' => 'rework',
             'name' => "Rework for {$this->name}",
             'description' => "Rework step for failed quality check on {$this->name}",
@@ -437,18 +457,6 @@ class ManufacturingStep extends Model
                 $order->parent->incrementCompletedChildren();
             }
         }
-    }
-
-    /**
-     * Get the actual duration in minutes.
-     */
-    public function getActualDurationAttribute(): ?int
-    {
-        if (! $this->actual_start_time || ! $this->actual_end_time) {
-            return null;
-        }
-
-        return $this->actual_start_time->diffInMinutes($this->actual_end_time);
     }
 
     /**
@@ -721,20 +729,6 @@ class ManufacturingStep extends Model
     }
 
     /**
-     * Get step_number attribute (for backward compatibility).
-     * For templates, returns the actual step_number.
-     * For production steps, returns display_order.
-     */
-    public function getStepNumberAttribute()
-    {
-        if ($this->is_template) {
-            return $this->attributes['step_number'] ?? $this->display_order;
-        }
-
-        return $this->display_order;
-    }
-
-    /**
      * Backward compatibility accessors for old column names.
      */
     public function getSetupTimeMinutesAttribute()
@@ -758,5 +752,227 @@ class ManufacturingStep extends Model
     public function setCycleTimeMinutesAttribute($value)
     {
         $this->attributes['cycle_time_seconds'] = $value * 60;
+    }
+
+    /**
+     * Update the status of the step with optional additional data.
+     */
+    public function updateStatus(string $status, array $additionalData = []): void
+    {
+        $data = array_merge(['status' => $status], $additionalData);
+        $this->update($data);
+
+        // If moving to completed, check and queue dependent steps
+        if ($status === 'completed') {
+            $this->checkAndQueueDependentSteps();
+            $this->checkOrderCompletion();
+        }
+    }
+
+    /**
+     * Record quality check result.
+     */
+    public function recordQualityResult(string $result, ?string $action = null): void
+    {
+        $data = [
+            'quality_result' => $result,
+            'quality_checked_at' => now(),
+        ];
+
+        if ($result === 'passed') {
+            $data['status'] = 'completed';
+            $data['actual_end_time'] = now();
+        } elseif ($result === 'failed' && $action) {
+            $data['failure_action'] = $action;
+            if ($action === 'scrap') {
+                $data['status'] = 'completed';
+                $data['actual_end_time'] = now();
+            }
+        }
+
+        $this->update($data);
+
+        // If completed, check dependent steps
+        if ($data['status'] === 'completed') {
+            $this->checkAndQueueDependentSteps();
+            $this->checkOrderCompletion();
+        }
+    }
+
+    /**
+     * Check and queue dependent steps after this step progresses.
+     */
+    public function checkAndQueueDependentSteps(): void
+    {
+        $dependentSteps = ManufacturingStep::where('depends_on_step_id', $this->id)
+            ->where('status', 'pending')
+            ->get();
+
+        foreach ($dependentSteps as $step) {
+            if ($step->canStart()) {
+                $step->moveToQueued();
+            }
+        }
+    }
+
+    /**
+     * Check if order should be completed when this step completes.
+     */
+    protected function checkOrderCompletion(): void
+    {
+        if (! $this->isLastStep()) {
+            return;
+        }
+
+        $allStepsComplete = ! $this->manufacturingRoute->steps()
+            ->whereNotIn('status', ['completed', 'skipped'])
+            ->exists();
+
+        if ($allStepsComplete) {
+            $order = $this->manufacturingRoute->manufacturingOrder;
+            if ($order->status !== 'completed') {
+                $order->update([
+                    'status' => 'completed',
+                    'actual_end_time' => now(),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Get attributes for additional tracking fields.
+     */
+    public function getSkipReasonAttribute()
+    {
+        return $this->attributes['skip_reason'] ?? null;
+    }
+
+    public function getSkippedByAttribute()
+    {
+        return $this->attributes['skipped_by'] ?? null;
+    }
+
+    public function getSkippedAtAttribute()
+    {
+        return $this->attributes['skipped_at'] ?? null;
+    }
+
+    public function getCancellationReasonAttribute()
+    {
+        return $this->attributes['cancellation_reason'] ?? null;
+    }
+
+    public function getCancelledByAttribute()
+    {
+        return $this->attributes['cancelled_by'] ?? null;
+    }
+
+    public function getCancelledAtAttribute()
+    {
+        return $this->attributes['cancelled_at'] ?? null;
+    }
+
+    public function getQualityFormRequiredAttribute()
+    {
+        return $this->attributes['quality_form_required'] ?? false;
+    }
+
+    public function getQualityFormUrlAttribute()
+    {
+        return $this->attributes['quality_form_url'] ?? null;
+    }
+
+    public function getQualitySpecificationsAttribute()
+    {
+        return $this->attributes['quality_specifications'] ?? [];
+    }
+
+    public function getAssignedInspectorIdAttribute()
+    {
+        return $this->attributes['assigned_inspector_id'] ?? null;
+    }
+
+    public function getQueuePositionAttribute()
+    {
+        if ($this->status !== 'queued') {
+            return null;
+        }
+
+        // Calculate position in work cell queue
+        $position = ManufacturingStep::where('work_cell_id', $this->work_cell_id)
+            ->where('status', 'queued')
+            ->where('updated_at', '<', $this->updated_at)
+            ->count();
+
+        return $position + 1;
+    }
+
+    /**
+     * Get the actual duration in seconds.
+     */
+    public function getActualDurationAttribute(): int
+    {
+        if (! $this->actual_start_time || ! $this->actual_end_time) {
+            return 0;
+        }
+
+        return $this->actual_end_time->diffInSeconds($this->actual_start_time);
+    }
+
+    public function getEstimatedDurationAttribute()
+    {
+        return $this->setup_time_seconds + $this->cycle_time_seconds;
+    }
+
+    public function getEfficiencyAttribute()
+    {
+        if (! $this->actual_duration || ! $this->estimated_duration) {
+            return 100;
+        }
+
+        return min(100, round(($this->estimated_duration / $this->actual_duration) * 100));
+    }
+
+    public function getCompletedByAttribute()
+    {
+        $lastExecution = $this->executions()
+            ->where('status', 'completed')
+            ->orderBy('completed_at', 'desc')
+            ->first();
+
+        if ($lastExecution && $lastExecution->executedBy) {
+            return [
+                'id' => $lastExecution->executedBy->id,
+                'name' => $lastExecution->executedBy->name,
+            ];
+        }
+
+        return null;
+    }
+
+    public function getHeldByAttribute()
+    {
+        return $this->attributes['held_by'] ?? null;
+    }
+
+    public function getAffectedStepsAttribute()
+    {
+        if ($this->status !== 'cancelled') {
+            return [];
+        }
+
+        // Find all dependent steps that were also cancelled
+        $affectedSteps = [];
+        $steps = ManufacturingStep::where('depends_on_step_id', $this->id)
+            ->where('status', 'cancelled')
+            ->get();
+
+        foreach ($steps as $step) {
+            $affectedSteps[] = $step->name;
+            // Recursively find affected steps
+            $affectedSteps = array_merge($affectedSteps, $step->affected_steps);
+        }
+
+        return array_unique($affectedSteps);
     }
 }

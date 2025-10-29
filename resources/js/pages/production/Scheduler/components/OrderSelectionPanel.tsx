@@ -65,7 +65,7 @@ export default function OrderSelectionPanel({
             const matchesSearch = searchTerm === '' ||
                 order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (order.item?.code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                ((order.item as any)?.item_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                ((order.item as { item_number?: string })?.item_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (order.item?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (order.item?.description || '').toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -193,7 +193,7 @@ export default function OrderSelectionPanel({
                                 if (typeof _key === 'string' && value !== undefined) {
                                     setSearchTerm(String(value || ''));
                                 }
-                            }) as any,
+                            }) as () => void,
                             errors: {},
                             clearErrors: () => { }
                         }}

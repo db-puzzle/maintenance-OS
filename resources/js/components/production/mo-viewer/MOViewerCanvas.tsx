@@ -17,6 +17,8 @@ export interface MOData {
     id: number;
     order_number: string;
     parent_id?: number;
+    item_number?: string;
+    item_name?: string;
     steps: MOStep[];
     children?: MOData[];
 }
@@ -26,6 +28,10 @@ export interface MOViewerCanvasProps {
     onStepClick?: (orderId: number, stepId: number) => void;
     className?: string;
     scale?: number;
+    highlightedSteps?: Set<number>;
+    onSelectPrecedents?: (orderId: number, stepId: number) => void;
+    onSelectImmediatePrecedents?: (orderId: number, stepId: number) => void;
+    onCanvasClick?: () => void;
 }
 
 interface StepPosition {
@@ -41,10 +47,8 @@ interface StepPosition {
 const STEP_WIDTH = 160; // 40 * 4 (tailwind w-40)
 const STEP_HEIGHT = 64; // 16 * 4 (tailwind h-16)
 const STEP_H_SPACING = 20;
-const STEP_V_SPACING = 30;
 const MO_V_SPACING = 40; // Reduced from 50 for more compact layout
-const MO_LABEL_WIDTH = STEP_WIDTH; // Match step width for consistency
-const PARENT_INDENT = 200; // Space for dependency lines
+const MO_LABEL_WIDTH = 208; // 52 * 4 (tailwind w-52) - 30% wider than step width to fit more text
 const HIERARCHY_INDENT = 40; // Indent per hierarchy level
 
 // Memoized step box component for performance
@@ -54,15 +58,37 @@ const MemoizedStepBox = React.memo(MOViewerStepBox);
 interface StepRendererProps {
     position: StepPosition;
     step: MOStep;
+    order: MOData;
     onStepClick?: (orderId: number, stepId: number) => void;
+    isHighlighted?: boolean;
+    onSelectPrecedents?: (orderId: number, stepId: number) => void;
+    onSelectImmediatePrecedents?: (orderId: number, stepId: number) => void;
 }
 
-const StepRenderer = React.memo<StepRendererProps>(({ position, step, onStepClick }) => {
+const StepRenderer = React.memo<StepRendererProps>(({ position, step, order, onStepClick, isHighlighted, onSelectPrecedents, onSelectImmediatePrecedents }) => {
     const handleClick = useCallback(() => {
         if (onStepClick) {
             onStepClick(position.orderId, position.stepId);
         }
     }, [position.orderId, position.stepId, onStepClick]);
+
+    const handleSelectPrecedents = useCallback(() => {
+        if (onSelectPrecedents) {
+            onSelectPrecedents(position.orderId, position.stepId);
+        }
+    }, [position.orderId, position.stepId, onSelectPrecedents]);
+
+    const handleSelectImmediatePrecedents = useCallback(() => {
+        if (onSelectImmediatePrecedents) {
+            onSelectImmediatePrecedents(position.orderId, position.stepId);
+        }
+    }, [position.orderId, position.stepId, onSelectImmediatePrecedents]);
+
+    // Check if this is the first step and if the order has children
+    const isFirstStep = step.step_number === 1 || order.steps.findIndex(s => s.id === step.id) === 0;
+    const hasChildOrders = order.children && order.children.length > 0;
+    const hasPrecedents = !!step.depends_on_step_id || (isFirstStep && hasChildOrders);
+
 
     return (
         <div
@@ -77,6 +103,10 @@ const StepRenderer = React.memo<StepRendererProps>(({ position, step, onStepClic
                 workcellName={step.workcell_name}
                 status={step.status}
                 onClick={onStepClick ? handleClick : undefined}
+                isHighlighted={isHighlighted}
+                onSelectPrecedents={handleSelectPrecedents}
+                onSelectImmediatePrecedents={handleSelectImmediatePrecedents}
+                hasPrecedents={hasPrecedents}
             />
         </div>
     );
@@ -86,7 +116,9 @@ const StepRenderer = React.memo<StepRendererProps>(({ position, step, onStepClic
         prevProps.position.y === nextProps.position.y &&
         prevProps.step.status === nextProps.step.status &&
         prevProps.step.name === nextProps.step.name &&
-        prevProps.step.workcell_name === nextProps.step.workcell_name;
+        prevProps.step.workcell_name === nextProps.step.workcell_name &&
+        prevProps.isHighlighted === nextProps.isHighlighted &&
+        prevProps.order.children?.length === nextProps.order.children?.length;
 });
 
 /**
@@ -102,7 +134,11 @@ export function MOViewerCanvas({
     orders,
     onStepClick,
     className,
-    scale = 1
+    scale = 1,
+    highlightedSteps,
+    onSelectPrecedents,
+    onSelectImmediatePrecedents,
+    onCanvasClick
 }: MOViewerCanvasProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -167,7 +203,19 @@ export function MOViewerCanvas({
             });
 
             // Process steps for this MO
-            mo.steps.forEach((step, index) => {
+            // IMPORTANT: Always sort steps to ensure consistent positioning
+            // First by step_number, then by ID to handle cases where step_number is the same
+            const sortedSteps = [...mo.steps].sort((a, b) => {
+                // First sort by step_number
+                const stepNumberDiff = a.step_number - b.step_number;
+                if (stepNumberDiff !== 0) return stepNumberDiff;
+
+                // If step_numbers are the same, sort by ID to maintain consistent order
+                // This handles cases where all steps have step_number = 0
+                return a.id - b.id;
+            });
+
+            sortedSteps.forEach((step, index) => {
                 const x = stepsStartX + (index * (STEP_WIDTH + STEP_H_SPACING));
                 const y = yPos;
 
@@ -183,9 +231,9 @@ export function MOViewerCanvas({
                 maxWidth = Math.max(maxWidth, x + STEP_WIDTH + 20);
 
                 // Add horizontal connector to next step
-                if (index < mo.steps.length - 1) {
+                if (index < sortedSteps.length - 1) {
                     connections.push({
-                        id: `h-${mo.id}-${step.id}-${mo.steps[index + 1].id}`,
+                        id: `h-${mo.id}-${step.id}-${sortedSteps[index + 1].id}`,
                         type: 'horizontal',
                         startX: x + STEP_WIDTH,
                         startY: y + STEP_HEIGHT / 2,
@@ -313,6 +361,12 @@ export function MOViewerCanvas({
                         width: `${canvasSize.width * scale}px`,
                         height: `${canvasSize.height * scale}px`
                     }}
+                    onClick={(e) => {
+                        // Only trigger canvas click if clicking on the canvas background
+                        if (e.target === e.currentTarget) {
+                            onCanvasClick?.();
+                        }
+                    }}
                 >
                     <div
                         className="relative"
@@ -321,6 +375,12 @@ export function MOViewerCanvas({
                             height: `${canvasSize.height}px`,
                             transform: `scale(${scale})`,
                             transformOrigin: 'top left'
+                        }}
+                        onClick={(e) => {
+                            // Only trigger canvas click if clicking on the canvas background
+                            if (e.target === e.currentTarget) {
+                                onCanvasClick?.();
+                            }
                         }}
                     >
                         {/* Divider lines - render first so they appear behind everything */}
@@ -359,6 +419,8 @@ export function MOViewerCanvas({
                                         level={level}
                                         isParent={isParent}
                                         hasChildren={hasChildren}
+                                        itemNumber={order.item_number}
+                                        itemName={order.item_name}
                                     />
                                 </div>
                             );
@@ -369,14 +431,31 @@ export function MOViewerCanvas({
                             const order = orderGroups.get(position.orderId)?.order;
                             const step = order?.steps.find(s => s.id === position.stepId);
 
-                            if (!step) return null;
+                            if (!step || !order) return null;
+
+                            // Create a new order object with sorted steps to ensure consistency
+                            const orderWithSortedSteps = {
+                                ...order,
+                                steps: [...order.steps].sort((a, b) => {
+                                    // First sort by step_number
+                                    const stepNumberDiff = a.step_number - b.step_number;
+                                    if (stepNumberDiff !== 0) return stepNumberDiff;
+
+                                    // If step_numbers are the same, sort by ID to maintain consistent order
+                                    return a.id - b.id;
+                                })
+                            };
 
                             return (
                                 <StepRenderer
                                     key={`step-${position.orderId}-${position.stepId}`}
                                     position={position}
                                     step={step}
+                                    order={orderWithSortedSteps}
                                     onStepClick={onStepClick}
+                                    isHighlighted={highlightedSteps?.has(position.stepId)}
+                                    onSelectPrecedents={onSelectPrecedents}
+                                    onSelectImmediatePrecedents={onSelectImmediatePrecedents}
                                 />
                             );
                         })}

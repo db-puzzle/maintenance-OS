@@ -3,15 +3,13 @@ import { useForm } from '@inertiajs/react';
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import StateButton from '@/components/StateButton';
 
 import { ManufacturingStep } from '@/types/production';
 import { GateConfiguration } from '@/components/production/GateCard';
 import { cn } from '@/lib/utils';
-import { PlayCircle, CheckCircle2, Package, AlignStartVerticalIcon } from 'lucide-react';
+import { CheckCircle2, Package, AlignStartVerticalIcon } from 'lucide-react';
 import { formatNumber, parseNumber } from '@/utils/number';
 
 interface GatePropertiesPanelProps {
@@ -29,7 +27,6 @@ export default function GatePropertiesPanel({
     selectedGate,
     precedingStep,
     followingStep,
-    gateId,
     onGateUpdate,
     isOpen,
     viewMode = false,
@@ -64,7 +61,7 @@ export default function GatePropertiesPanel({
                 description: ''
             });
         }
-    }, [selectedGate]);
+    }, [selectedGate, gateForm]);
 
     // Handle panel visibility animation
     useEffect(() => {

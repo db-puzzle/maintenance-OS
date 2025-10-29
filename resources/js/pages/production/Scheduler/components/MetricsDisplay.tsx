@@ -4,7 +4,6 @@ import { Progress } from '@/components/ui/progress';
 import {
     BarChart3,
     Clock,
-    Users,
     CheckCircle,
     TrendingUp,
     AlertTriangle
@@ -19,7 +18,14 @@ interface MetricsDisplayProps {
         on_time_rate: number;
         fallbacks_used?: number;
     };
-    version: any;
+    version: {
+        id: number;
+        version_number: number;
+        published_at?: string;
+        published_by?: { name: string };
+        created_at: string;
+        created_by?: { name: string };
+    };
 }
 
 export default function MetricsDisplay({ metrics, version }: MetricsDisplayProps) {

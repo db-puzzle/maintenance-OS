@@ -1,9 +1,24 @@
 import React from 'react';
 import { TimelineLayout } from '../../../utils/timelineCalculations';
 
+interface Step {
+    id: string;
+    manufacturing_step_id?: number;
+    planned_start_date: string;
+    planned_end_date: string;
+    predecessors?: number[];
+}
+
+interface Row {
+    type: string;
+    data: {
+        id: string;
+    };
+}
+
 interface DependenciesProps {
-    steps: any[];
-    rows: any[];
+    steps: Step[];
+    rows: Row[];
     rowHeight: number;
     layout: TimelineLayout;
 }

@@ -9,7 +9,6 @@ import {
     AlertTriangle,
     Info,
     Search,
-    Filter,
     ExternalLink
 } from 'lucide-react';
 import { router } from '@inertiajs/react';
@@ -23,13 +22,13 @@ interface ScheduleAlert {
         family?: string;
         orders?: string[];
         steps?: number[];
-        conflicts?: any[];
-        validationErrors?: any[];
+        conflicts?: Array<{ id: string; description: string }>;
+        validationErrors?: Array<{ field: string; message: string }>;
     };
     actions?: Array<{
         label: string;
         action: string;
-        params: any;
+        params: Record<string, unknown>;
     }>;
     resolved_at?: string;
 }
@@ -41,7 +40,7 @@ interface AlertsListProps {
 export default function AlertsList({ alerts }: AlertsListProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [severityFilter, setSeverityFilter] = useState<string>('all');
-    const [typeFilter, setTypeFilter] = useState<string>('all');
+    const [typeFilter, _setTypeFilter] = useState<string>('all');
 
     const filteredAlerts = alerts.filter(alert => {
         const matchesSearch = searchTerm === '' ||
@@ -54,7 +53,7 @@ export default function AlertsList({ alerts }: AlertsListProps) {
         return matchesSearch && matchesSeverity && matchesType && !alert.resolved_at;
     });
 
-    const alertTypes = [...new Set(alerts.map(a => a.type))];
+    const _alertTypes = [...new Set(alerts.map(a => a.type))];
 
     const getAlertIcon = (severity: string) => {
         switch (severity) {
@@ -78,7 +77,7 @@ export default function AlertsList({ alerts }: AlertsListProps) {
         }
     };
 
-    const handleAction = (action: any) => {
+    const handleAction = (action: { action: string; params: Record<string, unknown> }) => {
         switch (action.action) {
             case 'edit_step':
                 window.open(action.params.url, '_blank');
@@ -186,7 +185,7 @@ export default function AlertsList({ alerts }: AlertsListProps) {
                             </div>
                         ) : (
                             filteredAlerts.map(alert => (
-                                <Alert key={alert.id} variant={getAlertVariant(alert.severity) as any}>
+                                <Alert key={alert.id} variant={getAlertVariant(alert.severity) as 'default' | 'destructive'}>
                                     <div className="flex items-start gap-3">
                                         {getAlertIcon(alert.severity)}
                                         <div className="flex-1">

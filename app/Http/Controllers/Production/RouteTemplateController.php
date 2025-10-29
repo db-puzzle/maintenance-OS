@@ -194,6 +194,9 @@ class RouteTemplateController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
+        // Ensure steps are loaded with all their relationships
+        $route->load('steps');
+
         try {
             $template = $this->templateService->saveAsTemplate($route, $validated);
 

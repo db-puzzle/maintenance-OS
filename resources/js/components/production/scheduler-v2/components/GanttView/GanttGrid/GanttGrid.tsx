@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { ResizableTableHeader } from '../../shared/ResizableTableHeader';
 import { useScrollbarWidth } from '../../../hooks/useScrollbarWidth';
 import { ScrollContainer } from '../../shared/ScrollContainer';
+import { SchedulerOrder } from '../../../types';
 
 interface Column {
     key: string;
@@ -14,7 +15,7 @@ interface Column {
 }
 
 interface GanttGridProps {
-    tasks: any[];
+    tasks: SchedulerOrder[];
     onTaskToggle?: (taskId: string) => void;
 }
 

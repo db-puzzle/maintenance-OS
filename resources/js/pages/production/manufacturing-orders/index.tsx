@@ -96,7 +96,7 @@ export default function ManufacturingOrders({
                 replace: true
             });
         }
-    }, []);
+    }, [filters.parent_id, searchValue, statusFilter]);
 
     // Clean up URL parameter when dialog is closed
     React.useEffect(() => {

@@ -2,9 +2,18 @@ import React from 'react';
 import { TimelineLayout } from '../../../utils/timelineCalculations';
 import { cn } from '@/lib/utils';
 
+interface WorkCell {
+    default_production_rate_per_hour?: number;
+}
+
+interface Allocation {
+    planned_start_date: string;
+    planned_end_date: string;
+}
+
 interface CapacityIndicatorProps {
-    workCell: any;
-    allocations: any[];
+    workCell: WorkCell;
+    allocations: Allocation[];
     layout: TimelineLayout;
     height: number;
 }
@@ -57,7 +66,7 @@ export const CapacityIndicator: React.FC<CapacityIndicatorProps> = ({
 };
 
 function calculateDailyCapacityUsage(
-    allocations: any[],
+    allocations: Allocation[],
     layout: TimelineLayout,
     dailyCapacityHours: number
 ): { date: Date; utilization: number }[] {

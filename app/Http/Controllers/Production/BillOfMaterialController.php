@@ -194,7 +194,7 @@ class BillOfMaterialController extends BaseSearchController
         // Load available items for BOM configuration
         $items = Item::where('is_active', true)
             ->orderBy('item_number')
-            ->get(['id', 'item_number', 'name', 'unit_of_measure', 'can_be_manufactured', 'is_active']);
+            ->get(['id', 'item_number', 'name', 'unit_of_measure_code', 'can_be_manufactured', 'is_active']);
 
         // Collect all unique item IDs that need media
         $allItemIds = collect();

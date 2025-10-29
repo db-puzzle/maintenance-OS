@@ -14,22 +14,44 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 
+interface GanttTask {
+    id: string | number;
+    type: 'order' | 'step';
+    name: string;
+    order_number?: string;
+    duration_hours: number;
+    status?: string;
+    is_fictitious?: boolean;
+    has_missing_times?: boolean;
+    is_locked?: boolean;
+    level?: number;
+    orderId?: number;
+}
+
+interface GanttRow {
+    type: 'order' | 'step';
+    data: GanttTask;
+    level: number;
+    id: string;
+    orderId?: number;
+}
+
 interface GanttTimelineProps {
-    tasks: any[];
+    tasks: GanttTask[];
     viewConfig: {
         startDate: Date;
         endDate: Date;
     };
     zoomLevel: ZoomLevel;
     timelineWidth: number;
-    onStepUpdate: (stepId: string, updates: any) => void;
+    onStepUpdate: (stepId: string, updates: Record<string, unknown>) => void;
     showDependencies?: boolean;
     onScrollContainerRef?: (container: HTMLElement | null) => void;
 }
 
 // Custom StepBar component with validation indicators
 const ValidationStepBar: React.FC<{
-    step: any;
+    step: GanttTask;
     x: number;
     y: number;
     width: number;
@@ -173,7 +195,7 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
-    const [draggedStep, _setDraggedStep] = useState<any>(null);
+    const [draggedStep, _setDraggedStep] = useState<GanttTask | null>(null);
 
     // Calculate timeline dimensions and layout
     const timelineLayout = calculateTimelineLayout({
@@ -184,7 +206,7 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
     });
 
     // Tasks are already flattened in GanttView, so we can use them directly
-    const rows = useMemo(() => {
+    const rows: GanttRow[] = useMemo(() => {
         return tasks.map((task, _index) => ({
             type: task.type,
             data: task,
@@ -198,15 +220,15 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
     const timelineHeight = rows.length * rowHeight;
 
     // Handle step click for editing
-    const handleStepClick = (step: any) => {
+    const handleStepClick = (step: GanttTask) => {
         if (step.type === 'step') {
-            setSelectedStepId(step.id);
-            onStepUpdate(step.id, {});
+            setSelectedStepId(String(step.id));
+            onStepUpdate(String(step.id), {});
         }
     };
 
     // Handle step drag (disabled for time parameters view)
-    const handleStepDragStart = (e: React.MouseEvent, _step: any) => {
+    const handleStepDragStart = (e: React.MouseEvent, _step: GanttTask) => {
         e.preventDefault(); // Disable dragging in time parameters view
     };
 
@@ -286,7 +308,7 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
                             const order = row.data;
 
                             // Get all dates from order and its steps
-                            const getAllDatesFromOrder = (order: any): { starts: Date[], ends: Date[] } => {
+                            const getAllDatesFromOrder = (order: GanttTask & { planned_start_date?: string; planned_end_date?: string; steps?: Array<{ planned_start_date?: string; planned_end_date?: string }>; children?: Array<GanttTask & { planned_start_date?: string; planned_end_date?: string; steps?: Array<{ planned_start_date?: string; planned_end_date?: string }>; children?: unknown[] }> }): { starts: Date[], ends: Date[] } => {
                                 const dates = { starts: [] as Date[], ends: [] as Date[] };
 
                                 // Add order dates if available
@@ -297,7 +319,7 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
 
                                 // Add step dates
                                 if (order.steps) {
-                                    order.steps.forEach((step: any) => {
+                                    order.steps.forEach((step) => {
                                         if (step.planned_start_date && step.planned_end_date) {
                                             dates.starts.push(new Date(step.planned_start_date));
                                             dates.ends.push(new Date(step.planned_end_date));
@@ -307,7 +329,7 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
 
                                 // Add child order dates recursively
                                 if (order.children) {
-                                    order.children.forEach((child: any) => {
+                                    order.children.forEach((child) => {
                                         const childDates = getAllDatesFromOrder(child);
                                         dates.starts.push(...childDates.starts);
                                         dates.ends.push(...childDates.ends);
@@ -317,7 +339,7 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
                                 return dates;
                             };
 
-                            const allDates = getAllDatesFromOrder(order);
+                            const allDates = getAllDatesFromOrder(order as GanttTask & { planned_start_date?: string; planned_end_date?: string; steps?: Array<{ planned_start_date?: string; planned_end_date?: string }>; children?: Array<GanttTask & { planned_start_date?: string; planned_end_date?: string; steps?: Array<{ planned_start_date?: string; planned_end_date?: string }>; children?: unknown[] }> });
 
                             // Skip if no dates found
                             if (allDates.starts.length === 0) return null;

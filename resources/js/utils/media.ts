@@ -11,7 +11,7 @@ export interface Media {
     mime_type: string;
     disk: string;
     size: number;
-    custom_properties: Record<string, any>;
+    custom_properties: Record<string, unknown>;
     conversions?: Record<string, boolean>;
     url?: string;
     thumb_url?: string;
@@ -167,7 +167,7 @@ export function getFileIcon(media: Media): string {
 export function buildMediaFormData(
     file: File,
     collection: string,
-    customProperties?: Record<string, any>
+    customProperties?: Record<string, unknown>
 ): FormData {
     const formData = new FormData();
     formData.append('file', file);

@@ -162,7 +162,7 @@ export const parseBooleanValue = (value: string | boolean): boolean => {
     return ['true', '1', 'yes', 'sim', 'y', 's'].includes(normalizedValue);
 };
 
-export const parseJsonValue = (value: string): any => {
+export const parseJsonValue = (value: string): unknown => {
     if (!value || value.trim() === '') return null;
     try {
         return JSON.parse(value);

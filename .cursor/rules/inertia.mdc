@@ -1,3 +1,5 @@
-ALWAYS use Inertia. Do NOT use JSON for communication with the backend whenever possible. When absolutely required, ask the user if JSON is allowed, explaning the situation and why Inertia is not an option. ---
+---
+ALWAYS use Inertia. Do NOT use JSON for communication with the backend whenever possible. When absolutely required, ask the user if JSON is allowed, explaning the situation and why Inertia is not an option.
+
 alwaysApply: true
 ---

@@ -29,7 +29,7 @@ const useMediaUpload = ({
     const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    const uploadFile = useCallback(async (file: File, customProperties: Record<string, any> = {}) => {
+    const uploadFile = useCallback(async (file: File, customProperties: Record<string, unknown> = {}) => {
         setIsUploading(true);
         setError(null);
         setUploadProgress(null);
@@ -56,7 +56,7 @@ const useMediaUpload = ({
                         onProgress?.(progress.percentage);
                     }
                 },
-                onSuccess: (page: any) => {
+                onSuccess: (page: { props: { media?: Media } }) => {
                     const media = page.props.media; // Assuming the backend returns media in props
                     onSuccess?.(media);
                     setIsUploading(false);
@@ -70,8 +70,8 @@ const useMediaUpload = ({
                     setUploadProgress(null);
                 },
             });
-        } catch (e: any) {
-            const errorMessage = e.message || 'An unknown error occurred during upload.';
+        } catch (e: unknown) {
+            const errorMessage = (e as { message?: string }).message || 'An unknown error occurred during upload.';
             setError(errorMessage);
             onError?.(errorMessage);
             setIsUploading(false);

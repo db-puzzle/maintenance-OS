@@ -2,357 +2,154 @@
 
 namespace App\Services\Production;
 
-use App\Models\Production\ManufacturingOrder;
-use App\Models\Production\ManufacturingStep;
 use App\Models\Production\ManufacturingStepExecution;
 use Illuminate\Support\Facades\DB;
 
 class ManufacturingStepExecutionService
 {
     /**
-     * Execute manufacturing order - handles both routed and non-routed execution.
+     * Report progress on a step execution with photos.
      */
-    public function executeOrder(ManufacturingOrder $order, array $data): void
-    {
-        // Check if order has route with steps
-        $hasSteps = $order->manufacturingRoute && $order->manufacturingRoute->steps()->exists();
+    public function reportProgress(
+        ManufacturingStepExecution $execution,
+        array $data,
+        array $photos = []
+    ): ManufacturingStepExecution {
+        DB::transaction(function () use ($execution, $data, $photos) {
+            // Update execution quantities and notes
+            $execution->update([
+                'quantity_completed' => $execution->quantity_completed + ($data['quantity_completed'] ?? 0),
+                'quantity_scrapped' => $execution->quantity_scrapped + ($data['quantity_scrapped'] ?? 0),
+                'production_notes' => $data['notes'] ?? null,
+                'scrap_reason' => $data['scrap_reason'] ?? null,
+                'time_spent_minutes' => $data['time_spent'] ?? null,
+            ]);
 
-        if ($hasSteps) {
-            // Execute through steps
-            $this->executeNextStep($order, $data);
-        } else {
-            // Execute as simple production report
-            $this->executeWithoutSteps($order, $data);
-        }
-    }
+            // Update cumulative quantities on the step
+            $step = $execution->manufacturingStep;
+            $step->update([
+                'cumulative_quantity_completed' => $step->cumulative_quantity_completed + ($data['quantity_completed'] ?? 0),
+                'cumulative_quantity_scrapped' => $step->cumulative_quantity_scrapped + ($data['quantity_scrapped'] ?? 0),
+            ]);
 
-    /**
-     * Execute order without steps (legacy behavior).
-     */
-    protected function executeWithoutSteps(ManufacturingOrder $order, array $data): void
-    {
-        // Validate
-        if (! $order->canReportProduction()) {
-            throw new \Exception('Cannot report production on this order');
-        }
+            // Handle photo uploads (max 3)
+            if (! empty($photos)) {
+                $existingPhotos = $execution->getMedia('step_photos')->count();
+                $photosToAdd = array_slice($photos, 0, max(0, 3 - $existingPhotos));
 
-        DB::transaction(function () use ($order, $data) {
-            // Update quantities
-            $order->increment('quantity_completed', $data['quantity_completed']);
-
-            if (isset($data['quantity_scrapped'])) {
-                $order->increment('quantity_scrapped', $data['quantity_scrapped']);
-            }
-
-            // Update status
-            if ($order->status === 'released') {
-                $order->update([
-                    'status' => 'in_progress',
-                    'actual_start_date' => now(),
-                ]);
-            }
-
-            // Check completion
-            if ($order->quantity_completed >= $order->quantity) {
-                $order->update([
-                    'status' => 'completed',
-                    'actual_end_date' => now(),
-                ]);
-
-                // Update parent
-                if ($order->parent) {
-                    $order->parent->checkAutoCompletion();
+                foreach ($photosToAdd as $photo) {
+                    $execution->addMediaWithDiskSelection($photo, 'step_photos');
                 }
+
+                $execution->update([
+                    'photo_count' => $execution->getMedia('step_photos')->count(),
+                    'last_photo_at' => now(),
+                ]);
+            }
+
+            // Check if step should be marked complete
+            if ($data['mark_complete'] ?? false) {
+                $this->completeStepExecution($execution);
             }
 
             // Log activity
             activity()
-                ->performedOn($order)
+                ->performedOn($execution)
                 ->causedBy(auth()->user())
-                ->withProperties($data)
-                ->log('Direct production execution (no route steps)');
+                ->withProperties([
+                    'quantity_completed' => $data['quantity_completed'] ?? 0,
+                    'quantity_scrapped' => $data['quantity_scrapped'] ?? 0,
+                    'time_spent_minutes' => $data['time_spent'] ?? null,
+                    'photos_added' => count($photos),
+                ])
+                ->log('Step progress reported');
         });
-    }
 
-    /**
-     * Execute the next available step for an order.
-     */
-    protected function executeNextStep(ManufacturingOrder $order, array $data): ManufacturingStepExecution
-    {
-        // Find the next executable step
-        $step = $order->manufacturingRoute->steps()
-            ->where('status', 'queued')
-            ->orderBy('display_order')
-            ->first();
-
-        if (! $step) {
-            // No queued steps, find first pending step that can start
-            $step = $order->manufacturingRoute->steps()
-                ->where('status', 'pending')
-                ->orderBy('display_order')
-                ->first();
-
-            if ($step && $step->canStart()) {
-                $step->moveToQueued();
-            } else {
-                throw new \Exception('No steps available for execution');
-            }
-        }
-
-        return $this->executeStep($step, $data);
-    }
-
-    /**
-     * Execute a specific manufacturing step.
-     */
-    public function executeStep(ManufacturingStep $step, array $data): ManufacturingStepExecution
-    {
-        // Validate step can be started
-        if (! $step->canStart()) {
-            throw new \Exception('Step dependencies not met');
-        }
-
-        // Handle different execution modes for quality checks
-        if ($step->step_type === 'quality_check') {
-            return $this->executeQualityCheck($step, $data);
-        }
-
-        // Standard step execution
-        $execution = $step->startExecution(
-            $data['part_number'] ?? null,
-            $data['total_parts'] ?? null
-        );
-
-        // If this is the first started step, mark order as in_progress
-        $order = $step->manufacturingRoute->manufacturingOrder;
-        if (in_array($order->status, ['released', 'planned'])) {
-            $order->update([
-                'status' => 'in_progress',
-                'actual_start_date' => $order->actual_start_date ?? now(),
-            ]);
-        }
-
-        // Execute associated form if exists
-        if ($step->form_id && isset($data['form_data'])) {
-            $this->executeStepForm($execution, $step, $data['form_data']);
-        }
-
-        return $execution;
-    }
-
-    /**
-     * Execute quality check step.
-     */
-    protected function executeQualityCheck(ManufacturingStep $step, array $data): ManufacturingStepExecution
-    {
-        $productionQuantity = $step->manufacturingRoute->manufacturingOrder->quantity;
-        $executions = [];
-
-        switch ($step->quality_check_mode) {
-            case 'every_part':
-                // Create execution for each part
-                for ($i = 1; $i <= $productionQuantity; $i++) {
-                    $executions[] = $step->startExecution($i, $productionQuantity);
-                }
-                break;
-
-            case 'entire_lot':
-                // Single execution for entire lot
-                $executions[] = $step->startExecution(null, $productionQuantity);
-                break;
-
-            case 'sampling':
-                // Calculate sample size using ISO 2859
-                $sampleSize = $this->calculateSampleSize($productionQuantity, $step->sampling_size);
-                for ($i = 1; $i <= $sampleSize; $i++) {
-                    $executions[] = $step->startExecution($i, $sampleSize);
-                }
-                break;
-        }
-
-        return $executions[0] ?? null; // Return first execution
-    }
-
-    /**
-     * Execute form associated with step.
-     */
-    protected function executeStepForm(ManufacturingStepExecution $execution, ManufacturingStep $step, array $formData): void
-    {
-        // This would integrate with the forms module
-        // For now, just log the data
-        activity()
-            ->performedOn($execution)
-            ->causedBy(auth()->user())
-            ->withProperties(['form_data' => $formData])
-            ->log('Step form executed');
-    }
-
-    /**
-     * Calculate sample size based on ISO 2859.
-     */
-    protected function calculateSampleSize(int $lotSize, ?int $specifiedSize): int
-    {
-        if ($specifiedSize) {
-            return min($specifiedSize, $lotSize);
-        }
-
-        // Simplified ISO 2859 sampling sizes
-        // In production, use proper ISO 2859 tables
-        if ($lotSize <= 8) {
-            return $lotSize;
-        }
-        if ($lotSize <= 15) {
-            return 5;
-        }
-        if ($lotSize <= 25) {
-            return 8;
-        }
-        if ($lotSize <= 50) {
-            return 13;
-        }
-        if ($lotSize <= 90) {
-            return 20;
-        }
-        if ($lotSize <= 150) {
-            return 32;
-        }
-        if ($lotSize <= 280) {
-            return 50;
-        }
-        if ($lotSize <= 500) {
-            return 80;
-        }
-
-        return 125; // For larger lots
+        return $execution->fresh();
     }
 
     /**
      * Complete a step execution.
      */
-    public function completeStepExecution(ManufacturingStepExecution $execution, array $data): void
+    private function completeStepExecution(ManufacturingStepExecution $execution): void
     {
-        DB::transaction(function () use ($execution, $data) {
-            // Update execution
-            $execution->update([
-                'status' => 'completed',
-                'completed_at' => now(),
-                'quality_result' => $data['quality_result'] ?? null,
-                'quality_notes' => $data['quality_notes'] ?? null,
-            ]);
+        $execution->update([
+            'status' => 'completed',
+            'completed_at' => now(),
+        ]);
 
-            // Update step
-            $step = $execution->manufacturingStep;
+        // Update step status
+        $step = $execution->manufacturingStep;
+        $step->update([
+            'status' => 'completed',
+            'actual_end_time' => now(),
+        ]);
 
-            // Check if all executions for this step are complete
-            $pendingExecutions = ManufacturingStepExecution::where('manufacturing_step_id', $step->id)
-                ->whereNotIn('status', ['completed', 'cancelled'])
-                ->exists();
-
-            if (! $pendingExecutions) {
-                // All executions complete, update step status
-                $step->update([
-                    'status' => 'completed',
-                    'actual_end_time' => now(),
-                ]);
-
-                // Update order progress
-                $this->updateOrderProgress($step->manufacturingRoute->manufacturingOrder);
-
-                // Queue next steps
-                $this->queueNextSteps($step);
-            }
-        });
+        // Check and activate next step if gate requirements are met
+        $this->checkAndActivateNextStep($execution);
     }
 
     /**
-     * Update order progress based on completed steps.
+     * Check if next step can be activated based on gate requirements.
      */
-    protected function updateOrderProgress(ManufacturingOrder $order): void
+    private function checkAndActivateNextStep(ManufacturingStepExecution $execution): void
     {
-        $route = $order->manufacturingRoute;
-        if (! $route) {
+        $nextStep = $execution->manufacturingStep->getNextStep();
+
+        if (! $nextStep || ! $execution->canProceedToNextStep()) {
             return;
         }
 
-        // Check if all steps are completed
-        if ($route->allStepsCompleted()) {
-            $order->update([
-                'status' => 'completed',
-                'actual_end_date' => now(),
-                'quantity_completed' => $order->quantity,
-            ]);
-
-            // Check parent auto-completion
-            if ($order->parent) {
-                $order->parent->checkAutoCompletion();
-            }
-        }
-    }
-
-    /**
-     * Queue next steps after completing a step.
-     */
-    protected function queueNextSteps(ManufacturingStep $completedStep): void
-    {
-        // Find steps that depend on this completed step
-        $dependentSteps = $completedStep->manufacturingRoute->steps()
-            ->where('depends_on_step_id', $completedStep->id)
-            ->where('status', 'pending')
-            ->get();
-
-        foreach ($dependentSteps as $step) {
-            if ($step->canStart()) {
-                $step->moveToQueued();
-            }
-        }
-    }
-
-    /**
-     * Handle quality check failure.
-     */
-    public function handleQualityFailure(ManufacturingStepExecution $execution, string $action): void
-    {
-        $execution->update([
-            'failure_action' => $action,
-            'quality_result' => 'failed',
+        // Create execution for next step if it doesn't exist
+        $nextExecution = ManufacturingStepExecution::firstOrCreate([
+            'manufacturing_step_id' => $nextStep->id,
+            'manufacturing_order_id' => $execution->manufacturing_order_id,
+        ], [
+            'status' => 'queued',
+            'work_cell_id' => $nextStep->work_cell_id,
         ]);
 
-        if ($action === 'rework') {
-            // Create rework step if doesn't exist
-            $reworkStep = $execution->manufacturingStep->manufacturingRoute->steps()
-                ->where('step_type', 'rework')
-                ->where('depends_on_step_id', $execution->manufacturing_step_id)
-                ->first();
-
-            if (! $reworkStep) {
-                $reworkStep = $this->createReworkStep($execution->manufacturingStep);
-            }
-
-            // Queue rework step
-            $reworkStep->update(['status' => 'queued']);
-        } else {
-            // Scrap - update production order quantity
-            $order = $execution->manufacturingOrder;
-            $order->increment('quantity_scrapped', 1);
-        }
+        // Update next step status
+        $nextStep->update(['status' => 'queued']);
     }
 
     /**
-     * Create a rework step for failed quality check.
+     * Create a rework step after quality failure.
      */
-    protected function createReworkStep(ManufacturingStep $failedStep): ManufacturingStep
+    public function createReworkStep(\App\Models\Production\ManufacturingStep $originalStep, string $reason): \App\Models\Production\ManufacturingStep
     {
-        $maxDisplayOrder = $failedStep->manufacturingRoute->steps()->max('display_order');
+        $route = $originalStep->manufacturingRoute;
 
-        return $failedStep->manufacturingRoute->steps()->create([
-            'display_order' => $maxDisplayOrder + 10,
+        // Find the highest display order
+        $maxDisplayOrder = $route->steps()->max('display_order');
+
+        // Create the rework step
+        $reworkStep = \App\Models\Production\ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'display_order' => $maxDisplayOrder + 1,
             'step_type' => 'rework',
-            'name' => "Rework for {$failedStep->name}",
-            'description' => "Rework step for failed quality check on {$failedStep->name}",
-            'work_cell_id' => $failedStep->work_cell_id,
-            'cycle_time_minutes' => $failedStep->cycle_time_minutes * 2, // Estimate
-            'depends_on_step_id' => $failedStep->id,
-            'status' => 'pending',
+            'name' => "Rework: {$originalStep->name}",
+            'description' => "Rework required due to: {$reason}",
+            'work_cell_id' => $originalStep->work_cell_id,
+            'status' => 'queued',
+            'setup_time_seconds' => $originalStep->setup_time_seconds,
+            'cycle_time_seconds' => $originalStep->cycle_time_seconds,
+            'use_workcell_throughput' => $originalStep->use_workcell_throughput,
+            'depends_on_step_id' => $originalStep->id,
+            'dependency_start_condition' => 'completed',
+            'original_step_id' => $originalStep->id,
+            'rework_reason' => $reason,
         ]);
+
+        // Update the original step's next step reference if it had one
+        if ($originalStep->next_step_id) {
+            $nextStep = \App\Models\Production\ManufacturingStep::find($originalStep->next_step_id);
+            if ($nextStep) {
+                $nextStep->update(['depends_on_step_id' => $reworkStep->id]);
+            }
+            $reworkStep->update(['next_step_id' => $originalStep->next_step_id]);
+        }
+
+        return $reworkStep;
     }
 }

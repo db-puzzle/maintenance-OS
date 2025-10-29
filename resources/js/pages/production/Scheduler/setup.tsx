@@ -9,20 +9,35 @@ import { AlgorithmSelectionStep } from './components/setup/AlgorithmSelectionSte
 import { TimeParametersStep } from './components/setup/TimeParametersStep';
 import { ReviewStep } from './components/setup/ReviewStep';
 import { toast } from 'sonner';
+import { ManufacturingOrder, WorkCell } from '@/types/production';
+import { ScheduleVersion } from '@/types/scheduler';
 
-// Declare the global route function
-declare const route: (name: string, params?: any) => string;
+interface SchedulingFilters {
+    plant_id?: string;
+    area_id?: string;
+    start_date: string;
+    end_date: string;
+    search?: string;
+}
+
+interface SchedulingConfig {
+    [key: string]: unknown;
+}
+
+interface SchedulingFamily {
+    families?: unknown[];
+}
 
 interface Props {
-    currentVersion?: any;
-    publishedVersion?: any;
-    orders: any[];
-    workCells: any[];
-    filters: any;
+    currentVersion?: ScheduleVersion;
+    publishedVersion?: ScheduleVersion;
+    orders: ManufacturingOrder[];
+    workCells: WorkCell[];
+    filters: SchedulingFilters;
     algorithms: Array<{ value: string; label: string }>;
     defaultStartDate: string;
-    activeScheduleVersion?: any;
-    schedulingConfig?: any;
+    activeScheduleVersion?: ScheduleVersion;
+    schedulingConfig?: SchedulingConfig;
 }
 
 type Step = 'order-selection' | 'time-parameters' | 'algorithm-selection' | 'review';
@@ -50,18 +65,18 @@ export default function SchedulerSetup({
     currentVersion,
     publishedVersion: _publishedVersion,
     orders,
-    workCells,
-    filters,
+    workCells: _workCells,
+    filters: _filters,
     algorithms,
     defaultStartDate,
     activeScheduleVersion,
     schedulingConfig: _schedulingConfig,
 }: Props) {
-    const { flash } = usePage().props as any;
+    const { flash } = usePage().props as { success?: boolean; schedulingJob?: { job_id: string; websocket_channel: string; version_id: number }; job_id?: string;[key: string]: unknown };
     const [currentStep, setCurrentStep] = useState<Step>('order-selection');
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
-    const [families, setFamilies] = useState<any[]>([]);
-    const [timeParameterData, setTimeParameterData] = useState<any[]>([]);
+    const [families, setFamilies] = useState<SchedulingFamily[]>([]);
+    const [timeParameterData, setTimeParameterData] = useState<ManufacturingOrder[]>([]);
     const [loadingTimeParams, setLoadingTimeParams] = useState(false);
 
     // Initialize form with useForm hook
@@ -110,9 +125,9 @@ export default function SchedulerSetup({
             orderIds.forEach(id => params.append('order_ids[]', id.toString()));
 
             const response = await fetch(route('production.scheduler.families') + '?' + params.toString());
-            const data = await response.json();
-            setFamilies(data.families || []);
-        } catch (error) {
+            const data = await response.json() as SchedulingFamily;
+            setFamilies(data.families as SchedulingFamily[] || []);
+        } catch {
             // Failed to fetch families
             toast.error('Failed to fetch order families');
         }
@@ -127,11 +142,11 @@ export default function SchedulerSetup({
         setLoadingTimeParams(true);
 
         try {
-            const response = await axios.post(route('production.scheduler.validate-time-parameters'), {
+            const response = await axios.post<ManufacturingOrder[]>(route('production.scheduler.validate-time-parameters'), {
                 manufacturing_order_ids: orderIds
             });
-            setTimeParameterData(response.data || []);
-        } catch (error) {
+            setTimeParameterData(response.data as ManufacturingOrder[] || []);
+        } catch {
             // Failed to fetch time parameters
             toast.error('Failed to fetch time parameters');
         } finally {
@@ -139,7 +154,7 @@ export default function SchedulerSetup({
         }
     };
 
-    const handleOrderSelectionComplete = (orderIds: number[], dateRange: any) => {
+    const handleOrderSelectionComplete = (orderIds: number[], dateRange: { start_date: string; end_date: string }) => {
         setSelectedOrders(orderIds);
         setData({
             ...data,
@@ -175,7 +190,7 @@ export default function SchedulerSetup({
             onSuccess: () => {
                 toast.success('Scheduler started successfully');
             },
-            onError: (errors) => {
+            onError: () => {
                 // Error starting scheduler
                 toast.error('Failed to start scheduling. Please try again.');
             }

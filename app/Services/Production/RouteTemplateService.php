@@ -56,23 +56,45 @@ class RouteTemplateService
                     ->update(['is_latest_for_category' => false]);
             }
 
-            // Copy steps
-            foreach ($route->steps as $step) {
-                $template->steps()->create([
-                    'step_number' => $step->display_order / 10, // Convert display_order to step_number
-                    'display_order' => $step->display_order,
+            // Copy steps and preserve dependencies
+            $stepMapping = [];
+            foreach ($route->steps()->orderBy('step_number')->get() as $step) {
+                $newStep = $template->steps()->create([
+                    'step_number' => $step->step_number,
                     'step_type' => $step->step_type,
                     'name' => $step->name,
                     'description' => $step->description,
                     'work_cell_id' => $step->work_cell_id,
                     'form_id' => $step->form_id,
-                    'setup_time_minutes' => $step->setup_time_minutes,
-                    'cycle_time_minutes' => $step->cycle_time_minutes,
+                    'setup_time_seconds' => $step->setup_time_seconds,
+                    'cycle_time_seconds' => $step->cycle_time_seconds,
+                    'use_workcell_throughput' => $step->use_workcell_throughput ?? false,
                     'quality_check_mode' => $step->quality_check_mode,
                     'sampling_size' => $step->sampling_size,
+                    'quality_specifications' => $step->quality_specifications,
+                    'can_start_when_dependency' => $step->can_start_when_dependency ?? 'completed',
                     'is_template' => true,
                     'status' => null, // Templates don't have status
+                    // Progressive flow fields
+                    'dependency_start_condition' => $step->dependency_start_condition ?? 'completed',
+                    'dependency_minimum_quantity' => $step->dependency_minimum_quantity,
+                    'dependency_minimum_percentage' => $step->dependency_minimum_percentage,
+                    // Child order dependency fields
+                    'child_order_dependency_type' => $step->child_order_dependency_type ?? 'none',
+                    'child_order_minimum_quantity' => $step->child_order_minimum_quantity,
                 ]);
+
+                // Map old step ID to new step for dependency mapping
+                $stepMapping[$step->id] = $newStep;
+            }
+
+            // Now update dependencies using the mapping
+            foreach ($route->steps as $step) {
+                if ($step->depends_on_step_id && isset($stepMapping[$step->depends_on_step_id])) {
+                    $stepMapping[$step->id]->update([
+                        'depends_on_step_id' => $stepMapping[$step->depends_on_step_id]->id,
+                    ]);
+                }
             }
 
             return $template;

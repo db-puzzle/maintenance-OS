@@ -4,116 +4,90 @@ import AppLayout from '@/layouts/app-layout';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-// Removed unused imports: Calendar, Popover, PopoverContent, PopoverTrigger, Toggle
-import { EntityDataTable } from '@/components/shared/EntityDataTable';
-import { ManufacturingOrder, WorkCell } from '@/types/production';
+import { WorkCell, ManufacturingStep, ManufacturingOrder, ManufacturingStepExecution } from '@/types/production';
 import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
 
 import {
     RefreshCw,
     Play,
     AlertCircle,
     Clock,
-    Package,
-    Rows3,
-    LayoutGrid,
-    MoreHorizontal,
     FileText,
     Factory
 } from 'lucide-react';
-import { MOStatusBadge } from '@/pages/production/reporting/components/MOStatusBadge';
-import { MOPriorityBadge } from '@/pages/production/reporting/components/MOPriorityBadge';
-import { MOProgressBar } from '@/pages/production/reporting/components/MOProgressBar';
-import { MOCardView } from '@/pages/production/reporting/components/MOCardView';
-import { ProductionDialog } from '@/pages/production/reporting/components/ProductionDialog';
-import { ReportProductionDialog } from '@/pages/production/reporting/components/ReportProductionDialog';
-import { ReportScrapDialog } from '@/pages/production/reporting/components/ReportScrapDialog';
-import { HoldProductionDialog } from '@/pages/production/reporting/components/HoldProductionDialog';
+import { StepExecutionCard } from '@/pages/production/reporting/components/StepExecutionCard';
 import { WorkCellSearchDialog } from '@/pages/production/reporting/components/WorkCellSearchDialog';
-import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { ImageDisplayToggleButton } from '@/components/ImageDisplayToggleButton';
+import { MOStepActionDialog } from '@/pages/production/reporting/components/MOStepActionDialog';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
 
+interface ExecutableStep {
+    step: ManufacturingStep & {
+        work_cell?: WorkCell;
+    };
+    order: ManufacturingOrder;
+    execution?: ManufacturingStepExecution | null;
+    can_execute: boolean;
+    cannot_execute_reason?: string | null;
+}
+
 interface PageProps {
-    orders: {
-        data: ManufacturingOrder[];
+    steps: {
+        data: ExecutableStep[];
         current_page: number;
         last_page: number;
         per_page: number;
         total: number;
     };
-    statusCounts: Record<string, number>;
+    stepStatusCounts: Record<string, number>;
     workCells: WorkCell[];
     filters: {
         search?: string;
-        status?: string;
         statuses?: string[] | string;
         work_cell_id?: string;
-        priority?: string;
-        date_from?: string;
-        date_to?: string;
-        has_routing?: string;
-        overdue?: string;
-        sort_by?: 'priority' | 'due_date' | 'release_date' | 'available_date' | 'item_name' | 'order_number' | 'created_at';
-        sort_direction?: 'asc' | 'desc';
+        step_type?: string;
+        page?: number;
         per_page?: number;
     };
     canExecute: boolean;
-    canCreate: boolean;
-    canUpdate: boolean;
 }
 
 
-
 export default function ProductionReporting({
-    orders = { data: [], current_page: 1, last_page: 1, per_page: 20, total: 0 },
-    statusCounts = {},
+    steps = { data: [], current_page: 1, last_page: 1, per_page: 20, total: 0 },
+    stepStatusCounts = {},
     workCells = [],
-    filters = {},
-    canUpdate = false
+    filters = {}
 }: PageProps) {
 
-    const [viewMode, setViewMode] = useState<'table' | 'card'>(
-        localStorage.getItem('production-reporting-view') as 'table' | 'card' || 'table'
-    );
 
     const [autoRefresh, setAutoRefresh] = useState(true);
     const [showImages, setShowImages] = useState(true);
-    // Removed unused state: showFilters, setShowFilters
-    const [selectedOrder, setSelectedOrder] = useState<ManufacturingOrder | null>(null);
-    const [reportProductionOrder, setReportProductionOrder] = useState<ManufacturingOrder | null>(null);
-    const [reportScrapOrder, setReportScrapOrder] = useState<ManufacturingOrder | null>(null);
-    const [holdOrder, setHoldOrder] = useState<ManufacturingOrder | null>(null);
     const [showWorkCellDialog, setShowWorkCellDialog] = useState(false);
+    const [selectedStep, setSelectedStep] = useState<ExecutableStep | null>(null);
+    const [showStepActionDialog, setShowStepActionDialog] = useState(false);
+
 
     // Search state - no debounce in state, handle it in the search handler
     const [searchValue, setSearchValue] = useState(filters.search || '');
 
-    // Multi-select status filter state - default to all 3 statuses selected
+
+    // Multi-select status filter state
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>(() => {
-        if (filters.status && filters.status !== 'all') {
-            // If we have a single status filter, convert it to array
-            return [filters.status];
-        } else if (filters.statuses) {
+        if (filters.statuses) {
             // If we already have multiple statuses (from backend), use them
             return Array.isArray(filters.statuses) ? filters.statuses : filters.statuses.split(',');
         }
-        // Default: all 3 statuses selected
-        return ['released', 'in_progress', 'on_hold'];
+        // Default for steps
+        return ['queued', 'in_progress', 'on_hold', 'awaiting_quality'];
     });
 
     // Debounce timer ref to handle search
     const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Effect to update view mode preference
-    useEffect(() => {
-        localStorage.setItem('production-reporting-view', viewMode);
-    }, [viewMode]);
 
 
 
@@ -123,7 +97,7 @@ export default function ProductionReporting({
 
         const interval = setInterval(() => {
             router.reload({
-                only: ['orders', 'statusCounts', 'workCells', 'filters']
+                only: ['steps', 'stepStatusCounts', 'workCells', 'filters']
             });
         }, 30000);
 
@@ -139,10 +113,12 @@ export default function ProductionReporting({
         };
     }, []);
 
+
     const breadcrumbs = [
         { title: 'Home', href: '/home' },
-        { title: 'Apontamento', href: '#' }
+        { title: 'Apontamento de Etapas', href: '#' }
     ];
+
 
     // Handle search with debounce
     const handleSearch = (value: string) => {
@@ -171,17 +147,12 @@ export default function ProductionReporting({
         // Handle the multi-select status filter
         const filtersToSend = { ...filters, ...newFilters };
 
-        // If we're updating statuses, remove the old single status filter
-        if ('statuses' in newFilters) {
-            delete filtersToSend.status;
-        }
-
         // Convert statuses array to comma-separated string for URL
         if (filtersToSend.statuses && Array.isArray(filtersToSend.statuses)) {
             filtersToSend.statuses = filtersToSend.statuses.join(',');
         }
 
-        // If no statuses are selected, pass a special value to show no orders
+        // If no statuses are selected, pass a special value to show no steps
         if ('statuses' in newFilters && newFilters.statuses && newFilters.statuses.length === 0) {
             filtersToSend.statuses = 'none';
         }
@@ -192,15 +163,10 @@ export default function ProductionReporting({
         }, {
             preserveState: true,
             preserveScroll: true,
-            only: ['orders', 'statusCounts', 'workCells', 'filters']
+            only: ['steps', 'stepStatusCounts', 'workCells', 'filters']
         });
     };
 
-    const handleSort = (_field: string) => {
-        // Sorting is now handled by the sort selector
-        // Table sorting is disabled
-        return;
-    };
 
     const handleStatusToggle = (status: string, checked: boolean) => {
         const newStatuses = checked
@@ -208,248 +174,53 @@ export default function ProductionReporting({
             : selectedStatuses.filter(s => s !== status);
 
         setSelectedStatuses(newStatuses);
-        updateFilters({ statuses: newStatuses });
-    };
 
-    const handleAction = (action: string, order: ManufacturingOrder) => {
-        switch (action) {
-            case 'start':
-                // For routed orders with a current step, redirect to step execution
-                if (order.has_route && order.current_step) {
-                    router.visit(route('production.steps.execute', { step: order.current_step.id }));
-                } else {
-                    // For non-routed orders, use the standard start endpoint
-                    router.post(route('production.reporting.start', { order: order.id }));
-                }
-                break;
-            case 'report':
-                // For routed orders, redirect to step execution page
-                if (order.has_route) {
-                    if (order.current_step) {
-                        router.visit(route('production.steps.execute', { step: order.current_step.id }));
-                    } else {
-                        // No current step available (all steps might be completed)
-                        alert('No active steps available for execution. All steps may be completed.');
-                    }
-                } else {
-                    // For non-routed orders, use the order-level reporting dialog
-                    setReportProductionOrder(order);
-                }
-                break;
-            case 'complete':
-                if (confirm('Are you sure you want to complete this order?')) {
-                    router.post(route('production.reporting.complete', { order: order.id }));
-                }
-                break;
-            case 'hold':
-                setHoldOrder(order);
-                break;
-            case 'resume':
-                router.post(route('production.reporting.resume', { order: order.id }));
-                break;
-            case 'scrap':
-                setReportScrapOrder(order);
-                break;
-            case 'view':
-                router.visit(route('production.orders.show', { order: order.id }));
-                break;
-            default:
-                break;
-        }
+        updateFilters({ statuses: newStatuses.join(',') });
     };
 
 
 
-    // Status summary cards - Only show relevant statuses for production reporting
+    // Status summary cards for steps
     const statusCards = [
         {
-            key: 'released',
-            label: 'Liberadas',
-            count: statusCounts.released || 0,
-            icon: Package,
-            color: 'text-muted-foreground'
-        },
-        {
-            key: 'in_progress',
-            label: 'Em Andamento',
-            count: statusCounts.in_progress || 0,
+            key: 'queued',
+            label: 'Prontas',
+            count: stepStatusCounts?.queued || 0,
             icon: Clock,
             color: 'text-muted-foreground'
         },
         {
+            key: 'in_progress',
+            label: 'Em Execução',
+            count: stepStatusCounts?.in_progress || 0,
+            icon: Play,
+            color: 'text-muted-foreground'
+        },
+        {
+            key: 'awaiting_quality',
+            label: 'Aguardando QC',
+            count: stepStatusCounts?.awaiting_quality || 0,
+            icon: FileText,
+            color: 'text-muted-foreground'
+        },
+        {
             key: 'on_hold',
-            label: 'Suspensas',
-            count: statusCounts.on_hold || 0,
+            label: 'Pausadas',
+            count: stepStatusCounts?.on_hold || 0,
             icon: AlertCircle,
             color: 'text-muted-foreground'
         }
     ];
 
-    const tableColumns = [
-        ...(showImages ? [{
-            key: 'image',
-            label: 'Image',
-            render: (value: unknown, order: ManufacturingOrder) => {
-                if (!order) return null;
-                return (
-                    <ItemImagePreview
-                        primaryImageData={order.item?.primary_image_data}
-                        primaryImageUrl={order.item?.primary_image_thumbnail_url || order.item?.primary_image_url}
-                        imageCount={0}
-                        className="w-12 h-12 cursor-pointer"
-                        onClick={(e) => {
-                            e?.stopPropagation();
-                            if (order.item?.id) {
-                                router.visit(route('production.items.show', { item: order.item.id }));
-                            }
-                        }}
-                    />
-                );
-            }
-        }] : []),
-        {
-            key: 'order_number',
-            label: 'MO Number',
-            render: (value: unknown, order: ManufacturingOrder) => {
-                if (!order) return null;
-                return (
-                    <div className="flex items-center gap-2">
-                        <span className="font-medium">{order.order_number}</span>
-                        {order.has_route && <Badge variant="outline" className="text-xs">Routed</Badge>}
-                    </div>
-                );
-            }
-        },
-        {
-            key: 'item',
-            label: 'Item',
-            render: (value: unknown, order: ManufacturingOrder) => {
-                if (!order) return null;
-                return (
-                    <div>
-                        <div className="font-medium">{order.item?.item_number}</div>
-                        <div className="text-sm text-muted-foreground">{order.item?.name}</div>
-                    </div>
-                );
-            }
-        },
-        {
-            key: 'status',
-            label: 'Status',
-            render: (value: unknown, order: ManufacturingOrder) => {
-                if (!order) return null;
-                return <MOStatusBadge status={order.status} />;
-            }
-        },
-        {
-            key: 'current_step',
-            label: 'Current Step/Work Cell',
-            render: (value: unknown, order: ManufacturingOrder) => {
-                if (!order || !order.has_route || !order.current_step) {
-                    return <span className="text-muted-foreground">—</span>;
-                }
-                return (
-                    <div>
-                        <div className="text-sm font-medium">{order.current_step.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                            {order.current_step.work_cell?.name || 'No work cell'}
-                        </div>
-                    </div>
-                );
-            }
-        },
-        {
-            key: 'progress',
-            label: 'Progress',
-            render: (value: unknown, order: ManufacturingOrder) => {
-                if (!order) return null;
-                return (
-                    <div className="w-32">
-                        <MOProgressBar
-                            completed={order.quantity_completed}
-                            scrapped={order.quantity_scrapped}
-                            total={order.quantity}
-                        />
-                        <div className="text-xs text-muted-foreground mt-1">
-                            {order.quantity_completed} of {order.quantity}
-                        </div>
-                    </div>
-                );
-            }
-        },
-        {
-            key: 'priority',
-            label: 'Priority',
-            render: (value: unknown, order: ManufacturingOrder) => {
-                if (!order) return null;
-                return <MOPriorityBadge priority={order.priority} />;
-            }
-        },
-        {
-            key: 'requested_date',
-            label: 'Due Date',
-            render: (value: unknown, order: ManufacturingOrder) => {
-                if (!order || !order.requested_date) return <span className="text-muted-foreground">—</span>;
-                const date = parseISO(order.requested_date);
-                const isOverdue = date < new Date() && !['completed', 'cancelled'].includes(order.status);
-                return (
-                    <div className={cn(isOverdue && 'text-red-600 font-medium')}>
-                        {format(date, 'MMM d, yyyy')}
-                        {isOverdue && <AlertCircle className="inline-block w-4 h-4 ml-1" />}
-                    </div>
-                );
-            }
-        },
-        {
-            key: 'actions',
-            label: '',
-            render: (value: unknown, order: ManufacturingOrder) => {
-                if (!order) return null;
-                return (
-                    <div className="flex items-center justify-end gap-2">
-                        {order.status === 'released' && (
-                            <Button
-                                size="sm"
-                                variant="default"
-                                onClick={() => handleAction('start', order)}
-                                title={order.has_route ? 'Start first step execution' : 'Start production'}
-                            >
-                                <Play className="w-4 h-4 mr-1" />
-                                {order.has_route ? 'Start Step' : 'Start'}
-                            </Button>
-                        )}
-                        {order.status === 'in_progress' && (
-                            <Button
-                                size="sm"
-                                variant="default"
-                                onClick={() => handleAction('report', order)}
-                                title={order.has_route ? 'Go to current step execution' : 'Report production progress'}
-                            >
-                                <FileText className="w-4 h-4 mr-1" />
-                                {order.has_route ? 'Execute Step' : 'Report'}
-                            </Button>
-                        )}
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setSelectedOrder(order)}
-                        >
-                            <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                    </div>
-                );
-            }
-        }
-    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Apontamento de Produção" />
+            <Head title="Apontamento de Etapas" />
 
             <ListLayout
-                title="Apontamento de Produção"
-                description="Gerencie e acompanhe a produção das ordens de manufatura"
-                searchPlaceholder="Search by order number, item name or SKU..."
+                title="Apontamento de Etapas"
+                description="Gerencie e acompanhe a execução das etapas de produção"
+                searchPlaceholder="Buscar por nome da etapa, número da ordem ou item..."
                 searchValue={searchValue}
                 onSearchChange={handleSearch}
                 createButtonText=""
@@ -481,34 +252,6 @@ export default function ProductionReporting({
                             showImages={showImages}
                             onToggle={setShowImages}
                         />
-                        <div className="flex rounded-md shadow-sm">
-                            <Button
-                                size="icon"
-                                variant="outline"
-                                onClick={() => setViewMode('table')}
-                                className={cn(
-                                    'rounded-r-none border-r-0 h-9 w-9',
-                                    viewMode === 'table'
-                                        ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400 dark:bg-primary dark:text-primary-foreground dark:border-primary dark:hover:bg-primary/90'
-                                        : 'border hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-accent dark:hover:text-accent-foreground'
-                                )}
-                            >
-                                <Rows3 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                size="icon"
-                                variant="outline"
-                                onClick={() => setViewMode('card')}
-                                className={cn(
-                                    'rounded-l-none h-9 w-9',
-                                    viewMode === 'card'
-                                        ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400 dark:bg-primary dark:text-primary-foreground dark:border-primary dark:hover:bg-primary/90'
-                                        : 'border hover:bg-blue-50/50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-accent dark:hover:text-accent-foreground'
-                                )}
-                            >
-                                <LayoutGrid className="h-4 w-4" />
-                            </Button>
-                        </div>
                     </div>
                 }
             >
@@ -575,63 +318,57 @@ export default function ProductionReporting({
                 {/* Filters */}
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
                     <Select
-                        value={filters.has_routing || 'all'}
-                        onValueChange={(value) => updateFilters({
-                            has_routing: value === 'all' ? undefined : value
-                        })}
+                        value={filters.step_type || 'all'}
+                        onValueChange={(value) => {
+                            updateFilters({
+                                step_type: value === 'all' ? undefined : value
+                            });
+                        }}
                     >
                         <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="All Orders" />
+                            <SelectValue placeholder="All Step Types" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">Todas as Ordens</SelectItem>
-                            <SelectItem value="yes">Com Roteiro</SelectItem>
-                            <SelectItem value="no">Sem Roteiro</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select
-                        value={filters.sort_by || 'priority'}
-                        onValueChange={(value) => updateFilters({
-                            sort_by: value as 'priority' | 'due_date' | 'release_date' | 'available_date',
-                            sort_direction: value === 'priority' ? 'desc' : 'asc'
-                        })}
-                    >
-                        <SelectTrigger className="w-[200px]">
-                            <SelectValue placeholder="Sort by Priority" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="priority">Sort by Priority</SelectItem>
-                            <SelectItem value="due_date">Sort by Due Date</SelectItem>
-                            <SelectItem value="release_date">Sort by Release Date</SelectItem>
-                            <SelectItem value="available_date">Sort by Available Date</SelectItem>
+                            <SelectItem value="all">Todos os Tipos</SelectItem>
+                            <SelectItem value="standard">Padrão</SelectItem>
+                            <SelectItem value="quality_check">Verificação QC</SelectItem>
+                            <SelectItem value="rework">Retrabalho</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
 
                 {/* Main Content */}
-                {viewMode === 'table' ? (
-                    <EntityDataTable
-                        data={orders.data || []}
-                        columns={tableColumns}
-                        onSort={handleSort}
-                        onRowClick={(order) => setSelectedOrder(order)}
-                    />
-
-                ) : (
-                    <MOCardView
-                        orders={orders.data || []}
-                        onOrderClick={setSelectedOrder}
-                        onAction={handleAction}
-                        showImages={showImages}
-                        canUpdate={canUpdate}
-                    />
-                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {steps.data.length === 0 ? (
+                        <div className="col-span-full text-center py-12">
+                            <p className="text-muted-foreground">Nenhuma etapa disponível para execução</p>
+                        </div>
+                    ) : (
+                        steps.data.map((stepData) => (
+                            <StepExecutionCard
+                                key={`${stepData.step.id}-${stepData.order.id}`}
+                                step={stepData.step as ManufacturingStep}
+                                order={stepData.order}
+                                execution={stepData.execution}
+                                canExecute={stepData.can_execute}
+                                cannotExecuteReason={stepData.cannot_execute_reason}
+                                onClick={() => {
+                                    // Open the step action dialog instead of navigating
+                                    setSelectedStep(stepData);
+                                    setShowStepActionDialog(true);
+                                }}
+                            />
+                        ))
+                    )}
+                </div>
 
                 {/* Pagination */}
-                {orders.last_page > 1 && (
+                {steps.last_page > 1 && (
                     <div className="flex justify-center mt-6">
                         <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                            {Array.from({ length: orders.last_page }, (_, i) => i + 1).map(page => (
+                            {Array.from({
+                                length: steps.last_page
+                            }, (_, i) => i + 1).map(page => (
                                 <button
                                     key={page}
                                     onClick={() => {
@@ -642,7 +379,7 @@ export default function ProductionReporting({
                                     }}
                                     className={cn(
                                         "relative inline-flex items-center px-4 py-2 text-sm font-medium",
-                                        page === orders.current_page
+                                        page === steps.current_page
                                             ? "z-10 bg-primary text-primary-foreground"
                                             : "bg-background border-border text-foreground hover:bg-accent"
                                     )}
@@ -655,38 +392,6 @@ export default function ProductionReporting({
                 )}
             </ListLayout>
 
-            {/* Order Detail Dialog */}
-            <ProductionDialog
-                order={selectedOrder}
-                isOpen={!!selectedOrder}
-                onOpenChange={(open) => {
-                    if (!open) setSelectedOrder(null);
-                }}
-                onAction={handleAction}
-                canUpdate={canUpdate}
-            />
-
-            {/* Dialogs */}
-            {reportProductionOrder && (
-                <ReportProductionDialog
-                    order={reportProductionOrder}
-                    onClose={() => setReportProductionOrder(null)}
-                />
-            )}
-
-            {reportScrapOrder && (
-                <ReportScrapDialog
-                    order={reportScrapOrder}
-                    onClose={() => setReportScrapOrder(null)}
-                />
-            )}
-
-            {holdOrder && (
-                <HoldProductionDialog
-                    order={holdOrder}
-                    onClose={() => setHoldOrder(null)}
-                />
-            )}
 
             {/* Work Cell Search Dialog */}
             <WorkCellSearchDialog
@@ -698,6 +403,14 @@ export default function ProductionReporting({
                     updateFilters({ work_cell_id: workCellId });
                     setShowWorkCellDialog(false);
                 }}
+            />
+
+            {/* Step Action Dialog */}
+            <MOStepActionDialog
+                order={selectedStep?.order || null}
+                isOpen={showStepActionDialog}
+                onOpenChange={setShowStepActionDialog}
+                activeStepId={selectedStep?.step.id}
             />
         </AppLayout>
     );

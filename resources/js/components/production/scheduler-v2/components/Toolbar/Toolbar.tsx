@@ -27,21 +27,29 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ZoomLevel, ZOOM_LEVELS } from '../../utils/zoomConfig';
 
+interface AlertStats {
+    totalAlerts: number;
+    criticalAlerts: number;
+    warningAlerts: number;
+}
+
+interface ViewConfig {
+    startDate: Date;
+    endDate: Date;
+}
+
 interface ToolbarProps {
     currentVersion: ScheduleVersion;
     publishedVersion?: ScheduleVersion;
     schedulingAlgorithms: Record<string, string>;
-    alertStats: any;
+    alertStats: AlertStats;
     zoomLevel: ZoomLevel;
     onZoomIn: () => void;
     onZoomOut: () => void;
     onZoomFit: () => void;
     onZoomLevelChange: (levelId: string) => void;
-    viewConfig: {
-        startDate: Date;
-        endDate: Date;
-    };
-    onViewConfigChange: (config: any) => void;
+    viewConfig: ViewConfig;
+    onViewConfigChange: (config: ViewConfig) => void;
     showDependencies: boolean;
     onToggleDependencies: () => void;
     onOpenOrderSelection: () => void;

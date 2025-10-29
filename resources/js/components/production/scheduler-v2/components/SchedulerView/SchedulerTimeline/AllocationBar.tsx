@@ -2,8 +2,14 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Lock } from 'lucide-react';
 
+interface Allocation {
+    name: string;
+    status?: string;
+    is_locked?: boolean;
+}
+
 interface AllocationBarProps {
-    allocation: any;
+    allocation: Allocation;
     x: number;
     y: number;
     width: number;

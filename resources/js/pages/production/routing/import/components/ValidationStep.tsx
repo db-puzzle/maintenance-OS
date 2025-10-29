@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, ArrowRight, AlertCircle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,8 +7,6 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { router } from '@inertiajs/react';
-import { toast } from 'sonner';
 import {
     ImportFile,
     FieldMapping,
@@ -16,13 +14,7 @@ import {
     ImportSession,
     ImportError,
     STEP_TYPES,
-    QUALITY_CHECK_MODES,
-    DEPENDENCY_CONDITIONS,
-    DEPENDENCY_START_CONDITIONS,
-    CHILD_ORDER_DEPENDENCY_TYPES,
-    validateEnumValue,
-    parseBooleanValue,
-    parseJsonValue
+    validateEnumValue
 } from '../types';
 
 interface Props {
@@ -45,7 +37,7 @@ interface ValidationResult {
     };
 }
 
-export function ValidationStep({ files, mapping, options, onNext, onBack }: Props) {
+export function ValidationStep({ files, mapping, options: _options, onNext, onBack }: Props) {
     const [isValidating, setIsValidating] = useState(false);
     const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
     const [progress, setProgress] = useState(0);
@@ -55,24 +47,7 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
     const fileType = file.file.name.split('.').pop()?.toLowerCase();
     const isJson = fileType === 'json';
 
-    useEffect(() => {
-        validateData();
-    }, []);
-
-    const validateData = async () => {
-        setIsValidating(true);
-        setProgress(0);
-
-        // For now, skip server validation since the route doesn't exist
-        // and go directly to client-side validation
-        setTimeout(() => {
-            setProgress(100);
-            performClientSideValidation();
-            setIsValidating(false);
-        }, 500);
-    };
-
-    const performClientSideValidation = () => {
+    const performClientSideValidation = useCallback(() => {
         // This is a fallback when server validation is not available
         const errors: ImportError[] = [];
         const warnings: ImportError[] = [];
@@ -82,7 +57,7 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
 
         if (isJson && file.data) {
             // Validate JSON data
-            file.data.forEach((template: any, index) => {
+            file.data.forEach((template: Record<string, unknown>, index) => {
                 totalTemplates++;
                 let isValid = true;
 
@@ -99,7 +74,7 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
 
                 // Validate steps
                 if (template.steps && Array.isArray(template.steps)) {
-                    template.steps.forEach((step: any, stepIndex: number) => {
+                    template.steps.forEach((step: Record<string, unknown>, stepIndex: number) => {
                         if (!step.name) {
                             errors.push({
                                 row: index + 1,
@@ -127,11 +102,11 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
             });
         } else if (!isJson && file.data) {
             // Validate CSV data with mapping
-            const templateMap = new Map<string, any>();
+            const templateMap = new Map<string, Record<string, unknown>>();
 
             // Group rows by template name
-            file.data.forEach((row: any, index) => {
-                const mappedRow: any = {};
+            file.data.forEach((row: Record<string, unknown>, index) => {
+                const mappedRow: Record<string, unknown> = {};
 
                 // Apply mapping to convert CSV headers to field names
                 Object.entries(mapping).forEach(([csvHeader, fieldName]) => {
@@ -141,20 +116,20 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
                 });
 
                 const templateName = mappedRow.template_name || `Template ${index + 1}`;
-                if (!templateMap.has(templateName)) {
-                    templateMap.set(templateName, {
+                if (!templateMap.has(templateName as string)) {
+                    templateMap.set(templateName as string, {
                         name: templateName,
                         description: mappedRow.template_description || '',
                         item_category_name: mappedRow.item_category_name || '',
                         version: mappedRow.version || '1',
                         is_active: mappedRow.is_active || 'true',
-                        steps: []
+                        steps: [] as unknown[]
                     });
                 }
 
                 // Add step data
                 if (mappedRow.name || mappedRow.step_number) {
-                    templateMap.get(templateName).steps.push(mappedRow);
+                    (templateMap.get(templateName as string)!.steps as unknown[]).push(mappedRow);
                 }
             });
 
@@ -175,7 +150,7 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
                 }
 
                 // Validate steps
-                template.steps.forEach((step: any, stepIndex: number) => {
+                (template.steps as unknown[]).forEach((step: Record<string, unknown>, stepIndex: number) => {
                     if (!step.name) {
                         errors.push({
                             row: stepIndex + 2,
@@ -229,9 +204,26 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
 
             setSession(dummySession);
         }
-    };
+    }, [isJson, file.data, mapping]);
 
-    const getErrorIcon = (error: ImportError) => {
+    const validateData = useCallback(async () => {
+        setIsValidating(true);
+        setProgress(0);
+
+        // For now, skip server validation since the route doesn't exist
+        // and go directly to client-side validation
+        setTimeout(() => {
+            setProgress(100);
+            performClientSideValidation();
+            setIsValidating(false);
+        }, 500);
+    }, [performClientSideValidation]);
+
+    useEffect(() => {
+        validateData();
+    }, [validateData]);
+
+    const _getErrorIcon = (error: ImportError) => {
         if (error.field?.includes('warning')) {
             return <AlertCircle className="h-4 w-4 text-yellow-500" />;
         }

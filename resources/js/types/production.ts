@@ -6,6 +6,7 @@ import { Plant } from './entities/plant';
 import { Area } from './entities/area';
 import { Sector } from './entities/sector';
 import { Form } from './work-order';
+import { Media } from './media';
 
 export interface ItemCategory {
     id: number;
@@ -283,6 +284,7 @@ export interface ManufacturingOrder {
     quantity_completed: number;
     quantity_scrapped: number;
     unit_of_measure: string;
+    unit_of_measure_code?: string;
     status: 'draft' | 'planned' | 'scheduled' | 'released' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
     canRevertStatus?: boolean;
     priority: number;
@@ -317,6 +319,7 @@ export interface ManufacturingOrder {
     manufacturing_route?: ManufacturingRoute;
     route?: ManufacturingRoute;
     has_route?: boolean;
+    activeExecution?: ManufacturingStepExecution;
     current_step?: ManufacturingStep;
     progress_percentage?: number;
     quantity_remaining?: number;
@@ -383,7 +386,7 @@ export interface ManufacturingRoute {
     is_latest_for_category?: boolean;
     template_metadata?: {
         tags?: string[];
-        [key: string]: any;
+        [key: string]: unknown;
     };
     steps?: ManufacturingStep[];
     steps_count?: number;
@@ -399,7 +402,6 @@ export interface ManufacturingRoute {
 export interface ManufacturingStep {
     id: number;
     manufacturing_route_id: number;
-    display_order?: number;
     step_number: number;
     step_type: 'standard' | 'quality_check' | 'rework';
     name: string;
@@ -440,6 +442,10 @@ export interface ManufacturingStep {
     scheduled_start?: string;
     scheduled_end?: string;
     manufacturing_route?: ManufacturingRoute;
+    next_step?: ManufacturingStep;
+    // Runtime properties for UI
+    can_start?: boolean;
+    cannot_start_reason?: string;
 }
 
 export interface ManufacturingStepExecution {
@@ -467,6 +473,16 @@ export interface ManufacturingStepExecution {
     // Progressive flow fields
     quantity_completed?: number;
     quantity_scrapped?: number;
+    // New fields for enhanced tracking
+    production_notes?: string;
+    scrap_reason?: string;
+    time_spent_minutes?: number;
+    photo_count?: number;
+    last_photo_at?: string;
+    hold_reason?: string;
+    hold_notes?: string;
+    media?: Media[];
+    manufacturingStep?: ManufacturingStep;
 }
 
 export interface ProductionExecution {

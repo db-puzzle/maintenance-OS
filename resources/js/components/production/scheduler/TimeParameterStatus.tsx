@@ -14,7 +14,6 @@ import {
     Clock,
     Edit2,
     Factory,
-    AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TimeParameterForm from './TimeParameterForm';
@@ -32,7 +31,10 @@ interface Step {
     id: number;
     name: string;
     work_cell_id: number | null;
-    work_cell: any;
+    work_cell: {
+        id: number;
+        name: string;
+    } | null;
     has_step_time: boolean;
     setup_time_minutes: number | null;
     cycle_time_minutes: number | null;
@@ -47,7 +49,11 @@ interface Step {
 interface OrderData {
     id: number;
     order_number: string;
-    item: any;
+    item: {
+        id: number;
+        name: string;
+        item_number: string;
+    };
     quantity: number;
     status: string;
     has_route: boolean;
@@ -84,16 +90,16 @@ export default function TimeParameterStatus({ orders, onRefresh }: TimeParameter
         setExpandedOrders(newExpanded);
     };
 
-    const getStatusIcon = (status: 'valid' | 'partial' | 'missing') => {
-        switch (status) {
-            case 'valid':
-                return <CheckCircle2 className="w-4 h-4 text-green-500" />;
-            case 'partial':
-                return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
-            case 'missing':
-                return <AlertCircle className="w-4 h-4 text-red-500" />;
-        }
-    };
+    // const getStatusIcon = (status: 'valid' | 'partial' | 'missing') => {
+    //     switch (status) {
+    //         case 'valid':
+    //             return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+    //         case 'partial':
+    //             return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
+    //         case 'missing':
+    //             return <AlertCircle className="w-4 h-4 text-red-500" />;
+    //     }
+    // };
 
     const getStatusBadge = (status: 'valid' | 'partial' | 'missing') => {
         switch (status) {

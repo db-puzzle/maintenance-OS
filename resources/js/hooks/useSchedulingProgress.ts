@@ -1,6 +1,65 @@
 import { useState, useEffect, useCallback } from 'react';
 import { router } from '@inertiajs/react';
 
+// Echo types
+interface EchoChannel {
+    listen: (event: string, callback: (data: unknown) => void) => void;
+    stopListening: (event: string) => void;
+}
+
+interface Echo {
+    channel: (name: string) => EchoChannel;
+    leave: (name: string) => void;
+}
+
+interface WindowWithEcho extends Window {
+    Echo?: Echo;
+}
+
+// Echo event types
+interface SchedulingStartedEvent {
+    jobId: string;
+    timestamp: string;
+    totalSteps: number;
+}
+
+interface SchedulingProgressEvent {
+    jobId: string;
+    percentage: number;
+    currentStep: number;
+    totalSteps: number;
+    currentOperation: string;
+    estimatedTimeRemaining?: number;
+}
+
+interface SchedulingCompletedEvent {
+    jobId: string;
+    timestamp: string;
+    stats: {
+        ordersScheduled: number;
+        stepsScheduled: number;
+        duration: number;
+        alerts: {
+            errors: number;
+            warnings: number;
+        };
+    };
+}
+
+interface SchedulingFailedEvent {
+    jobId: string;
+    error: string;
+    timestamp: string;
+}
+
+// interface SchedulingApiResponse {
+//     success?: boolean;
+//     job_id?: string;
+//     websocket_channel?: string;
+//     version_id?: number;
+//     error?: string;
+// }
+
 interface SchedulingProgressState {
     isOpen: boolean;
     jobId: string | null;
@@ -46,10 +105,11 @@ export function useSchedulingProgress(scheduleVersionId: number): SchedulingProg
     useEffect(() => {
         if (!state.jobId || state.status === 'idle') return;
 
-        const channel = (window as any).Echo.channel(`scheduling.${scheduleVersionId}`);
+        const channel = (window as WindowWithEcho).Echo?.channel(`scheduling.${scheduleVersionId}`);
+        if (!channel) return;
 
         // Handle scheduling started
-        const handleStarted = (e: any) => {
+        const handleStarted = (e: SchedulingStartedEvent) => {
             if (e.jobId === state.jobId) {
                 setState(prev => ({
                     ...prev,
@@ -65,7 +125,7 @@ export function useSchedulingProgress(scheduleVersionId: number): SchedulingProg
         };
 
         // Handle progress updates
-        const handleProgress = (e: any) => {
+        const handleProgress = (e: SchedulingProgressEvent) => {
             if (e.jobId === state.jobId) {
                 setState(prev => ({
                     ...prev,
@@ -81,7 +141,7 @@ export function useSchedulingProgress(scheduleVersionId: number): SchedulingProg
         };
 
         // Handle completion
-        const handleComplete = (e: any) => {
+        const handleComplete = (e: SchedulingCompletedEvent) => {
             if (e.jobId === state.jobId) {
                 setState(prev => ({
                     ...prev,
@@ -99,7 +159,7 @@ export function useSchedulingProgress(scheduleVersionId: number): SchedulingProg
         };
 
         // Handle failure
-        const handleFailed = (e: any) => {
+        const handleFailed = (e: SchedulingFailedEvent) => {
             if (e.jobId === state.jobId) {
                 setState(prev => ({
                     ...prev,
@@ -111,7 +171,7 @@ export function useSchedulingProgress(scheduleVersionId: number): SchedulingProg
         };
 
         // Handle warnings
-        const handleWarning = (e: any) => {
+        const handleWarning = (e: { jobId: string; message: string; type: string }) => {
             if (e.jobId === state.jobId) {
                 console.warn('Scheduling warning:', e.message);
             }
@@ -131,7 +191,7 @@ export function useSchedulingProgress(scheduleVersionId: number): SchedulingProg
             channel.stopListening('SchedulingComplete');
             channel.stopListening('SchedulingFailed');
             channel.stopListening('SchedulingWarning');
-            (window as any).Echo.leave(`scheduling.${scheduleVersionId}`);
+            (window as WindowWithEcho).Echo?.leave(`scheduling.${scheduleVersionId}`);
         };
     }, [scheduleVersionId, state.jobId, state.status]);
 
@@ -179,11 +239,11 @@ export function useSchedulingProgress(scheduleVersionId: number): SchedulingProg
                 ...prev,
                 jobId: data.job_id,
             }));
-        } catch (error: any) {
+        } catch (error) {
             setState(prev => ({
                 ...prev,
                 status: 'failed',
-                error: error.message || 'Failed to start scheduling',
+                error: error instanceof Error ? error.message : 'Failed to start scheduling',
             }));
         }
     }, []);
@@ -251,7 +311,7 @@ export function useSchedulingProgressWithParams() {
                 {
                     preserveState: true,
                     preserveUrl: true,
-                    onSuccess: (page: any) => {
+                    onSuccess: (page: { props: { flash?: { data?: { job_id?: string } }; job_id?: string } }) => {
                         const data = page.props.flash?.data || page.props;
                         if (data.job_id) {
                             setState(prev => ({
@@ -263,7 +323,7 @@ export function useSchedulingProgressWithParams() {
                             setupEchoListener(params.versionId, data.job_id);
                         }
                     },
-                    onError: (errors: any) => {
+                    onError: (errors: { message?: string }) => {
                         const errorMessage = errors.message || 'Failed to start scheduling job.';
                         setState(prev => ({
                             ...prev,
@@ -274,58 +334,65 @@ export function useSchedulingProgressWithParams() {
                     },
                 }
             );
-        } catch (error: any) {
+        } catch (error) {
             setState(prev => ({
                 ...prev,
                 status: 'failed',
-                error: error.message || 'Failed to start scheduling',
+                error: error instanceof Error ? error.message : 'Failed to start scheduling',
             }));
         }
     }, []);
 
     const setupEchoListener = (versionId: number, jobId: string) => {
-        const channel = (window as any).Echo.channel(`scheduling.${versionId}`);
+        const channel = (window as WindowWithEcho).Echo?.channel(`scheduling.${versionId}`);
+        if (!channel) {
+            console.error('Echo channel not available');
+            return;
+        }
 
-        channel.listen('SchedulingStarted', (e: any) => {
-            if (e.jobId === jobId) {
+        channel.listen('SchedulingStarted', (e: unknown) => {
+            const event = e as SchedulingStartedEvent;
+            if (event.jobId === jobId) {
                 setState(prev => ({
                     ...prev,
                     status: 'running',
-                    startedAt: new Date(e.timestamp),
+                    startedAt: new Date(event.timestamp),
                     progress: {
                         ...prev.progress,
-                        totalSteps: e.totalSteps,
+                        totalSteps: event.totalSteps,
                     },
                 }));
             }
         });
 
-        channel.listen('SchedulingProgress', (e: any) => {
-            if (e.jobId === jobId) {
+        channel.listen('SchedulingProgress', (e: unknown) => {
+            const event = e as SchedulingProgressEvent;
+            if (event.jobId === jobId) {
                 setState(prev => ({
                     ...prev,
                     progress: {
-                        percentage: e.percentage,
-                        currentStep: e.currentStep,
-                        totalSteps: e.totalSteps,
-                        currentOperation: e.currentOperation,
-                        estimatedTimeRemaining: e.estimatedSecondsRemaining,
+                        percentage: event.percentage,
+                        currentStep: event.currentStep,
+                        totalSteps: event.totalSteps,
+                        currentOperation: event.currentOperation,
+                        estimatedTimeRemaining: event.estimatedTimeRemaining,
                     },
                 }));
             }
         });
 
-        channel.listen('SchedulingComplete', (e: any) => {
-            if (e.jobId === jobId) {
+        channel.listen('SchedulingComplete', (e: unknown) => {
+            const event = e as SchedulingCompletedEvent;
+            if (event.jobId === jobId) {
                 setState(prev => ({
                     ...prev,
                     status: 'completed',
-                    completedAt: new Date(e.timestamp),
-                    alerts: e.alertBreakdown,
+                    completedAt: new Date(event.timestamp),
+                    alerts: event.stats.alerts,
                 }));
 
                 // Cleanup listener
-                (window as any).Echo.leave(`scheduling.${versionId}`);
+                (window as WindowWithEcho).Echo?.leave(`scheduling.${versionId}`);
 
                 // Auto-refresh schedule data
                 router.reload({
@@ -335,17 +402,18 @@ export function useSchedulingProgressWithParams() {
             }
         });
 
-        channel.listen('SchedulingFailed', (e: any) => {
-            if (e.jobId === jobId) {
+        channel.listen('SchedulingFailed', (e: unknown) => {
+            const event = e as SchedulingFailedEvent;
+            if (event.jobId === jobId) {
                 setState(prev => ({
                     ...prev,
                     status: 'failed',
-                    error: e.error,
-                    completedAt: new Date(e.timestamp),
+                    error: event.error,
+                    completedAt: new Date(event.timestamp),
                 }));
 
                 // Cleanup listener
-                (window as any).Echo.leave(`scheduling.${versionId}`);
+                (window as WindowWithEcho).Echo?.leave(`scheduling.${versionId}`);
             }
         });
     };

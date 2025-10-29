@@ -34,7 +34,7 @@ export function useMedia({
 
             setMedia(response.data.data || []);
         } catch (err) {
-            setError((err as any).message || 'Failed to load media');
+            setError((err as { message?: string }).message || 'Failed to load media');
             console.error('Failed to load media:', err);
         } finally {
             setIsLoading(false);

@@ -16,7 +16,7 @@ export function FileSelectionStep({ supportedFormats, onNext }: Props) {
     const [error, setError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
 
-    const handleFileSelect = (files: FileList | null) => {
+    const handleFileSelect = useCallback((files: FileList | null) => {
         if (!files || files.length === 0) return;
 
         const file = files[0];
@@ -53,7 +53,7 @@ export function FileSelectionStep({ supportedFormats, onNext }: Props) {
         }
 
         setError(null);
-    };
+    }, [supportedFormats]);
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -69,7 +69,7 @@ export function FileSelectionStep({ supportedFormats, onNext }: Props) {
         e.preventDefault();
         setIsDragging(false);
         handleFileSelect(e.dataTransfer.files);
-    }, []);
+    }, [handleFileSelect]);
 
     const removeFile = () => {
         setSelectedFiles([]);

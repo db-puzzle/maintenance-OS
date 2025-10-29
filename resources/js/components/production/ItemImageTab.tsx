@@ -3,9 +3,7 @@ import { Button } from '@/components/ui/button';
 import {
     Upload,
     Camera,
-    Shield,
     ShieldCheck,
-    ShieldOff,
     Download,
     Trash2,
     Eye,

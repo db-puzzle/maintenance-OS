@@ -83,7 +83,19 @@ export function StepReportingInterface({
         setSubmitting(true);
         try {
             // Prepare submission data
-            const submitData: any = {
+            interface SubmitData {
+                quantity_completed: number;
+                mark_complete: boolean;
+                time_spent?: string;
+                notes?: string;
+                quantity_scrapped?: number;
+                scrap_reason?: string;
+                quality_result?: 'passed' | 'failed';
+                quality_notes?: string;
+                failure_action?: 'scrap' | 'rework';
+            }
+
+            const submitData: SubmitData = {
                 quantity_completed: data.quantity_completed || 0,
                 mark_complete: data.mark_complete,
             };
@@ -119,9 +131,14 @@ export function StepReportingInterface({
 
             reset();
             onSubmit();
-        } catch (error: any) {
+        } catch (error) {
             console.error('Failed to report progress:', error);
-            alert(error.response?.data?.message || 'Failed to report progress');
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as { response?: { data?: { message?: string } } };
+                alert(axiosError.response?.data?.message || 'Failed to report progress');
+            } else {
+                alert('Failed to report progress');
+            }
         } finally {
             setSubmitting(false);
         }
@@ -135,7 +152,7 @@ export function StepReportingInterface({
 
             <Tabs
                 value={activeTab}
-                onValueChange={(value) => setActiveTab(value as any)}
+                onValueChange={(value) => setActiveTab(value as 'production' | 'scrap' | 'quality')}
                 className="w-full"
             >
                 <TabsList className={cn("grid w-full", isQualityCheckStep ? "grid-cols-3" : "grid-cols-2")}>

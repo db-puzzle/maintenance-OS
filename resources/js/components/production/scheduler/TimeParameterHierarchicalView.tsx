@@ -4,16 +4,18 @@ import { HierarchicalViewHeader } from '../shared/HierarchicalViewHeader';
 import { useTreeExpansion } from '../shared/useTreeExpansion';
 import { TimeParameterOrderCard } from './TimeParameterOrderCard';
 import TimeParameterForm from './TimeParameterForm';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 // Extend TimeParameterData with tree structure
 export interface TimeParameterTreeNode extends GenericTreeNode {
     id: number;
     order_number: string;
-    item: any;
+    item: {
+        id: number;
+        name: string;
+        item_number: string;
+    };
     quantity: number;
     status: string;
     has_route: boolean;
@@ -22,13 +24,19 @@ export interface TimeParameterTreeNode extends GenericTreeNode {
         id: number;
         name: string;
         work_cell_id: number | null;
-        work_cell: any;
+        work_cell: {
+            id: number;
+            name: string;
+            production_rate_per_hour?: number;
+        } | null;
         has_step_time: boolean;
         setup_time_minutes: number | null;
         cycle_time_minutes: number | null;
         use_workcell_throughput: boolean | null;
         has_work_cell_rate: boolean;
-        work_cell_rate: any;
+        work_cell_rate: {
+            production_rate_per_hour?: number;
+        } | null;
         effective_time_source: 'step' | 'work_cell' | null;
         effective_setup_time: number | null;
         effective_cycle_time: number | null;
@@ -60,7 +68,7 @@ export default function TimeParameterHierarchicalView({
     const [editingStep, setEditingStep] = useState<{
         orderId: number;
         stepId: number;
-        step: any;
+        step: TimeParameterTreeNode['steps'][0];
     } | null>(null);
 
     // Use tree expansion hook - start with collapsed state
@@ -77,7 +85,7 @@ export default function TimeParameterHierarchicalView({
         if (orders.length > 0 && expandLevel !== undefined && expandLevel >= 0) {
             expandToLevel(expandLevel);
         }
-    }, [orders.length]); // Only depend on orders.length to avoid infinite loops
+    }, [orders.length, expandLevel, expandToLevel]); // Include all dependencies
 
     // Calculate statistics
     const calculateStats = useCallback(() => {
@@ -114,7 +122,7 @@ export default function TimeParameterHierarchicalView({
     const completionPercentage = stats.total > 0 ? Math.round((stats.valid / stats.total) * 100) : 0;
 
     // Handle step editing
-    const handleEditStep = (orderId: number, stepId: number, step: any) => {
+    const handleEditStep = (orderId: number, stepId: number, step: TimeParameterTreeNode['steps'][0]) => {
         setEditingStep({ orderId, stepId, step });
     };
 

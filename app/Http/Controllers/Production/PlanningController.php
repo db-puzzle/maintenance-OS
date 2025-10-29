@@ -152,8 +152,14 @@ class PlanningController extends Controller
                     unset($stepDataToSave['cycle_time_minutes']);
                 }
 
+                // Map sequence to step_number
+                $stepDataToSave['step_number'] = $stepData['sequence'];
+
                 $route->steps()->create($stepDataToSave);
             }
+
+            // Set up step dependencies based on sequence
+            $route->setupStepDependencies();
 
             // Note: Status transition from 'draft' to 'planned' should only happen
             // via explicit user action using the "Marcar Planejada" button,
@@ -241,6 +247,9 @@ class PlanningController extends Controller
                         unset($stepDataToSave['cycle_time_minutes']);
                     }
 
+                    // Map sequence to step_number
+                    $stepDataToSave['step_number'] = $stepData['sequence'];
+
                     $route->steps()->create($stepDataToSave);
                 }
 
@@ -314,7 +323,7 @@ class PlanningController extends Controller
                     'work_cell_id' => $step->work_cell_id,
                     'setup_time_seconds' => $step->setup_time_seconds,
                     'cycle_time_seconds' => $step->cycle_time_seconds,
-                    'display_order' => $step->display_order,
+                    'step_number' => $step->step_number,
                     'step_type' => $step->step_type,
                     'is_required' => $step->is_required ?? true,
                     'status' => 'pending',

@@ -5,15 +5,37 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup, ImperativePanelGr
 
 import { ZoomLevel } from '../../utils/zoomConfig';
 
+interface WorkCell {
+    id: number;
+    name: string;
+    cell_type: string;
+    has_finite_capacity: boolean;
+    current_utilization?: number;
+    scheduled_steps?: unknown[];
+}
+
+interface Allocation {
+    id: string;
+    is_locked?: boolean;
+    planned_start_date: string;
+    planned_end_date: string;
+}
+
+interface AllocationUpdate {
+    scheduled_start?: string;
+    scheduled_end?: string;
+    workcell_id?: number;
+}
+
 interface SchedulerViewProps {
-    workCells: any[];
-    allocations: any[];
+    workCells: WorkCell[];
+    allocations: Allocation[];
     viewConfig: {
         startDate: Date;
         endDate: Date;
     };
     zoomLevel: ZoomLevel;
-    onAllocationUpdate: (allocationId: string, updates: any) => void;
+    onAllocationUpdate: (allocationId: string, updates: AllocationUpdate) => void;
     leftPanelSize: number;
     onLeftPanelResize: (size: number) => void;
     panelGroupRef: React.RefObject<ImperativePanelGroupHandle | null>;

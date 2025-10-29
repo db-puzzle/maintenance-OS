@@ -445,17 +445,26 @@ class ManufacturingOrder extends Model
                             'id',
                             'manufacturing_route_id',
                             'name',
+                            'description',
                             'work_cell_id',
-                            'display_order',
+                            'step_number',
                             'step_type',
                             'setup_time_seconds',
                             'cycle_time_seconds',
                             'use_workcell_throughput',
+                            'quality_check_mode',
+                            'sampling_size',
+                            'form_id',
+                            'depends_on_step_id',
+                            'can_start_when_dependency',
+                            'dependency_start_condition',
+                            'dependency_minimum_quantity',
+                            'dependency_minimum_percentage',
                             'child_order_dependency_type',
                             'child_order_minimum_quantity',
                             'status'
                         )
-                            ->orderBy('display_order')
+                            ->orderBy('step_number')
                             ->with('workCell');
                     }]);
             },
@@ -678,7 +687,7 @@ class ManufacturingOrder extends Model
 
         $steps = $this->manufacturingRoute->steps()
             ->with('dependentSteps')
-            ->orderBy('display_order')
+            ->orderBy('step_number')
             ->get();
 
         $wipByStep = [];
@@ -808,7 +817,7 @@ class ManufacturingOrder extends Model
 
         return $this->manufacturingRoute->steps()
             ->whereNotIn('status', ['completed', 'skipped', 'cancelled'])
-            ->orderBy('display_order')
+            ->orderBy('step_number')
             ->first();
     }
 
@@ -827,7 +836,7 @@ class ManufacturingOrder extends Model
             ->where('work_cell_id', $workCellId)
             ->whereNotIn('status', ['completed', 'skipped', 'cancelled'])
             ->with(['dependency'])
-            ->orderBy('display_order');
+            ->orderBy('step_number');
 
         $steps = $stepsQuery->get();
 
@@ -835,7 +844,7 @@ class ManufacturingOrder extends Model
         foreach ($steps as $step) {
             // Check if this step is blocked by an earlier step at a different work cell
             $hasBlockingStep = $this->manufacturingRoute->steps()
-                ->where('display_order', '<', $step->display_order)
+                ->where('step_number', '<', $step->step_number)
                 ->whereNotIn('status', ['completed', 'skipped', 'cancelled'])
                 ->where('work_cell_id', '!=', $workCellId)
                 ->exists();

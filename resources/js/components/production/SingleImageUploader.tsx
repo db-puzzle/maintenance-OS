@@ -16,7 +16,7 @@ interface SingleImageUploaderProps {
 export function SingleImageUploader({ itemId, onUploadComplete, onCancel, isReplacing = false }: SingleImageUploaderProps) {
     const [dragActive, setDragActive] = useState(false);
     const [preview, setPreview] = useState<{ file: File; url: string } | null>(null);
-    const { data, setData, post, progress, errors, processing } = useForm({
+    const { setData, post, progress, errors, processing } = useForm({
         images: [] as File[],
         set_primary: true,
     });
