@@ -7,6 +7,7 @@ import GatePropertiesPanel from '@/components/production/GatePropertiesPanel';
 import { ManufacturingStep, WorkCell, ManufacturingOrder } from '@/types/production';
 import { GateConfiguration } from '@/components/production/GateCard';
 import { useRouteChangesStore } from '@/stores/useRouteChangesStore';
+import { calculateDisplayPositions } from '@/utils/step-sequencer';
 
 // ExtendedManufacturingStep type is defined in StepPropertiesPanel
 
@@ -24,6 +25,7 @@ export interface RouteStep {
     quality_check_mode?: 'every_part' | 'entire_lot' | 'sampling';
     sampling_size?: number;
     form_id?: number;
+    depends_on_step_id?: string | number;
     // Gate after this step
     gate_after?: GateConfiguration;
 }
@@ -162,7 +164,7 @@ export default function RouteBuilder({
             } else if (manufacturingOrder.manufacturing_route && manufacturingOrder.manufacturing_route.steps) {
                 const routeSteps: RouteStep[] = manufacturingOrder.manufacturing_route.steps.map((step: ManufacturingStep, index: number) => ({
                     id: step.id?.toString() || `existing-${index}`,
-                    sequence: step.step_number || index + 1,
+                    sequence: step.display_position || index + 1,
                     name: step.name,
                     description: step.description || '',
                     work_cell_id: step.work_cell_id ?? null,
@@ -298,19 +300,50 @@ export default function RouteBuilder({
             is_required: true,
             gate_after: { dependency_type: 'all_children_completed' },
         };
+
+        // Set depends_on_step_id for the new step if there are existing steps
+        if (steps.length > 0) {
+            // Find the last step's ID to set as dependency
+            const lastStep = steps[steps.length - 1];
+            newStep.depends_on_step_id = lastStep.id;
+        }
+
         setSteps(prevSteps => [...prevSteps, newStep]);
         setSelectedStep(newStep);
         // Clear any gate selection to ensure step panel opens
         setSelectedGateId(null);
-    }, [steps.length]);
+    }, [steps]);
 
     // Delete step
     const handleDeleteStep = useCallback((index: number) => {
+        const deletedStepId = steps[index].id;
         const newSteps = steps.filter((_, i) => i !== index);
-        // Update sequence numbers
+
+        // Update sequence numbers and fix dependency chain
         newSteps.forEach((step, i) => {
             step.sequence = i + 1;
+
+            // Fix dependencies after deletion
+            if (i === 0) {
+                // First step should have no dependency
+                step.depends_on_step_id = undefined;
+            } else {
+                // Each step depends on the previous one
+                step.depends_on_step_id = newSteps[i - 1].id;
+            }
+
+            // If this step depended on the deleted step, update its dependency
+            if (step.depends_on_step_id === deletedStepId) {
+                if (index === 0 && i === 0) {
+                    // If we deleted the first step, the new first step should have no dependency
+                    step.depends_on_step_id = undefined;
+                } else if (index > 0) {
+                    // Otherwise, make it depend on the step before the deleted one
+                    step.depends_on_step_id = steps[index - 1].id;
+                }
+            }
         });
+
         setSteps(newSteps);
 
         // Clear selection if deleted step was selected
@@ -344,47 +377,72 @@ export default function RouteBuilder({
 
     // No longer needed - parent component will track steps via onStepsChange
 
-    // Convert steps to canvas format
-    const canvasSteps = useMemo(() => steps.map(step => ({
-        id: typeof step.id === 'string' && step.id.startsWith('temp-') ? step.id : Number(step.id),
-        step_number: step.sequence,
-        name: step.name,
-        depends_on_step_id: step.sequence > 1 ? (() => {
-            const prevStep = steps[step.sequence - 2];
-            if (!prevStep) return undefined;
-            const prevId = prevStep.id;
-            if (typeof prevId === 'string' && prevId.startsWith('temp-')) {
-                return prevId;
-            }
-            return Number(prevId);
-        })() : undefined,
-        can_start_when_dependency: 'completed' as const,
-        work_cell: step.work_cell_id ? workCells.find(wc => wc.id === step.work_cell_id) : undefined,
-        work_cell_id: step.work_cell_id,
-        setup_time_minutes: step.setup_time_minutes || 0,
-        cycle_time_minutes: step.cycle_time_minutes || 0,
-        is_quality_check: step.step_type === 'quality_check',
-        require_validation: false,
-        instructions: step.description || '',
-        is_required: step.is_required,
-        step_type: step.step_type,
-        status: 'pending' as const,
-        description: step.description,
-        quality_check_mode: step.quality_check_mode,
-        sampling_size: step.sampling_size,
-        form_id: step.form_id,
-        gate_after: step.gate_after,
-        manufacturing_route_id: manufacturingOrder.manufacturing_route?.id || 0,
-        manufacturing_route: manufacturingOrder.manufacturing_route || {
-            id: 0,
-            name: '',
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-        },
-        // Using 'any' to avoid type conflicts between different ExtendedManufacturingStep definitions
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    })) as any[], [steps, workCells, manufacturingOrder.manufacturing_route]);
+    // Convert steps to canvas format with calculated display positions
+    const canvasSteps = useMemo(() => {
+        // First, convert steps to a format that calculateDisplayPositions can work with
+        const stepsForPositionCalc = steps.map(step => ({
+            id: typeof step.id === 'string' && step.id.startsWith('temp-') ? step.id : Number(step.id),
+            depends_on_step_id: step.sequence > 1 ? (() => {
+                const prevStep = steps[step.sequence - 2];
+                if (!prevStep) return undefined;
+                const prevId = prevStep.id;
+                if (typeof prevId === 'string' && prevId.startsWith('temp-')) {
+                    return prevId;
+                }
+                return Number(prevId);
+            })() : undefined,
+        })) as ManufacturingStep[];
+
+        // Calculate display positions based on dependency chain
+        const displayPositions = calculateDisplayPositions(stepsForPositionCalc);
+
+        return steps.map(step => {
+            const stepId = typeof step.id === 'string' && step.id.startsWith('temp-') ? step.id : Number(step.id);
+            const displayPosition = displayPositions.get(stepId) || step.sequence;
+
+            return {
+                id: stepId,
+                step_number: step.sequence,
+                display_position: displayPosition,
+                name: step.name,
+                depends_on_step_id: step.sequence > 1 ? (() => {
+                    const prevStep = steps[step.sequence - 2];
+                    if (!prevStep) return undefined;
+                    const prevId = prevStep.id;
+                    if (typeof prevId === 'string' && prevId.startsWith('temp-')) {
+                        return prevId;
+                    }
+                    return Number(prevId);
+                })() : undefined,
+                can_start_when_dependency: 'completed' as const,
+                work_cell: step.work_cell_id ? workCells.find(wc => wc.id === step.work_cell_id) : undefined,
+                work_cell_id: step.work_cell_id,
+                setup_time_minutes: step.setup_time_minutes || 0,
+                cycle_time_minutes: step.cycle_time_minutes || 0,
+                is_quality_check: step.step_type === 'quality_check',
+                require_validation: false,
+                instructions: step.description || '',
+                is_required: step.is_required,
+                step_type: step.step_type,
+                status: 'pending' as const,
+                description: step.description,
+                quality_check_mode: step.quality_check_mode,
+                sampling_size: step.sampling_size,
+                form_id: step.form_id,
+                gate_after: step.gate_after,
+                manufacturing_route_id: manufacturingOrder.manufacturing_route?.id || 0,
+                manufacturing_route: manufacturingOrder.manufacturing_route || {
+                    id: 0,
+                    name: '',
+                    is_active: true,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                },
+            };
+            // Using 'any' to avoid type conflicts between different ExtendedManufacturingStep definitions
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }) as any[];
+    }, [steps, workCells, manufacturingOrder.manufacturing_route]);
 
     // Convert selected step to canvas format
     const canvasSelectedStep = useMemo(() => {

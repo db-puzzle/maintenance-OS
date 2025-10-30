@@ -19,8 +19,8 @@ return new class extends Migration
             // Index for status alone (for facility-wide queries)
             $table->index('status', 'idx_manufacturing_steps_status');
 
-            // Index for step ordering
-            $table->index('step_number', 'idx_manufacturing_steps_step_number');
+            // Index for dependency ordering
+            $table->index('depends_on_step_id', 'idx_manufacturing_steps_depends_on');
 
             // Index for actual times (for historical queries)
             $table->index('actual_start_time', 'idx_manufacturing_steps_actual_start_time');
@@ -59,7 +59,7 @@ return new class extends Migration
         Schema::table('manufacturing_steps', function (Blueprint $table) {
             $table->dropIndex('idx_manufacturing_steps_work_cell_status');
             $table->dropIndex('idx_manufacturing_steps_status');
-            $table->dropIndex('idx_manufacturing_steps_step_number');
+            $table->dropIndex('idx_manufacturing_steps_depends_on');
             $table->dropIndex('idx_manufacturing_steps_actual_start_time');
             $table->dropIndex('idx_manufacturing_steps_actual_end_time');
         });

@@ -100,10 +100,6 @@ export default function RoleShow({ role, can }: Props) {
             href: '/home',
         },
         {
-            title: 'Settings',
-            href: '/settings',
-        },
-        {
             title: 'Roles',
             href: '/settings/roles',
         },
@@ -452,15 +448,46 @@ function RolePermissions({
                                     },
                                     {
                                         key: 'scope',
-                                        label: 'Scope',
+                                        label: 'Scope / Entity Type',
                                         render: (value: unknown, row: unknown) => {
                                             const permission = row as Permission;
-                                            return (
-                                                <div className="flex items-center gap-2">
-                                                    <Badge variant="outline">{permission.scope || 'entity'}</Badge>
-                                                    <Badge variant="secondary">{permission.resource}</Badge>
-                                                </div>
-                                            );
+                                            // Check if this is an entity-scoped permission (plant, area, sector, asset)
+                                            const entityScopes = ['plant', 'area', 'sector', 'asset'];
+                                            const isEntityScoped = permission.scope && entityScopes.includes(permission.scope);
+
+                                            if (isEntityScoped) {
+                                                // For true entity-scoped permissions, show the entity type with icon
+                                                const entityIcons: Record<string, React.ReactNode> = {
+                                                    plant: <Building className="h-3 w-3" />,
+                                                    area: <Grid3X3 className="h-3 w-3" />,
+                                                    sector: <Package className="h-3 w-3" />,
+                                                    asset: <Key className="h-3 w-3" />
+                                                };
+
+                                                return (
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant="default" className="flex items-center gap-1">
+                                                            {entityIcons[permission.scope] || null}
+                                                            {permission.scope}
+                                                        </Badge>
+                                                    </div>
+                                                );
+                                            } else {
+                                                // For other scoped permissions, show the sub-resource and action
+                                                const parts = permission.name.split('.');
+                                                const subResource = parts[1] || '';
+                                                const action = permission.scope || parts[2] || '';
+
+                                                return (
+                                                    <div className="flex flex-col gap-1 text-sm">
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge variant="outline">{subResource}</Badge>
+                                                            <span className="text-muted-foreground">→</span>
+                                                            <Badge variant="secondary">{action}</Badge>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
                                         },
                                         headerAlign: 'right' as const,
                                     },

@@ -53,7 +53,7 @@ class ListScheduledManufacturingOrders extends Command
                 'i.name as item_name',
                 'ms.id as step_id',
                 'ms.name as step_name',
-                'ms.step_number',
+                'ms.display_position',
                 'ms.status as step_status',
                 'wc.name as work_cell',
                 'ps.scheduled_start',
@@ -68,7 +68,7 @@ class ListScheduledManufacturingOrders extends Command
             ])
             ->orderBy('ps.scheduled_start')
             ->orderBy('mo.order_number')
-            ->orderBy('ms.step_number');
+            ->orderBy('ms.id');
 
         // Apply filters
         if ($versionId = $this->option('schedule-version')) {
@@ -166,7 +166,7 @@ class ListScheduledManufacturingOrders extends Command
                 $row->item_code . ' - ' . substr($row->item_name, 0, 30),
                 $row->quantity . ' (' . $progress . ')',
                 $row->quantity_completed . '/' . $row->quantity,
-                '#' . $row->step_number . ' ' . substr($row->step_name, 0, 20),
+                '#' . $row->display_position . ' ' . substr($row->step_name, 0, 20),
                 $row->work_cell,
                 $start->format('Y-m-d H:i'),
                 $end->format('Y-m-d H:i'),
@@ -187,7 +187,7 @@ class ListScheduledManufacturingOrders extends Command
         if ($conflicts->isNotEmpty()) {
             $this->warn("\nSchedules with conflicts:");
             foreach ($conflicts as $row) {
-                $this->warn("- MO {$row->order_number}, Step {$row->step_number}: " . $row->conflicts);
+                $this->warn("- MO {$row->order_number}, Step {$row->display_position}: " . $row->conflicts);
             }
         }
     }
@@ -214,7 +214,7 @@ class ListScheduledManufacturingOrders extends Command
                 ],
                 'step' => [
                     'id' => $row->step_id,
-                    'number' => $row->step_number,
+                    'number' => $row->display_position,
                     'name' => $row->step_name,
                     'status' => $row->step_status,
                 ],
@@ -283,7 +283,7 @@ class ListScheduledManufacturingOrders extends Command
                 $row->quantity_completed,
                 $row->quantity_scrapped,
                 $row->step_id,
-                $row->step_number,
+                $row->display_position,
                 '"' . str_replace('"', '""', $row->step_name) . '"',
                 $row->step_status,
                 $row->work_cell,

@@ -33,10 +33,10 @@ class ProductionScheduleController extends Controller
                 $query->whereHas('manufacturingRoute.manufacturingOrder', function ($q) use ($search) {
                     $q->where('order_number', 'like', "%{$search}%");
                 })
-                ->orWhereHas('manufacturingRoute.item', function ($q) use ($search) {
-                    $q->where('item_number', 'like', "%{$search}%")
-                      ->orWhere('name', 'like', "%{$search}%");
-                });
+                    ->orWhereHas('manufacturingRoute.item', function ($q) use ($search) {
+                        $q->where('item_number', 'like', "%{$search}%")
+                            ->orWhere('name', 'like', "%{$search}%");
+                    });
             })
             ->when($request->filled('status'), function ($query) use ($request) {
                 $query->where('status', $request->input('status'));
@@ -55,7 +55,7 @@ class ProductionScheduleController extends Controller
                 'manufacturingRoute.item',
                 'workCell',
             ])
-            ->orderBy($request->input('sort', 'step_number'), $request->input('direction', 'asc'))
+            ->orderBy($request->input('sort', 'id'), $request->input('direction', 'asc'))
             ->paginate($request->input('per_page', 15))
             ->withQueryString();
 
@@ -100,7 +100,7 @@ class ProductionScheduleController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -114,7 +114,7 @@ class ProductionScheduleController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -179,7 +179,7 @@ class ProductionScheduleController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -214,7 +214,7 @@ class ProductionScheduleController extends Controller
         $this->authorize('update', $schedule->manufacturingRoute->manufacturingOrder);
 
         // Can only start pending or queued items
-        if (!in_array($schedule->status, ['pending', 'queued'])) {
+        if (! in_array($schedule->status, ['pending', 'queued'])) {
             return back()->withErrors(['error' => 'Can only start pending or queued schedules.']);
         }
 
@@ -398,7 +398,7 @@ class ProductionScheduleController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
-} 
+}

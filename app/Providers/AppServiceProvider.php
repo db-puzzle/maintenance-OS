@@ -9,6 +9,7 @@ use App\Models\AssetHierarchy\Sector;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingRoute;
 use App\Models\Production\ManufacturingStep;
+use App\Models\Production\ManufacturingStepExecution;
 use App\Models\Role;
 use App\Models\WorkOrders\WorkOrder;
 use App\Models\WorkOrders\WorkOrderExecution;
@@ -17,6 +18,7 @@ use App\Observers\AssetObserver;
 use App\Observers\ManufacturingOrderObserver;
 use App\Observers\ManufacturingRouteObserver;
 use App\Observers\ManufacturingStepObserver;
+use App\Observers\ManufacturingStepExecutionObserver;
 use App\Observers\PlantObserver;
 use App\Observers\RoleObserver;
 use App\Observers\SectorObserver;
@@ -75,5 +77,6 @@ class AppServiceProvider extends ServiceProvider
         ManufacturingOrder::observe(ManufacturingOrderObserver::class);
         ManufacturingStep::observe(ManufacturingStepObserver::class);
         ManufacturingRoute::observe(ManufacturingRouteObserver::class);
+        ManufacturingStepExecution::observe(ManufacturingStepExecutionObserver::class);
     }
 }

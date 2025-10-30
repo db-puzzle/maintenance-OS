@@ -6,6 +6,7 @@ use App\Models\Media;
 use App\Models\User;
 use App\Notifications\MediaHealthIssues;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
@@ -32,6 +33,7 @@ class MediaHealthCheck extends Command
      */
     public function handle()
     {
+        Log::info('[media health check] Media health check started');
         $this->info('Running media health check...');
 
         $issues = [];
@@ -63,11 +65,14 @@ class MediaHealthCheck extends Command
         // Report results
         if (empty($issues)) {
             $this->info('✓ Media library is healthy!');
+            Log::info('[media health check] Media health check completed - no issues found');
         } else {
             $this->warn('Found the following issues:');
             foreach ($issues as $issue) {
                 $this->warn("- {$issue}");
             }
+
+            Log::info('[media health check] Media health check completed - found ' . count($issues) . ' issue(s)');
 
             if ($this->option('notify')) {
                 $this->sendNotifications($issues);
@@ -195,11 +200,14 @@ class MediaHealthCheck extends Command
         $admins = User::role('super-admin')->get();
 
         if ($admins->isEmpty()) {
+            Log::info('[media health check] No administrators found to notify about media health issues');
+
             return;
         }
 
         Notification::send($admins, new MediaHealthIssues($issues));
 
+        Log::info('[media health check] Media health notifications sent to ' . $admins->count() . ' administrator(s)');
         $this->info('Notifications sent to administrators');
     }
 }

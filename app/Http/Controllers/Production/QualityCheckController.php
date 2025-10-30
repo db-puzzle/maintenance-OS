@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Production;
 use App\Http\Controllers\Controller;
 use App\Models\Production\ManufacturingStep;
 use App\Models\Production\ManufacturingStepExecution;
-use App\Models\Production\ManufacturingOrder;
 use App\Services\Production\ManufacturingOrderService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -31,30 +30,30 @@ class QualityCheckController extends Controller
             'workCell',
             'executedBy',
         ])
-        ->qualityChecks()
-        ->when($request->status, function ($query, $status) {
-            $query->where('status', $status);
-        })
-        ->when($request->quality_result, function ($query, $result) {
-            $query->where('quality_result', $result);
-        })
-        ->when($request->work_cell_id, function ($query, $workCellId) {
-            $query->where('work_cell_id', $workCellId);
-        })
-        ->when($request->date_from, function ($query, $dateFrom) {
-            $query->whereDate('created_at', '>=', $dateFrom);
-        })
-        ->when($request->date_to, function ($query, $dateTo) {
-            $query->whereDate('created_at', '<=', $dateTo);
-        })
-        ->orderBy('created_at', 'desc')
-        ->paginate(20)
-        ->withQueryString();
+            ->qualityChecks()
+            ->when($request->status, function ($query, $status) {
+                $query->where('status', $status);
+            })
+            ->when($request->quality_result, function ($query, $result) {
+                $query->where('quality_result', $result);
+            })
+            ->when($request->work_cell_id, function ($query, $workCellId) {
+                $query->where('work_cell_id', $workCellId);
+            })
+            ->when($request->date_from, function ($query, $dateFrom) {
+                $query->whereDate('created_at', '>=', $dateFrom);
+            })
+            ->when($request->date_to, function ($query, $dateTo) {
+                $query->whereDate('created_at', '<=', $dateTo);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(20)
+            ->withQueryString();
 
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -73,18 +72,17 @@ class QualityCheckController extends Controller
                     ->whereNull('quality_result');
             },
         ])
-        ->qualityChecks()
-        ->whereIn('status', ['queued', 'in_progress'])
-        ->when($request->work_cell_id, function ($query, $workCellId) {
-            $query->where('work_cell_id', $workCellId);
-        })
-        ->orderBy('step_number')
-        ->get();
+            ->qualityChecks()
+            ->whereIn('status', ['queued', 'in_progress'])
+            ->when($request->work_cell_id, function ($query, $workCellId) {
+                $query->where('work_cell_id', $workCellId);
+            })
+            ->get();
 
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -95,7 +93,7 @@ class QualityCheckController extends Controller
     {
         $this->authorize('production.quality.recordResult');
 
-        if (!$execution->isQualityCheck()) {
+        if (! $execution->isQualityCheck()) {
             return back()->with('error', 'This execution is not a quality check.');
         }
 
@@ -163,7 +161,7 @@ class QualityCheckController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -185,10 +183,10 @@ class QualityCheckController extends Controller
 
         try {
             $this->orderService->handleQualityFailure($execution, $validated['failure_action']);
-            
+
             // Add reason to notes
             $execution->update([
-                'quality_notes' => $execution->quality_notes . "\nAction: " . $validated['failure_action'] . " - " . $validated['reason'],
+                'quality_notes' => $execution->quality_notes . "\nAction: " . $validated['failure_action'] . ' - ' . $validated['reason'],
             ]);
 
             if ($validated['failure_action'] === 'scrap') {
@@ -264,7 +262,7 @@ class QualityCheckController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 }

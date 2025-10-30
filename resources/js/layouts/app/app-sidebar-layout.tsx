@@ -2,7 +2,7 @@ import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
-import TimezoneDetector from '@/components/TimezoneDetector';
+import AutomaticTimezoneDetector from '@/components/AutomaticTimezoneDetector';
 import { Toaster } from '@/components/ui/sonner';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
@@ -61,7 +61,7 @@ export default function AppSidebarLayout({
                     />
                     {children}
                 </AppContent>
-                {auth?.user && <TimezoneDetector currentTimezone={(auth.user.timezone as string) || 'UTC'} userId={auth.user.id} />}
+                {auth?.user && <AutomaticTimezoneDetector currentTimezone={(auth.user.timezone as string) || 'UTC'} userId={auth.user.id} />}
                 <Toaster />
             </AppShell>
         </CompressedModeContext.Provider>

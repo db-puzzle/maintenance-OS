@@ -33,7 +33,6 @@ class RoutingStepFactory extends Factory
 
         return [
             'manufacturing_route_id' => ManufacturingRoute::factory(),
-            'step_number' => 1,
             'is_template' => false,
             'step_type' => 'standard',
             'name' => $operationName . ' ' . fake()->words(2, true),
@@ -66,12 +65,12 @@ class RoutingStepFactory extends Factory
     }
 
     /**
-     * Set a specific step number.
+     * Set a dependency on a previous step.
      */
-    public function stepNumber(int $number): static
+    public function dependsOn(?ManufacturingStep $step): static
     {
         return $this->state(fn (array $attributes) => [
-            'step_number' => $number,
+            'depends_on_step_id' => $step?->id,
         ]);
     }
 

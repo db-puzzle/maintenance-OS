@@ -150,11 +150,37 @@ class Permission extends SpatiePermission
 
     public function isScoped(): bool
     {
-        // Permissions with entity scope have format: resource.action.entity_type.entity_id
-        return str_contains($this->name, '.plant.') ||
-               str_contains($this->name, '.area.') ||
-               str_contains($this->name, '.sector.') ||
-               str_contains($this->name, '.asset.');
+        // Check if this permission follows the entity-scoped pattern
+        // Format: resource.action.entity-type.entity-id
+        if (str_contains($this->name, '.plant.') ||
+            str_contains($this->name, '.area.') ||
+            str_contains($this->name, '.sector.') ||
+            str_contains($this->name, '.asset.')) {
+            return true;
+        }
+
+        // For backward compatibility, consider 3+ part permissions as potentially scoped
+        // unless they're known system permissions
+        $parts = explode('.', $this->name);
+        if (count($parts) >= 3) {
+            // Exclude known system/global 3-part permissions
+            $globalThreePartPatterns = [
+                'system.settings.',
+                'system.audit.',
+                'system.bulk-',
+            ];
+
+            foreach ($globalThreePartPatterns as $pattern) {
+                if (str_starts_with($this->name, $pattern)) {
+                    return false;
+                }
+            }
+
+            // Consider other 3+ part permissions as scoped
+            return true;
+        }
+
+        return false;
     }
 
     public function isOwnershipBased(): bool

@@ -3,7 +3,6 @@ import { useForm } from '@inertiajs/react';
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import StateButton from '@/components/StateButton';
 
 import { ManufacturingStep } from '@/types/production';
@@ -61,7 +60,7 @@ export default function GatePropertiesPanel({
                 description: ''
             });
         }
-    }, [selectedGate, gateForm]);
+    }, [selectedGate]);
 
     // Handle panel visibility animation
     useEffect(() => {
@@ -155,14 +154,14 @@ export default function GatePropertiesPanel({
 
     return (
         <div className={cn(
-            "w-[35rem] h-full flex-shrink-0 border-l bg-background flex flex-col overflow-hidden",
+            "w-[28rem] h-full flex-shrink-0 border-l bg-background flex flex-col overflow-hidden",
             "transform transition-all duration-300 ease-out",
             isVisible
                 ? "translate-x-0"
                 : "translate-x-full"
         )}>
 
-            <ScrollArea className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-corner]:bg-transparent">
                 <div className="p-4 space-y-4">
                     {/* Dependency Type Selection */}
                     <div className="space-y-4">
@@ -272,7 +271,7 @@ export default function GatePropertiesPanel({
                     </div>
 
                 </div>
-            </ScrollArea>
+            </div>
         </div>
     );
 }

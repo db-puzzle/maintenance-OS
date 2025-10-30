@@ -118,7 +118,6 @@ class TestManufacturingOrdersSeeder extends Seeder
                 'work_cell_id' => $workCells->random()->id,
                 'name' => "Step {$i} - {$order->order_number}",
                 'description' => "Manufacturing step {$i}",
-                'step_number' => $i,
                 'setup_time_minutes' => rand(15, 60),
                 'cycle_time_minutes' => rand(1, 5),
                 'status' => 'pending',

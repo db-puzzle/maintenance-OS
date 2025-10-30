@@ -163,7 +163,17 @@ class RouteTemplateImportService
 
         // Process and create steps
         if (isset($data['steps']) && is_array($data['steps'])) {
-            foreach ($data['steps'] as $index => $stepData) {
+            // Sort steps by step_number if available for proper ordering
+            $sortedSteps = $data['steps'];
+            usort($sortedSteps, function ($a, $b) {
+                $aNum = isset($a['step_number']) ? $a['step_number'] : 0;
+                $bNum = isset($b['step_number']) ? $b['step_number'] : 0;
+
+                return $aNum <=> $bNum;
+            });
+
+            $previousStep = null;
+            foreach ($sortedSteps as $index => $stepData) {
                 // Handle work cell creation if needed
                 $workCellId = null;
                 if (isset($stepData['work_cell_name']) && $stepData['work_cell_name']) {
@@ -176,9 +186,8 @@ class RouteTemplateImportService
                     $workCellId = $stepData['work_cell_id'];
                 }
 
-                // Create step
-                $template->steps()->create([
-                    'step_number' => isset($stepData['step_number']) ? $stepData['step_number'] : ($index + 1),
+                // Create step with dependency based on previous step
+                $newStep = $template->steps()->create([
                     'name' => $stepData['name'] ?? 'Step ' . ($index + 1),
                     'description' => $stepData['description'] ?? null,
                     'step_type' => $stepData['step_type'] ?? 'standard',
@@ -189,7 +198,7 @@ class RouteTemplateImportService
                     'quality_check_mode' => $stepData['quality_check_mode'] ?? 'every_part',
                     'sampling_size' => $stepData['sampling_size'] ?? 0,
                     'form_id' => $stepData['form_id'] ?? null,
-                    'depends_on_step_id' => $stepData['depends_on_step_id'] ?? null,
+                    'depends_on_step_id' => $previousStep ? $previousStep->id : null,
                     'can_start_when_dependency' => $stepData['can_start_when_dependency'] ?? 'completed',
                     'dependency_start_condition' => $stepData['dependency_start_condition'] ?? 'completed',
                     'dependency_minimum_quantity' => $stepData['dependency_minimum_quantity'] ?? null,
@@ -199,6 +208,8 @@ class RouteTemplateImportService
                     'is_template' => true,
                     'status' => 'pending',
                 ]);
+
+                $previousStep = $newStep;
             }
         }
 

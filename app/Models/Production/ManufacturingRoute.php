@@ -97,7 +97,7 @@ class ManufacturingRoute extends Model
      */
     public function steps(): HasMany
     {
-        return $this->hasMany(ManufacturingStep::class)->orderBy('step_number');
+        return $this->hasMany(ManufacturingStep::class);
     }
 
     /**
@@ -119,20 +119,23 @@ class ManufacturingRoute extends Model
 
         $stepMapping = [];
 
-        foreach ($template->steps as $templateStep) {
+        // Get ordered steps from template
+        $orderedSteps = ManufacturingStep::getOrderedStepsForRoute($template->id);
+
+        foreach ($orderedSteps as $templateStep) {
             $newStep = $this->steps()->create([
-                'step_number' => $templateStep->step_number,
                 'step_type' => $templateStep->step_type,
                 'name' => $templateStep->name,
                 'description' => $templateStep->description,
                 'work_cell_id' => $templateStep->work_cell_id,
                 'form_id' => $templateStep->form_id,
-                'setup_time_minutes' => $templateStep->setup_time_minutes,
-                'cycle_time_minutes' => $templateStep->cycle_time_minutes,
+                'setup_time_seconds' => $templateStep->setup_time_seconds,
+                'cycle_time_seconds' => $templateStep->cycle_time_seconds,
                 'use_workcell_throughput' => $templateStep->use_workcell_throughput ?? false,
                 'quality_check_mode' => $templateStep->quality_check_mode,
                 'sampling_size' => $templateStep->sampling_size,
-                'quality_specifications' => $templateStep->quality_specifications,
+                // Use raw attribute to avoid double-encoding
+                'quality_specifications' => $templateStep->getAttributes()['quality_specifications'] ?? null,
                 'can_start_when_dependency' => $templateStep->can_start_when_dependency ?? 'completed',
                 'status' => 'pending',
                 'is_template' => false,
@@ -158,11 +161,22 @@ class ManufacturingRoute extends Model
      */
     public function setupStepDependencies(): void
     {
-        $steps = $this->steps()->with('manufacturingRoute')->orderBy('step_number')->get();
+        $steps = $this->steps()->get();
+
+        if ($steps->isEmpty()) {
+            return; // Nothing to set up for empty routes
+        }
+
+        // This method is typically called after bulk operations like template application
+        // It ensures a clean dependency chain based on the order of steps
         $previousStep = null;
 
-        foreach ($steps as $step) {
-            if ($previousStep) {
+        foreach ($steps as $index => $step) {
+            if ($index === 0) {
+                // First step should have no dependency
+                $step->update(['depends_on_step_id' => null]);
+            } else {
+                // Each subsequent step depends on the previous
                 $step->update(['depends_on_step_id' => $previousStep->id]);
             }
             $previousStep = $step;
@@ -203,7 +217,6 @@ class ManufacturingRoute extends Model
     {
         return $this->steps()
             ->whereIn('status', ['in_progress', 'on_hold'])
-            ->orderBy('step_number')
             ->first();
     }
 
@@ -214,7 +227,6 @@ class ManufacturingRoute extends Model
     {
         return $this->steps()
             ->where('status', 'pending')
-            ->orderBy('step_number')
             ->first();
     }
 
@@ -300,12 +312,11 @@ class ManufacturingRoute extends Model
                         'manufacturing_route_id',
                         'name',
                         'work_cell_id',
-                        'step_number',
                         'step_type',
                         'setup_time_seconds',
-                        'cycle_time_seconds'
-                    )
-                        ->orderBy('step_number');
+                        'cycle_time_seconds',
+                        'depends_on_step_id'
+                    );
                 },
                 'createdBy:id,name',
                 'itemCategory:id,name',
@@ -324,16 +335,110 @@ class ManufacturingRoute extends Model
                 'manufacturing_route_id',
                 'name',
                 'work_cell_id',
-                'step_number',
                 'step_type',
                 'setup_time_seconds',
                 'cycle_time_seconds',
                 'child_order_dependency_type',
                 'child_order_minimum_quantity',
-                'status'
+                'status',
+                'depends_on_step_id'
             )
-                ->orderBy('step_number')
                 ->with('workCell');
         }]);
+    }
+
+    /**
+     * Validate route structure for production.
+     *
+     * @throws \App\Exceptions\ValidationException
+     */
+    public function validateForProduction()
+    {
+        $steps = $this->steps;
+
+        if ($steps->isEmpty()) {
+            throw new \App\Exceptions\ValidationException('Route must have at least one step before starting production');
+        }
+
+        // Check for exactly one root step
+        $rootSteps = $steps->where('depends_on_step_id', null);
+        if ($rootSteps->count() === 0) {
+            throw new \App\Exceptions\ValidationException('Route must have a starting step (no depends_on_step_id)');
+        }
+        if ($rootSteps->count() > 1) {
+            throw new \App\Exceptions\ValidationException('Route has multiple starting steps - only one is allowed');
+        }
+
+        // Check for circular dependencies and connectivity using BFS
+        $visited = collect();
+        $queue = collect([$rootSteps->first()]);
+
+        while ($queue->isNotEmpty()) {
+            $current = $queue->shift();
+
+            // Check for circular dependency
+            if ($visited->contains('id', $current->id)) {
+                throw new \App\Exceptions\ValidationException('Circular dependency detected in route steps');
+            }
+
+            $visited->push($current);
+
+            // Find all steps that depend on the current step
+            $dependentSteps = $steps->where('depends_on_step_id', $current->id);
+            foreach ($dependentSteps as $dependent) {
+                if (! $visited->contains('id', $dependent->id)) {
+                    $queue->push($dependent);
+                }
+            }
+        }
+
+        // Check all steps are reachable
+        if ($visited->count() !== $steps->count()) {
+            $unreachable = $steps->diff($visited);
+            throw new \App\Exceptions\ValidationException('Some steps are unreachable: ' . $unreachable->pluck('name')->join(', '));
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate route structure - lighter version for editing.
+     * Only checks for obvious issues like circular dependencies.
+     */
+    public function validateStructure()
+    {
+        $steps = $this->steps;
+
+        if ($steps->isEmpty()) {
+            return true; // Empty routes are valid during editing
+        }
+
+        // Only check for obvious issues like circular dependencies using DFS
+        $visited = collect();
+        $rootSteps = $steps->where('depends_on_step_id', null);
+
+        foreach ($rootSteps as $rootStep) {
+            $stack = collect([$rootStep]);
+            $pathVisited = collect();
+
+            while ($stack->isNotEmpty()) {
+                $current = $stack->pop();
+
+                if ($pathVisited->contains('id', $current->id)) {
+                    throw new \App\Exceptions\ValidationException('Circular dependency detected in route steps');
+                }
+
+                $pathVisited->push($current);
+                $visited->push($current);
+
+                // Find all steps that depend on the current step
+                $dependentSteps = $steps->where('depends_on_step_id', $current->id);
+                foreach ($dependentSteps as $dependent) {
+                    $stack->push($dependent);
+                }
+            }
+        }
+
+        return true;
     }
 }

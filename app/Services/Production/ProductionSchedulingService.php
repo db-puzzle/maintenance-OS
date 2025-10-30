@@ -4,7 +4,6 @@ namespace App\Services\Production;
 
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingStep;
-use App\Models\Production\BomItem;
 use App\Models\Production\WorkCell;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -27,12 +26,12 @@ class ProductionSchedulingService
         DB::transaction(function () use ($order) {
             // Get BOM and routing information
             $bom = $order->billOfMaterial;
-            if (!$bom) {
+            if (! $bom) {
                 throw new \Exception('Production order must have a BOM assigned.');
             }
 
             $currentVersion = $bom->currentVersion;
-            if (!$currentVersion) {
+            if (! $currentVersion) {
                 throw new \Exception('BOM must have a current version.');
             }
 
@@ -54,7 +53,7 @@ class ProductionSchedulingService
     {
         $steps = ManufacturingStep::query()
             ->whereIn('status', ['pending', 'queued'])
-            ->when(!empty($workCellIds), function ($query) use ($workCellIds) {
+            ->when(! empty($workCellIds), function ($query) use ($workCellIds) {
                 $query->whereIn('work_cell_id', $workCellIds);
             })
             ->whereHas('manufacturingRoute.manufacturingOrder', function ($query) use ($startDate, $endDate) {
@@ -90,7 +89,7 @@ class ProductionSchedulingService
     public function getWorkloadAnalysis($startDate, $endDate, array $workCellIds = []): array
     {
         $workCells = WorkCell::query()
-            ->when(!empty($workCellIds), function ($query) use ($workCellIds) {
+            ->when(! empty($workCellIds), function ($query) use ($workCellIds) {
                 $query->whereIn('id', $workCellIds);
             })
             ->get();
@@ -104,7 +103,7 @@ class ProductionSchedulingService
                 ->whereHas('manufacturingRoute.manufacturingOrder', function ($query) use ($startDate, $endDate) {
                     $query->where(function ($q) use ($startDate, $endDate) {
                         $q->whereBetween('planned_start_date', [$startDate, $endDate])
-                          ->orWhereBetween('planned_end_date', [$startDate, $endDate]);
+                            ->orWhereBetween('planned_end_date', [$startDate, $endDate]);
                     });
                 })
                 ->with('manufacturingRoute.manufacturingOrder')
@@ -114,7 +113,7 @@ class ProductionSchedulingService
             $utilizationByDay = [];
 
             foreach ($steps as $step) {
-                $stepMinutes = $step->setup_time_minutes + 
+                $stepMinutes = $step->setup_time_minutes +
                              ($step->cycle_time_minutes * $step->manufacturingRoute->manufacturingOrder->quantity);
                 $totalMinutes += $stepMinutes;
             }
@@ -143,7 +142,7 @@ class ProductionSchedulingService
     public function calculateLeadTime(ManufacturingOrder $order): array
     {
         $bom = $order->billOfMaterial;
-        if (!$bom) {
+        if (! $bom) {
             return [
                 'total_days' => 0,
                 'total_hours' => 0,
@@ -159,7 +158,7 @@ class ProductionSchedulingService
 
         foreach ($itemsWithRouting as $item) {
             $routing = $this->routingService->resolveRouting($item);
-            if (!$routing) {
+            if (! $routing) {
                 continue;
             }
 
@@ -207,7 +206,7 @@ class ProductionSchedulingService
     protected function scheduleItemsInOrder(ManufacturingOrder $order, Collection $items): void
     {
         // Create manufacturing route for the order if it doesn't exist
-        if (!$order->manufacturingRoute) {
+        if (! $order->manufacturingRoute) {
             $order->manufacturingRoute()->create([
                 'item_id' => $order->item_id,
                 'name' => "Route for {$order->order_number}",
@@ -225,14 +224,16 @@ class ProductionSchedulingService
             foreach ($levelItems as $item) {
                 // Get routing template
                 $routingTemplate = $this->routingService->resolveRouting($item);
-                if (!$routingTemplate) {
+                if (! $routingTemplate) {
                     continue;
                 }
 
                 // Create manufacturing steps from template
-                foreach ($routingTemplate->steps as $templateStep) {
-                    $route->steps()->create([
-                        'step_number' => $stepNumber++,
+                $previousStepId = null;
+                $orderedSteps = \App\Models\Production\ManufacturingStep::getOrderedStepsForRoute($routingTemplate->id);
+
+                foreach ($orderedSteps as $templateStep) {
+                    $step = $route->steps()->create([
                         'step_type' => $templateStep->step_type ?? 'standard',
                         'name' => $templateStep->name,
                         'description' => $templateStep->description,
@@ -243,7 +244,10 @@ class ProductionSchedulingService
                         'status' => 'pending',
                         'quality_check_mode' => $templateStep->quality_check_mode ?? null,
                         'sampling_size' => $templateStep->sampling_size ?? null,
+                        'depends_on_step_id' => $previousStepId,
+                        'dependency_start_condition' => $previousStepId ? 'completed' : null,
                     ]);
+                    $previousStepId = $step->id;
                 }
             }
         }
@@ -337,23 +341,23 @@ class ProductionSchedulingService
 
             // Check if slot is available
             $searchEnd = $searchStart->copy()->addMinutes($durationMinutes);
-            
+
             $conflictingSteps = ManufacturingStep::query()
                 ->where('work_cell_id', $workCell->id)
                 ->whereIn('status', ['queued', 'in_progress'])
                 ->whereHas('executions', function ($query) use ($searchStart, $searchEnd) {
                     $query->where(function ($q) use ($searchStart, $searchEnd) {
                         $q->whereBetween('started_at', [$searchStart, $searchEnd])
-                          ->orWhereBetween('completed_at', [$searchStart, $searchEnd])
-                          ->orWhere(function ($q2) use ($searchStart, $searchEnd) {
-                              $q2->where('started_at', '<=', $searchStart)
-                                 ->where('completed_at', '>=', $searchEnd);
-                          });
+                            ->orWhereBetween('completed_at', [$searchStart, $searchEnd])
+                            ->orWhere(function ($q2) use ($searchStart, $searchEnd) {
+                                $q2->where('started_at', '<=', $searchStart)
+                                    ->where('completed_at', '>=', $searchEnd);
+                            });
                     });
                 })
                 ->exists();
 
-            if (!$conflictingSteps) {
+            if (! $conflictingSteps) {
                 return $searchStart;
             }
 

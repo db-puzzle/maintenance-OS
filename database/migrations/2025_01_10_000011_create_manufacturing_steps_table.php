@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('manufacturing_steps', function (Blueprint $table) {
             $table->id();
             $table->foreignId('manufacturing_route_id')->constrained('manufacturing_routes')->cascadeOnDelete();
-            $table->integer('step_number')->default(1);
             $table->boolean('is_template')->default(false);
             $table->enum('step_type', ['standard', 'quality_check', 'rework'])->default('standard');
             $table->string('name', 255);
@@ -78,7 +77,10 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->index(['manufacturing_route_id', 'step_number']);
+            // Add unique constraint to prevent duplicate dependencies within a route
+            $table->unique(['manufacturing_route_id', 'depends_on_step_id'], 'unique_dependency_per_route');
+
+            $table->index('manufacturing_route_id');
             $table->index('status');
             $table->index('step_type');
             $table->index('is_template');

@@ -350,7 +350,7 @@ export interface RouteTemplate {
 export interface RouteTemplateStep {
     id: number;
     route_template_id: number;
-    step_number: number;
+    display_position?: number; // Add computed field
     step_type: 'standard' | 'quality_check' | 'rework';
     name: string;
     description?: string;
@@ -364,6 +364,7 @@ export interface RouteTemplateStep {
     // Child order dependency fields
     child_order_dependency_type?: 'none' | 'all_children_completed' | 'children_quantity';
     child_order_minimum_quantity?: number;
+    depends_on_step_id?: number;
 }
 
 export interface ManufacturingRoute {
@@ -402,7 +403,7 @@ export interface ManufacturingRoute {
 export interface ManufacturingStep {
     id: number;
     manufacturing_route_id: number;
-    step_number: number;
+    display_position?: number; // Add computed field
     step_type: 'standard' | 'quality_check' | 'rework';
     name: string;
     description?: string;

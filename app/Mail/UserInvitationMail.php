@@ -7,6 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class UserInvitationMail extends Mailable implements ShouldQueue
 {
@@ -27,6 +28,11 @@ class UserInvitationMail extends Mailable implements ShouldQueue
      */
     public function build()
     {
+        Log::info('[invitations] Building invitation email', [
+            'email' => $this->invitation->email,
+            'invitation_id' => $this->invitation->id,
+        ]);
+
         // Process role display
         $roleDisplayList = [];
         if ($this->invitation->initial_role) {
@@ -69,7 +75,13 @@ class UserInvitationMail extends Mailable implements ShouldQueue
                 'inviterName' => $this->invitation->inviter?->name ?? 'the system',
                 'acceptUrl' => $this->invitation->generateSignedUrl(),
                 'roleDisplayList' => $roleDisplayList,
-            ]);
+            ])
+            ->tap(function () {
+                Log::info('[invitations] Invitation email sent successfully', [
+                    'email' => $this->invitation->email,
+                    'invitation_id' => $this->invitation->id,
+                ]);
+            });
     }
 
     /**

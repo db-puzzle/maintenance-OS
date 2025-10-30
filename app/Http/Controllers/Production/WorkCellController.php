@@ -129,7 +129,7 @@ class WorkCellController extends BaseSearchController
             ->select('manufacturing_steps.*');
 
         // Apply sorting for routing steps
-        $stepsSort = $request->input('steps_sort', 'step_number');
+        $stepsSort = $request->input('steps_sort', 'id');
         $stepsDirection = $request->input('steps_direction', 'asc');
 
         if ($stepsSort === 'route') {
@@ -413,7 +413,7 @@ class WorkCellController extends BaseSearchController
 
                         return [
                             'id' => $step->id,
-                            'name' => "Etapa {$step->step_number} - {$step->name}",
+                            'name' => "Etapa {$step->display_position} - {$step->name}",
                             'item_name' => $route->item->name,
                             'manufacturing_order' => [
                                 'id' => $order->id,

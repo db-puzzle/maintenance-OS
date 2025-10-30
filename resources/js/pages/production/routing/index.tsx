@@ -5,13 +5,14 @@ import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
-import CreateManufacturingRouteDialog from '@/components/production/CreateManufacturingRouteDialog';
+import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Download, Upload, FileText } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Download, Upload, FileText, Info } from 'lucide-react';
 
 import { ColumnConfig } from '@/types/shared';
-import { ManufacturingRoute as Routing, Item, ManufacturingOrder, ItemCategory, WorkCell } from '@/types/production';
+import { ManufacturingRoute as Routing } from '@/types/production';
 import { toast } from 'sonner';
 interface Props {
     routings: {
@@ -32,24 +33,15 @@ interface Props {
         import?: boolean;
         export?: boolean;
     };
-    items?: Item[];
-    orders?: ManufacturingOrder[];
-    routeTemplates?: Routing[];
-    itemCategories?: ItemCategory[];
-    workCells?: WorkCell[];
 }
 export default function RoutingTemplatesIndex({
     routings,
     filters,
-    can,
-    items = [],
-    orders = [],
-    routeTemplates = [],
-    itemCategories = [],
-    workCells = []
+    can
 }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
-    const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    const [infoDialogOpen, setInfoDialogOpen] = useState(false);
+    const [deleteRouting, setDeleteRouting] = useState<Routing | null>(null);
 
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
@@ -73,16 +65,21 @@ export default function RoutingTemplatesIndex({
             { preserveState: true, replace: true }
         );
     };
-    const handleDelete = (routing: Routing) => {
-        if (confirm(`Tem certeza que deseja excluir o modelo de roteiro ${routing.name}?`)) {
-            router.delete(window.route('production.routing.destroy', routing.id), {
+    const handleDelete = async (routing: Routing) => {
+        try {
+            await router.delete(window.route('production.routing.destroy', routing.id), {
+                preserveScroll: true,
                 onSuccess: () => {
+                    setDeleteRouting(null);
                     toast.success('Modelo de roteiro excluído com sucesso');
                 },
                 onError: () => {
                     toast.error('Erro ao excluir modelo de roteiro');
                 }
             });
+        } catch (error) {
+            console.error('Delete error:', error);
+            toast.error('Erro ao excluir modelo de roteiro');
         }
     };
 
@@ -209,8 +206,8 @@ export default function RoutingTemplatesIndex({
                 searchValue={searchValue}
                 onSearchChange={handleSearchChange}
                 createRoute={can.create ? '#' : undefined}
-                onCreateClick={can.create ? () => setCreateDialogOpen(true) : undefined}
-                createButtonText="Novo Modelo"
+                onCreateClick={can.create ? () => setInfoDialogOpen(true) : undefined}
+                createButtonText="Novo Template de Rota"
                 actions={
                     <div className="flex items-center gap-2">
                         {can?.import && (
@@ -219,7 +216,7 @@ export default function RoutingTemplatesIndex({
                                 onClick={handleImport}
                             >
                                 <Upload className="h-4 w-4 mr-2" />
-                                Importar Templates
+                                Importar
                             </Button>
                         )}
                         {can?.export && (
@@ -254,7 +251,7 @@ export default function RoutingTemplatesIndex({
                         actions={(routing) => (
                             <EntityActionDropdown
                                 onEdit={() => router.visit(window.route('production.routing.edit', (routing as Routing).id))}
-                                onDelete={() => handleDelete(routing as Routing)}
+                                onDelete={() => setDeleteRouting(routing as Routing)}
                             />
                         )}
                     />
@@ -273,16 +270,59 @@ export default function RoutingTemplatesIndex({
                 </div>
             </ListLayout>
 
-            {/* Create Routing Dialog */}
-            <CreateManufacturingRouteDialog
-                open={createDialogOpen}
-                onOpenChange={setCreateDialogOpen}
-                items={items}
-                orders={orders}
-                routeTemplates={routeTemplates}
-                itemCategories={itemCategories}
-                _workCells={workCells}
-            />
+            {/* Info Dialog */}
+            <Dialog open={infoDialogOpen} onOpenChange={setInfoDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Info className="h-5 w-5 text-blue-500" />
+                            Como criar templates de rota
+                        </DialogTitle>
+                        <DialogDescription className="pt-4 space-y-3 text-base">
+                            <p>
+                                Os templates de rota são criados automaticamente na <strong>página de Planejamento de Ordens de Produção</strong>.
+                            </p>
+                            <p>
+                                Para criar um novo template:
+                            </p>
+                            <ol className="list-decimal list-inside space-y-2 pl-2">
+                                <li>Acesse a página de Planejamento</li>
+                                <li>Crie ou edite uma rota de produção</li>
+                                <li>Clique no botão <strong>"Salvar Rota como Template"</strong></li>
+                            </ol>
+                            <p className="text-muted-foreground pt-2">
+                                O template ficará disponível aqui para ser reutilizado em futuras ordens de produção.
+                            </p>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end gap-2 pt-4">
+                        <Button
+                            variant="outline"
+                            onClick={() => setInfoDialogOpen(false)}
+                        >
+                            Entendi
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setInfoDialogOpen(false);
+                                router.visit(window.route('production.planning.index'));
+                            }}
+                        >
+                            Ir para Planejamento
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Routing Dialog */}
+            {deleteRouting && (
+                <EntityDeleteDialog
+                    open={!!deleteRouting}
+                    onOpenChange={(open) => !open && setDeleteRouting(null)}
+                    onConfirm={() => handleDelete(deleteRouting)}
+                    entityLabel={`modelo de roteiro "${deleteRouting.name}"`}
+                />
+            )}
         </AppLayout>
     );
 } 

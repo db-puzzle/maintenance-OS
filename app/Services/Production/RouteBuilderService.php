@@ -4,6 +4,7 @@ namespace App\Services\Production;
 
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingRoute;
+use App\Models\Production\ManufacturingStep;
 use Illuminate\Support\Facades\DB;
 
 class RouteBuilderService
@@ -31,10 +32,12 @@ class RouteBuilderService
                 'description' => $sourceRoute->description,
             ]);
 
-            // Copy steps
-            foreach ($sourceRoute->steps as $step) {
-                $route->steps()->create([
-                    'step_number' => $step->step_number,
+            // Copy steps with dependencies
+            $orderedSteps = ManufacturingStep::getOrderedStepsForRoute($sourceRoute->id);
+            $stepMap = [];
+
+            foreach ($orderedSteps as $step) {
+                $newStep = $route->steps()->create([
                     'display_order' => $step->display_order,
                     'name' => $step->name,
                     'description' => $step->description,
@@ -43,7 +46,10 @@ class RouteBuilderService
                     'cycle_time_minutes' => $step->cycle_time_minutes,
                     'step_type' => $step->step_type,
                     'status' => 'pending',
+                    'depends_on_step_id' => isset($stepMap[$step->depends_on_step_id]) ? $stepMap[$step->depends_on_step_id] : null,
+                    'dependency_start_condition' => $step->dependency_start_condition,
                 ]);
+                $stepMap[$step->id] = $newStep->id;
             }
 
             return $route;

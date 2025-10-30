@@ -374,7 +374,7 @@ export default function PlanningPage({
             // IMPORTANT: This conversion must match EXACTLY how RouteBuilder converts steps
             const originalSteps: RouteStep[] = (activeMODetails.manufacturing_route?.steps || []).map((step, index) => ({
                 id: step.id?.toString() || `existing-${index}`,
-                sequence: step.step_number || index + 1,
+                sequence: step.display_position || index + 1,
                 name: step.name,
                 description: step.description || '',
                 work_cell_id: step.work_cell_id ?? null,
@@ -469,6 +469,47 @@ export default function PlanningPage({
         }
     }, []);
 
+    // Function to actually perform the status transition
+    const performStatusTransition = useCallback((orderIds: number[], targetState: 'planned' | 'draft' | 'released', includeChildren: boolean) => {
+        const actionText = targetState === 'released'
+            ? 'liberada para produção'
+            : targetState === 'planned'
+                ? 'marcada como planejada'
+                : 'revertida para rascunho';
+
+        PlanningService.bulkTransition(
+            {
+                orderIds: orderIds,
+                targetState: targetState,
+                includeChildren: includeChildren,
+            },
+            {
+                onSuccess: () => {
+                    const orderCount = includeChildren && targetState === 'planned'
+                        ? orderIds.length + countChildrenForOrders(orderIds)
+                        : orderIds.length;
+
+                    toast.success(`${orderCount} ordem${orderCount > 1 ? 's de fabricação foram' : ' de fabricação foi'} ${actionText}.`);
+
+                    // Trigger a reload of the data while preserving state
+                    PlanningService.reloadData({
+                        only: ['manufacturingOrders'],
+                        preserveState: true,
+                        preserveScroll: true,
+                    });
+                },
+                onError: () => {
+                    toast.error('Falha ao atualizar o status da ordem de fabricação.');
+                },
+                preserveState: true,
+                userSelection: Array.from(selectedMOs),
+                activeMO: activeMO,
+                sortField: sortField,
+                sortDirection: sortDirection
+            }
+        );
+    }, [selectedMOs, activeMO, sortField, sortDirection, countChildrenForOrders]);
+
     // Handle marking as planned/draft/released
     const handleToggleStatus = useCallback(() => {
         if (selectedMOs.size === 0) {
@@ -528,47 +569,6 @@ export default function PlanningPage({
         // No children or transitioning without children consideration - proceed directly
         performStatusTransition(orderIds, targetState, false);
     }, [selectedMOs, activeMODetails, hasUnsavedChanges, countChildrenForOrders, getTargetState, performStatusTransition]);
-
-    // Function to actually perform the status transition
-    const performStatusTransition = useCallback((orderIds: number[], targetState: 'planned' | 'draft' | 'released', includeChildren: boolean) => {
-        const actionText = targetState === 'released'
-            ? 'liberada para produção'
-            : targetState === 'planned'
-                ? 'marcada como planejada'
-                : 'revertida para rascunho';
-
-        PlanningService.bulkTransition(
-            {
-                orderIds: orderIds,
-                targetState: targetState,
-                includeChildren: includeChildren,
-            },
-            {
-                onSuccess: () => {
-                    const orderCount = includeChildren && targetState === 'planned'
-                        ? orderIds.length + countChildrenForOrders(orderIds)
-                        : orderIds.length;
-
-                    toast.success(`${orderCount} ordem${orderCount > 1 ? 's de fabricação foram' : ' de fabricação foi'} ${actionText}.`);
-
-                    // Trigger a reload of the data while preserving state
-                    PlanningService.reloadData({
-                        only: ['manufacturingOrders'],
-                        preserveState: true,
-                        preserveScroll: true,
-                    });
-                },
-                onError: () => {
-                    toast.error('Falha ao atualizar o status da ordem de fabricação.');
-                },
-                preserveState: true,
-                userSelection: Array.from(selectedMOs),
-                activeMO: activeMO,
-                sortField: sortField,
-                sortDirection: sortDirection
-            }
-        );
-    }, [selectedMOs, activeMO, sortField, sortDirection, countChildrenForOrders]);
 
     // Handle MO selection from modal
     const handleModalMOSelect = useCallback((orderIds: number[]) => {

@@ -67,14 +67,71 @@ class RoleController extends Controller
         $roles = $query->paginate($perPage)
             ->withQueryString();
 
-        return Inertia::render('settings/roles/index', [
+        $data = [
             'roles' => RoleResource::collection($roles),
-            'filters' => $request->only(['search', 'type', 'sort', 'direction', 'per_page']),
+            'filters' => $request->only(['search', 'type', 'sort', 'direction', 'per_page', 'view']),
             'can' => [
                 'create' => auth()->user()->can('roles.create'),
                 'viewAny' => auth()->user()->can('roles.viewAny'),
             ],
-        ]);
+        ];
+
+        // Include permissions data for grid view
+        if ($request->get('include_permissions') || $request->get('view') === 'grid') {
+            // Get all permissions
+            $permissions = Permission::orderBy('sort_order')
+                ->orderBy('name')
+                ->get()
+                ->map(function ($permission) {
+                    $parsed = $permission->parsePermission();
+                    return [
+                        'id' => $permission->id,
+                        'name' => $permission->name,
+                        'display_name' => $permission->display_name,
+                        'description' => $permission->description,
+                        'resource' => $parsed['resource'],
+                        'action' => $parsed['action'],
+                        'scope' => $parsed['scope'],
+                        'is_global' => $permission->isGlobal(),
+                        'is_scoped' => $permission->isScoped(),
+                    ];
+                });
+
+            // Get all roles with their permissions for the matrix
+            $rolesWithPermissions = Role::with(['permissions'])
+                ->withCount(['users'])
+                ->get()
+                ->map(function ($role) {
+                    return [
+                        'id' => $role->id,
+                        'name' => $role->name,
+                        'display_name' => $role->display_name,
+                        'description' => $role->description,
+                        'is_system' => $role->is_system,
+                        'is_administrator' => $role->is_administrator,
+                        'permissions_count' => $role->permissions()->count(),
+                        'users_count' => $role->users_count,
+                        'permissions' => $role->permissions->map(function ($permission) {
+                            $parsed = $permission->parsePermission();
+                            return [
+                                'id' => $permission->id,
+                                'name' => $permission->name,
+                                'display_name' => $permission->display_name,
+                                'resource' => $parsed['resource'],
+                                'action' => $parsed['action'],
+                                'scope' => $parsed['scope'],
+                                'is_global' => $permission->isGlobal(),
+                                'is_scoped' => $permission->isScoped(),
+                            ];
+                        }),
+                    ];
+                });
+
+            $data['permissions'] = $permissions;
+            $data['rolesWithPermissions'] = $rolesWithPermissions;
+        }
+
+        return Inertia::render('settings/roles/index', $data);
     }
 
     /**

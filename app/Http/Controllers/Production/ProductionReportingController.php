@@ -38,8 +38,7 @@ class ProductionReportingController extends BaseSearchController
                             $orderQuery->with(['item.media']);
                         },
                         'steps' => function ($stepsQuery) {
-                            $stepsQuery->with(['workCell', 'executions'])
-                                ->orderBy('step_number');
+                            $stepsQuery->with(['workCell', 'executions']);
                         },
                     ]);
                 },
@@ -139,7 +138,7 @@ class ProductionReportingController extends BaseSearchController
                     'name' => $step->name,
                     'status' => $step->status,
                     'step_type' => $step->step_type,
-                    'step_number' => $step->step_number,
+                    'display_position' => $step->display_position,
                     'work_cell' => $step->workCell,
                     'setup_time_minutes' => $step->setup_time_minutes,
                     'cycle_time_minutes' => $step->cycle_time_minutes,
@@ -168,7 +167,7 @@ class ProductionReportingController extends BaseSearchController
                             return [
                                 'id' => $routeStep->id,
                                 'name' => $routeStep->name,
-                                'step_number' => $routeStep->step_number,
+                                'display_position' => $routeStep->display_position,
                                 'status' => $routeStep->status,
                                 'step_type' => $routeStep->step_type,
                                 'work_cell' => $routeStep->workCell,

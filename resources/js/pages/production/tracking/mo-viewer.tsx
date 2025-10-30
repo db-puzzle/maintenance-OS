@@ -49,7 +49,7 @@ declare const route: (name: string, params?: Record<string, string | number>) =>
 interface RouteStep {
     id: number;
     name: string;
-    step_number: number;
+    display_position?: number; // Add computed field
     status: string;
     work_cell: {
         id: number;
@@ -206,7 +206,7 @@ const MOViewerHierarchicalView: React.FC<{
                     <div className="ml-12 mt-2 space-y-1 mb-2">
                         {order.route_steps.map((step, stepIndex) => {
                             const isHighlighted = highlightedSteps.has(step.id);
-                            const isFirstStep = stepIndex === 0 || step.step_number === 1;
+                            const isFirstStep = !step.depends_on_step_id;
                             const hasChildOrders = order.children && order.children.length > 0;
                             const canSelectPrecedents = step.depends_on_step_id || (isFirstStep && hasChildOrders);
 
@@ -228,7 +228,7 @@ const MOViewerHierarchicalView: React.FC<{
                                         onStepClick(order.id, step.id);
                                     }}
                                 >
-                                    <span className="text-[10px] text-muted-foreground">#{step.step_number}</span>
+                                    <span className="text-[10px] text-muted-foreground">#{step.display_position || stepIndex + 1}</span>
                                     <span className="flex-1 truncate">{step.name}</span>
                                     {step.work_cell && (
                                         <Badge variant="outline" className="text-[10px] px-1 py-0">
@@ -364,11 +364,12 @@ export default function MOViewer({
     const [viewMode, setViewMode] = useState<'hierarchical' | 'canvas'>('canvas');
 
     // New states for MO selection
-    const [showMOSelectionModal, setShowMOSelectionModal] = useState(orders.length === 0);
+    const [showMOSelectionModal, setShowMOSelectionModal] = useState(true);
     const [selectedMOId, setSelectedMOId] = useState<number | null>(null);
     const [loadingMO, setLoadingMO] = useState(false);
     const [moHierarchy, setMOHierarchy] = useState<ManufacturingOrderHierarchy[]>([]);
     const [canvasScale, setCanvasScale] = useState(1);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
 
     // States for MO Details Dialog
     const [showMODetailsDialog, setShowMODetailsDialog] = useState(false);
@@ -386,6 +387,7 @@ export default function MOViewer({
 
         setSelectedMOId(orderId);
         setShowMOSelectionModal(false);
+        setIsInitialLoad(false);
         setLoadingMO(true);
 
         try {
@@ -466,8 +468,7 @@ export default function MOViewer({
 
         // Find the target step
         const targetStep = targetOrder.route_steps.find(s => s.id === stepId);
-        const stepIndex = targetOrder.route_steps.findIndex(s => s.id === stepId);
-        const isFirstStep = targetStep?.step_number === 1 || stepIndex === 0;
+        const isFirstStep = !targetStep?.depends_on_step_id;
 
         // If this is the first step and the MO has children, add only the last step of each child MO
         if (isFirstStep && targetOrder.children && targetOrder.children.length > 0) {
@@ -540,8 +541,7 @@ export default function MOViewer({
 
         // For the target step, check if it's the first step of the MO
         const targetStep = targetOrder.route_steps.find(s => s.id === stepId);
-        const stepIndex = targetOrder.route_steps.findIndex(s => s.id === stepId);
-        const isFirstStep = targetStep?.step_number === 1 || stepIndex === 0;
+        const isFirstStep = !targetStep?.depends_on_step_id;
 
         // If this is the first step of the MO and the MO has children, 
         // add all steps from child MOs as precedents
@@ -556,8 +556,7 @@ export default function MOViewer({
             for (const [_moId, mo] of allOrdersMap) {
                 if (mo.route_steps?.some(s => s.id === precedentStepId)) {
                     const precedentStep = mo.route_steps.find(s => s.id === precedentStepId);
-                    const isPrecedentFirstStep = precedentStep?.step_number === 1 ||
-                        mo.route_steps.findIndex(s => s.id === precedentStepId) === 0;
+                    const isPrecedentFirstStep = !precedentStep?.depends_on_step_id;
 
                     if (isPrecedentFirstStep && mo.children && mo.children.length > 0) {
                         addAllChildSteps(mo);
@@ -684,13 +683,13 @@ export default function MOViewer({
             parent_id: order.parent_id,
             item_number: order.item?.item_number,
             item_name: order.item?.name,
-            steps: (order.route_steps || []).map(step => ({
+            steps: (order.route_steps || []).map((step, stepIndex) => ({
                 id: step.id,
                 name: step.name,
                 workcell_name: step.work_cell?.name,
                 status: ('viewer_status' in step ? (step as RouteStep & { viewer_status: StepStatus }).viewer_status : mapStepStatus(step.status)),
-                step_number: step.step_number,
-                depends_on_step_id: ('depends_on_step_id' in step ? (step as RouteStep & { depends_on_step_id?: number }).depends_on_step_id : undefined)
+                display_position: step.display_position || stepIndex + 1,
+                depends_on_step_id: step.depends_on_step_id
             } as MOStep)),
             children: order.children ? transformToCanvasData(order.children) : undefined
         }));
@@ -760,7 +759,7 @@ export default function MOViewer({
                     ...step,
                     id: step.id,
                     manufacturing_route_id: 0,
-                    step_number: step.step_number,
+                    display_position: step.display_position,
                     name: step.name,
                     work_cell: step.work_cell,
                     work_cell_id: step.work_cell?.id,
@@ -976,6 +975,13 @@ export default function MOViewer({
                                 <p className="text-muted-foreground">Carregando hierarquia da ordem...</p>
                             </div>
                         </div>
+                    ) : isInitialLoad ? (
+                        // Don't show anything during initial load to avoid flash
+                        <div className="flex items-center justify-center h-full">
+                            <div className="text-center opacity-0">
+                                <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            </div>
+                        </div>
                     ) : !selectedMOId ? (
                         <div className="flex items-center justify-center h-full">
                             <div className="text-center">
@@ -1063,7 +1069,12 @@ export default function MOViewer({
             {/* MO Selection Modal */}
             <MOSelectionModal
                 open={showMOSelectionModal}
-                onOpenChange={setShowMOSelectionModal}
+                onOpenChange={(open) => {
+                    setShowMOSelectionModal(open);
+                    if (!open) {
+                        setIsInitialLoad(false);
+                    }
+                }}
                 onSelect={handleMOSelection}
                 selectedIds={selectedMOId ? new Set([selectedMOId]) : new Set()}
                 multiSelect={false}

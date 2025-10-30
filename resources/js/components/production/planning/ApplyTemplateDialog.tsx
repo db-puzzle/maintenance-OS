@@ -24,7 +24,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { toast } from 'sonner';
 import { formatNumber } from '@/utils/number';
 
 interface RouteTemplate {
@@ -228,7 +227,6 @@ export default function ApplyTemplateDialog({
     // Apply the selected template
     const handleApplyTemplate = () => {
         if (!selectedTemplateId) {
-            toast.error('Por favor, selecione um template para aplicar');
             return;
         }
 
@@ -246,12 +244,9 @@ export default function ApplyTemplateDialog({
                         setIsApplying(false);
                         onOpenChange(false);
                         onTemplateApplied?.();
-                        toast.success('Template aplicado com sucesso');
                     },
-                    onError: (errors) => {
+                    onError: () => {
                         setIsApplying(false);
-                        const errorMessage = errors.message || 'Falha ao aplicar template';
-                        toast.error(errorMessage);
                     },
                     preserveState: true,
                     preserveScroll: true,
@@ -270,12 +265,9 @@ export default function ApplyTemplateDialog({
                         setIsApplying(false);
                         onOpenChange(false);
                         onTemplateApplied?.();
-                        toast.success(`Template aplicado com sucesso a ${manufacturingOrderIds.length} ordens`);
                     },
-                    onError: (errors) => {
+                    onError: () => {
                         setIsApplying(false);
-                        const errorMessage = errors.message || 'Falha ao aplicar template às ordens selecionadas';
-                        toast.error(errorMessage);
                     },
                     preserveState: true,
                     preserveScroll: true,

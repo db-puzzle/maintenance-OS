@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
@@ -23,6 +24,9 @@ import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
 import CreateManufacturingOrderDialog from '@/components/production/CreateManufacturingOrderDialog';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { ImageDisplayToggleButton } from '@/components/ImageDisplayToggleButton';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { ColumnConfig } from '@/types/shared';
 import { ManufacturingOrder, Item, BillOfMaterial, RouteTemplate } from '@/types/production';
 interface Props {
@@ -71,6 +75,10 @@ export default function ManufacturingOrders({
     const [parentFilter, setParentFilter] = useState(filters.parent_id || 'root');
     const [loading] = useState(false);
     const [deleteOrder, setDeleteOrder] = useState<ManufacturingOrder | null>(null);
+    const [cancelOrder, setCancelOrder] = useState<ManufacturingOrder | null>(null);
+    const [cancelConfirmation, setCancelConfirmation] = useState('');
+    const [holdOrder, setHoldOrder] = useState<ManufacturingOrder | null>(null);
+    const [holdReason, setHoldReason] = useState('');
     const [showCreateDialog, setShowCreateDialog] = useState(shouldOpenCreate);
     const [showImages, setShowImages] = useState(false);
     const [clickedCard, setClickedCard] = useState<string | null>(null);
@@ -163,6 +171,46 @@ export default function ManufacturingOrders({
         }
     };
 
+    const handleCancel = async () => {
+        if (!cancelOrder) return;
+        try {
+            await router.post(route('production.orders.cancel', cancelOrder.id), {
+                reason: 'Cancelled by user'
+            }, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setCancelOrder(null);
+                    setCancelConfirmation('');
+                },
+                onError: () => {
+                    console.error('Failed to cancel order');
+                }
+            });
+        } catch (error) {
+            console.error('Cancel error:', error);
+        }
+    };
+
+    const handleHold = async () => {
+        if (!holdOrder) return;
+        try {
+            await router.post(route('production.orders.hold', holdOrder.id), {
+                reason: holdReason || undefined
+            }, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setHoldOrder(null);
+                    setHoldReason('');
+                },
+                onError: () => {
+                    console.error('Failed to hold order');
+                }
+            });
+        } catch (error) {
+            console.error('Hold error:', error);
+        }
+    };
+
     const handleCardClick = (filterValue: string) => {
         // Set the clicked card to trigger animation
         setClickedCard(filterValue);
@@ -210,7 +258,7 @@ export default function ManufacturingOrders({
                 return (
                     <ItemImagePreview
                         primaryImageUrl={mo.item?.primary_image_thumbnail_url || mo.item?.primary_image_url}
-                        imageCount={mo.item?.images_count || 0}
+                        imageCount={mo.item?.media?.length || 0}
                         className="w-12 h-12 cursor-pointer"
                         onClick={(e) => {
                             e?.stopPropagation();
@@ -531,10 +579,7 @@ export default function ManufacturingOrders({
                                     // Hold - for in progress orders
                                     ...(order.status === 'in_progress' ? [{
                                         label: 'Hold',
-                                        onClick: () => {
-                                            const reason = prompt('Reason for hold (optional):');
-                                            router.post(route('production.orders.hold', order.id), { reason });
-                                        }
+                                        onClick: () => setHoldOrder(order)
                                     }] : []),
                                     // Resume - for on hold orders
                                     ...(order.status === 'on_hold' ? [{
@@ -544,13 +589,7 @@ export default function ManufacturingOrders({
                                     // Cancel - for non-draft, non-completed, non-cancelled orders
                                     ...(!['draft', 'completed', 'cancelled'].includes(order.status) ? [{
                                         label: 'Cancel',
-                                        onClick: () => {
-                                            if (confirm('Are you sure you want to cancel this order?')) {
-                                                router.post(route('production.orders.cancel', order.id), {
-                                                    reason: 'Cancelled by user'
-                                                });
-                                            }
-                                        }
+                                        onClick: () => setCancelOrder(order)
                                     }] : [])
                                     // View Children action temporarily disabled - route not implemented yet
                                 ]}
@@ -604,7 +643,103 @@ export default function ManufacturingOrders({
                 onOpenChange={(open) => !open && setDeleteOrder(null)}
                 entityLabel={deleteOrder ? `order ${deleteOrder.order_number}` : ''}
                 onConfirm={handleDelete}
+                confirmationValue={deleteOrder?.order_number || ''}
+                confirmationLabel={deleteOrder ? `Type the order number (${deleteOrder.order_number}) to confirm` : ''}
             />
+
+            {/* Cancel Order Dialog */}
+            <Dialog open={!!cancelOrder} onOpenChange={(open) => {
+                if (!open) {
+                    setCancelOrder(null);
+                    setCancelConfirmation('');
+                }
+            }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Cancel Manufacturing Order</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to cancel order {cancelOrder?.order_number}? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="cancel-confirmation">
+                                Type the order number ({cancelOrder?.order_number}) to confirm
+                            </Label>
+                            <Input
+                                id="cancel-confirmation"
+                                value={cancelConfirmation}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCancelConfirmation(e.target.value)}
+                                placeholder={`Enter ${cancelOrder?.order_number}`}
+                                className="w-full"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setCancelOrder(null);
+                                setCancelConfirmation('');
+                            }}
+                        >
+                            No, Keep Order
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleCancel}
+                            disabled={cancelConfirmation !== cancelOrder?.order_number}
+                        >
+                            Yes, Cancel Order
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Hold Order Dialog */}
+            <Dialog open={!!holdOrder} onOpenChange={(open) => {
+                if (!open) {
+                    setHoldOrder(null);
+                    setHoldReason('');
+                }
+            }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Hold Manufacturing Order</DialogTitle>
+                        <DialogDescription>
+                            Put order {holdOrder?.order_number} on hold. You can optionally provide a reason.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="hold-reason">Reason (optional)</Label>
+                            <Input
+                                id="hold-reason"
+                                value={holdReason}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHoldReason(e.target.value)}
+                                placeholder="Enter reason for hold..."
+                                className="w-full"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setHoldOrder(null);
+                                setHoldReason('');
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleHold}
+                        >
+                            Hold Order
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 } 

@@ -221,8 +221,8 @@ export default function Dashboard() {
                         {sections.map((section, sectionIndex) => {
                             const SectionIcon = section.icon;
                             return (
-                                <div key={sectionIndex} className="flex justify-center">
-                                    <div className="flex flex-col md:flex-row gap-8 items-start">
+                                <div key={sectionIndex} className="flex justify-center px-4 md:px-8">
+                                    <div className="flex flex-col md:flex-row gap-12 items-start max-w-[1400px] w-full">
                                         {/* Section Header - Anchored to left of cards */}
                                         <div className="flex-shrink-0 md:w-64">
                                             <div className="flex flex-col items-start">
@@ -267,7 +267,7 @@ export default function Dashboard() {
                                         </div>
 
                                         {/* Cards Grid */}
-                                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                        <div className="flex flex-wrap gap-3">
                                             {section.cards.map((card, cardIndex) => {
                                                 const CardIcon = card.icon;
                                                 return (

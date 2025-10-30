@@ -152,8 +152,7 @@ class PlanningController extends Controller
                     unset($stepDataToSave['cycle_time_minutes']);
                 }
 
-                // Map sequence to step_number
-                $stepDataToSave['step_number'] = $stepData['sequence'];
+                // Dependencies will be set after all steps are created
 
                 $route->steps()->create($stepDataToSave);
             }
@@ -247,11 +246,13 @@ class PlanningController extends Controller
                         unset($stepDataToSave['cycle_time_minutes']);
                     }
 
-                    // Map sequence to step_number
-                    $stepDataToSave['step_number'] = $stepData['sequence'];
+                    // Dependencies will be set after all steps are created
 
                     $route->steps()->create($stepDataToSave);
                 }
+
+                // Set up step dependencies based on sequence order
+                $route->setupStepDependencies();
 
                 $results[] = $order->order_number;
             }
@@ -323,7 +324,7 @@ class PlanningController extends Controller
                     'work_cell_id' => $step->work_cell_id,
                     'setup_time_seconds' => $step->setup_time_seconds,
                     'cycle_time_seconds' => $step->cycle_time_seconds,
-                    'step_number' => $step->step_number,
+                    'display_position' => $step->display_position,
                     'step_type' => $step->step_type,
                     'is_required' => $step->is_required ?? true,
                     'status' => 'pending',
@@ -394,6 +395,17 @@ class PlanningController extends Controller
                 }
             } elseif ($targetState === 'released' && $order->status === 'planned') {
                 if ($order->canBeReleased()) {
+                    // Validate route structure before releasing
+                    if ($order->has_route && $order->manufacturingRoute) {
+                        try {
+                            $order->manufacturingRoute->validateForProduction();
+                        } catch (\App\Exceptions\ValidationException $e) {
+                            $skipReason = "Order {$order->order_number} cannot be released - {$e->getMessage()}";
+                            $skippedCount++;
+                            continue;
+                        }
+                    }
+
                     $order->status = 'released';
                     $order->save();
                     $successCount++;

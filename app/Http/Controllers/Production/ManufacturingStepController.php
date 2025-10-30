@@ -40,7 +40,6 @@ class ManufacturingStepController extends Controller
             ->when($request->work_cell_id, function ($query, $workCellId) {
                 $query->where('work_cell_id', $workCellId);
             })
-            ->orderBy('step_number')
             ->paginate(20)
             ->withQueryString();
 

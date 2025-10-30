@@ -296,6 +296,11 @@ class ManufacturingOrderService
             throw new \Exception('Order cannot be released in current status');
         }
 
+        // Validate route structure before releasing
+        if ($order->manufacturingRoute) {
+            $order->manufacturingRoute->validateForProduction();
+        }
+
         DB::transaction(function () use ($order) {
             $previousStatus = $order->status;
 

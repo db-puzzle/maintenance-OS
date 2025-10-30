@@ -65,11 +65,10 @@ export default function RouteBuilderCanvas({
         const newSteps = [...steps];
         newSteps.splice(draggedIndex, 1);
         newSteps.splice(targetIndex, 0, draggedStep);
-        // Update step numbers and reconstruct dependencies
+        // Reconstruct dependencies based on new order
         const updatedSteps = newSteps.map((step, index) => {
             const updatedStep = {
                 ...step,
-                step_number: index + 1,
             };
             // Reconstruct dependencies based on new order
             if (index === 0) {

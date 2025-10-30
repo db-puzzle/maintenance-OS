@@ -248,8 +248,7 @@ class ManufacturingOrderController extends BaseSearchController
                     ->withCount('children as child_count');
             },
             'manufacturingRoute.steps' => function ($query) {
-                $query->with(['workCell', 'dependentSteps'])
-                    ->orderBy('step_number');
+                $query->with(['workCell', 'dependentSteps']);
             },
             'createdBy',
             'childDependencies.childOrder.item',
@@ -609,11 +608,11 @@ class ManufacturingOrderController extends BaseSearchController
         } catch (\Exception $e) {
             if ($request->wantsJson()) {
                 return response()->json([
-                    'message' => $e->getMessage(),
+                    'message' => 'Falha ao aplicar template: ' . $e->getMessage(),
                 ], 422);
             }
 
-            return back()->with('error', $e->getMessage());
+            return back()->with('error', 'Falha ao aplicar template: ' . $e->getMessage());
         }
     }
 
@@ -638,10 +637,7 @@ class ManufacturingOrderController extends BaseSearchController
         }
 
         if (! empty($unauthorizedOrders)) {
-            return response()->json([
-                'message' => 'You are not authorized to update some of the selected orders.',
-                'unauthorized_orders' => $unauthorizedOrders,
-            ], 403);
+            return back()->with('error', 'Você não tem autorização para atualizar algumas das ordens selecionadas.');
         }
 
         try {
@@ -650,22 +646,18 @@ class ManufacturingOrderController extends BaseSearchController
                 $validated['template_id']
             );
 
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'message' => "Template applied to {$results['success']} orders. {$results['skipped']} skipped.",
-                    'results' => $results,
-                ]);
+            $message = $results['success'] === 1
+                ? 'Template aplicado a 1 ordem de manufatura com sucesso.'
+                : "Template aplicado a {$results['success']} ordens de manufatura com sucesso.";
+
+            if ($results['skipped'] > 0) {
+                $message .= " {$results['skipped']} " . ($results['skipped'] === 1 ? 'ordem foi pulada' : 'ordens foram puladas') . '.';
             }
 
-            return back()->with('bulkOperationResult', $results);
+            // For Inertia requests, always use flash messages with back() response
+            return back()->with('success', $message);
         } catch (\Exception $e) {
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'message' => 'Failed to apply template: ' . $e->getMessage(),
-                ], 422);
-            }
-
-            return back()->with('error', 'Failed to apply template: ' . $e->getMessage());
+            return back()->with('error', 'Falha ao aplicar template: ' . $e->getMessage());
         }
     }
 

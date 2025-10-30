@@ -241,7 +241,7 @@ export function ManufacturingStepsTable({ steps, canExecute, showImages = false,
                                 >
                                     <TableCell>
                                         <Badge variant="outline" className="font-mono">
-                                            {step.step_number}
+                                            {step.display_position}
                                         </Badge>
                                     </TableCell>
                                     {showImages && (

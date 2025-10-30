@@ -9,7 +9,7 @@ export interface MOStep {
     name: string;
     workcell_name?: string;
     status: StepStatus;
-    step_number: number;
+    display_position?: number; // Renamed from step_number for consistency
     depends_on_step_id?: number;
 }
 

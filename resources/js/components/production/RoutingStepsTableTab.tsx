@@ -85,7 +85,7 @@ export default function RoutingStepsTableTab({
     };
     const columns: ColumnConfig<ManufacturingStep>[] = [
         {
-            key: 'step_number',
+            key: 'display_position',
             label: '#',
             width: 'w-[60px]',
             headerAlign: 'center',

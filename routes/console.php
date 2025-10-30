@@ -47,3 +47,10 @@ Schedule::call(function () {
     $analytics->getStorageMetrics(); // Refresh cache
     $analytics->getGrowthMetrics(); // Refresh cache
 })->daily()->at('04:00')->name('refresh-media-analytics');
+
+// Production Step Safety Net
+Schedule::job(new \App\Jobs\Production\CheckPendingStepsJob)
+    ->everyFiveMinutes()
+    ->name('check-pending-steps')
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/production-step-safety-net.log'));

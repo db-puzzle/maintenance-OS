@@ -322,17 +322,19 @@ class ProductionRoutingController extends Controller
                 ->delete();
 
             // Update or create steps
+            $previousStep = null;
             foreach ($validated['steps'] as $index => $stepData) {
-                $stepData['step_number'] = $index + 1;
                 $stepData['status'] = $stepData['status'] ?? 'pending';
+                $stepData['depends_on_step_id'] = $previousStep ? $previousStep->id : null;
 
                 if (isset($stepData['id'])) {
                     $step = ManufacturingStep::find($stepData['id']);
                     if ($step && $step->status === 'pending') {
                         $step->update($stepData);
+                        $previousStep = $step;
                     }
                 } else {
-                    $routing->steps()->create($stepData);
+                    $previousStep = $routing->steps()->create($stepData);
                 }
             }
 
@@ -369,17 +371,11 @@ class ProductionRoutingController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'step_type' => 'required|in:standard,quality_check,rework',
-            'step_number' => 'required|integer|min:1',
             'work_cell_id' => 'nullable|exists:work_cells,id',
             'setup_time_minutes' => 'required|integer|min:0',
             'cycle_time_minutes' => 'required|integer|min:0',
             'use_workcell_throughput' => 'nullable|boolean',
             'depends_on_step_id' => [
-                function ($attribute, $value, $fail) use ($request) {
-                    if ($request->step_number > 1 && empty($value)) {
-                        $fail('Steps after the first must have a dependency.');
-                    }
-                },
                 'nullable',
                 'exists:manufacturing_steps,id',
             ],
@@ -397,12 +393,12 @@ class ProductionRoutingController extends Controller
             $validated['can_start_when_dependency'] = 'completed';
         }
 
-        // Check if step_number already exists and find the next available one
-        $existingStep = $routing->steps()->where('step_number', $validated['step_number'])->first();
-        if ($existingStep) {
-            // Find the maximum step number and use the next one
-            $maxStepNumber = $routing->steps()->max('step_number') ?? 0;
-            $validated['step_number'] = $maxStepNumber + 1;
+        // If no dependency specified, make it depend on the last step
+        if (! isset($validated['depends_on_step_id'])) {
+            $lastStep = $routing->steps()->orderBy('id', 'desc')->first();
+            if ($lastStep) {
+                $validated['depends_on_step_id'] = $lastStep->id;
+            }
         }
 
         $step = ManufacturingStep::create($validated);
@@ -430,11 +426,6 @@ class ProductionRoutingController extends Controller
             'cycle_time_minutes' => 'required|integer|min:0',
             'use_workcell_throughput' => 'nullable|boolean',
             'depends_on_step_id' => [
-                function ($attribute, $value, $fail) use ($step) {
-                    if ($step->step_number > 1 && empty($value)) {
-                        $fail('Steps after the first must have a dependency.');
-                    }
-                },
                 'nullable',
                 'exists:manufacturing_steps,id',
             ],
@@ -475,12 +466,17 @@ class ProductionRoutingController extends Controller
             return back()->with('error', 'Cannot delete a step that other steps depend on.');
         }
 
-        $step->delete();
+        // Update dependencies for steps that depend on the deleted step
+        $dependentSteps = $routing->steps()
+            ->where('depends_on_step_id', $step->id)
+            ->get();
 
-        // Reorder remaining steps
-        $routing->steps()
-            ->where('step_number', '>', $step->step_number)
-            ->decrement('step_number');
+        foreach ($dependentSteps as $dependentStep) {
+            // Make dependent steps depend on what the deleted step depended on
+            $dependentStep->update(['depends_on_step_id' => $step->depends_on_step_id]);
+        }
+
+        $step->delete();
 
         return back()->with('success', 'Step deleted successfully.');
     }
@@ -495,7 +491,6 @@ class ProductionRoutingController extends Controller
         $validated = $request->validate([
             'steps' => 'required|array',
             'steps.*.id' => 'required|exists:manufacturing_steps,id',
-            'steps.*.step_number' => 'required|integer|min:1',
         ]);
 
         // Verify all steps belong to this route
@@ -506,10 +501,12 @@ class ProductionRoutingController extends Controller
             return back()->with('error', 'Invalid step IDs provided.');
         }
 
-        // Update step numbers
+        // Update dependencies based on new order
+        $previousStepId = null;
         foreach ($validated['steps'] as $stepData) {
             ManufacturingStep::where('id', $stepData['id'])
-                ->update(['step_number' => $stepData['step_number']]);
+                ->update(['depends_on_step_id' => $previousStepId]);
+            $previousStepId = $stepData['id'];
         }
 
         return back()->with('success', 'Steps reordered successfully.');
@@ -530,7 +527,6 @@ class ProductionRoutingController extends Controller
             'deleted_step_ids.*' => 'integer|exists:manufacturing_steps,id',
             'steps' => 'array',
             'steps.*.id' => 'nullable|integer',
-            'steps.*.step_number' => 'required|integer|min:1',
             'steps.*.name' => 'required|string|max:255',
             'steps.*.description' => 'nullable|string',
             'steps.*.step_type' => 'required|in:standard,quality_check,rework',
@@ -545,15 +541,6 @@ class ProductionRoutingController extends Controller
             'steps.*.form_id' => 'nullable|exists:forms,id',
             'steps.*.is_new' => 'boolean',
         ]);
-
-        // Additional validation: ensure non-first steps have dependencies
-        foreach ($validated['steps'] as $index => $step) {
-            if ($step['step_number'] > 1 && empty($step['depends_on_step_id'])) {
-                return back()->withErrors([
-                    "steps.{$index}.depends_on_step_id" => 'Steps after the first must have a dependency.',
-                ]);
-            }
-        }
 
         DB::transaction(function () use ($validated, $routing) {
             // Update route info
@@ -570,21 +557,11 @@ class ProductionRoutingController extends Controller
                     ->delete();
             }
 
-            // First, temporarily set ALL existing steps to high step numbers to avoid conflicts
-            // This prevents unique constraint violations when reordering steps
-            ManufacturingStep::where('manufacturing_route_id', $routing->id)
-                ->orderBy('step_number')
-                ->get()
-                ->each(function ($step, $index) {
-                    $step->update(['step_number' => 1000 + $index]);
-                });
-
             // Now create/update all steps with correct step numbers
             $stepMapping = []; // Map temporary IDs to real IDs
 
-            foreach ($validated['steps'] as $stepData) {
+            foreach ($validated['steps'] as $index => $stepData) {
                 $stepAttributes = [
-                    'step_number' => $stepData['step_number'],
                     'name' => $stepData['name'],
                     'description' => $stepData['description'] ?? null,
                     'step_type' => $stepData['step_type'],
@@ -639,6 +616,9 @@ class ProductionRoutingController extends Controller
                     }
                 }
             }
+
+            // Set up step dependencies based on order
+            $routing->setupStepDependencies();
         });
 
         return back()->with('success', 'Route and steps updated successfully.');
@@ -745,29 +725,32 @@ class ProductionRoutingController extends Controller
                     'is_active' => $template->is_active,
                     'is_latest_for_category' => $template->is_latest_for_category,
                     'template_metadata' => $template->template_metadata,
-                    'steps' => $template->steps->map(function ($step) {
-                        return [
-                            'step_number' => $step->step_number,
-                            'name' => $step->name,
-                            'description' => $step->description,
-                            'step_type' => $step->step_type,
-                            'work_cell_name' => $step->workCell?->name,
-                            'setup_time_minutes' => $step->setup_time_minutes,
-                            'cycle_time_minutes' => $step->cycle_time_minutes,
-                            'use_workcell_throughput' => $step->use_workcell_throughput,
-                            'quality_check_mode' => $step->quality_check_mode,
-                            'sampling_size' => $step->sampling_size,
-                            'quality_specifications' => $step->quality_specifications,
-                            'form_id' => $step->form_id,
-                            'depends_on_step_id' => $step->depends_on_step_id,
-                            'can_start_when_dependency' => $step->can_start_when_dependency,
-                            'dependency_start_condition' => $step->dependency_start_condition,
-                            'dependency_minimum_quantity' => $step->dependency_minimum_quantity,
-                            'dependency_minimum_percentage' => $step->dependency_minimum_percentage,
-                            'child_order_dependency_type' => $step->child_order_dependency_type,
-                            'child_order_minimum_quantity' => $step->child_order_minimum_quantity,
-                        ];
-                    }),
+                    'steps' => $template->steps->count() > 0
+                        ? \App\Models\Production\ManufacturingStep::getOrderedStepsForRoute($template->id)
+                            ->map(function ($step, $index) {
+                                return [
+                                    'step_number' => $index + 1, // Computed for export
+                                    'name' => $step->name,
+                                    'description' => $step->description,
+                                    'step_type' => $step->step_type,
+                                    'work_cell_name' => $step->workCell?->name,
+                                    'setup_time_minutes' => $step->setup_time_minutes,
+                                    'cycle_time_minutes' => $step->cycle_time_minutes,
+                                    'use_workcell_throughput' => $step->use_workcell_throughput,
+                                    'quality_check_mode' => $step->quality_check_mode,
+                                    'sampling_size' => $step->sampling_size,
+                                    'quality_specifications' => $step->quality_specifications,
+                                    'form_id' => $step->form_id,
+                                    'depends_on_step_id' => $step->depends_on_step_id,
+                                    'can_start_when_dependency' => $step->can_start_when_dependency,
+                                    'dependency_start_condition' => $step->dependency_start_condition,
+                                    'dependency_minimum_quantity' => $step->dependency_minimum_quantity,
+                                    'dependency_minimum_percentage' => $step->dependency_minimum_percentage,
+                                    'child_order_dependency_type' => $step->child_order_dependency_type,
+                                    'child_order_minimum_quantity' => $step->child_order_minimum_quantity,
+                                ];
+                            })
+                        : [], // Empty array for routes with no steps
                 ];
             }),
         ];
@@ -847,7 +830,8 @@ class ProductionRoutingController extends Controller
                 ]);
             } else {
                 // Export each step with template info
-                foreach ($template->steps as $step) {
+                $orderedSteps = \App\Models\Production\ManufacturingStep::getOrderedStepsForRoute($template->id);
+                foreach ($orderedSteps as $index => $step) {
                     fputcsv($csv, [
                         $template->name,
                         $template->description,
@@ -855,7 +839,7 @@ class ProductionRoutingController extends Controller
                         $template->version,
                         $template->is_active ? 'Yes' : 'No',
                         json_encode($template->template_metadata),
-                        $step->step_number,
+                        $index + 1, // Computed step number for export
                         $step->name,
                         $step->description,
                         $step->step_type,

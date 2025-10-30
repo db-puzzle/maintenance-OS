@@ -447,7 +447,6 @@ class ManufacturingOrder extends Model
                             'name',
                             'description',
                             'work_cell_id',
-                            'step_number',
                             'step_type',
                             'setup_time_seconds',
                             'cycle_time_seconds',
@@ -464,7 +463,6 @@ class ManufacturingOrder extends Model
                             'child_order_minimum_quantity',
                             'status'
                         )
-                            ->orderBy('step_number')
                             ->with('workCell');
                     }]);
             },
@@ -687,7 +685,6 @@ class ManufacturingOrder extends Model
 
         $steps = $this->manufacturingRoute->steps()
             ->with('dependentSteps')
-            ->orderBy('step_number')
             ->get();
 
         $wipByStep = [];
@@ -817,7 +814,6 @@ class ManufacturingOrder extends Model
 
         return $this->manufacturingRoute->steps()
             ->whereNotIn('status', ['completed', 'skipped', 'cancelled'])
-            ->orderBy('step_number')
             ->first();
     }
 
@@ -835,22 +831,18 @@ class ManufacturingOrder extends Model
         $stepsQuery = $this->manufacturingRoute->steps()
             ->where('work_cell_id', $workCellId)
             ->whereNotIn('status', ['completed', 'skipped', 'cancelled'])
-            ->with(['dependency'])
-            ->orderBy('step_number');
+            ->with(['dependency']);
 
         $steps = $stepsQuery->get();
 
         // Find the first step that can actually be started
         foreach ($steps as $step) {
-            // Check if this step is blocked by an earlier step at a different work cell
-            $hasBlockingStep = $this->manufacturingRoute->steps()
-                ->where('step_number', '<', $step->step_number)
-                ->whereNotIn('status', ['completed', 'skipped', 'cancelled'])
-                ->where('work_cell_id', '!=', $workCellId)
-                ->exists();
-
-            if ($hasBlockingStep) {
-                continue; // This step is not ready yet
+            // Check if this step is blocked by its dependencies
+            if ($step->depends_on_step_id) {
+                $dependency = $step->dependency;
+                if ($dependency && ! in_array($dependency->status, ['completed', 'skipped', 'cancelled'])) {
+                    continue; // This step is not ready yet
+                }
             }
 
             // Check if the step's dependencies are met

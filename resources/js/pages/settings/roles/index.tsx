@@ -11,14 +11,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
+import { RolePermissionsMatrix } from '@/components/settings/roles/RolePermissionsMatrix';
 import { useEntityOperations } from '@/hooks/useEntityOperations';
 import { useSorting } from '@/hooks/useSorting';
-import { Copy, Shield } from 'lucide-react';
+import { Copy, Shield, List, Grid } from 'lucide-react';
 import { toast } from 'sonner';
 import { type BreadcrumbItem } from '@/types';
 import { type ColumnConfig, type PaginationMeta } from '@/types/shared';
@@ -62,6 +64,18 @@ interface Role {
     updated_at: string;
 }
 
+interface Permission {
+    id: number;
+    name: string;
+    display_name: string | null;
+    description: string | null;
+    resource: string;
+    action: string;
+    scope: string | null;
+    is_global: boolean;
+    is_scoped: boolean;
+}
+
 interface Props {
     roles: {
         data: Role[];
@@ -91,14 +105,17 @@ interface Props {
         sort?: string;
         direction?: 'asc' | 'desc';
         per_page?: number;
+        view?: 'list' | 'grid';
     };
     can: {
         create: boolean;
         viewAny: boolean;
     };
+    permissions?: Permission[];
+    rolesWithPermissions?: Role[];
 }
 
-export default function RoleIndex({ roles, filters = {}, can }: Props) {
+export default function RoleIndex({ roles, filters = {}, can, permissions, rolesWithPermissions }: Props) {
     // Ensure filters has default values
     const safeFilters = {
         search: filters?.search || '',
@@ -106,10 +123,45 @@ export default function RoleIndex({ roles, filters = {}, can }: Props) {
         sort: filters?.sort || 'name',
         direction: filters?.direction || 'asc',
         per_page: filters?.per_page || 10,
+        view: filters?.view || 'list',
     };
 
     const [searchTerm, setSearchTerm] = useState(safeFilters.search);
     const [selectedType, setSelectedType] = useState(safeFilters.type);
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>(safeFilters.view);
+    const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
+    const [allPermissions] = useState<Permission[]>(permissions || []);
+    const [rolesWithAllPermissions] = useState<Role[]>(rolesWithPermissions || []);
+    
+    // State for grid view filters
+    const [permissionSearchTerm, setPermissionSearchTerm] = useState('');
+    const [selectedPermissionCategory, setSelectedPermissionCategory] = useState('all');
+
+    // Helper function to get resource display name
+    function getResourceDisplayName(resource: string): string {
+        const resourceNames: Record<string, string> = {
+            'users': 'User Management',
+            'roles': 'Role Management',
+            'plants': 'Plant Management',
+            'areas': 'Area Management',
+            'sectors': 'Sector Management',
+            'assets': 'Asset Management',
+            'work-orders': 'Work Orders',
+            'routines': 'Routine Maintenance',
+            'items': 'Items & Inventory',
+            'manufacturing-orders': 'Manufacturing',
+            'production-routings': 'Production Routing',
+            'work-cells': 'Work Cells',
+            'shifts': 'Shift Management',
+            'reports': 'Reports & Analytics',
+            'system': 'System Settings',
+            'audit-logs': 'Audit Logs',
+            'media': 'Media Management',
+        };
+        return resourceNames[resource] || resource.split('-').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+    }
 
     // Prepare pagination meta first (needed for other hooks)
     const pagination: PaginationMeta = {
@@ -167,10 +219,35 @@ export default function RoleIndex({ roles, filters = {}, can }: Props) {
     const handlePageChange = (page: number) => {
         router.get(
             route('roles.index'),
-            { ...filters, search: searchTerm, type: selectedType, sort, direction, page },
+            { ...filters, search: searchTerm, type: selectedType, sort, direction, page, view: viewMode },
             { preserveState: true, preserveScroll: true }
         );
     };
+
+    const handleViewModeChange = (value: string) => {
+        const newMode = value as 'list' | 'grid';
+        setViewMode(newMode);
+        
+        // If switching to grid view and we don't have permissions data, fetch it
+        if (newMode === 'grid' && (!allPermissions.length || !rolesWithAllPermissions.length)) {
+            setIsLoadingPermissions(true);
+            router.get(
+                route('roles.index'),
+                { ...filters, view: newMode, include_permissions: true },
+                { 
+                    preserveState: false,
+                    onFinish: () => setIsLoadingPermissions(false)
+                }
+            );
+        } else {
+            router.get(
+                route('roles.index'),
+                { ...filters, view: newMode },
+                { preserveState: true, preserveScroll: true }
+            );
+        }
+    };
+
 
     const handlePerPageChange = (perPage: number) => {
         router.get(
@@ -292,23 +369,52 @@ export default function RoleIndex({ roles, filters = {}, can }: Props) {
             <ListLayout
                 title="Gerenciamento de Funções"
                 description="Gerencie funções do sistema e funções personalizadas com suas permissões"
-                searchPlaceholder="Search roles..."
-                searchValue={searchTerm}
-                onSearchChange={handleSearch}
+                searchPlaceholder={viewMode === 'grid' ? "Search permissions..." : "Search roles..."}
+                searchValue={viewMode === 'grid' ? permissionSearchTerm : searchTerm}
+                onSearchChange={viewMode === 'grid' ? setPermissionSearchTerm : handleSearch}
                 onCreateClick={can.create ? () => router.visit(route('roles.create')) : undefined}
                 createButtonText="Create Role"
                 actions={
                     <div className="flex items-center gap-2">
-                        <Select value={selectedType} onValueChange={handleTypeFilter}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Filter by type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Roles</SelectItem>
-                                <SelectItem value="system">System Roles</SelectItem>
-                                <SelectItem value="custom">Custom Roles</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <ToggleGroup value={viewMode} onValueChange={handleViewModeChange} type="single">
+                            <ToggleGroupItem value="list" aria-label="List view">
+                                <List className="h-4 w-4" />
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="grid" aria-label="Grid view">
+                                <Grid className="h-4 w-4" />
+                            </ToggleGroupItem>
+                        </ToggleGroup>
+                        
+                        {viewMode === 'list' ? (
+                            <Select value={selectedType} onValueChange={handleTypeFilter}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Filter by type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Roles</SelectItem>
+                                    <SelectItem value="system">System Roles</SelectItem>
+                                    <SelectItem value="custom">Custom Roles</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <Select value={selectedPermissionCategory} onValueChange={setSelectedPermissionCategory}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="All Categories" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Categories</SelectItem>
+                                    {/* We'll populate this dynamically based on available permissions */}
+                                    {allPermissions.length > 0 && 
+                                        [...new Set(allPermissions.map(p => p.resource))].sort().map(resource => (
+                                            <SelectItem key={resource} value={resource}>
+                                                {getResourceDisplayName(resource)}
+                                            </SelectItem>
+                                        ))
+                                    }
+                                </SelectContent>
+                            </Select>
+                        )}
+                        
                         <Button asChild variant="outline" size="sm">
                             <Link href={route('users.index')}>
                                 <Shield className="mr-2 h-4 w-4" />
@@ -319,47 +425,70 @@ export default function RoleIndex({ roles, filters = {}, can }: Props) {
                 }
             >
                 <div className="-mt-4 space-y-4">
-                    {/* Data Table */}
-                    <EntityDataTable
-                        data={filteredRoles as unknown as Record<string, unknown>[]}
-                        columns={columns}
-                        loading={false}
-                        onRowClick={(row) => {
-                            router.visit(route('roles.show', { role: (row as unknown as Role).id }));
-                        }}
-                        onSort={handleSort}
-                        maxHeight="calc(100vh - 300px)"
-                        actions={(row) => {
-                            const role = row as unknown as Role;
-                            const additionalActions = [];
+                    {viewMode === 'list' ? (
+                        <>
+                            {/* Data Table */}
+                            <EntityDataTable
+                                data={filteredRoles as unknown as Record<string, unknown>[]}
+                                columns={columns}
+                                loading={false}
+                                onRowClick={(row) => {
+                                    router.visit(route('roles.show', { role: (row as unknown as Role).id }));
+                                }}
+                                onSort={handleSort}
+                                maxHeight="calc(100vh - 300px)"
+                                actions={(row) => {
+                                    const role = row as unknown as Role;
+                                    const additionalActions = [];
 
-                            if (can.create) {
-                                additionalActions.push({
-                                    label: 'Duplicate',
-                                    icon: <Copy className="h-4 w-4" />,
-                                    onClick: () => handleDuplicate(role),
-                                });
-                            }
+                                    if (can.create) {
+                                        additionalActions.push({
+                                            label: 'Duplicate',
+                                            icon: <Copy className="h-4 w-4" />,
+                                            onClick: () => handleDuplicate(role),
+                                        });
+                                    }
 
-                            return (
-                                <EntityActionDropdown
-                                    onEdit={can.create && role.can_be_modified ? () => router.visit(route('roles.edit', { role: role.id })) : undefined}
-                                    onDelete={role.can_be_deleted ? () => entityOps.handleDelete(role) : undefined}
-                                    additionalActions={additionalActions}
+                                    return (
+                                        <EntityActionDropdown
+                                            onEdit={can.create && role.can_be_modified ? () => router.visit(route('roles.edit', { role: role.id })) : undefined}
+                                            onDelete={role.can_be_deleted ? () => entityOps.handleDelete(role) : undefined}
+                                            additionalActions={additionalActions}
+                                        />
+                                    );
+                                }}
+                                emptyMessage={searchTerm ? 'No roles found matching your criteria' : 'No roles found'}
+                            />
+
+                            {/* Pagination */}
+                            {pagination.last_page > 1 && (
+                                <EntityPagination
+                                    pagination={pagination}
+                                    onPageChange={handlePageChange}
+                                    onPerPageChange={handlePerPageChange}
+                                    perPageOptions={[10, 20, 30, 50, 100]}
                                 />
-                            );
-                        }}
-                        emptyMessage={searchTerm ? 'No roles found matching your criteria' : 'No roles found'}
-                    />
-
-                    {/* Pagination */}
-                    {pagination.last_page > 1 && (
-                        <EntityPagination
-                            pagination={pagination}
-                            onPageChange={handlePageChange}
-                            onPerPageChange={handlePerPageChange}
-                            perPageOptions={[10, 20, 30, 50, 100]}
-                        />
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            {/* Permission Matrix Grid View */}
+                            {isLoadingPermissions ? (
+                                <div className="flex items-center justify-center py-20">
+                                    <div className="text-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+                                        <p className="text-sm text-gray-600">Loading permissions matrix...</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <RolePermissionsMatrix
+                                    roles={rolesWithAllPermissions.length ? rolesWithAllPermissions : filteredRoles}
+                                    permissions={allPermissions}
+                                    searchTerm={permissionSearchTerm}
+                                    selectedCategory={selectedPermissionCategory}
+                                />
+                            )}
+                        </>
                     )}
                 </div>
             </ListLayout>

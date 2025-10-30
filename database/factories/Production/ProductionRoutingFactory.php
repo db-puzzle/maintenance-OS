@@ -22,7 +22,7 @@ class ProductionRoutingFactory extends Factory
     public function definition(): array
     {
         $sequence = fake()->numberBetween(1, 999999);
-        
+
         return [
             'bom_item_id' => BomItem::factory(),
             'routing_number' => sprintf('RT-%06d', $sequence),
@@ -76,11 +76,11 @@ class ProductionRoutingFactory extends Factory
             // Only create steps for defined routings
             if ($routing->routing_type === 'defined') {
                 $stepCount = fake()->numberBetween(2, 6);
-                
+                $previousStep = null;
+
                 for ($i = 1; $i <= $stepCount; $i++) {
                     $operationName = fake()->randomElement(['Cut', 'Mill', 'Drill', 'Turn', 'Grind', 'Assemble', 'Weld', 'Paint', 'Inspect', 'Package']);
-                    $routing->steps()->create([
-                        'step_number' => $i,
+                    $step = $routing->steps()->create([
                         'operation_code' => strtoupper(substr($operationName, 0, 3)) . '-' . sprintf('%03d', $i),
                         'name' => $operationName . ' ' . fake()->words(2, true),
                         'description' => fake()->optional(0.6)->sentence(),
@@ -95,9 +95,12 @@ class ProductionRoutingFactory extends Factory
                         'safety_notes' => fake()->optional(0.3)->sentence(),
                         'quality_checkpoints' => fake()->boolean(50) ? json_encode(fake()->sentences(fake()->numberBetween(1, 3))) : null,
                         'attachments' => null,
+                        'depends_on_step_id' => $previousStep?->id,
+                        'dependency_start_condition' => $previousStep ? 'completed' : null,
                     ]);
+                    $previousStep = $step;
                 }
             }
         });
     }
-} 
+}

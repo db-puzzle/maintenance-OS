@@ -19,7 +19,7 @@ class ManufacturingStep extends Model
      *
      * @var array
      */
-    protected $appends = ['setup_time_minutes', 'cycle_time_minutes'];
+    protected $appends = ['setup_time_minutes', 'cycle_time_minutes', 'display_position'];
 
     /**
      * Get the factory name for the model.
@@ -80,7 +80,6 @@ class ManufacturingStep extends Model
 
     protected $fillable = [
         'manufacturing_route_id',
-        'step_number',
         'is_template',
         'step_type',
         'name',
@@ -262,34 +261,15 @@ class ManufacturingStep extends Model
      */
     public function canStart(): bool
     {
-        \Log::info('[ManufacturingStep] canStart() called', [
-            'step_id' => $this->id,
-            'step_name' => $this->name,
-            'status' => $this->status,
-            'depends_on_step_id' => $this->depends_on_step_id,
-        ]);
-
         // Check step dependencies first
         if (! $this->checkStepDependencies()) {
-            \Log::info('[ManufacturingStep] Step dependencies not met', [
-                'step_id' => $this->id,
-            ]);
-
             return false;
         }
 
         // Then check child order dependencies
         if (! $this->checkChildOrderDependencies()) {
-            \Log::info('[ManufacturingStep] Child order dependencies not met', [
-                'step_id' => $this->id,
-            ]);
-
             return false;
         }
-
-        \Log::info('[ManufacturingStep] All dependencies met, can start', [
-            'step_id' => $this->id,
-        ]);
 
         return true;
     }
@@ -416,10 +396,8 @@ class ManufacturingStep extends Model
     public function createReworkStep(): ManufacturingStep
     {
         $route = $this->manufacturingRoute;
-        $maxStepNumber = $route->steps()->max('step_number') ?? 0;
 
         return $route->steps()->create([
-            'step_number' => $maxStepNumber + 1,
             'step_type' => 'rework',
             'name' => "Rework for {$this->name}",
             'description' => "Rework step for failed quality check on {$this->name}",
@@ -974,5 +952,63 @@ class ManufacturingStep extends Model
         }
 
         return array_unique($affectedSteps);
+    }
+
+    /**
+     * Get the display position computed attribute.
+     * Calculates the position based on dependency chain.
+     */
+    public function getDisplayPositionAttribute(): int
+    {
+        if (! $this->depends_on_step_id) {
+            return 1;
+        }
+
+        // Calculate position by traversing the dependency chain
+        $position = 1;
+        $current = $this;
+        $visited = collect([$this->id]); // Prevent infinite loops
+
+        while ($current->depends_on_step_id) {
+            $position++;
+            $current = $current->dependency;
+
+            // Safety check for circular dependencies
+            if ($visited->contains($current->id)) {
+                \Log::error('Circular dependency detected in route steps', [
+                    'step_id' => $this->id,
+                    'route_id' => $this->manufacturing_route_id,
+                ]);
+                break;
+            }
+            $visited->push($current->id);
+        }
+
+        return $position;
+    }
+
+    /**
+     * Get ordered steps for a route.
+     * Static helper method to get steps in dependency order.
+     */
+    public static function getOrderedStepsForRoute($routeId): \Illuminate\Support\Collection
+    {
+        $steps = static::where('manufacturing_route_id', $routeId)->get();
+
+        if ($steps->isEmpty()) {
+            return collect(); // Return empty collection for routes with no steps
+        }
+
+        $ordered = collect();
+
+        // Find root step
+        $current = $steps->firstWhere('depends_on_step_id', null);
+
+        while ($current) {
+            $ordered->push($current);
+            $current = $steps->firstWhere('depends_on_step_id', $current->id);
+        }
+
+        return $ordered;
     }
 }

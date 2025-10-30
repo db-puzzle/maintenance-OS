@@ -17,6 +17,9 @@ class RouteTemplateService
             throw new \InvalidArgumentException('Route is already a template');
         }
 
+        // Validate route structure before saving as template
+        $route->validateForProduction();
+
         return DB::transaction(function () use ($route, $data) {
             // Determine version number
             $version = 1;
@@ -58,9 +61,10 @@ class RouteTemplateService
 
             // Copy steps and preserve dependencies
             $stepMapping = [];
-            foreach ($route->steps()->orderBy('step_number')->get() as $step) {
+            $orderedSteps = \App\Models\Production\ManufacturingStep::getOrderedStepsForRoute($route->id);
+
+            foreach ($orderedSteps as $step) {
                 $newStep = $template->steps()->create([
-                    'step_number' => $step->step_number,
                     'step_type' => $step->step_type,
                     'name' => $step->name,
                     'description' => $step->description,
@@ -71,7 +75,8 @@ class RouteTemplateService
                     'use_workcell_throughput' => $step->use_workcell_throughput ?? false,
                     'quality_check_mode' => $step->quality_check_mode,
                     'sampling_size' => $step->sampling_size,
-                    'quality_specifications' => $step->quality_specifications,
+                    // Pass raw attribute to avoid double-encoding
+                    'quality_specifications' => $step->getAttributes()['quality_specifications'] ?? null,
                     'can_start_when_dependency' => $step->can_start_when_dependency ?? 'completed',
                     'is_template' => true,
                     'status' => null, // Templates don't have status

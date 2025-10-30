@@ -11,6 +11,7 @@ use App\Models\UserInvitation;
 use App\Notifications\UserInvitation as UserInvitationNotification;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -173,6 +174,12 @@ class UserInvitationController extends Controller
         Notification::route('mail', $validated['email'])
             ->notify(new UserInvitationNotification($invitation));
 
+        Log::info('[invitations] User invitation email queued', [
+            'email' => $validated['email'],
+            'invited_by' => $request->user()->name,
+            'invitation_id' => $invitation->id,
+        ]);
+
         // Log the invitation
         AuditLogService::logInvitation('sent', $invitation, [
             'invited_by' => $request->user()->name,
@@ -261,6 +268,12 @@ class UserInvitationController extends Controller
         // Send invitation email
         Notification::route('mail', $invitation->email)
             ->notify(new UserInvitationNotification($invitation));
+
+        Log::info('[invitations] User invitation email resent', [
+            'email' => $invitation->email,
+            'resent_by' => auth()->user()->name,
+            'invitation_id' => $invitation->id,
+        ]);
 
         AuditLogService::logInvitation('resent', $invitation);
 

@@ -43,7 +43,7 @@ export function StepCard({
         >
             {/* Step Number Badge */}
             <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
-                {step.step_number}
+                {step.display_position}
             </div>
             {/* Delete Button */}
             {canDelete && onDelete && (

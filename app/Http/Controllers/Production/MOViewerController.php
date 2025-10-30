@@ -68,8 +68,7 @@ class MOViewerController extends Controller
                         'currentExecution' => function ($query) {
                             $query->with('executedBy:id,name');
                         },
-                    ])
-                        ->orderBy('step_number');
+                    ]);
                 },
             ])
             ->whereIn('status', $statusFilter)
@@ -193,20 +192,10 @@ class MOViewerController extends Controller
                     }
                 }
 
-                // Log step status transformation
-                \Log::info('[MOViewerController] Transforming step status', [
-                    'step_id' => $step->id,
-                    'step_name' => $step->name,
-                    'original_status' => $step->status,
-                    'viewer_status' => $viewerStatus,
-                    'can_start' => $canStart,
-                    'cannot_start_reason' => $cannotStartReason,
-                ]);
-
                 $routeSteps[] = [
                     'id' => $step->id,
-                    'name' => $step->name ?? "Step {$step->step_number}",
-                    'step_number' => $step->step_number,
+                    'name' => $step->name ?? "Step {$step->display_position}",
+                    'display_position' => $step->display_position,
                     'status' => $step->status,
                     'viewer_status' => $viewerStatus,
                     'work_cell' => $step->workCell ? [
@@ -386,8 +375,7 @@ class MOViewerController extends Controller
                                                 'currentExecution' => function ($query) {
                                                     $query->with('executedBy:id,name');
                                                 },
-                                            ])
-                                                ->orderBy('step_number');
+                                            ]);
                                         },
                                     ]);
                                 },
@@ -397,8 +385,7 @@ class MOViewerController extends Controller
                                         'currentExecution' => function ($query) {
                                             $query->with('executedBy:id,name');
                                         },
-                                    ])
-                                        ->orderBy('step_number');
+                                    ]);
                                 },
                             ]);
                         },
@@ -408,8 +395,7 @@ class MOViewerController extends Controller
                                 'currentExecution' => function ($query) {
                                     $query->with('executedBy:id,name');
                                 },
-                            ])
-                                ->orderBy('step_number');
+                            ]);
                         },
                     ]);
                 },
@@ -419,8 +405,7 @@ class MOViewerController extends Controller
                         'currentExecution' => function ($query) {
                             $query->with('executedBy:id,name');
                         },
-                    ])
-                        ->orderBy('step_number');
+                    ]);
                 },
             ]);
 
@@ -435,15 +420,6 @@ class MOViewerController extends Controller
                 }
             };
             $countChildren($rootOrder);
-
-            \Log::info('[MOViewerController] Returning hierarchy for order', [
-                'order_id' => $orderId,
-                'root_order_id' => $rootOrder->id,
-                'total_orders' => $totalOrders,
-                'root_status' => $rootOrder->status,
-                'has_route' => $rootOrder->has_route,
-                'steps_count' => $rootOrder->manufacturingRoute?->steps?->count() ?? 0,
-            ]);
 
             return response()->json([
                 'order' => $this->transformOrder($rootOrder),
