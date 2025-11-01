@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -110,10 +110,76 @@ export default function SchedulerOrderSelection({
     const schedulingConfig = pageProps.schedulingConfig || { time_horizon_days: 7 };
     const flash = useMemo(() => pageProps.flash || {}, [pageProps.flash]);
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
-    const [families, setFamilies] = useState<Array<{ id: number; name: string; orders: Array<{ id: number }> }>>([]);
+    interface Family {
+        top_parent: {
+            id: number;
+            order_number: string;
+            priority: number;
+        };
+        members: Array<{
+            id: number;
+            order_number: string;
+            parent_id: number | null;
+            quantity: number;
+            status: string;
+            has_route: boolean;
+            step_count: number;
+        }>;
+        total_steps: number;
+        total_orders: number;
+        priority: number;
+        has_dependencies: boolean;
+    }
+
+    const [families, setFamilies] = useState<Family[]>([]);
     const [selectionMode, setSelectionMode] = useState<'individual' | 'family'>('family');
     const [isValidating, setIsValidating] = useState(false);
     const [validationResult, setValidationResult] = useState<{ is_valid: boolean; errors: string[]; warnings: string[] } | null>(null);
+
+    // Transform orders to match OrderSelectionPanel's expected Order type
+    // Note: The actual orders prop may not have all fields, so we provide defaults
+    interface OrderSelectionOrder {
+        id: number;
+        order_number: string;
+        item: {
+            code: string;
+            name: string;
+            description: string;
+        };
+        quantity: number;
+        status: string;
+        priority: number;
+        requested_date: string;
+        parent_id: number | null;
+        manufacturingRoute?: {
+            id: number;
+            name: string;
+            steps: Array<{
+                id: number;
+                name: string;
+                sequence_number: number;
+                work_cell_id: number;
+            }>;
+        } | null;
+    }
+
+    const transformedOrdersForPanel = useMemo(() => {
+        return orders.map(order => ({
+            id: order.id,
+            order_number: order.order_number,
+            item: {
+                code: order.item?.name || '',
+                name: order.item?.name || '',
+                description: '',
+            },
+            quantity: 1, // Default since not in props
+            status: 'planned', // Default since not in props
+            priority: 0, // Default since not in props
+            requested_date: new Date().toISOString().split('T')[0], // Default
+            parent_id: null, // Default
+            manufacturingRoute: null, // Would need to be fetched if needed
+        })) as OrderSelectionOrder[];
+    }, [orders]);
 
     // Monitor flash data for scheduling job response
     useEffect(() => {
@@ -150,12 +216,22 @@ export default function SchedulerOrderSelection({
         respect_locked_schedules: (schedulingConfig?.locked_schedules_enabled || true) as boolean,
     });
 
+    const fetchFamilies = useCallback(async (orderIds: number[]) => {
+        try {
+            const response = await fetch(route('production.scheduler.families', { order_ids: orderIds }));
+            const data = await response.json() as { families?: Family[] };
+            setFamilies(data.families || []);
+        } catch (error) {
+            console.error('Failed to fetch families:', error);
+        }
+    }, []);
+
     // Handle family selection mode
     useEffect(() => {
         if (selectedOrders.length > 0 && selectionMode !== 'individual') {
             fetchFamilies(selectedOrders);
         }
-    }, [selectedOrders, selectionMode]);
+    }, [selectedOrders, selectionMode, fetchFamilies]);
 
     // Handle validation modal display
     useEffect(() => {
@@ -163,16 +239,6 @@ export default function SchedulerOrderSelection({
             // Modal will be shown based on this state
         }
     }, [flash]);
-
-    const fetchFamilies = async (orderIds: number[]) => {
-        try {
-            const response = await fetch(route('production.scheduler.families', { order_ids: orderIds }));
-            const data = await response.json();
-            setFamilies(data.families || []);
-        } catch (error) {
-            console.error('Failed to fetch families:', error);
-        }
-    };
 
     const handleOrderSelection = (orderIds: number[]) => {
         setSelectedOrders(orderIds);
@@ -340,26 +406,7 @@ export default function SchedulerOrderSelection({
                                 {/* Desktop Side-by-Side */}
                                 <div className="flex-1 border-r px-4 py-3 overflow-hidden flex flex-col min-h-0">
                                     <OrderSelectionPanel
-                                        orders={orders as Array<{
-                                            id: number;
-                                            order_number: string;
-                                            item: { code: string; name: string; description: string };
-                                            quantity: number;
-                                            status: string;
-                                            priority: number;
-                                            requested_date: string;
-                                            parent_id: number | null;
-                                            manufacturingRoute?: {
-                                                id: number;
-                                                name: string;
-                                                steps: Array<{
-                                                    id: number;
-                                                    name: string;
-                                                    sequence_number: number;
-                                                    work_cell_id: number;
-                                                }>;
-                                            } | null;
-                                        }>}
+                                        orders={transformedOrdersForPanel}
                                         selectedOrders={selectedOrders}
                                         onSelectionChange={handleOrderSelection}
                                         selectionMode={selectionMode}
@@ -369,22 +416,7 @@ export default function SchedulerOrderSelection({
                                 <div className="flex-1 px-4 py-3 overflow-hidden flex flex-col min-h-0">
                                     {selectedOrders.length > 0 ? (
                                         <FamilyVisualization
-                                            families={families as unknown as Array<{
-                                                top_parent: { id: number; order_number: string; priority: number };
-                                                members: Array<{
-                                                    id: number;
-                                                    order_number: string;
-                                                    parent_id: number | null;
-                                                    quantity: number;
-                                                    status: string;
-                                                    has_route: boolean;
-                                                    step_count: number;
-                                                }>;
-                                                total_steps: number;
-                                                total_orders: number;
-                                                priority: number;
-                                                has_dependencies: boolean;
-                                            }>}
+                                            families={families}
                                             selectedOrders={selectedOrders}
                                         />
                                     ) : (
@@ -406,26 +438,7 @@ export default function SchedulerOrderSelection({
                                     </TabsList>
                                     <TabsContent value="orders" className="flex-1 overflow-hidden mt-0 px-4 py-3 flex flex-col min-h-0">
                                         <OrderSelectionPanel
-                                            orders={orders as Array<{
-                                                id: number;
-                                                order_number: string;
-                                                item: { code: string; name: string; description: string };
-                                                quantity: number;
-                                                status: string;
-                                                priority: number;
-                                                requested_date: string;
-                                                parent_id: number | null;
-                                                manufacturingRoute?: {
-                                                    id: number;
-                                                    name: string;
-                                                    steps: Array<{
-                                                        id: number;
-                                                        name: string;
-                                                        sequence_number: number;
-                                                        work_cell_id: number;
-                                                    }>;
-                                                } | null;
-                                            }>}
+                                            orders={transformedOrdersForPanel}
                                             selectedOrders={selectedOrders}
                                             onSelectionChange={handleOrderSelection}
                                             selectionMode={selectionMode}
@@ -435,22 +448,7 @@ export default function SchedulerOrderSelection({
                                     <TabsContent value="families" className="flex-1 overflow-hidden mt-0 px-4 py-3 flex flex-col min-h-0">
                                         {selectedOrders.length > 0 ? (
                                             <FamilyVisualization
-                                                families={families as unknown as Array<{
-                                                    top_parent: { id: number; order_number: string; priority: number };
-                                                    members: Array<{
-                                                        id: number;
-                                                        order_number: string;
-                                                        parent_id: number | null;
-                                                        quantity: number;
-                                                        status: string;
-                                                        has_route: boolean;
-                                                        step_count: number;
-                                                    }>;
-                                                    total_steps: number;
-                                                    total_orders: number;
-                                                    priority: number;
-                                                    has_dependencies: boolean;
-                                                }>}
+                                                families={families}
                                                 selectedOrders={selectedOrders}
                                             />
                                         ) : (

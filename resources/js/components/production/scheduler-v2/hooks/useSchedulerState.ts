@@ -1,24 +1,61 @@
 import { useMemo } from 'react';
-import { ZoomLevel } from '../utils/zoomConfig';
+import { ZoomLevel, type TimeScaleType } from '../utils/zoomConfig';
 
+/**
+ * Step interface matching what GanttView expects
+ */
 interface Step {
+    id: string;
     planned_start_date: string;
     planned_end_date: string;
 }
 
-interface Order {
-    steps: Step[];
+/**
+ * Order interface matching what GanttView expects
+ */
+export interface Order {
+    id: number;
+    expanded?: boolean;
+    steps?: Step[];
     children?: Order[];
 }
 
-interface WorkCell {
+/**
+ * Allocation interface matching what SchedulerView expects
+ */
+export interface Allocation {
+    id: string;
+    is_locked?: boolean;
+    planned_start_date: string;
+    planned_end_date: string;
+}
+
+/**
+ * WorkCell interface matching what SchedulerView expects
+ */
+export interface WorkCellState {
     id: number;
     name: string;
+    cell_type: string;
+    has_finite_capacity: boolean;
+    current_utilization?: number;
+    scheduled_steps?: Allocation[];
+}
+
+/**
+ * Return type for useSchedulerState hook
+ */
+export interface SchedulerStateReturn {
+    visibleOrders: Order[];
+    workCells: WorkCellState[];
+    allocations: Allocation[];
+    timeScale: TimeScaleType;
+    zoomLevel: ZoomLevel;
 }
 
 interface UseSchedulerStateProps {
     orders: Order[];
-    workCells: WorkCell[];
+    workCells: WorkCellState[];
     viewConfig: {
         startDate: Date;
         endDate: Date;
@@ -40,20 +77,20 @@ export const useSchedulerState = ({
                 return false;
             }
 
-            const hasVisibleSteps = order.steps.some((step: Step) => {
+            const hasVisibleSteps = order.steps?.some((step: Step) => {
                 const stepStart = new Date(step.planned_start_date);
                 const stepEnd = new Date(step.planned_end_date);
                 return stepEnd >= viewConfig.startDate && stepStart <= viewConfig.endDate;
-            });
+            }) ?? false;
 
             // Also check child orders recursively
             const hasVisibleChildren = order.children?.some((child: Order) => {
-                return child.steps.some((step: Step) => {
+                return child.steps?.some((step: Step) => {
                     const stepStart = new Date(step.planned_start_date);
                     const stepEnd = new Date(step.planned_end_date);
                     return stepEnd >= viewConfig.startDate && stepStart <= viewConfig.endDate;
-                });
-            });
+                }) ?? false;
+            }) ?? false;
 
             return hasVisibleSteps || hasVisibleChildren;
         });
@@ -63,11 +100,18 @@ export const useSchedulerState = ({
 
     // Flatten all steps for allocation view
     const allocations = useMemo(() => {
-        const allSteps: Step[] = [];
+        const allAllocations: Allocation[] = [];
 
         const collectSteps = (orderList: Order[]) => {
             orderList.forEach(order => {
-                allSteps.push(...order.steps);
+                if (order.steps) {
+                    const orderAllocations: Allocation[] = order.steps.map(step => ({
+                        id: step.id,
+                        planned_start_date: step.planned_start_date,
+                        planned_end_date: step.planned_end_date,
+                    }));
+                    allAllocations.push(...orderAllocations);
+                }
                 if (order.children) {
                     collectSteps(order.children);
                 }
@@ -75,7 +119,7 @@ export const useSchedulerState = ({
         };
 
         collectSteps(visibleOrders);
-        return allSteps;
+        return allAllocations;
     }, [visibleOrders]);
 
     // Use time scale from zoom level configuration
@@ -89,6 +133,6 @@ export const useSchedulerState = ({
         allocations,
         timeScale,
         zoomLevel,
-    };
+    } satisfies SchedulerStateReturn;
 };
 
