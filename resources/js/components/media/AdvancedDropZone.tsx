@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone, FileRejection } from 'react-dropzone';
 import { Upload, Image, FileText, Film, Music, Archive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,7 @@ export function AdvancedDropZone({
     const [dragDepth, setDragDepth] = useState(0);
     const dragCounter = useRef(0);
 
-    const handleRejections = useCallback((rejectedFiles: { file: File; errors: Array<{ code: string; message: string }> }[]) => {
+    const handleRejections = useCallback((rejectedFiles: FileRejection[]) => {
         rejectedFiles.forEach((rejection) => {
             let message = `File "${rejection.file.name}" was rejected: `;
 
@@ -52,7 +52,7 @@ export function AdvancedDropZone({
         });
     }, [maxSize, maxFiles]);
 
-    const handleDrop = useCallback((acceptedFiles: File[], rejectedFiles: { file: File; errors: Array<{ code: string; message: string }> }[]) => {
+    const handleDrop = useCallback((acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
         setDragDepth(0);
         dragCounter.current = 0;
 
@@ -90,9 +90,11 @@ export function AdvancedDropZone({
         return Archive;
     };
 
+    const { onDragStart, onDrag, onDragEnd, onAnimationStart, ...rootProps } = getRootProps();
+
     return (
         <motion.div
-            {...getRootProps()}
+            {...rootProps}
             className={cn(
                 'relative overflow-hidden rounded-xl border-2 border-dashed p-8',
                 'transition-all duration-300 cursor-pointer',

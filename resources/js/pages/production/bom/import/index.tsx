@@ -118,19 +118,19 @@ export default function BomImportWizard({ supportedFormats }: Props) {
                 const errorData = axiosError.response.data;
 
                 // Set error state to show in UI
-                if (errorData.error) {
+                if ((errorData as any).error) {
                     // Log the full error data for debugging
                     console.log('Error data received:', errorData);
 
-                    let description = errorData.details || 'Por favor, verifique o arquivo e tente novamente.';
+                    let description = (errorData as any).details || 'Por favor, verifique o arquivo e tente novamente.';
 
                     // Add line/column info if available
-                    if (errorData.line && errorData.column) {
-                        description = `Linha ${errorData.line}, Coluna ${errorData.column}: ${description}`;
+                    if ((errorData as any).line && (errorData as any).column) {
+                        description = `Linha ${(errorData as any).line}, Coluna ${(errorData as any).column}: ${description}`;
                     }
 
                     setUploadError({
-                        title: errorData.error,
+                        title: (errorData as any).error,
                         description: description
                     });
                 } else if (errorData.errors) {

@@ -80,14 +80,14 @@ export default function AlertsList({ alerts }: AlertsListProps) {
     const handleAction = (action: { action: string; params: Record<string, unknown> }) => {
         switch (action.action) {
             case 'edit_step':
-                window.open(action.params.url, '_blank');
+                window.open(action.params.url as string, '_blank');
                 break;
             case 'edit_work_cell':
-                window.open(action.params.url, '_blank');
+                window.open(action.params.url as string, '_blank');
                 break;
             case 'adjust_dates':
                 router.visit(route('production.scheduler.index'), {
-                    data: action.params
+                    data: action.params as any
                 });
                 break;
             default:
@@ -96,7 +96,7 @@ export default function AlertsList({ alerts }: AlertsListProps) {
     };
 
     const resolveAlert = (alertId: number) => {
-        router.post(route('production.scheduler.alerts.resolve', [alerts[0].schedule_version_id, alertId]), {}, {
+        router.post(route('production.scheduler.alerts.resolve', [(alerts[0] as any).schedule_version_id, alertId]), {}, {
             preserveScroll: true,
             onSuccess: () => {
                 // Alert resolved
@@ -122,7 +122,7 @@ export default function AlertsList({ alerts }: AlertsListProps) {
                                 <Badge variant="destructive">{alertCounts.error} Errors</Badge>
                             )}
                             {alertCounts.warning > 0 && (
-                                <Badge variant="warning">{alertCounts.warning} Warnings</Badge>
+                                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">{alertCounts.warning} Warnings</Badge>
                             )}
                             {alertCounts.info > 0 && (
                                 <Badge variant="secondary">{alertCounts.info} Info</Badge>

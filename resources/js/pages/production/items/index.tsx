@@ -205,15 +205,15 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             <ItemImagePreview
                 primaryImageData={item.primary_image_data}
                 primaryImageUrl={item.primary_image_url}
-                imageCount={item.images_count || 0}
+                imageCount={(item as any).images_count || 0}
                 className="w-36 h-36"
                 onClick={async (e) => {
                     e?.stopPropagation(); // Prevent row click event
                     // If item has images, use them, otherwise fetch
-                    if (item.images && item.images.length > 0) {
+                    if ((item as any).images && (item as any).images.length > 0) {
                         setCarouselItem(item);
                         setCarouselOpen(true);
-                    } else if (item.images_count && item.images_count > 0) {
+                    } else if ((item as any).images_count && (item as any).images_count > 0) {
                         setLoadingImages(true);
                         try {
                             // Fetch the item with images using our API endpoint
@@ -452,9 +452,9 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                 confirmationValue={deleteItem?.item_number || ''}
                 confirmationLabel={deleteItem ? `Digite o número do item (${deleteItem.item_number}) para confirmar` : ''}
             />
-            {carouselItem && carouselItem.images && carouselItem.images.length > 0 && (
+            {carouselItem && (carouselItem as any).images && (carouselItem as any).images.length > 0 && (
                 <ItemImageCarouselDialog
-                    images={carouselItem.images}
+                    images={(carouselItem as any).images}
                     open={carouselOpen}
                     onOpenChange={(open) => {
                         setCarouselOpen(open);

@@ -56,9 +56,11 @@ const useMediaUpload = ({
                         onProgress?.(progress.percentage);
                     }
                 },
-                onSuccess: (page: { props: { media?: Media } }) => {
-                    const media = page.props.media; // Assuming the backend returns media in props
-                    onSuccess?.(media);
+                onSuccess: (page: any) => {
+                    const media = page.props?.media; // Assuming the backend returns media in props
+                    if (media) {
+                        onSuccess?.(media);
+                    }
                     setIsUploading(false);
                     setUploadProgress(null);
                 },

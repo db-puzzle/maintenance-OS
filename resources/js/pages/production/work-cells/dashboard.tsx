@@ -153,7 +153,7 @@ export default function WorkCellDashboard({
                             {step.manufacturing_route?.manufacturing_order?.order_number}
                         </span>
                         <Badge variant="outline" className="text-xs">
-                            Step {step.step_number}
+                            Step {step.display_position || step.id}
                         </Badge>
 
                     </div>

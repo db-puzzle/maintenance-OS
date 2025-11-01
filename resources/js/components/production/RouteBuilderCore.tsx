@@ -61,7 +61,7 @@ export default function RouteBuilderCore({
 }: Props) {
     const [selectedStep, setSelectedStep] = useState<ExtendedManufacturingStep | null>(null);
     const [steps, setSteps] = useState<ExtendedManufacturingStep[]>(
-        (routing.steps || []).sort((a, b) => a.step_number - b.step_number)
+        (routing.steps || []).sort((a, b) => (a.display_position || 0) - (b.display_position || 0))
     );
     const [zoom, setZoom] = useState(100);
     const [isDragging, setIsDragging] = useState(false);
@@ -86,7 +86,7 @@ export default function RouteBuilderCore({
         work_cell_id: string;
         setup_time_minutes: number;
         cycle_time_minutes: number;
-        use_workcell_throughput: boolean;
+        use_workcell_throughput?: boolean;
         depends_on_step_id: string;
         can_start_when_dependency: 'completed';
         quality_check_mode?: string;
@@ -134,7 +134,7 @@ export default function RouteBuilderCore({
     }, [selectedStep, stepForm]); // Now we can safely include all dependencies
     const handleSave = () => {
         // Validate that all non-first steps have dependencies
-        const invalidSteps = steps.filter(step => step.step_number > 1 && !step.depends_on_step_id);
+        const invalidSteps = steps.filter(step => (step.display_position || 0) > 1 && !step.depends_on_step_id);
         if (invalidSteps.length > 0) {
             toast.error(`As seguintes etapas precisam ter dependências: ${invalidSteps.map(s => s.name).join(', ')}`);
             return;
@@ -151,7 +151,7 @@ export default function RouteBuilderCore({
             // Steps to create/update
             steps: steps.map(step => ({
                 id: step.isNew ? null : step.id,
-                step_number: step.step_number,
+                display_position: step.display_position,
                 name: step.name,
                 description: step.description,
                 step_type: step.step_type,
@@ -200,17 +200,17 @@ export default function RouteBuilderCore({
     const handleAddStep = () => {
         // Find the maximum step number to ensure uniqueness
         const maxStepNumber = steps.reduce((max, step) =>
-            Math.max(max, step.step_number), 0
+            Math.max(max, step.display_position || 0), 0
         );
-        // Find the step with the highest step_number to use as dependency
+        // Find the step with the highest display_position to use as dependency
         const previousStep = steps.reduce((prev, current) =>
-            (!prev || current.step_number > prev.step_number) ? current : prev,
+            (!prev || (current.display_position || 0) > (prev.display_position || 0)) ? current : prev,
             null as ExtendedManufacturingStep | null
         );
         const newStep: ExtendedManufacturingStep = {
             id: Date.now(), // Temporary ID
             manufacturing_route_id: routing.id,
-            step_number: maxStepNumber + 1, // Use max + 1 instead of array length
+            display_position: maxStepNumber + 1, // Use max + 1 instead of array length
             name: `Nova Etapa ${maxStepNumber + 1}`,
             step_type: 'standard',
             status: 'pending',
@@ -251,22 +251,22 @@ export default function RouteBuilderCore({
             setDeletedStepIds([...deletedStepIds, stepId]);
         }
         // Find the step before the one being deleted to update dependencies
-        const deletedStepNumber = stepToDelete.step_number;
+        const deletedStepNumber = stepToDelete.display_position || 0;
         const previousStep = steps
-            .filter(s => s.step_number < deletedStepNumber)
-            .sort((a, b) => b.step_number - a.step_number)[0];
+            .filter(s => (s.display_position || 0) < deletedStepNumber)
+            .sort((a, b) => (b.display_position || 0) - (a.display_position || 0))[0];
         // Remove from local state and update dependencies
         const updatedSteps = steps
             .filter(step => step.id !== stepId)
             .map((step, index) => {
-                const newStep = { ...step, step_number: index + 1 };
+                const newStep = { ...step, display_position: index + 1 };
                 // If this step depended on the deleted step, update its dependency
                 if (step.depends_on_step_id === stepId) {
                     newStep.depends_on_step_id = previousStep?.id || undefined;
                     // If this is now the second step and has no dependency, that's an error
-                    if (newStep.step_number > 1 && !newStep.depends_on_step_id) {
-                        // Find the step with step_number = 1
-                        const firstStep = steps.find(s => s.id !== stepId && s.step_number === 1);
+                    if ((newStep.display_position || 0) > 1 && !newStep.depends_on_step_id) {
+                        // Find the step with display_position = 1
+                        const firstStep = steps.find(s => s.id !== stepId && s.display_position === 1);
                         if (firstStep) {
                             newStep.depends_on_step_id = firstStep.id;
                         }

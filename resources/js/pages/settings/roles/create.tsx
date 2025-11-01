@@ -87,13 +87,13 @@ export default function RoleCreate({ permissions, roles }: Props) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        const submitData = {
+        setData({
             ...data,
             permissions: selectedPermissions,
             parent_role_id: data.parent_role_id || null,
-        };
+        } as any);
 
-        post(route('roles.store'), submitData);
+        post(route('roles.store'));
     };
 
     const handlePermissionToggle = (permissionId: number) => {

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ImportFile, FieldMapping, ImportOptions, ImportSession, ValidationResult, WorkCellPreview } from '../types';
+import { ImportFile, FieldMapping, ImportOptions, ImportSession, ValidationResult, WorkCellPreview, ImportError } from '../types';
 import { ArrowLeft, AlertCircle, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
@@ -53,16 +53,16 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
                     headers.forEach((header, i) => {
                         const fieldKey = Object.keys(mapping).find(key => mapping[key] === header);
                         if (fieldKey && fieldKey in workCell) {
-                            (workCell as Record<string, string | number | boolean>)[fieldKey] = values[i];
+                            (workCell as any)[fieldKey] = values[i];
                         }
                     });
 
                     // Convert boolean values
-                    const hasCapacity = (workCell as Record<string, string | number | boolean>).has_finite_capacity;
+                    const hasCapacity = (workCell as any).has_finite_capacity;
                     if (typeof hasCapacity === 'string') {
                         workCell.has_finite_capacity = ['yes', 'true', '1'].includes(hasCapacity.toLowerCase());
                     }
-                    const isActive = (workCell as Record<string, string | number | boolean>).is_active;
+                    const isActive = (workCell as any).is_active;
                     if (typeof isActive === 'string') {
                         workCell.is_active = ['yes', 'true', '1'].includes(isActive.toLowerCase());
                     }

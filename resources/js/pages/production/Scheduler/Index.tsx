@@ -50,7 +50,7 @@ interface TransformedOrder {
     status: string;
     priority: number;
     requested_date?: string;
-    quantity: string;
+    quantity: number;
     unit_of_measure?: string;
     parent_order_id?: number;
     children: TransformedOrder[];
@@ -130,16 +130,15 @@ export default function SchedulerV2Index({
     const _activeScheduleVersion = propsActiveScheduleVersion;
 
     // Get flash data from page props
-    const { flash } = usePage().props as PageProps & { flash: FlashData };
+    const { flash } = usePage().props as any as { flash: FlashData };
 
 
     const [schedules, setSchedules] = useState(propsSchedules || []);
     const [alerts] = useState(propsAlerts || []);
-    const [alertStats] = useState(propsAlertStats || {
-        total: 0,
-        unresolved: 0,
-        by_type: { capacity_overrun: 0, dependency_violation: 0, late_delivery: 0 },
-        by_severity: { error: 0, warning: 0 }
+    const [alertStats] = useState({
+        totalAlerts: propsAlertStats?.total || 0,
+        criticalAlerts: propsAlertStats?.by_severity?.error || 0,
+        warningAlerts: propsAlertStats?.by_severity?.warning || 0,
     });
 
     // State for order selection modal - now replaced with navigation to setup page
@@ -245,7 +244,7 @@ export default function SchedulerV2Index({
                 status: order.status,
                 priority: order.priority,
                 requested_date: order.requested_date,
-                quantity: formatNumber(order.quantity),
+                quantity: order.quantity,
                 unit_of_measure: order.unit_of_measure,
                 parent_order_id: (order as ManufacturingOrder & { parent_id?: number }).parent_id,
                 children: [] as TransformedOrder[], // Will be populated based on parent_order_id relationships
@@ -351,15 +350,14 @@ export default function SchedulerV2Index({
 
             <ScrollSyncProvider>
                 <ProductionScheduler
-                    steps={schedulerData.orders}
+                    steps={schedulerData.orders as any}
                     workCells={schedulerData.workCells}
                     currentVersion={currentVersion!}
                     publishedVersion={publishedVersion}
-                    alerts={alerts}
                     alertStats={alertStats}
                     schedulingAlgorithms={schedulingAlgorithms}
                     filters={filters}
-                    onUpdate={handleScheduleUpdate}
+                    onUpdate={handleScheduleUpdate as any}
                     onOrderToggle={handleOrderToggle}
                     onOpenOrderSelection={() => router.visit(route('production.scheduler.setup'))}
                 />

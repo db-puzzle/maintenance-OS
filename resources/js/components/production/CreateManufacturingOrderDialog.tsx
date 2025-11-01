@@ -739,9 +739,9 @@ export default function CreateManufacturingOrderDialog({
                                                 id="quantity"
                                                 type="number"
                                                 value={data.quantity}
-                                                onChange={(e) => setData('quantity', parseFloat(e.target.value) || 0)}
-                                                min={0.01}
-                                                step={0.01}
+                                                onChange={(e) => setData('quantity', parseInt(e.target.value) || 0)}
+                                                min={1}
+                                                step={1}
                                                 required
                                             />
                                             <InputError message={errors.quantity} />

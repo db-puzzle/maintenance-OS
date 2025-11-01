@@ -482,12 +482,12 @@ export default function StepPropertiesPanel({
                         <div className="space-y-2">
                             <Label>Depende da etapa</Label>
                             <div className="min-h-[40px] px-3 py-2 rounded-md border bg-muted text-sm flex items-center">
-                                {displayStep.step_number === 1 ? (
+                                {(displayStep.display_position || 1) === 1 ? (
                                     "Nenhuma dependência"
                                 ) : stepForm.data.depends_on_step_id ? (
                                     (() => {
                                         const dependentStep = steps.find(s => s.id === parseInt(stepForm.data.depends_on_step_id));
-                                        return dependentStep ? `${dependentStep.step_number}. ${dependentStep.name}` : "Etapa não encontrada";
+                                        return dependentStep ? `${dependentStep.display_position || 1}. ${dependentStep.name}` : "Etapa não encontrada";
                                     })()
                                 ) : (
                                     <span className="text-muted-foreground">Use o arrastar e soltar para definir dependências</span>

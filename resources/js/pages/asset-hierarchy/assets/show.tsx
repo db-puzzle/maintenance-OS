@@ -475,8 +475,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 editRoute={isCreating ? '' : asset ? route('asset-hierarchy.assets.edit', asset.id) : ''}
                 tabs={tabs}
                 defaultActiveTab={tabFromUrl || undefined}
-                defaultCompressed={isCompressed}
-                onCompressedChange={setIsCompressed}
             />
         </AppLayout>
     );

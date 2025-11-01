@@ -48,7 +48,7 @@ export default function Results({
 
     const criticalAlerts = alerts.filter(a => a.severity === 'error');
     const warningAlerts = alerts.filter(a => a.severity === 'warning');
-    const infoAlerts = alerts.filter(a => a.severity === 'info');
+    const infoAlerts: ScheduleAlert[] = [];
 
     const handlePublish = () => {
         if (criticalAlerts.length > 0) {
@@ -114,7 +114,7 @@ export default function Results({
                                     </Badge>
                                 )}
                                 {warningAlerts.length > 0 && (
-                                    <Badge variant="warning">
+                                    <Badge variant="secondary">
                                         {warningAlerts.length} Warnings
                                     </Badge>
                                 )}
@@ -129,7 +129,14 @@ export default function Results({
                 )}
 
                 {/* Metrics Overview */}
-                <MetricsDisplay metrics={metrics} version={version} />
+                <MetricsDisplay metrics={metrics} version={{
+                    id: version.id,
+                    version_number: version.version_number,
+                    published_at: version.published_at,
+                    published_by: version.published_by ? {name: 'Unknown'} : undefined,
+                    created_at: version.created_at,
+                    created_by: version.created_by ? {name: 'Unknown'} : undefined,
+                }} />
 
                 {/* Main Content Tabs */}
                 <Tabs defaultValue="families" className="space-y-4">
@@ -163,7 +170,7 @@ export default function Results({
                                     {families.map((family, index) => (
                                         <FamilyScheduleView
                                             key={family.top_parent}
-                                            family={family}
+                                            family={family as any}
                                             index={index}
                                             isExpanded={selectedFamily === family.top_parent}
                                             onToggle={() => setSelectedFamily(
@@ -196,7 +203,7 @@ export default function Results({
                     </TabsContent>
 
                     <TabsContent value="alerts">
-                        <AlertsList alerts={alerts} />
+                                <AlertsList alerts={alerts as any} />
                     </TabsContent>
                 </Tabs>
             </div>

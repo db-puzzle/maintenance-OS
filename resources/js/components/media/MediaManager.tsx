@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Media } from '@/types/media';
+import { Media as UtilMedia } from '@/utils/media';
 import { MediaUploader } from './MediaUploader';
 import { MediaGallery } from './MediaGallery';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,11 +63,11 @@ export function MediaManager({
                     {canUpload && (
                         <MediaUploader
                             modelType={modelType}
-                            modelId={modelId}
+                            modelId={typeof modelId === 'string' ? parseInt(modelId, 10) : modelId}
                             collection={collections[0].name}
-                            acceptedTypes={collections[0].accept}
+                            allowedMimeTypes={collections[0].accept}
                             maxFiles={collections[0].maxFiles}
-                            onUploadComplete={handleUploadComplete}
+                            onUploadComplete={() => handleUploadComplete([])}
                         />
                     )}
 
@@ -81,11 +82,10 @@ export function MediaManager({
                         </div>
                     ) : (
                         <MediaGallery
-                            media={media}
-                            collection={collections[0].name}
+                            media={media as unknown as UtilMedia[]}
+                            modelType={modelType}
+                            modelId={typeof modelId === 'string' ? parseInt(modelId, 10) : modelId}
                             canDelete={canDelete}
-                            onDelete={handleDelete}
-                            onMediaClick={onMediaClick}
                         />
                     )}
                 </CardContent>
@@ -113,11 +113,11 @@ export function MediaManager({
                             {canUpload && (
                                 <MediaUploader
                                     modelType={modelType}
-                                    modelId={modelId}
+                                    modelId={typeof modelId === 'string' ? parseInt(modelId, 10) : modelId}
                                     collection={collection.name}
-                                    acceptedTypes={collection.accept}
+                                    allowedMimeTypes={collection.accept}
                                     maxFiles={collection.maxFiles}
-                                    onUploadComplete={handleUploadComplete}
+                                    onUploadComplete={() => handleUploadComplete([])}
                                 />
                             )}
 
@@ -132,11 +132,10 @@ export function MediaManager({
                                 </div>
                             ) : (
                                 <MediaGallery
-                                    media={media}
-                                    collection={collection.name}
+                                    media={media as unknown as UtilMedia[]}
+                                    modelType={modelType}
+                                    modelId={typeof modelId === 'string' ? parseInt(modelId, 10) : modelId}
                                     canDelete={canDelete}
-                                    onDelete={handleDelete}
-                                    onMediaClick={onMediaClick}
                                 />
                             )}
                         </TabsContent>

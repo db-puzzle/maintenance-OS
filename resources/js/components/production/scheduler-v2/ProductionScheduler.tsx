@@ -53,8 +53,8 @@ export const ProductionScheduler: React.FC<Props> = ({
     });
 
     const [viewConfig, setViewConfig] = useState({
-        startDate: new Date(filters.start_date),
-        endDate: new Date(filters.end_date),
+        startDate: filters.start_date ? new Date(filters.start_date) : new Date(),
+        endDate: filters.end_date ? new Date(filters.end_date) : new Date(),
     });
     const [leftPanelSize, setLeftPanelSize] = useState(30); // Shared panel width percentage
     const ganttPanelGroupRef = useRef<ImperativePanelGroupHandle>(null);
@@ -81,7 +81,7 @@ export const ProductionScheduler: React.FC<Props> = ({
     }, [showDependencies]);
 
     const schedulerState = useSchedulerState({
-        orders,
+        orders: orders as any,
         workCells,
         viewConfig,
         zoomLevel: currentZoomLevel,
@@ -208,12 +208,12 @@ export const ProductionScheduler: React.FC<Props> = ({
 
     const handleStepUpdate = useCallback((stepId: string, updates: { start?: Date; end?: Date }) => {
         // Handle step updates
-        onUpdate({ id: stepId, ...updates });
+        onUpdate({ version_id: currentVersion.id, changes: [{ step_id: parseInt(stepId, 10), start: updates.start?.toISOString() || '', end: updates.end?.toISOString() || '' }] });
     }, [onUpdate]);
 
     const handleAllocationUpdate = useCallback((allocationId: string, updates: { quantity?: number; start?: Date; end?: Date }) => {
         // Handle work cell allocation updates
-        onUpdate({ id: allocationId, ...updates });
+        onUpdate({ version_id: currentVersion.id, changes: [{ step_id: parseInt(allocationId, 10), start: updates.start?.toISOString() || '', end: updates.end?.toISOString() || '' }] });
     }, [onUpdate]);
 
     const handleLeftPanelResize = useCallback((size: number, source: 'gantt' | 'scheduler') => {
@@ -257,10 +257,10 @@ export const ProductionScheduler: React.FC<Props> = ({
                         {/* Gantt View */}
                         <ResizablePanel defaultSize={60} minSize={30}>
                             <GanttView
-                                orders={schedulerState.visibleOrders}
+                                orders={schedulerState.visibleOrders as any}
                                 viewConfig={viewConfig}
                                 zoomLevel={currentZoomLevel}
-                                onStepUpdate={handleStepUpdate}
+                                onStepUpdate={handleStepUpdate as any}
                                 onOrderToggle={onOrderToggle}
                                 leftPanelSize={leftPanelSize}
                                 onLeftPanelResize={(size) => handleLeftPanelResize(size, 'gantt')}
@@ -277,11 +277,11 @@ export const ProductionScheduler: React.FC<Props> = ({
                         {/* Scheduler View */}
                         <ResizablePanel defaultSize={40} minSize={20}>
                             <SchedulerView
-                                workCells={schedulerState.workCells}
-                                allocations={schedulerState.allocations}
+                                workCells={schedulerState.workCells as any}
+                                allocations={schedulerState.allocations as any}
                                 viewConfig={viewConfig}
                                 zoomLevel={currentZoomLevel}
-                                onAllocationUpdate={handleAllocationUpdate}
+                                onAllocationUpdate={handleAllocationUpdate as any}
                                 leftPanelSize={leftPanelSize}
                                 onLeftPanelResize={(size) => handleLeftPanelResize(size, 'scheduler')}
                                 panelGroupRef={schedulerPanelGroupRef}

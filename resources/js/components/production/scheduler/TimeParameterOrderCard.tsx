@@ -26,6 +26,9 @@ interface TimeParameterData {
         id: number;
         name: string;
         item_number: string;
+        primary_image_thumbnail_url?: string;
+        primary_image_url?: string;
+        media?: Array<any>;
     };
     quantity: number;
     status: string;
@@ -46,6 +49,7 @@ interface TimeParameterData {
         has_work_cell_rate: boolean;
         work_cell_rate: {
             production_rate_per_hour?: number;
+            is_default?: boolean;
         } | null;
         effective_time_source: 'step' | 'work_cell' | null;
         effective_setup_time: number | null;

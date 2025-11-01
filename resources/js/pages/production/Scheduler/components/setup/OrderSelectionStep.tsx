@@ -85,7 +85,20 @@ export function OrderSelectionStep({
                         </CardHeader>
                         <CardContent>
                             <OrderSelectionPanel
-                                orders={orders}
+                                orders={orders.map(order => ({
+                                    id: order.id,
+                                    order_number: order.order_number,
+                                    item: {
+                                        code: order.item?.item_number || '',
+                                        name: order.item?.name || '',
+                                        description: order.item?.description || ''
+                                    },
+                                    quantity: order.quantity,
+                                    status: order.status,
+                                    priority: order.priority,
+                                    requested_date: order.requested_date || '',
+                                    parent_id: order.parent_id ?? null
+                                }))}
                                 selectedOrders={selectedOrders}
                                 onSelectionChange={handleOrderSelection}
                                 selectionMode={selectionMode}
@@ -112,7 +125,30 @@ export function OrderSelectionStep({
                         <CardContent>
                             {selectedOrders.length > 0 ? (
                                 <FamilyVisualization
-                                    families={families}
+                                    families={families.map(family => ({
+                                        top_parent: {
+                                            id: family.family_id ? parseInt(family.family_id) : 0,
+                                            order_number: family.family_name,
+                                            priority: 0
+                                        },
+                                        members: family.orders.map(orderId => ({
+                                            id: orderId,
+                                            order_number: orders.find(o => o.id === orderId)?.order_number || '',
+                                            parent_id: orders.find(o => o.id === orderId)?.parent_id || null,
+                                            quantity: orders.find(o => o.id === orderId)?.quantity || 0,
+                                            priority: orders.find(o => o.id === orderId)?.priority || 0,
+                                            status: orders.find(o => o.id === orderId)?.status || 'draft',
+                                            has_route: !!orders.find(o => o.id === orderId)?.route,
+                                            step_count: 0
+                                        })),
+                                        total_steps: 0,
+                                        total_orders: family.orders.length,
+                                        total_quantity: 0,
+                                        average_priority: 0,
+                                        highest_priority: 0,
+                                        priority: 0,
+                                        has_dependencies: false
+                                    }))}
                                     selectedOrders={selectedOrders}
                                 />
                             ) : (

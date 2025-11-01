@@ -39,7 +39,17 @@ interface SchedulerOrderSelectionProps {
     defaultStartDate: string;
     activeScheduleVersion: { id: number; name: string } | null;
     currentVersion: { id: number; name: string } | null;
-    orders: Array<{ id: number; order_number: string; item: { name: string }; family_id?: number }>;
+    orders: Array<{ 
+        id: number; 
+        order_number: string; 
+        item: { id?: number; name: string; code?: string; description?: string; item_number?: string }; 
+        family_id?: number;
+        quantity?: number;
+        status?: string;
+        priority?: number;
+        parent_id?: number;
+        requested_date?: string;
+    }>;
     workCells: Array<{ id: number; name: string }>;
     filters: Record<string, unknown>;
 }
@@ -114,11 +124,11 @@ export default function SchedulerOrderSelection({
     filters: _filters
 }: SchedulerOrderSelectionProps) {
 
-    const { flash } = usePage().props as { flash: { success?: string; error?: string } };
+    const { flash = { success: undefined, error: undefined } } = usePage().props as any;
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
     const [families, setFamilies] = useState<Array<{ id: number; name: string; orders: Array<{ id: number }> }>>([]);
     const [selectionMode, setSelectionMode] = useState<'individual' | 'family'>('family');
-    const [validationResult, setValidationResult] = useState<{ is_valid: boolean; errors: string[]; warnings: string[] } | null>(null);
+    const [validationResult, setValidationResult] = useState<{ is_valid: boolean; errors: Array<{ order_id?: number; order_number?: string; step_id?: number; step_name?: string; issue: string; message: string; type?: string; family?: string; editLinks?: { edit_step?: string; edit_work_cell?: string; } }>; warnings: Array<{ order_id?: number; order_number?: string; step_id?: number; step_name?: string; issue: string; message: string; type?: string; family?: string; editLinks?: { edit_step?: string; edit_work_cell?: string; } }> } | null>(null);
     const [timeParameterData, setTimeParameterData] = useState<Array<{ order_id: number; total_duration_seconds: number; estimated_completion_date: string; time_parameter_status?: string }>>([]);
     const [loadingTimeParams, setLoadingTimeParams] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
@@ -135,8 +145,8 @@ export default function SchedulerOrderSelection({
 
     // Monitor flash data for scheduling job response
     useEffect(() => {
-        const schedulingJob = flash?.schedulingJob ||
-            (flash?.success && flash?.job_id ? flash : null);
+        const schedulingJob = (flash as any)?.schedulingJob ||
+            (flash?.success && (flash as any)?.job_id ? flash : null);
 
         if (schedulingJob && open) {
             onOpenChange(false);
@@ -246,7 +256,7 @@ export default function SchedulerOrderSelection({
                             {activeScheduleVersion && (
                                 <Badge variant="outline" className="flex items-center gap-1 text-xs">
                                     <Clock className="w-3 h-3" />
-                                    v{activeScheduleVersion.version_number}
+                                    v{(activeScheduleVersion as any).version_number || 'Unknown'}
                                 </Badge>
                             )}
                         </div>
@@ -313,8 +323,9 @@ export default function SchedulerOrderSelection({
                                         <Checkbox
                                             id="respect-locked"
                                             checked={data.respect_locked_schedules}
-                                            onCheckedChange={(checked) =>
-                                                setData('respect_locked_schedules', checked as boolean)
+                                            onCheckedChange={(checked: boolean | "indeterminate") => {
+                                                (setData as any)('respect_locked_schedules', checked === true);
+                                            }
                                             }
                                             className="h-4 w-4"
                                         />
@@ -338,7 +349,20 @@ export default function SchedulerOrderSelection({
                             <div className="flex-1 overflow-hidden flex gap-4 p-4">
                                 <div className="flex-1 overflow-hidden">
                                     <OrderSelectionPanel
-                                        orders={orders}
+                                        orders={orders.map(order => ({
+                                            id: order.id,
+                                            order_number: order.order_number,
+                                            item: {
+                                                code: (order.item as any)?.code || '',
+                                                name: order.item?.name || '',
+                                                description: (order.item as any)?.description || ''
+                                            },
+                                            quantity: order.quantity || 0,
+                                            status: order.status || '',
+                                            priority: order.priority || 0,
+                                            requested_date: (order as any).requested_date || '',
+                                            parent_id: order.parent_id || null
+                                        }))}
                                         selectedOrders={selectedOrders}
                                         onSelectionChange={handleOrderSelection}
                                         selectionMode={selectionMode}
@@ -350,7 +374,27 @@ export default function SchedulerOrderSelection({
                                         <h3 className="text-sm font-semibold mb-3">Family Dependencies</h3>
                                         {selectedOrders.length > 0 ? (
                                             <FamilyVisualization
-                                                families={families}
+                                                families={families.map(family => ({
+                                                    top_parent: {
+                                                        id: family.id,
+                                                        order_number: (family as any).order_number || `Family ${family.id}`,
+                                                        priority: (family as any).priority || 0
+                                                    },
+                                                    members: family.orders.map(order => ({
+                                                        id: order.id,
+                                                        order_number: (order as any).order_number || `Order ${order.id}`,
+                                                        parent_id: (order as any).parent_id || null,
+                                                        quantity: (order as any).quantity || 0,
+                                                        priority: (order as any).priority || 0,
+                                                        status: (order as any).status || '',
+                                                        has_route: (order as any).has_route || false,
+                                                        step_count: (order as any).step_count || 0
+                                                    })),
+                                                    total_steps: (family as any).total_steps || 0,
+                                                    total_orders: family.orders.length,
+                                                    priority: (family as any).highest_priority || 0,
+                                                    has_dependencies: true
+                                                }))}
                                                 selectedOrders={selectedOrders}
                                             />
                                         ) : (
@@ -383,7 +427,24 @@ export default function SchedulerOrderSelection({
                                     </div>
                                 ) : (
                                     <TimeParameterStatus
-                                        orders={timeParameterData}
+                                        orders={timeParameterData.map(data => {
+                                            const order = orders.find(o => o.id === data.order_id);
+                                            return {
+                                                id: data.order_id,
+                                                order_number: order?.order_number || `Order ${data.order_id}`,
+                                                item: {
+                                                    id: order?.item?.id || 0,
+                                                    name: order?.item?.name || '',
+                                                    item_number: (order?.item as any)?.item_number || ''
+                                                },
+                                                quantity: order?.quantity || 0,
+                                                status: order?.status || '',
+                                                has_route: true,
+                                                time_parameter_status: (data.time_parameter_status as 'valid' | 'partial' | 'missing') || 'missing',
+                                                steps: [],
+                                                issues: []
+                                            };
+                                        })}
                                         onRefresh={() => fetchTimeParameters(selectedOrders)}
                                     />
                                 )}
@@ -526,9 +587,16 @@ export default function SchedulerOrderSelection({
                 {/* Validation Modal */}
                 {validationResult && (
                     <ValidationModal
-                        open={!!validationResult}
-                        onOpenChange={() => setValidationResult(null)}
-                        validationResult={validationResult}
+                        validation={{
+                            valid: validationResult.is_valid,
+                            errors: validationResult.errors,
+                            warnings: validationResult.warnings
+                        }}
+                        onClose={() => setValidationResult(null)}
+                        onContinue={() => {
+                            setValidationResult(null);
+                            // Continue with the action
+                        }}
                     />
                 )}
             </DialogContent>

@@ -9,20 +9,25 @@ import { ZoomLevel } from '../../../utils/zoomConfig';
 
 interface WorkCell {
     id: number;
+    has_finite_capacity?: boolean;
     scheduled_steps?: Allocation[];
 }
 
 interface Allocation {
     id: string;
+    name?: string;
     is_locked?: boolean;
     planned_start_date: string;
     planned_end_date: string;
+    work_cell_id?: number;
 }
 
 interface DraggedAllocation extends Allocation {
     originalWorkCellId: number;
     initialX: number;
+    initialY: number;
     offsetX: number;
+    offsetY: number;
     targetWorkCellId?: number;
 }
 
@@ -107,7 +112,7 @@ export const SchedulerTimeline: React.FC<SchedulerTimelineProps> = ({
 
         // Update the allocation
         onAllocationUpdate(draggedAllocation.id, {
-            work_cell_id: newWorkCellId,
+            workcell_id: newWorkCellId,
             scheduled_start: newStartDate.toISOString(),
             scheduled_end: newEndDate.toISOString(),
         });
@@ -196,7 +201,7 @@ export const SchedulerTimeline: React.FC<SchedulerTimelineProps> = ({
                                 {/* Capacity indicator for finite capacity cells */}
                                 {workCell.has_finite_capacity && (
                                     <CapacityIndicator
-                                        workCell={workCell}
+                                        workCell={workCell as any}
                                         allocations={cellAllocations}
                                         layout={timelineLayout}
                                         height={rowHeight}
@@ -212,7 +217,10 @@ export const SchedulerTimeline: React.FC<SchedulerTimelineProps> = ({
                                     return (
                                         <AllocationBar
                                             key={allocation.id}
-                                            allocation={allocation}
+                                            allocation={{
+                                                ...allocation,
+                                                name: allocation.name || 'Allocation',
+                                            }}
                                             x={x + (isDragging ? draggedAllocation.offsetX : 0)}
                                             y={8 + (isDragging ? draggedAllocation.offsetY : 0)}
                                             width={width}

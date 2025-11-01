@@ -107,7 +107,7 @@ export function StepCard({ step, isActive, onClick }: StepCardProps) {
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs font-medium text-muted-foreground">
-                            Step {step.step_number}
+                            Step {(step as any).step_number || step.display_position || 1}
                         </span>
                         {getStepTypeBadge()}
                         {step.active_execution && (
@@ -148,21 +148,21 @@ export function StepCard({ step, isActive, onClick }: StepCardProps) {
                     )}
 
                     {/* Timing information */}
-                    {!step.use_workcell_throughput && (step.setup_time_seconds > 0 || step.cycle_time_seconds > 0) && (
+                    {!step.use_workcell_throughput && ((step.setup_time_seconds || 0) > 0 || (step.cycle_time_seconds || 0) > 0) && (
                         <div className="mt-2 flex gap-2">
-                            {step.setup_time_seconds > 0 && (
+                            {(step.setup_time_seconds || 0) > 0 && (
                                 <div className="flex items-center gap-1">
                                     <Clock className="w-3 h-3 text-muted-foreground" />
                                     <span className="text-xs text-muted-foreground">
-                                        {formatNumber(step.setup_time_seconds / 60)}m
+                                        {formatNumber((step.setup_time_seconds || 0) / 60)}m
                                     </span>
                                 </div>
                             )}
-                            {step.cycle_time_seconds > 0 && (
+                            {(step.cycle_time_seconds || 0) > 0 && (
                                 <div className="flex items-center gap-1">
                                     <Timer className="w-3 h-3 text-muted-foreground" />
                                     <span className="text-xs text-muted-foreground">
-                                        {formatNumber(step.cycle_time_seconds / 60)}m
+                                        {formatNumber((step.cycle_time_seconds || 0) / 60)}m
                                     </span>
                                 </div>
                             )}

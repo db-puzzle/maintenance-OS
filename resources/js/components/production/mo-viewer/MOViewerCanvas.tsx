@@ -85,7 +85,7 @@ const StepRenderer = React.memo<StepRendererProps>(({ position, step, order, onS
     }, [position.orderId, position.stepId, onSelectImmediatePrecedents]);
 
     // Check if this is the first step and if the order has children
-    const isFirstStep = step.step_number === 1 || order.steps.findIndex(s => s.id === step.id) === 0;
+    const isFirstStep = step.display_position === 1 || order.steps.findIndex(s => s.id === step.id) === 0;
     const hasChildOrders = order.children && order.children.length > 0;
     const hasPrecedents = !!step.depends_on_step_id || (isFirstStep && hasChildOrders);
 
@@ -204,14 +204,14 @@ export function MOViewerCanvas({
 
             // Process steps for this MO
             // IMPORTANT: Always sort steps to ensure consistent positioning
-            // First by step_number, then by ID to handle cases where step_number is the same
+            // First by display_position, then by ID to handle cases where display_position is the same
             const sortedSteps = [...mo.steps].sort((a, b) => {
-                // First sort by step_number
-                const stepNumberDiff = a.step_number - b.step_number;
+                // First sort by display_position
+                const stepNumberDiff = (a.display_position || 0) - (b.display_position || 0);
                 if (stepNumberDiff !== 0) return stepNumberDiff;
 
-                // If step_numbers are the same, sort by ID to maintain consistent order
-                // This handles cases where all steps have step_number = 0
+                // If display_positions are the same, sort by ID to maintain consistent order
+                // This handles cases where all steps have display_position = 0
                 return a.id - b.id;
             });
 
@@ -437,11 +437,11 @@ export function MOViewerCanvas({
                             const orderWithSortedSteps = {
                                 ...order,
                                 steps: [...order.steps].sort((a, b) => {
-                                    // First sort by step_number
-                                    const stepNumberDiff = a.step_number - b.step_number;
+                                    // First sort by display_position
+                                    const stepNumberDiff = (a.display_position || 0) - (b.display_position || 0);
                                     if (stepNumberDiff !== 0) return stepNumberDiff;
 
-                                    // If step_numbers are the same, sort by ID to maintain consistent order
+                                    // If display_positions are the same, sort by ID to maintain consistent order
                                     return a.id - b.id;
                                 })
                             };

@@ -315,7 +315,7 @@ export default function ManufacturingOrderRouteTab({
                                         id: order.item.id,
                                         primary_image_url: order.item.primary_image_url,
                                         primary_image_thumbnail_url: order.item.primary_image_thumbnail_url,
-                                        images_count: order.item.images_count || 0
+                                        images_count: order.item.media?.length || 0
                                     } : undefined}
                                 />
                             ) : (

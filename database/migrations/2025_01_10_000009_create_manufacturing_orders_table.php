@@ -17,9 +17,9 @@ return new class extends Migration
             $table->foreignId('parent_id')->nullable()->constrained('manufacturing_orders')->cascadeOnDelete();
             $table->foreignId('item_id')->nullable()->constrained('items');
             $table->foreignId('bill_of_material_id')->nullable()->constrained('bill_of_materials');
-            $table->decimal('quantity', 10, 2);
-            $table->decimal('quantity_completed', 10, 2)->default(0);
-            $table->decimal('quantity_scrapped', 10, 2)->default(0);
+            $table->integer('quantity');
+            $table->integer('quantity_completed')->default(0);
+            $table->integer('quantity_scrapped')->default(0);
             $table->string('unit_of_measure_code', 20)->default('PC');
             $table->foreign('unit_of_measure_code')->references('code')->on('units_of_measure');
 

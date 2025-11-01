@@ -50,9 +50,9 @@ export const DirectExecution: React.FC<DirectExecutionProps> = ({ order }) => {
     };
 
     const handleMarkComplete = () => {
-        form.setData('mark_complete', true);
+        form.setData('mark_complete', true as any);
         form.setData('quantity_completed', remainingQuantity);
-        handleSubmit(new Event('submit') as React.FormEvent);
+        handleSubmit({ preventDefault: () => {} } as React.FormEvent);
     };
 
     if (!canReport) {
@@ -102,13 +102,12 @@ export const DirectExecution: React.FC<DirectExecutionProps> = ({ order }) => {
                         <div className="space-y-2">
                             <Label htmlFor="quantity_completed">Quantity Completed</Label>
                             <TextInput
-                                id="quantity_completed"
                                 form={formAdapter}
                                 name="quantity_completed"
+                                label=""
                                 type="number"
                                 min="0"
                                 max={remainingQuantity}
-                                step="0.01"
                                 placeholder="0"
                                 required
                             />
@@ -116,12 +115,11 @@ export const DirectExecution: React.FC<DirectExecutionProps> = ({ order }) => {
                         <div className="space-y-2">
                             <Label htmlFor="quantity_scrapped">Quantity Scrapped (Optional)</Label>
                             <TextInput
-                                id="quantity_scrapped"
                                 form={formAdapter}
                                 name="quantity_scrapped"
+                                label=""
                                 type="number"
                                 min="0"
-                                step="0.01"
                                 placeholder="0"
                             />
                         </div>

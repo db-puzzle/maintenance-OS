@@ -44,6 +44,12 @@ interface User {
 interface Role {
     id: number;
     name: string;
+    display_name?: string;
+    description?: string;
+    permissions_count?: number;
+    is_system: boolean;
+    requires_entity?: boolean;
+    entity_type?: 'plant' | 'area' | 'sector';
 }
 interface Plant {
     id: number;

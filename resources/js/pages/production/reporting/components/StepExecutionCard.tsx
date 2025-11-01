@@ -111,7 +111,7 @@ export function StepExecutionCard({
                     <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-base">{order.order_number}</h3>
                         <p className="text-sm text-muted-foreground">
-                            Step {step.step_number}: {step.name}
+                            Step {step.display_position || step.id}: {step.name}
                         </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">

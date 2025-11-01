@@ -86,7 +86,7 @@ export function ValidationStep({ files, mapping, options: _options, onNext, onBa
                         }
 
                         // Validate enums
-                        if (step.step_type && !validateEnumValue(step.step_type, STEP_TYPES)) {
+                        if (step.step_type && !validateEnumValue(step.step_type as string, STEP_TYPES)) {
                             errors.push({
                                 row: index + 1,
                                 field: `steps[${stepIndex}].step_type`,
@@ -150,24 +150,25 @@ export function ValidationStep({ files, mapping, options: _options, onNext, onBa
                 }
 
                 // Validate steps
-                (template.steps as unknown[]).forEach((step: Record<string, unknown>, stepIndex: number) => {
-                    if (!step.name) {
+                (template.steps as unknown[]).forEach((step, stepIndex) => {
+                    const stepData = step as Record<string, unknown>;
+                    if (!stepData.name) {
                         errors.push({
                             row: stepIndex + 2,
                             field: 'name',
                             message: `Nome da etapa é obrigatório para ${templateName}`,
-                            data: step
+                            data: stepData
                         });
                         isValid = false;
                     }
 
                     // Check for work cell
-                    if (!step.work_cell_name) {
+                    if (!stepData.work_cell_name) {
                         warnings.push({
                             row: stepIndex + 2,
                             field: 'work_cell_name',
-                            message: `Célula de trabalho não especificada para etapa "${step.name || stepIndex + 1}"`,
-                            data: step
+                            message: `Célula de trabalho não especificada para etapa "${stepData.name || stepIndex + 1}"`,
+                            data: stepData
                         });
                     }
                 });

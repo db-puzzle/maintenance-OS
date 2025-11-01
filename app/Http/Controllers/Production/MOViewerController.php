@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
 use App\Models\Production\ManufacturingOrder;
+use App\Models\Production\ManufacturingStep;
 use App\Models\Production\WorkCell;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -142,8 +143,39 @@ class MOViewerController extends Controller
         $hasDelays = false;
 
         if ($order->manufacturingRoute) {
-            foreach ($order->manufacturingRoute->steps as $step) {
+            // Get steps in operational sequence based on dependencies
+            $orderedSteps = ManufacturingStep::getOrderedStepsForRoute($order->manufacturingRoute->id);
+
+            // If no ordered steps found, fall back to the relation (but this shouldn't happen)
+            if ($orderedSteps->isEmpty()) {
+                $orderedSteps = $order->manufacturingRoute->steps;
+            }
+
+            // Load relationships for ordered steps
+            if ($orderedSteps->isNotEmpty()) {
+                $stepIds = $orderedSteps->pluck('id');
+                $stepsWithRelations = ManufacturingStep::whereIn('id', $stepIds)
+                    ->with([
+                        'workCell:id,name',
+                        'currentExecution' => function ($query) {
+                            $query->with('executedBy:id,name');
+                        },
+                    ])
+                    ->get()
+                    ->keyBy('id');
+
+                // Replace steps with loaded relationships while preserving order
+                $orderedSteps = $orderedSteps->map(function ($step) use ($stepsWithRelations) {
+                    return $stepsWithRelations->get($step->id, $step);
+                });
+            }
+
+            // Process each step in the correct operational sequence
+            foreach ($orderedSteps as $index => $step) {
                 $totalSteps++;
+
+                // Ensure display_position is set based on actual sequence
+                $displayPosition = $index + 1;
 
                 if ($step->status === 'completed') {
                     $completedSteps++;
@@ -194,8 +226,8 @@ class MOViewerController extends Controller
 
                 $routeSteps[] = [
                     'id' => $step->id,
-                    'name' => $step->name ?? "Step {$step->display_position}",
-                    'display_position' => $step->display_position,
+                    'name' => $step->name ?? "Step {$displayPosition}",
+                    'display_position' => $displayPosition, // Use actual sequence position
                     'status' => $step->status,
                     'viewer_status' => $viewerStatus,
                     'work_cell' => $step->workCell ? [
@@ -219,6 +251,14 @@ class MOViewerController extends Controller
                     'depends_on_step_id' => $step->depends_on_step_id,
                     'can_start' => $canStart,
                     'cannot_start_reason' => $cannotStartReason,
+                    // Include current execution data for in_progress steps
+                    'current_execution' => $step->currentExecution ? [
+                        'id' => $step->currentExecution->id,
+                        'status' => $step->currentExecution->status,
+                        'started_at' => $step->currentExecution->started_at,
+                        'quantity_completed' => $step->currentExecution->quantity_completed ?? 0,
+                        'quantity_scrapped' => $step->currentExecution->quantity_scrapped ?? 0,
+                    ] : null,
                 ];
             }
         }
@@ -421,8 +461,20 @@ class MOViewerController extends Controller
             };
             $countChildren($rootOrder);
 
+            $transformedOrder = $this->transformOrder($rootOrder);
+
+            \Log::info('[MOViewerController::hierarchy] Returning order hierarchy', [
+                'order_id' => $orderId,
+                'root_order_id' => $rootOrder->id,
+                'root_order_number' => $rootOrder->order_number,
+                'total_orders' => $totalOrders,
+                'steps_count' => count($transformedOrder['route_steps'] ?? []),
+                'first_step_status' => $transformedOrder['route_steps'][0]['status'] ?? null,
+                'manufacturing_route_id' => $transformedOrder['manufacturing_route']['id'] ?? null,
+            ]);
+
             return response()->json([
-                'order' => $this->transformOrder($rootOrder),
+                'order' => $transformedOrder,
             ]);
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
             return response()->json(['error' => 'Unauthorized'], 403);

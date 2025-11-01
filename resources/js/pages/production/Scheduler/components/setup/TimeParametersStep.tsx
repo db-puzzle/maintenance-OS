@@ -112,10 +112,10 @@ export function TimeParametersStep({
                     </div>
                 ) : orders.length > 0 ? (
                     <TimeParametersGanttView
-                        orders={orders}
+                        orders={orders as any}
                         startDate={startDate}
                         endDate={endDate}
-                        onEditStep={handleEditStep}
+                        onEditStep={handleEditStep as any}
                         onRefresh={onRefresh}
                     />
                 ) : (
@@ -182,8 +182,10 @@ export function TimeParametersStep({
                 <TimeParameterForm
                     open={true}
                     onOpenChange={(open) => !open && setEditingStep(null)}
-                    step={editingStep.step}
-                    orderId={editingStep.orderId}
+                    step={{
+                        ...editingStep.step,
+                        has_step_time: !!(editingStep.step.setup_time_minutes || editingStep.step.cycle_time_minutes)
+                    } as any}
                     orderQuantity={editingOrder.quantity}
                     itemId={editingOrder.item?.id}
                     onSuccess={() => {

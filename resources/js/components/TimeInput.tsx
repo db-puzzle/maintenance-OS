@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Settings2, ToggleLeft } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { TextInput } from '@/components/TextInput';
@@ -28,12 +28,17 @@ interface TimeInputProps {
     unitOfMeasure?: string; // For throughput display
     onPreferenceChange?: (mode: string, scale: string) => void;
     className?: string;
-    error?: string;
+    _error?: string;
     form?: {
-        data: Record<string, unknown>;
-        setData: (key: string, value: unknown) => void;
-        errors: Record<string, string>;
-        clearErrors: (key: string) => void;
+        data: Record<string, string | number | boolean | File | null | undefined>;
+        setData: {
+            (key: string, value: string | number | boolean | File | null | undefined): void;
+            <K extends string>(key: K, value: string | number | boolean | File | null | undefined): void;
+            (values: Record<string, string | number | boolean | File | null | undefined>): void;
+            <T extends Record<string, string | number | boolean | File | null | undefined>>(values: T | ((prev: T) => T)): void;
+        };
+        errors: Partial<Record<string, string>>;
+        clearErrors: (...fields: string[]) => void;
     }; // Form adapter
     name?: string; // Field name for form
 }
@@ -52,7 +57,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({
     unitOfMeasure = 'units',
     onPreferenceChange,
     className,
-    error,
+    _error,
     form,
     name,
 }) => {
@@ -137,25 +142,33 @@ export const TimeInput: React.FC<TimeInputProps> = ({
         }
     };
 
-    // Handle input change
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setInputValue(value);
-
-        const numValue = parseFloat(value) || 0;
-        const seconds = convertToSeconds(numValue);
-
-        // Validate min/max
-        if (min !== undefined && seconds < min) return;
-        if (max !== undefined && seconds > max) return;
-
-        onChange(seconds);
-
-        // Update form if provided
-        if (form && name) {
-            form.setData(name, seconds);
-        }
-    };
+    // Custom form adapter to handle conversion
+    const customFormAdapter = useMemo(() => {
+        if (!form || !name) return undefined;
+        
+        return {
+            ...form,
+            data: {
+                ...form.data,
+                [name]: inputValue // Use the display value instead of seconds
+            },
+            setData: ((key: string, value: string | number | boolean | File | null | undefined) => {
+                if (key === name && typeof value === 'number') {
+                    const seconds = convertToSeconds(value);
+                    
+                    // Validate min/max
+                    if (min !== undefined && seconds < min) return;
+                    if (max !== undefined && seconds > max) return;
+                    
+                    onChange(seconds);
+                    form.setData(name, seconds);
+                    setInputValue(value.toString());
+                } else {
+                    form.setData(key, value);
+                }
+            }) as typeof form.setData
+        };
+    }, [form, name, inputValue, convertToSeconds, min, max, onChange]);
 
     return (
         <div className={cn("space-y-2", className)}>
@@ -196,17 +209,14 @@ export const TimeInput: React.FC<TimeInputProps> = ({
             <div className="flex items-center gap-2">
                 <TextInput
                     type="number"
-                    value={inputValue}
-                    onChange={handleInputChange}
                     disabled={disabled}
                     required={required}
                     min={min ? convertFromSeconds(min).toString() : undefined}
                     max={max ? convertFromSeconds(max).toString() : undefined}
-                    step="0.01"
-                    className="flex-1"
-                    error={error}
-                    form={form}
-                    name={name}
+                    form={customFormAdapter || form!}
+                    name={name!}
+                    label=""
+                    placeholder=""
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
                     {getUnitLabel()}

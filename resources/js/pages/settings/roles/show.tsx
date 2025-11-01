@@ -213,8 +213,6 @@ export default function RoleShow({ role, can }: Props) {
                 subtitle={`${role.is_system ? 'System Role' : 'Custom Role'} • ${role.is_administrator ? 'Administrator' : 'Regular Role'} • ${role.requires_entity ? 'Entity-based' : 'Global'}`}
                 editRoute=""
                 tabs={tabs}
-                defaultCompressed={isCompressed}
-                onCompressedChange={setIsCompressed}
                 actions={actions}
             />
 
@@ -467,7 +465,7 @@ function RolePermissions({
                                                 return (
                                                     <div className="flex items-center gap-2">
                                                         <Badge variant="default" className="flex items-center gap-1">
-                                                            {entityIcons[permission.scope] || null}
+                                                            {permission.scope && entityIcons[permission.scope] || null}
                                                             {permission.scope}
                                                         </Badge>
                                                     </div>

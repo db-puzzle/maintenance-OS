@@ -1,13 +1,10 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import * as ReactWindow from 'react-window';
+import { Grid } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Media } from '@/types/media';
 import { ProgressiveImage } from './ProgressiveImage';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
-
-const Grid = ReactWindow.FixedSizeGrid;
-type GridChildComponentProps = ReactWindow.GridChildComponentProps;
 
 interface VirtualMediaGridProps {
     media: Media[];
@@ -26,9 +23,9 @@ export function VirtualMediaGrid({
     columnMinWidth = 200,
     gap = 16,
 }: VirtualMediaGridProps) {
-    const gridRef = useRef<Grid>(null);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [columnCount, setColumnCount] = useState(4);
+    const gridRef = useRef<unknown>(null);
 
     const toggleSelection = useCallback((item: Media) => {
         setSelectedIds(prev => {
@@ -71,13 +68,22 @@ export function VirtualMediaGrid({
 
     // Memoized cell renderer
     const Cell = useMemo(() => {
-        return React.memo(({ columnIndex, rowIndex, style }: GridChildComponentProps) => {
+        return React.memo(({ columnIndex, rowIndex, style, media: cellMedia, selectedIds: cellSelectedIds, toggleSelection: cellToggleSelection, onItemClick: cellOnItemClick }: {
+            ariaAttributes?: { "aria-colindex": number; role: "gridcell" };
+            columnIndex: number;
+            rowIndex: number;
+            style: React.CSSProperties;
+            media: Media[];
+            selectedIds: Set<string>;
+            toggleSelection: (item: Media) => void;
+            onItemClick?: (media: Media, index: number) => void;
+        }) => {
             const index = rowIndex * columnCount + columnIndex;
-            const item = media[index];
+            const item = cellMedia[index];
 
             if (!item) return null;
 
-            const isSelected = selectedIds.has(item.id);
+            const isSelected = cellSelectedIds.has(item.id);
             const isPriority = index < columnCount * 2; // First two rows
 
             // Adjust style for gaps
@@ -112,7 +118,7 @@ export function VirtualMediaGrid({
                         onLoad={() => {
                             // Recalculate row height if needed
                             if (gridRef.current) {
-                                gridRef.current.resetAfterRowIndex(rowIndex);
+                                (gridRef.current as { resetAfterRowIndex?: (index: number) => void })?.resetAfterRowIndex?.(rowIndex);
                             }
                         }}
                     />
@@ -127,7 +133,7 @@ export function VirtualMediaGrid({
                         >
                             <Checkbox
                                 checked={isSelected}
-                                onCheckedChange={() => toggleSelection(item)}
+                                onCheckedChange={() => cellToggleSelection(item)}
                                 onClick={(e) => e.stopPropagation()}
                             />
                         </div>
@@ -136,12 +142,12 @@ export function VirtualMediaGrid({
                     {/* Item overlay */}
                     <div
                         className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-opacity rounded-lg"
-                        onClick={() => onItemClick?.(item, index)}
+                        onClick={() => cellOnItemClick?.(item, index)}
                     />
                 </div>
             );
         });
-    }, [media, columnCount, gap, selectedIds, selectable, toggleSelection, onItemClick]);
+    }, [columnCount, gap, selectable]);
 
     Cell.displayName = 'VirtualGridCell';
 
@@ -157,19 +163,25 @@ export function VirtualMediaGrid({
 
                 return (
                     <Grid
-                        ref={gridRef}
                         columnCount={columnCount}
                         columnWidth={columnWidth}
-                        height={height}
                         rowCount={rowCount}
                         rowHeight={rowHeight}
-                        width={width}
-                        overscanRowCount={2}
-                        overscanColumnCount={1}
-                        itemData={media}
-                    >
-                        {Cell}
-                    </Grid>
+                        overscanCount={2}
+                        cellComponent={Cell as unknown as ((props: {
+                            ariaAttributes: { "aria-colindex": number; role: "gridcell" };
+                            columnIndex: number;
+                            rowIndex: number;
+                            style: React.CSSProperties;
+                        } & {
+                            media: Media[];
+                            selectedIds: Set<string>;
+                            toggleSelection: (item: Media) => void;
+                            onItemClick?: (media: Media, index: number) => void;
+                        }) => React.ReactNode)}
+                        cellProps={{ media, selectedIds, toggleSelection, onItemClick }}
+                        style={{ width, height }}
+                    />
                 );
             }}
         </AutoSizer>

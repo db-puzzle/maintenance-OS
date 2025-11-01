@@ -37,15 +37,7 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
         return null;
     };
 
-    useEffect(() => {
-        startImport();
-
-        return () => {
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-            }
-        };
-    }, [startImport, pollingInterval]); // Include all dependencies
+    // Move useEffect after startImport definition
 
     const simulateProgress = useCallback(() => {
         // This is a fallback simulation when real import is not available
@@ -163,6 +155,16 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
             simulateProgress();
         }
     }, [file, mapping, options, session.id, currentSession, onComplete, simulateProgress]);
+
+    useEffect(() => {
+        startImport();
+
+        return () => {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+        };
+    }, [startImport, pollingInterval]); // Include all dependencies
 
     const generateDummyErrors = (count: number): ImportError[] => {
         const errors: ImportError[] = [];

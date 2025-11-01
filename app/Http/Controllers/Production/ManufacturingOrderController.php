@@ -198,7 +198,7 @@ class ManufacturingOrderController extends BaseSearchController
             'order_type' => 'required|in:item,bom',
             'item_id' => 'nullable|required_if:order_type,item|exists:items,id',
             'bill_of_material_id' => 'nullable|required_if:order_type,bom|exists:bill_of_materials,id',
-            'quantity' => 'required|numeric|min:0.01',
+            'quantity' => 'required|integer|min:1',
             'unit_of_measure' => 'required|string|max:20',
             'priority' => 'required|integer|between:0,100',
             'requested_date' => 'nullable|date',
@@ -393,7 +393,7 @@ class ManufacturingOrderController extends BaseSearchController
         }
 
         $validated = $request->validate([
-            'quantity' => 'required|numeric|min:0.01',
+            'quantity' => 'required|integer|min:1',
             'unit_of_measure' => 'required|string|max:20',
             'priority' => 'required|integer|between:0,100',
             'requested_date' => 'nullable|date',

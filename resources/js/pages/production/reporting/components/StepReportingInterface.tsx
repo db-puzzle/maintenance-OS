@@ -117,10 +117,10 @@ export function StepReportingInterface({
 
             // Include quality check fields if applicable
             if (step.step_type === 'quality_check') {
-                submitData.quality_result = data.quality_result;
+                submitData.quality_result = data.quality_result as 'passed' | 'failed' | undefined;
                 submitData.quality_notes = data.quality_notes;
                 if (data.quality_result === 'failed') {
-                    submitData.failure_action = data.failure_action;
+                    submitData.failure_action = data.failure_action as 'scrap' | 'rework' | undefined;
                 }
             }
 
@@ -364,7 +364,9 @@ export function StepReportingInterface({
                         <input
                             type="checkbox"
                             checked={data.mark_complete}
-                            onChange={(e) => setData('mark_complete', e.target.checked)}
+                            onChange={(e) => {
+                                (setData as (key: string, value: boolean) => void)('mark_complete', e.target.checked);
+                            }}
                             className="rounded"
                         />
                         <span className="text-sm">

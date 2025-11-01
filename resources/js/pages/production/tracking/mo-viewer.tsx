@@ -32,6 +32,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ManufacturingOrderTreeNode } from '@/components/production/ManufacturingOrderHierarchicalView';
+import { ManufacturingOrder } from '@/types/production';
 import { GenericHierarchicalTreeView, NodeRenderProps } from '@/components/production/shared/GenericHierarchicalTreeView';
 import { HierarchicalViewHeader } from '@/components/production/shared/HierarchicalViewHeader';
 import { useTreeExpansion } from '@/components/production/shared/useTreeExpansion';
@@ -59,6 +60,13 @@ interface RouteStep {
     quantity_scrapped: number;
     quantity_total: number;
     rejection_rate: number;
+    can_start?: boolean;
+    cannot_start_reason?: string;
+    actual_start_time?: string;
+    actual_end_time?: string;
+    skip_reason?: string;
+    skipped_by?: any;
+    skipped_at?: string;
     current_operator: {
         id: number;
         name: string;
@@ -580,8 +588,8 @@ export default function MOViewer({
                     .then(response => {
                         setMOHierarchy([response.data.order]);
                     })
-                    .catch(error => {
-                        console.error('Error refreshing MO hierarchy:', error);
+                    .catch(() => {
+                        // Handle error silently
                     });
             }
         }, 30000);
@@ -717,7 +725,6 @@ export default function MOViewer({
 
     // Handle step click to open MO Details Dialog
     const handleStepClick = useCallback((orderId: number, stepId: number) => {
-        console.log('[MOViewer] handleStepClick triggered', { orderId, stepId });
 
         // Clear any highlights
         setHighlightedSteps(new Set());
@@ -736,16 +743,10 @@ export default function MOViewer({
 
         const order = findOrderInHierarchy(displayOrders, orderId);
         if (!order) {
-            console.error('[MOViewer] Order not found in hierarchy', { orderId });
             toast.error('Ordem não encontrada');
             return;
         }
 
-        console.log('[MOViewer] Found order', {
-            orderId: order.id,
-            orderNumber: order.order_number,
-            routeSteps: order.route_steps?.length || 0
-        });
 
         // For now, use the existing order data structure
         // The MODetailsDialog will handle fetching additional data if needed
@@ -774,25 +775,8 @@ export default function MOViewer({
 
         // Find the clicked step
         const targetStep = fullOrder.manufacturing_route?.steps?.find((s) => s.id === stepId);
-        if (targetStep) {
-            fullOrder.current_step = targetStep;
-            console.log('[MOViewer] Found target step', {
-                stepId: targetStep.id,
-                stepName: targetStep.name,
-                stepStatus: targetStep.status,
-                viewerStatus: targetStep.viewer_status,
-                canStart: targetStep.can_start,
-                cannotStartReason: targetStep.cannot_start_reason
-            });
-        } else {
-            console.warn('[MOViewer] Target step not found', { stepId });
-        }
+        // Note: current_step is not used by MODetailsDialog, it uses selectedStepId instead
 
-        console.log('[MOViewer] Opening MOStepActionDialog with order', {
-            orderId: fullOrder.id,
-            stepId,
-            hasCurrentStep: !!fullOrder.current_step
-        });
 
         setSelectedMOForDialog(fullOrder);
         setSelectedStepId(stepId);
@@ -1078,14 +1062,94 @@ export default function MOViewer({
                 onSelect={handleMOSelection}
                 selectedIds={selectedMOId ? new Set([selectedMOId]) : new Set()}
                 multiSelect={false}
+                defaultStatusFilters={['released', 'in_progress']}
             />
 
             {/* MO Step Action Dialog */}
             <MOStepActionDialog
-                order={selectedMOForDialog}
+                order={selectedMOForDialog as ManufacturingOrder | null}
                 isOpen={showMODetailsDialog}
                 onOpenChange={setShowMODetailsDialog}
                 activeStepId={selectedStepId}
+                onStateChanged={() => {
+                    // Always refresh the root hierarchy when selectedMOId exists
+                    if (selectedMOId) {
+
+                        setLoadingMO(true);
+                        axios.get(route('production.tracking.mo-viewer.hierarchy', { orderId: selectedMOId }))
+                            .then(response => {
+
+                                if (response.data.order) {
+                                    setMOHierarchy([response.data.order]);
+
+                                    // Find the updated order in the hierarchy that matches the dialog
+                                    if (showMODetailsDialog && selectedMOForDialog) {
+                                        const findOrderInHierarchy = (order: ManufacturingOrderHierarchy, targetId: number): ManufacturingOrderHierarchy | null => {
+                                            if (order.id === targetId) return order;
+                                            if (order.children) {
+                                                for (const child of order.children) {
+                                                    const found = findOrderInHierarchy(child, targetId);
+                                                    if (found) return found;
+                                                }
+                                            }
+                                            return null;
+                                        };
+
+                                        const updatedDialogOrder = findOrderInHierarchy(response.data.order, selectedMOForDialog.id);
+
+                                        if (updatedDialogOrder) {
+
+                                            // Update the selectedMOForDialog by creating a new object with same reference
+                                            // This ensures React doesn't see it as a completely new prop
+                                            setSelectedMOForDialog(prev => {
+                                                if (!prev) return prev;
+
+                                                // Merge the updated data while preserving the object structure
+                                                return {
+                                                    ...prev,
+                                                    ...updatedDialogOrder,
+                                                    manufacturing_route: {
+                                                        ...(prev.manufacturing_route || {}),
+                                                        id: updatedDialogOrder.manufacturing_route?.id || 0,
+                                                        name: updatedDialogOrder.manufacturing_route?.name || '',
+                                                        steps: updatedDialogOrder.route_steps?.map((step) => ({
+                                                            ...step,
+                                                            id: step.id,
+                                                            manufacturing_route_id: 0,
+                                                            display_position: step.display_position,
+                                                            name: step.name,
+                                                            work_cell: step.work_cell,
+                                                            work_cell_id: step.work_cell?.id,
+                                                            status: step.status,
+                                                            executions: [],
+                                                            cumulative_quantity_completed: step.quantity_completed,
+                                                            cumulative_quantity_scrapped: step.quantity_scrapped,
+                                                            can_start: step.can_start,
+                                                            cannot_start_reason: step.cannot_start_reason,
+                                                            actual_start_time: step.actual_start_time,
+                                                            actual_end_time: step.actual_end_time,
+                                                            skip_reason: step.skip_reason,
+                                                            skipped_by: step.skipped_by,
+                                                            skipped_at: step.skipped_at,
+                                                        }))
+                                                    },
+                                                    has_route: true,
+                                                };
+                                            });
+                                        } else {
+                                            // Could not find dialog order in updated hierarchy
+                                        }
+                                    }
+                                }
+                            })
+                            .catch(() => {
+                                // Handle error silently
+                            })
+                            .finally(() => {
+                                setLoadingMO(false);
+                            });
+                    }
+                }}
             />
         </AppLayout>
     );

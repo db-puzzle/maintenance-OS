@@ -11,7 +11,7 @@ interface WorkCell {
     cell_type: string;
     has_finite_capacity: boolean;
     current_utilization?: number;
-    scheduled_steps?: unknown[];
+    scheduled_steps?: Allocation[];
 }
 
 interface Allocation {

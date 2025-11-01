@@ -219,7 +219,7 @@ export class PlanningService {
             sortDirection?: string;
         } = {}
     ): Promise<void> {
-        const requestData: Record<string, string | number | string[]> = { ...params };
+        const requestData: Record<string, string | number | string[] | number[] | boolean> = { ...params };
 
         // Include selection state if provided
         if (options.userSelection && options.userSelection.length > 0) {
@@ -297,9 +297,8 @@ export class PlanningService {
         const reload = () => {
             router.reload({
                 only: options.only ?? ['manufacturingOrders'],
-                preserveState: options.preserveState ?? false,
                 preserveScroll: options.preserveScroll ?? false
-            });
+            } as any);
         };
 
         if (options.delay) {

@@ -97,13 +97,13 @@ export default function RoleEdit({ role, permissions, rolePermissionIds, roles }
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        const submitData = {
+        setData({
             ...data,
             permissions: selectedPermissions,
             parent_role_id: data.parent_role_id || null,
-        };
+        } as any);
 
-        put(route('roles.update', { role: role.id }), submitData);
+        put(route('roles.update', { role: role.id }));
     };
 
     const handlePermissionToggle = (permissionId: number) => {

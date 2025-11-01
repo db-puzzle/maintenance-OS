@@ -17,13 +17,19 @@ interface Order {
     steps?: Step[];
 }
 
-interface Task extends Partial<Order>, Partial<Step> {
+interface Task {
+    id: string | number;
     isParent?: boolean;
     level: number;
     type: 'order' | 'step';
     hasChildren?: boolean;
     parentId?: number;
     orderId?: number;
+    expanded?: boolean;
+    children?: Order[];
+    steps?: Step[];
+    planned_start_date?: string;
+    planned_end_date?: string;
 }
 
 interface StepUpdate {
@@ -156,7 +162,7 @@ export const GanttView: React.FC<GanttViewProps> = ({
                 maxSize={50}
             >
                 <GanttGrid
-                    tasks={visibleTasks}
+                    tasks={visibleTasks as any}
                     onTaskToggle={(taskId) => {
                         // Handle expand/collapse
                         // taskId is a string, but order.id is a number
@@ -189,7 +195,7 @@ export const GanttView: React.FC<GanttViewProps> = ({
             {/* Right Panel - Timeline */}
             <ResizablePanel defaultSize={100 - leftPanelSize}>
                 <GanttTimeline
-                    tasks={visibleTasks}
+                    tasks={visibleTasks as any}
                     viewConfig={viewConfig}
                     zoomLevel={zoomLevel}
                     timelineWidth={timelineWidth}

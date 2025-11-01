@@ -78,7 +78,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                                     {template.is_latest_for_category && (
                                         <Badge variant="secondary">Latest</Badge>
                                     )}
-                                    {template.version > 1 && (
+                                    {template.version && template.version > 1 && (
                                         <Badge variant="outline">v{template.version}</Badge>
                                     )}
                                 </div>

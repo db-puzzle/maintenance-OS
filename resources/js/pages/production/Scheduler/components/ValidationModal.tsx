@@ -66,7 +66,7 @@ export default function ValidationModal({
             case 'cross_family_dependency':
                 return 'destructive';
             default:
-                return 'warning';
+                return 'secondary';
         }
     };
 
@@ -113,21 +113,21 @@ export default function ValidationModal({
                                             <p>{error.message}</p>
                                             {error.editLinks && (
                                                 <div className="flex gap-2 mt-2">
-                                                    {error.editLinks.edit_step && (
+                                                    {error.editLinks?.edit_step && (
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => handleEditClick(error.editLinks.edit_step!)}
+                                                            onClick={() => handleEditClick(error.editLinks!.edit_step!)}
                                                         >
                                                             <ExternalLink className="w-4 h-4 mr-1" />
                                                             Edit Step
                                                         </Button>
                                                     )}
-                                                    {error.editLinks.edit_work_cell && (
+                                                    {error.editLinks?.edit_work_cell && (
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => handleEditClick(error.editLinks.edit_work_cell!)}
+                                                            onClick={() => handleEditClick(error.editLinks!.edit_work_cell!)}
                                                         >
                                                             <ExternalLink className="w-4 h-4 mr-1" />
                                                             Edit Work Cell

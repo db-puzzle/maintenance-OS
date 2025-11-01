@@ -47,7 +47,7 @@ export function FileSelectionStep({ supportedFormats, onNext, initialBomInfo }: 
             file,
             filename: file.name,
             size: file.size,
-            type: extension,
+            type: normalizedExtension,
         });
         setErrors([]);
     }, [supportedFormats]);

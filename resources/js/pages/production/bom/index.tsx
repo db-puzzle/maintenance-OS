@@ -163,7 +163,7 @@ export default function BomIndex({ boms, filters }: Props) {
                 };
                 return (
                     <div className="text-center">
-                        {labels[value as string] || value || '-'}
+                        {labels[value as string] || (typeof value === 'string' ? value : '-')}
                     </div>
                 );
             }

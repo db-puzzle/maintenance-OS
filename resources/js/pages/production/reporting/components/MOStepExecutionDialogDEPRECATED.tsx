@@ -5,8 +5,10 @@ import {
     CheckCircle,
     AlertCircle,
     Activity,
+    Package,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -16,8 +18,6 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/components/ui/dialog';
-import { MOStatusBadge } from './MOStatusBadge';
-import { MOPriorityBadge } from './MOPriorityBadge';
 import { formatNumber } from '@/utils/number';
 import { StepCard } from './StepCard';
 import { StepReportingInterface } from './StepReportingInterface';
@@ -47,6 +47,17 @@ export function MOStepExecutionDialog({
     const [activeExecution, setActiveExecution] = useState<ManufacturingStepExecution | null>(null);
     const [refreshKey, setRefreshKey] = useState(0);
 
+    const loadStepStatus = useCallback(async () => {
+        if (!order) return;
+
+        try {
+            const response = await axios.get(window.route('production.reporting.steps.order-status', order.id));
+            setSteps(response.data.steps || []);
+        } catch (error) {
+            console.error('Failed to load step status:', error);
+        }
+    }, [order]);
+
     // Load step status when dialog opens or order changes
     useEffect(() => {
         if (order?.has_route && isOpen) {
@@ -67,17 +78,6 @@ export function MOStepExecutionDialog({
             setActiveExecution(stepWithExecution?.active_execution || null);
         }
     }, [steps]);
-
-    const loadStepStatus = useCallback(async () => {
-        if (!order) return;
-
-        try {
-            const response = await axios.get(window.route('production.reporting.steps.order-status', order.id));
-            setSteps(response.data.steps || []);
-        } catch (error) {
-            console.error('Failed to load step status:', error);
-        }
-    }, [order]);
 
     const handleStartStep = async (step: StepWithStatus) => {
         try {
@@ -101,11 +101,16 @@ export function MOStepExecutionDialog({
         setRefreshKey(prev => prev + 1);
     };
 
+    /**
+     * Get item image URL
+     * Returns the primary image URL for the order's item
+     */
+    const getItemImageUrl = () => {
+        if (!order?.item) return null;
+        return order.item.primary_image_url || order.item.primary_image_thumbnail_url || order.item.thumbnail_url;
+    };
+
     if (!order) return null;
-
-    // Removed unused getItemImageUrl function
-
-    // Removed unused isOverdue variable
 
     const renderDialogContent = () => {
         // Check if order has a route
@@ -131,9 +136,13 @@ export function MOStepExecutionDialog({
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
                             <h2 className="text-xl font-semibold">{order.order_number}</h2>
-                            <MOStatusBadge status={order.status} />
+                            <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
+                                {order.status}
+                            </Badge>
                         </div>
-                        <MOPriorityBadge priority={order.priority} />
+                        <Badge variant="outline">
+                            Priority: {order.priority}
+                        </Badge>
                     </div>
                     <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                         {order.item?.item_number && (
@@ -172,7 +181,7 @@ export function MOStepExecutionDialog({
                                 <div className="mb-4">
                                     <div className="flex items-center gap-2 mb-2">
                                         <span className="text-xs font-medium text-muted-foreground">
-                                            Step {activeStep.step_number}
+                                            Step {activeStep.display_position || 1}
                                         </span>
                                         <Activity className="w-4 h-4 text-primary" />
                                     </div>
@@ -259,21 +268,72 @@ export function MOStepExecutionDialog({
                         )}
                     </div>
 
-                    {/* Route Steps List (Secondary) */}
-                    <div className="w-80 flex-shrink-0 border-l pl-6">
-                        <h4 className="font-medium mb-4">Route Steps</h4>
-                        <ScrollArea className="h-full">
-                            <div className="space-y-2 pr-4">
-                                {steps.map((step) => (
-                                    <StepCard
-                                        key={step.id}
-                                        step={step}
-                                        isActive={activeStep?.id === step.id}
-                                        onClick={() => setActiveStep(step)}
-                                    />
-                                ))}
+                    {/* Right side panel with image and steps */}
+                    <div className="w-80 flex-shrink-0 border-l pl-6 flex flex-col gap-6">
+                        {/* PICTURE section */}
+                        <div className="flex flex-col">
+                            <h4 className="font-medium mb-3 uppercase text-sm">Picture</h4>
+                            <div className="flex flex-col items-center justify-center bg-muted/20 dark:bg-muted/10 rounded-lg p-4 min-h-[200px]">
+                                {getItemImageUrl() ? (
+                                    <div className="flex flex-col items-center">
+                                        <div className="relative w-32 h-32 flex-shrink-0 mb-3">
+                                            <img
+                                                src={getItemImageUrl() || ''}
+                                                alt={order.item?.name || 'Item'}
+                                                className="w-full h-full object-contain rounded"
+                                            />
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-sm font-medium">ITEM</p>
+                                            <p className="text-xs text-muted-foreground">{order.item?.name}</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center">
+                                        <Package className="h-20 w-20 text-muted-foreground/50 mx-auto mb-2" />
+                                        <p className="text-sm text-muted-foreground">No item image available</p>
+                                    </div>
+                                )}
                             </div>
-                        </ScrollArea>
+                        </div>
+
+                        {/* CURRENT STEP section */}
+                        {activeStep && (
+                            <div className="flex flex-col">
+                                <h4 className="font-medium mb-3 uppercase text-sm">Current Step</h4>
+                                <div className="bg-muted/20 dark:bg-muted/10 rounded-lg p-4">
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs text-muted-foreground">GATE</span>
+                                            <span className="text-sm font-medium">{activeStep.display_position || 1}</span>
+                                        </div>
+                                        <h3 className="text-lg font-semibold">{activeStep.name}</h3>
+                                        {activeStep.work_cell && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Work Cell: {activeStep.work_cell.name}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Route Steps List */}
+                        <div className="flex-1 flex flex-col min-h-0">
+                            <h4 className="font-medium mb-4">Route Steps</h4>
+                            <ScrollArea className="flex-1">
+                                <div className="space-y-2 pr-4">
+                                    {steps.map((step) => (
+                                        <StepCard
+                                            key={step.id}
+                                            step={step}
+                                            isActive={activeStep?.id === step.id}
+                                            onClick={() => setActiveStep(step)}
+                                        />
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        </div>
                     </div>
                 </div>
             </div>

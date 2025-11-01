@@ -37,7 +37,7 @@ export function FileSelectionStep({ supportedFormats, onNext }: Props) {
         }
 
         setSelectedFile(file);
-        setFileType(extension);
+        setFileType(extension || '');
     }, [supportedFormats]);
 
     const handleDrag = useCallback((e: React.DragEvent) => {

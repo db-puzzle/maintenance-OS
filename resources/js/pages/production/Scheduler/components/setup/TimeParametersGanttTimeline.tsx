@@ -132,8 +132,8 @@ const ValidationStepBar: React.FC<{
                                 className={cn(
                                     "relative h-full rounded shadow-sm overflow-hidden",
                                     "transition-all",
-                                    getStatusColor(step.status || 'pending', isFictitious),
-                                    getBorderStyle(isFictitious, isSelected),
+                                    getStatusColor(step.status || 'pending', isFictitious || false),
+                                    getBorderStyle(isFictitious || false, isSelected || false),
                                     "hover:shadow-md"
                                 )}
                                 style={{ width: '100%' }}
@@ -275,8 +275,9 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
 
                     {/* Non-working time overlay */}
                     <NonWorkingTime
-                        viewConfig={viewConfig}
-                        timelineLayout={timelineLayout}
+                        startDate={viewConfig.startDate}
+                        endDate={viewConfig.endDate}
+                        layout={timelineLayout}
                         height={timelineHeight}
                     />
 
@@ -330,7 +331,7 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
                                 // Add child order dates recursively
                                 if (order.children) {
                                     order.children.forEach((child) => {
-                                        const childDates = getAllDatesFromOrder(child);
+                                        const childDates = getAllDatesFromOrder(child as any);
                                         dates.starts.push(...childDates.starts);
                                         dates.ends.push(...childDates.ends);
                                     });
@@ -369,10 +370,10 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
                             // Render step bar
                             const step = row.data;
 
-                            if (!step.planned_start_date || !step.planned_end_date) return null;
+                            if (!(step as any).planned_start_date || !(step as any).planned_end_date) return null;
 
-                            const startDate = new Date(step.planned_start_date);
-                            const endDate = new Date(step.planned_end_date);
+                            const startDate = new Date((step as any).planned_start_date);
+                            const endDate = new Date((step as any).planned_end_date);
 
                             if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return null;
 
@@ -403,9 +404,9 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
                     {/* Dependencies */}
                     {showDependencies && (
                         <Dependencies
-                            tasks={tasks}
-                            rows={rows}
-                            timelineLayout={timelineLayout}
+                            steps={tasks.filter(t => t.type === 'step') as any}
+                            rows={rows as any}
+                            layout={timelineLayout}
                             rowHeight={rowHeight}
                         />
                     )}

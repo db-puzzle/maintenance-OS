@@ -81,7 +81,7 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
             data: task,
             level: task.level || 0,
             id: task.type === 'order' ? `order-${task.id}` : `step-${task.id}`,
-            orderId: task.orderId,
+            orderId: (task as any).orderId || (task.type === 'step' ? (task as any).parentId : task.id),
         }));
     }, [tasks]);
     const rowHeight = 45;
@@ -271,22 +271,31 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                                         order.level === 0 ? "bg-blue-500 text-white" : "bg-blue-200"
                                     )}>
                                         <span className="text-xs font-medium truncate">
-                                            {order.order_number}
+                                            {(order.data as any)?.order_number || ''}
                                         </span>
                                     </div>
                                 </div>
                             );
                         } else if (row.type === 'step') {
                             // Render step bar
-                            const step = row.data;
+                            const step = row.data as any;
                             const isDragging = draggedStep?.id === step.id;
+
+                            if (!step.planned_start_date || !step.planned_end_date) {
+                                return null;
+                            }
 
                             return (
                                 <StepBar
                                     key={row.id}
-                                    step={step}
+                                    step={{
+                                        name: (step as any).name || '',
+                                        status: (step as any).status || 'pending',
+                                        is_locked: step.is_locked || false,
+                                        percent_complete: (step as any).percent_complete || 0,
+                                    }}
                                     x={timelineLayout.getPositionForDate(new Date(step.planned_start_date)) +
-                                        (isDragging ? draggedStep.offsetX : 0)}
+                                        (isDragging && draggedStep ? draggedStep.offsetX : 0)}
                                     y={y}
                                     width={timelineLayout.getPositionForDate(new Date(step.planned_end_date)) -
                                         timelineLayout.getPositionForDate(new Date(step.planned_start_date))}
@@ -294,7 +303,12 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                                     isSelected={selectedStepId === step.id}
                                     isDragging={isDragging}
                                     onSelect={() => setSelectedStepId(step.id)}
-                                    onDragStart={(e) => handleStepDragStart(e, step)}
+                                    onDragStart={(e) => handleStepDragStart(e, {
+                                        id: step.id,
+                                        planned_start_date: step.planned_start_date,
+                                        planned_end_date: step.planned_end_date,
+                                        is_locked: step.is_locked || false,
+                                    })}
                                 />
                             );
                         }
@@ -306,7 +320,11 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                     {showDependencies && (
                         <>
                             <Dependencies
-                                steps={rows.filter(r => r.type === 'step').map(r => r.data)}
+                                steps={rows.filter(r => r.type === 'step').map(r => ({
+                                    id: (r.data as any).id,
+                                    planned_start_date: (r.data as any).planned_start_date || '',
+                                    planned_end_date: (r.data as any).planned_end_date || '',
+                                }))}
                                 rows={rows}
                                 rowHeight={rowHeight}
                                 layout={timelineLayout}

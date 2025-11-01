@@ -71,9 +71,9 @@ class ManufacturingOrder extends Model
     ];
 
     protected $casts = [
-        'quantity' => 'decimal:2',
-        'quantity_completed' => 'decimal:2',
-        'quantity_scrapped' => 'decimal:2',
+        'quantity' => 'integer',
+        'quantity_completed' => 'integer',
+        'quantity_scrapped' => 'integer',
         'requested_date' => 'date',
         'planned_start_date' => 'datetime',
         'planned_end_date' => 'datetime',
@@ -237,7 +237,8 @@ class ManufacturingOrder extends Model
 
         foreach ($bomItems as $bomItem) {
             // Calculate quantity based on parent quantity
-            $orderQuantity = $bomItem->quantity * $this->quantity * $parentQuantity;
+            // Round up to ensure we have enough parts
+            $orderQuantity = (int) ceil($bomItem->quantity * $this->quantity * $parentQuantity);
 
             // Prepare child order data
             $childOrderData = [

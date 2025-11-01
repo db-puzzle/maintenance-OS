@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { type BreadcrumbItem } from '@/types';
-import { type WorkCell, type ProductionSchedule } from '@/types/production';
+import { type WorkCell } from '@/types/production';
+
+// Define locally until ProductionSchedule is properly exported
+interface ProductionSchedule {
+    id: number;
+    manufacturing_step_id: number;
+    scheduled_start: string;
+    scheduled_end: string;
+    status: string;
+    [key: string]: any;
+}
 import { Head, Link, router } from '@inertiajs/react';
 import { Factory, Clock, Building2, Infinity as InfinityIcon, CheckCircle2, XCircle, Info, Pencil, Save, X } from 'lucide-react';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';

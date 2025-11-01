@@ -93,12 +93,7 @@ export function MultipleOrdersPanel({ selectedOrders, className }: MultipleOrder
         },
         {
             key: 'can_be_sold',
-            label: (
-                <div className="flex flex-col items-center">
-                    <span>Can Be</span>
-                    <span>Sold</span>
-                </div>
-            ),
+            label: 'Can Be Sold',
             sortable: false,
             render: (_value, row) => (
                 <div className="flex items-center justify-center">
@@ -114,12 +109,7 @@ export function MultipleOrdersPanel({ selectedOrders, className }: MultipleOrder
         },
         {
             key: 'can_be_purchased',
-            label: (
-                <div className="flex flex-col items-center">
-                    <span>Can Be</span>
-                    <span>Purchased</span>
-                </div>
-            ),
+            label: 'Can Be Purchased',
             sortable: false,
             render: (_value, row) => (
                 <div className="flex items-center justify-center">
@@ -135,12 +125,7 @@ export function MultipleOrdersPanel({ selectedOrders, className }: MultipleOrder
         },
         {
             key: 'can_be_manufactured',
-            label: (
-                <div className="flex flex-col items-center">
-                    <span>Can Be</span>
-                    <span>Manufactured</span>
-                </div>
-            ),
+            label: 'Can Be Manufactured',
             sortable: false,
             render: (_value, row) => (
                 <div className="flex items-center justify-center">

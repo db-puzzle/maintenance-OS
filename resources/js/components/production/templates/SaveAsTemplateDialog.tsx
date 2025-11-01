@@ -39,7 +39,7 @@ export const SaveAsTemplateDialog: React.FC<SaveAsTemplateDialogProps> = ({
         // Check if steps are available and have valid names
         if (manufacturingRoute.steps && Array.isArray(manufacturingRoute.steps) && manufacturingRoute.steps.length > 0) {
             const stepNames = manufacturingRoute.steps
-                .sort((a, b) => (a.step_number || 0) - (b.step_number || 0))
+                .sort((a, b) => ((a as any).step_number || 0) - ((b as any).step_number || 0))
                 .map(step => step.name || '')
                 .filter(name => name.trim() !== '') // Filter out empty names
                 .join(', ');

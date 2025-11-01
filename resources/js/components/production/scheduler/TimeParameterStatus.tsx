@@ -219,7 +219,7 @@ export default function TimeParameterStatus({ orders, onRefresh }: TimeParameter
                                                                 <Clock className="w-3 h-3" />
                                                                 Step Times
                                                             </div>
-                                                            {step.use_workcell_throughput ? (
+                                                            {(step as any).use_workcell_throughput ? (
                                                                 <div className="ml-5 text-blue-600">Using work cell throughput</div>
                                                             ) : step.has_step_time ? (
                                                                 <div className="ml-5 space-y-1">
@@ -277,8 +277,7 @@ export default function TimeParameterStatus({ orders, onRefresh }: TimeParameter
                 <TimeParameterForm
                     open={true}
                     onOpenChange={(open) => !open && setEditingStep(null)}
-                    step={editingStep.step}
-                    orderId={editingStep.orderId}
+                    step={editingStep.step as any}
                     orderQuantity={orders.find(o => o.id === editingStep.orderId)?.quantity || 1}
                     itemId={orders.find(o => o.id === editingStep.orderId)?.item?.id}
                     onSuccess={() => {

@@ -14,15 +14,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Clock, Factory } from 'lucide-react';
 import { TextInput } from '@/components/TextInput';
+import { TextArea } from '@/components/TextArea';
 import { createFormAdapter } from '@/utils/form-adapters';
 
 interface Step {
     id: number;
+    name?: string;
     has_step_time: boolean;
+    has_work_cell_rate?: boolean;
     setup_time_minutes?: number;
     cycle_time_minutes?: number;
     work_cell?: {
         id: number;
+        name?: string;
         production_rate_per_hour?: number;
     };
 }
@@ -59,10 +63,10 @@ export default function TimeParameterForm({
     // Form for work cell rates
     const workCellForm = useForm({
         item_id: itemId || '',
-        setup_time_minutes: step.work_cell_rate?.setup_time_minutes || 0,
-        production_rate_per_hour: step.work_cell_rate?.production_rate_per_hour || 0,
-        unit_of_measure: step.work_cell_rate?.unit_of_measure || 'pieces',
-        notes: step.work_cell_rate?.notes || '',
+        setup_time_minutes: step.setup_time_minutes || 0,
+        production_rate_per_hour: step.work_cell?.production_rate_per_hour || 0,
+        unit_of_measure: 'pieces',
+        notes: '',
     });
 
     const workCellFormAdapter = createFormAdapter(workCellForm);
@@ -80,11 +84,11 @@ export default function TimeParameterForm({
 
     const handleWorkCellUpdate = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!step.work_cell_id) {
+        if (!step.work_cell?.id) {
             alert('This step does not have a work cell assigned');
             return;
         }
-        workCellForm.post(route('production.work-cells.update-rate', step.work_cell_id), {
+        workCellForm.post(route('production.work-cells.update-rate', step.work_cell.id), {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
@@ -120,7 +124,7 @@ export default function TimeParameterForm({
                         </TabsTrigger>
                         <TabsTrigger
                             value="workcell"
-                            disabled={!step.work_cell_id}
+                            disabled={!step.work_cell?.id}
                             className="flex items-center gap-2"
                         >
                             <Factory className="w-4 h-4" />
@@ -132,25 +136,24 @@ export default function TimeParameterForm({
                         <form onSubmit={handleStepUpdate} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="setup_time">Setup Time (minutes)</Label>
                                     <TextInput
-                                        id="setup_time"
                                         form={stepFormAdapter}
                                         name="setup_time_minutes"
+                                        label="Setup Time (minutes)"
+                                        placeholder="0"
                                         type="number"
                                         min="0"
-                                        step="1"
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="cycle_time">Cycle Time (minutes/piece)</Label>
                                     <TextInput
-                                        id="cycle_time"
                                         form={stepFormAdapter}
                                         name="cycle_time_minutes"
+                                        label=""
+                                        placeholder="Enter cycle time"
                                         type="number"
                                         min="0"
-                                        step="0.01"
                                     />
                                 </div>
                             </div>
@@ -197,7 +200,7 @@ export default function TimeParameterForm({
                     </TabsContent>
 
                     <TabsContent value="workcell" className="space-y-4 mt-4">
-                        {!step.work_cell_id ? (
+                        {!step.work_cell?.id ? (
                             <Alert variant="destructive">
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription>
@@ -212,31 +215,30 @@ export default function TimeParameterForm({
                                     <div className="space-y-2">
                                         <Label htmlFor="wc_setup_time">Setup Time (minutes)</Label>
                                         <TextInput
-                                            id="wc_setup_time"
                                             form={workCellFormAdapter}
                                             name="setup_time_minutes"
+                                            label=""
+                                            placeholder="Enter setup time"
                                             type="number"
                                             min="0"
-                                            step="1"
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="production_rate">Production Rate</Label>
                                         <div className="flex gap-2">
                                             <TextInput
-                                                id="production_rate"
                                                 form={workCellFormAdapter}
                                                 name="production_rate_per_hour"
+                                                label=""
+                                                placeholder="Rate per hour"
                                                 type="number"
                                                 min="0.001"
-                                                step="0.001"
-                                                className="flex-1"
                                             />
                                             <TextInput
                                                 form={workCellFormAdapter}
                                                 name="unit_of_measure"
+                                                label=""
                                                 placeholder="units"
-                                                className="w-24"
                                             />
                                         </div>
                                         <p className="text-xs text-muted-foreground">per hour</p>
@@ -245,11 +247,11 @@ export default function TimeParameterForm({
 
                                 <div className="space-y-2">
                                     <Label htmlFor="notes">Notes (optional)</Label>
-                                    <TextInput
-                                        id="notes"
+                                    <TextArea
                                         form={workCellFormAdapter}
                                         name="notes"
-                                        multiline
+                                        label=""
+                                        placeholder=""
                                         rows={3}
                                     />
                                 </div>

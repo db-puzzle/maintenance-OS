@@ -49,7 +49,7 @@ export function MediaDisplay({ media, className, size = 'md', showInfo = false, 
 
     // For documents and other files
     const iconName = getFileIcon(media);
-    const IconComponent = Icons[iconName as keyof typeof Icons] || FileIcon;
+    const IconComponent = (Icons[iconName as keyof typeof Icons] || FileIcon) as React.ComponentType<{ className?: string }>;
 
     return (
         <div

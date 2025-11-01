@@ -46,6 +46,8 @@ interface MOSelectionModalProps {
     onSelect: (orderIds: number[], multiSelect: boolean) => void;
     selectedIds?: Set<number>;
     multiSelect?: boolean;
+    // Default status filters to apply when the modal opens (e.g., ['released', 'in_progress'])
+    defaultStatusFilters?: string[];
 }
 
 interface SearchFilters {
@@ -101,6 +103,7 @@ export function MOSelectionModal({
     onSelect,
     selectedIds = new Set(),
     multiSelect = false,
+    defaultStatusFilters = [],
 }: MOSelectionModalProps) {
     const [activeTab, setActiveTab] = useState<'search' | 'recent'>('search');
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -132,7 +135,7 @@ export function MOSelectionModal({
     const form = useForm<SearchFilters>({
         search: '',
         rootOnly: true,
-        status: [],
+        status: defaultStatusFilters,
         createdFrom: undefined,
         createdTo: undefined,
         dueDateFrom: undefined,

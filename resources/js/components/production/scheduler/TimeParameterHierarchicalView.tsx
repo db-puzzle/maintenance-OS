@@ -287,7 +287,7 @@ export default function TimeParameterHierarchicalView({
                     onToggleImages={() => { }} // We don't need to toggle images in this view
                     showLevelControls={maxDepth > 0}
                     compact={true}
-                    hideImageToggle={true}
+                    showImageToggle={false}
                 />
             </div>
 
@@ -308,8 +308,15 @@ export default function TimeParameterHierarchicalView({
                 <TimeParameterForm
                     open={true}
                     onOpenChange={(open) => !open && setEditingStep(null)}
-                    step={editingStep.step}
-                    orderId={editingStep.orderId}
+                    step={{
+                        id: editingStep.step.id,
+                        name: editingStep.step.name,
+                        has_step_time: editingStep.step.has_step_time,
+                        has_work_cell_rate: editingStep.step.has_work_cell_rate,
+                        setup_time_minutes: editingStep.step.setup_time_minutes || undefined,
+                        cycle_time_minutes: editingStep.step.cycle_time_minutes || undefined,
+                        work_cell: editingStep.step.work_cell || undefined,
+                    }}
                     orderQuantity={editingOrder.quantity}
                     itemId={editingOrder.item?.id}
                     onSuccess={() => {

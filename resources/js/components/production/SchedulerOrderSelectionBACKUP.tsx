@@ -90,7 +90,9 @@ export default function SchedulerOrderSelection({
     filters
 }: SchedulerOrderSelectionProps) {
 
-    const { schedulingConfig, flash } = usePage().props as { schedulingConfig: { time_horizon_days: number }; flash: { success?: string; error?: string; schedulingJob?: { job_id: string; websocket_channel: string; version_id: number } } & Record<string, unknown> };
+    const pageProps = usePage().props;
+    const schedulingConfig = (pageProps as any).schedulingConfig || { time_horizon_days: 7 };
+    const flash = (pageProps as any).flash || {};
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
     const [families, setFamilies] = useState<Array<{ id: number; name: string; orders: Array<{ id: number }> }>>([]);
     const [selectionMode, setSelectionMode] = useState<'individual' | 'family'>('family');
@@ -110,7 +112,7 @@ export default function SchedulerOrderSelection({
             // Trigger the progress modal
             if (onSchedulerStarted) {
                 // Handle different data structures
-                const jobData = schedulingJob.schedulingJob || schedulingJob;
+                const jobData = (schedulingJob as any).schedulingJob || schedulingJob;
                 onSchedulerStarted({
                     job_id: jobData.job_id,
                     websocket_channel: jobData.websocket_channel,
@@ -125,9 +127,9 @@ export default function SchedulerOrderSelection({
         version_id: currentVersion?.id || activeScheduleVersion?.id,
         algorithm: 'asap',
         start_date: defaultStartDate,
-        end_date: filters?.end_date || format(new Date().setMonth(new Date().getMonth() + 3), 'yyyy-MM-dd'),
+        end_date: (filters?.end_date as string) || format(new Date().setMonth(new Date().getMonth() + 3), 'yyyy-MM-dd'),
         manufacturing_order_ids: [] as number[],
-        respect_locked_schedules: schedulingConfig?.locked_schedules_enabled || true,
+        respect_locked_schedules: (schedulingConfig as any)?.locked_schedules_enabled || true,
     });
 
     // Handle family selection mode
@@ -167,7 +169,7 @@ export default function SchedulerOrderSelection({
     };
 
     const validateAndRun = () => {
-        if (data.manufacturing_order_ids.length === 0) {
+        if (!data.manufacturing_order_ids || (data.manufacturing_order_ids as any).length === 0) {
             alert('Please select at least one manufacturing order');
             return;
         }
@@ -182,7 +184,7 @@ export default function SchedulerOrderSelection({
                 const validation = (page.props as { flash?: { validation?: { is_valid: boolean; errors: string[]; warnings: string[] } } }).flash?.validation;
                 if (validation) {
                     setValidationResult(validation);
-                    if (validation.valid) {
+                    if (validation.is_valid) {
                         runScheduler();
                     }
                 } else {
@@ -226,7 +228,7 @@ export default function SchedulerOrderSelection({
                             {activeScheduleVersion && (
                                 <Badge variant="outline" className="flex items-center gap-1 text-xs">
                                     <Clock className="w-3 h-3" />
-                                    v{activeScheduleVersion.version_number}
+                                    v{(activeScheduleVersion as any).version_number || activeScheduleVersion.id}
                                 </Badge>
                             )}
                         </div>
@@ -249,7 +251,7 @@ export default function SchedulerOrderSelection({
                             <div className="flex items-center gap-2.5">
                                 <Label htmlFor="algorithm" className="text-sm font-medium whitespace-nowrap">Algorithm:</Label>
                                 <Select
-                                    value={data.algorithm}
+                                    value={data.algorithm as string}
                                     onValueChange={(value) => setData('algorithm', value)}
                                 >
                                     <SelectTrigger id="algorithm" className="w-[250px] h-8">
@@ -272,16 +274,16 @@ export default function SchedulerOrderSelection({
                                 <div className="flex items-center gap-2">
                                     <input
                                         type="date"
-                                        value={data.start_date}
+                                        value={data.start_date as string}
                                         onChange={(e) => setData('start_date', e.target.value)}
                                         className="h-8 px-3 py-1 text-sm rounded-md border border-input bg-background"
                                     />
                                     <span className="text-sm text-muted-foreground">to</span>
                                     <input
                                         type="date"
-                                        value={data.end_date}
+                                        value={data.end_date as string}
                                         onChange={(e) => setData('end_date', e.target.value)}
-                                        min={data.start_date}
+                                        min={data.start_date as string}
                                         className="h-8 px-3 py-1 text-sm rounded-md border border-input bg-background"
                                     />
                                 </div>
@@ -320,7 +322,7 @@ export default function SchedulerOrderSelection({
                                 {/* Desktop Side-by-Side */}
                                 <div className="flex-1 border-r px-4 py-3 overflow-hidden flex flex-col min-h-0">
                                     <OrderSelectionPanel
-                                        orders={orders}
+                                        orders={orders as any}
                                         selectedOrders={selectedOrders}
                                         onSelectionChange={handleOrderSelection}
                                         selectionMode={selectionMode}
@@ -330,7 +332,7 @@ export default function SchedulerOrderSelection({
                                 <div className="flex-1 px-4 py-3 overflow-hidden flex flex-col min-h-0">
                                     {selectedOrders.length > 0 ? (
                                         <FamilyVisualization
-                                            families={families}
+                                            families={families as any}
                                             selectedOrders={selectedOrders}
                                         />
                                     ) : (
@@ -352,7 +354,7 @@ export default function SchedulerOrderSelection({
                                     </TabsList>
                                     <TabsContent value="orders" className="flex-1 overflow-hidden mt-0 px-4 py-3 flex flex-col min-h-0">
                                         <OrderSelectionPanel
-                                            orders={orders}
+                                            orders={orders as any}
                                             selectedOrders={selectedOrders}
                                             onSelectionChange={handleOrderSelection}
                                             selectionMode={selectionMode}
@@ -362,7 +364,7 @@ export default function SchedulerOrderSelection({
                                     <TabsContent value="families" className="flex-1 overflow-hidden mt-0 px-4 py-3 flex flex-col min-h-0">
                                         {selectedOrders.length > 0 ? (
                                             <FamilyVisualization
-                                                families={families}
+                                                families={families as any}
                                                 selectedOrders={selectedOrders}
                                             />
                                         ) : (
@@ -404,9 +406,9 @@ export default function SchedulerOrderSelection({
                 </div>
 
                 {/* Validation Modal */}
-                {validationResult && !validationResult.valid && (
+                {validationResult && !validationResult.is_valid && (
                     <ValidationModal
-                        validation={validationResult}
+                        validation={validationResult as any}
                         onClose={() => setValidationResult(null)}
                         onContinue={runScheduler}
                     />

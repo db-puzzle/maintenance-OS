@@ -104,7 +104,9 @@ export function useMediaUpload(options: UseMediaUploadOptions) {
                                 media,
                             },
                         }));
-                        options.onSuccess?.(media);
+                        if (media) {
+                            options.onSuccess?.(media);
+                        }
                     },
                     onError: (errors) => {
                         const errorMessage = Object.values(errors).flat().join(', ');

@@ -32,7 +32,7 @@ class StepExecutionController extends Controller
 
         // Verify the step belongs to this order
         if ($step->manufacturingRoute->manufacturing_order_id !== $order->id) {
-            return response()->json(['error' => 'Step does not belong to this order'], 422);
+            return back()->withErrors(['error' => 'Step does not belong to this order']);
         }
 
         // Check if user has permission for this work cell
@@ -40,11 +40,11 @@ class StepExecutionController extends Controller
 
         // Check if step can be started
         if ($step->status === 'completed') {
-            return response()->json(['error' => 'Step is already completed'], 422);
+            return back()->withErrors(['error' => 'Step is already completed']);
         }
 
         if ($step->status === 'on_hold') {
-            return response()->json(['error' => 'Step is on hold'], 422);
+            return back()->withErrors(['error' => 'Step is on hold']);
         }
 
         // Check if there's already an active execution
@@ -53,7 +53,7 @@ class StepExecutionController extends Controller
             ->first();
 
         if ($activeExecution) {
-            return response()->json(['error' => 'Step already has an active execution'], 422);
+            return back()->withErrors(['error' => 'Step already has an active execution']);
         }
 
         // Check dependencies
@@ -81,10 +81,9 @@ class StepExecutionController extends Controller
                 }
             }
 
-            return response()->json([
-                'error' => 'Dependencies not met',
-                'dependencies' => $dependencyInfo,
-            ], 422);
+            return back()->withErrors([
+                'error' => 'Dependencies not met: ' . implode(', ', $dependencyInfo),
+            ]);
         }
 
         try {
@@ -118,11 +117,16 @@ class StepExecutionController extends Controller
                 'user_id' => auth()->id(),
             ]);
 
-            return response()->json([
-                'success' => true,
-                'execution' => $execution,
-                'message' => 'Execution started successfully',
+            \Log::info('[StepExecutionController::start] Returning success response', [
+                'execution_id' => $execution->id,
+                'step_id' => $step->id,
+                'step_status' => $step->status,
+                'order_id' => $order->id,
             ]);
+
+            return back()
+                ->with('success', 'Execution started successfully')
+                ->with('execution', $execution);
         } catch (\Exception $e) {
             \Log::error('[StepExecutionController::start] Failed to start execution', [
                 'error' => $e->getMessage(),
@@ -130,10 +134,9 @@ class StepExecutionController extends Controller
                 'order_id' => $order->id,
             ]);
 
-            return response()->json([
-                'error' => 'Failed to start execution',
-                'message' => $e->getMessage(),
-            ], 500);
+            return back()->withErrors([
+                'error' => 'Failed to start execution: ' . $e->getMessage(),
+            ]);
         }
     }
 
@@ -144,7 +147,16 @@ class StepExecutionController extends Controller
         $validated = $request->validate([
             'quantity_completed' => 'nullable|integer|min:0',
             'quantity_scrapped' => 'nullable|integer|min:0',
-            'scrap_reason' => 'required_if:quantity_scrapped,>,0|nullable|string|max:500',
+            'scrap_reason' => [
+                'nullable',
+                'string',
+                'max:500',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->input('quantity_scrapped', 0) > 0 && empty($value)) {
+                        $fail('The scrap reason field is required when quantity scrapped is greater than 0.');
+                    }
+                },
+            ],
             'notes' => 'nullable|string|max:500',
             'time_spent' => 'nullable|integer|min:0',
             'mark_complete' => 'boolean',
@@ -251,16 +263,13 @@ class StepExecutionController extends Controller
             // Load relationships
             $execution->load(['manufacturingStep.workCell', 'executedBy', 'media']);
 
-            return response()->json([
-                'success' => true,
-                'execution' => $execution,
-                'message' => 'Execution force started successfully',
-            ]);
+            return back()
+                ->with('success', 'Execution force started successfully')
+                ->with('execution', $execution);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Failed to force start execution',
-                'message' => $e->getMessage(),
-            ], 500);
+            return back()->withErrors([
+                'error' => 'Failed to force start execution: ' . $e->getMessage(),
+            ]);
         }
     }
 

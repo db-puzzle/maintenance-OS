@@ -43,6 +43,7 @@ export interface ItemImage {
     uploaded_by: string;
     created_at: string;
     updated_at: string;
+    is_primary?: boolean;
 }
 
 export interface Item {

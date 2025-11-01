@@ -99,12 +99,12 @@ export default function SchedulerSetup({
 
     // Monitor flash data for scheduling job response
     useEffect(() => {
-        const schedulingJob = flash?.schedulingJob ||
-            (flash?.success && flash?.job_id ? flash : null);
+        const schedulingJob = (flash as any)?.schedulingJob ||
+            ((flash as any)?.success && (flash as any)?.job_id ? flash : null);
 
         if (schedulingJob) {
             // Redirect to scheduler with job info
-            const jobData = schedulingJob.schedulingJob || schedulingJob;
+            const jobData = (schedulingJob as any).schedulingJob || schedulingJob;
             window.location.href = route('production.scheduler.index', {
                 job_id: jobData.job_id,
                 websocket_channel: jobData.websocket_channel,
@@ -174,11 +174,8 @@ export default function SchedulerSetup({
     };
 
     const handleAlgorithmSelectionComplete = (algorithm: string, respectLockedSchedules: boolean) => {
-        setData({
-            ...data,
-            algorithm: algorithm,
-            respect_locked_schedules: respectLockedSchedules,
-        });
+        setData('algorithm', algorithm);
+        setData('respect_locked_schedules', respectLockedSchedules as true);
 
         setCurrentStep('review');
     };
@@ -307,7 +304,7 @@ export default function SchedulerSetup({
                             data={data}
                             selectedOrders={selectedOrders}
                             orders={orders}
-                            families={families}
+                            families={families as any}
                             algorithms={algorithms}
                             processing={processing}
                             errors={errors}

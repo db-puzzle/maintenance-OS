@@ -13,7 +13,7 @@ interface Echo {
 }
 
 interface WindowWithEcho extends Window {
-    Echo?: Echo;
+    Echo: Echo;
 }
 
 // Echo event types
@@ -134,7 +134,7 @@ export function useSchedulingProgress(scheduleVersionId: number): SchedulingProg
                         currentStep: e.currentStep,
                         totalSteps: e.totalSteps,
                         currentOperation: e.currentOperation,
-                        estimatedTimeRemaining: e.estimatedSecondsRemaining,
+                        estimatedTimeRemaining: e.estimatedTimeRemaining,
                     },
                 }));
             }
@@ -147,7 +147,7 @@ export function useSchedulingProgress(scheduleVersionId: number): SchedulingProg
                     ...prev,
                     status: 'completed',
                     completedAt: new Date(e.timestamp),
-                    alerts: e.alertBreakdown,
+                    alerts: (e as any).alertBreakdown || e.stats?.alerts,
                 }));
 
                 // Auto-refresh schedule data
@@ -178,11 +178,11 @@ export function useSchedulingProgress(scheduleVersionId: number): SchedulingProg
         };
 
         // Subscribe to events
-        channel.listen('SchedulingStarted', handleStarted);
-        channel.listen('SchedulingProgress', handleProgress);
-        channel.listen('SchedulingComplete', handleComplete);
-        channel.listen('SchedulingFailed', handleFailed);
-        channel.listen('SchedulingWarning', handleWarning);
+        channel.listen('SchedulingStarted', (e: unknown) => handleStarted(e as SchedulingStartedEvent));
+        channel.listen('SchedulingProgress', (e: unknown) => handleProgress(e as SchedulingProgressEvent));
+        channel.listen('SchedulingComplete', (e: unknown) => handleComplete(e as SchedulingCompletedEvent));
+        channel.listen('SchedulingFailed', (e: unknown) => handleFailed(e as SchedulingFailedEvent));
+        channel.listen('SchedulingWarning', (e: unknown) => handleWarning(e as { jobId: string; message: string; type: string; }));
 
         // Cleanup
         return () => {
@@ -311,12 +311,12 @@ export function useSchedulingProgressWithParams() {
                 {
                     preserveState: true,
                     preserveUrl: true,
-                    onSuccess: (page: { props: { flash?: { data?: { job_id?: string } }; job_id?: string } }) => {
+                    onSuccess: (page: any) => {
                         const data = page.props.flash?.data || page.props;
                         if (data.job_id) {
                             setState(prev => ({
                                 ...prev,
-                                jobId: data.job_id,
+                                jobId: data.job_id || null,
                                 status: 'queued'
                             }));
                             // Set up Echo listener

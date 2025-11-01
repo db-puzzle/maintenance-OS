@@ -170,7 +170,7 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
             allData.forEach((row, index) => {
                 // Check required fields
                 requiredFields.forEach(field => {
-                    if (!row[field.value] || (typeof row[field.value] === 'string' && row[field.value].trim() === '')) {
+                    if (!row[field.value] || (typeof row[field.value] === 'string' && (row[field.value] as string).trim() === '')) {
                         errors.push({
                             row: index + 1,
                             field: field.label,
@@ -380,18 +380,18 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
                                         <TableRow key={index}>
                                             <TableCell className="font-mono">{error.row}</TableCell>
                                             <TableCell className="font-mono">
-                                                {error.data?.item_number || error.data?.['Número do Item'] || '-'}
+                                                {error.data?.item_number || (error.data as any)?.['Número do Item'] || '-'}
                                             </TableCell>
                                             <TableCell>
-                                                {error.data?.name || error.data?.['Nome'] || '-'}
+                                                {error.data?.name || (error.data as any)?.['Nome'] || '-'}
                                             </TableCell>
                                             <TableCell>{error.field}</TableCell>
                                             <TableCell className="text-destructive">{error.message}</TableCell>
                                             <TableCell>
-                                                {error.data?.category_name || error.data?.category || error.data?.['Categoria'] || '-'}
+                                                {error.data?.category_name || error.data?.category || (error.data as any)?.['Categoria'] || '-'}
                                             </TableCell>
                                             <TableCell>
-                                                {error.data?.unit_of_measure || error.data?.['Unidade de Medida'] || '-'}
+                                                {error.data?.unit_of_measure || (error.data as any)?.['Unidade de Medida'] || '-'}
                                             </TableCell>
                                         </TableRow>
                                     ))}

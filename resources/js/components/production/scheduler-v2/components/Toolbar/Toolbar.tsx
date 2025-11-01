@@ -75,7 +75,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [isRunning, setIsRunning] = useState(false);
 
-    const canPublish = currentVersion.status === 'draft' && alertStats.by_severity.error === 0;
+    const canPublish = currentVersion.status === 'draft' && alertStats.criticalAlerts === 0;
 
     const handleRunScheduler = () => {
         setIsRunning(true);
@@ -205,17 +205,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 {/* Right section */}
                 <div className="flex items-center gap-2">
                     {/* Alert indicator */}
-                    {alertStats.total > 0 && (
+                    {alertStats.totalAlerts > 0 && (
                         <Button
                             variant="outline"
                             size="sm"
                             className={cn(
                                 "gap-2",
-                                alertStats.by_severity.error > 0 && "text-destructive border-destructive"
+                                alertStats.criticalAlerts > 0 && "text-destructive border-destructive"
                             )}
                         >
                             <AlertCircle className="h-4 w-4" />
-                            <span>{alertStats.unresolved} alerts</span>
+                            <span>{alertStats.totalAlerts} alerts</span>
                         </Button>
                     )}
 

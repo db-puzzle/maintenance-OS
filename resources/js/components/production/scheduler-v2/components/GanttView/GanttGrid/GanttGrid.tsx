@@ -14,9 +14,21 @@ interface Column {
     maxWidth?: number;
 }
 
+interface Task {
+    id: string | number;
+    selected?: boolean;
+    level?: number;
+    isParent?: boolean;
+    expanded?: boolean;
+    type?: 'order' | 'step';
+    name?: string;
+    order_number?: string;
+    [key: string]: unknown;
+}
+
 interface GanttGridProps {
-    tasks: SchedulerOrder[];
-    onTaskToggle?: (taskId: string) => void;
+    tasks: Task[];
+    onTaskToggle?: (taskId: string | number) => void;
 }
 
 export const GanttGrid: React.FC<GanttGridProps> = ({ tasks, onTaskToggle }) => {
@@ -127,7 +139,7 @@ export const GanttGrid: React.FC<GanttGridProps> = ({ tasks, onTaskToggle }) => 
                                         width: `${columns[1].width}px`,
                                         minWidth: `${columns[1].width}px`,
                                         maxWidth: `${columns[1].width}px`,
-                                        paddingLeft: `${12 + task.level * 24}px`
+                                        paddingLeft: `${12 + (task.level || 0) * 24}px`
                                     }}
                                 >
                                     {task.isParent && (

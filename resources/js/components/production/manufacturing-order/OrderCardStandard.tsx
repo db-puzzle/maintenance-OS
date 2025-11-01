@@ -79,7 +79,7 @@ export function OrderCardStandard({
                         {order.item && (
                             <ItemImagePreview
                                 primaryImageUrl={order.item.primary_image_thumbnail_url || order.item.primary_image_url}
-                                imageCount={order.item.images?.length || 0}
+                                imageCount={order.item.media?.length || 0}
                                 className="w-12 h-12 cursor-pointer"
                                 onClick={(e) => {
                                     e?.stopPropagation();

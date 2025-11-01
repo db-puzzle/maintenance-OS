@@ -121,16 +121,20 @@ export function RolePermissionsMatrix({ roles, permissions, searchTerm = '', sel
         const status = permissionMatrix[roleId]?.[permissionId];
 
         if (!status || !status.hasPermission) {
-            return <X className="h-4 w-4 text-gray-300" />;
+            return (
+                <div className="flex items-center justify-center">
+                    <X className="h-4 w-4 text-gray-300" />
+                </div>
+            );
         }
 
         return (
             <div className="flex items-center justify-center gap-1">
                 <Check className="h-4 w-4 text-green-600" />
                 {status.isGlobal ? (
-                    <Globe className="h-3 w-3 text-blue-500" title="System-wide" />
+                    <span title="System-wide"><Globe className="h-3 w-3 text-blue-500" /></span>
                 ) : (
-                    <Lock className="h-3 w-3 text-amber-500" title="Entity-scoped" />
+                    <span title="Entity-scoped"><Lock className="h-3 w-3 text-amber-500" /></span>
                 )}
             </div>
         );
@@ -188,13 +192,13 @@ export function RolePermissionsMatrix({ roles, permissions, searchTerm = '', sel
                 <ScrollArea className="w-full">
                     <div className="min-w-max">
                         <table className="w-full border-collapse">
-                            <thead>
+                            <thead className="sticky top-0 z-20">
                                 <tr className="bg-gray-50 border-b-2 border-gray-200">
-                                    <th className="sticky left-0 z-10 bg-gray-50 text-left p-4 font-semibold text-sm text-gray-700 border-r border-gray-200 min-w-[300px]">
+                                    <th className="sticky left-0 z-30 bg-gray-50 text-left p-4 font-semibold text-sm text-gray-700 border-r border-gray-200 min-w-[300px]">
                                         Permission
                                     </th>
                                     {roles.map(role => (
-                                        <th key={role.id} className="text-center p-4 min-w-[140px]">
+                                        <th key={role.id} className="bg-gray-50 text-center p-4 min-w-[140px]">
                                             <div className="flex flex-col items-center gap-2">
                                                 <div className="flex items-center gap-2">
                                                     <div className={`h-2 w-2 rounded-full ${getRoleColor(role)}`} />

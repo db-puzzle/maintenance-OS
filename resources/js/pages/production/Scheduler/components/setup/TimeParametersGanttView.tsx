@@ -59,6 +59,53 @@ interface TimeParameterOrder {
     children?: TimeParameterOrder[];
 }
 
+interface GanttTask {
+    id: string | number;
+    type: 'order' | 'step';
+    name: string;
+    order_number?: string;
+    status?: string;
+    parentId?: string | number;
+    orderId?: number;
+    
+    // Display properties
+    isParent?: boolean;
+    hasChildren?: boolean;
+    expanded?: boolean;
+    level?: number;
+    
+    // Time properties
+    planned_start_date: string;
+    planned_end_date: string;
+    requested_date?: string;
+    percent_complete: number;
+    
+    // Order specific
+    quantity?: number;
+    parent_order_id?: number | null;
+    time_parameter_status?: string;
+    has_missing_times?: boolean;
+    is_fictitious?: boolean;
+    steps?: any[];
+    
+    // Step specific  
+    manufacturing_step_id?: number;
+    sequence_number?: number;
+    work_cell_id?: number | null;
+    work_cell?: WorkCell | null;
+    setup_time_seconds?: number;
+    setup_time_hours?: number;
+    cycle_time_seconds?: number;
+    total_time_seconds?: number;
+    duration_hours?: number;
+    has_step_time?: boolean;
+    has_work_cell_rate?: boolean;
+    has_valid_time?: boolean;
+    effective_time_source?: 'step' | 'work_cell' | null;
+    predecessors?: number[];
+    successors?: unknown[];
+}
+
 interface TimeParametersGanttViewProps {
     orders: TimeParameterOrder[];
     startDate: string;
@@ -197,35 +244,7 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
 
     // Transform orders to Gantt format
     const transformedData = useMemo(() => {
-        const tasks: Array<{
-            id: string | number;
-            type: 'order' | 'step';
-            name: string;
-            order_number?: string;
-            status?: string;
-            parentId?: number | string;
-            orderId?: number;
-            isParent?: boolean;
-            level: number;
-            hasChildren?: boolean;
-            expanded?: boolean;
-            steps?: unknown[];
-            time_parameter_status?: string;
-            has_missing_times?: boolean;
-            is_fictitious?: boolean;
-            planned_start_date?: string;
-            planned_end_date?: string;
-            percent_complete?: number;
-            manufacturing_step_id?: number;
-            sequence_number?: number;
-            work_cell_id?: number | null;
-            work_cell?: WorkCell | null;
-            duration_hours?: number;
-            setup_time_hours?: number;
-            has_valid_time?: boolean;
-            predecessors?: unknown[];
-            successors?: unknown[];
-        }> = [];
+        const tasks: GanttTask[] = [];
 
         // If no orders, return empty array
         if (!orders || orders.length === 0) {
@@ -252,7 +271,6 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
                 order_number: order.order_number,
                 name: order.item?.name || order.order_number,
                 status: order.status,
-                priority: 50,
                 requested_date: orderStartDate.toISOString(), // Will update later
                 quantity: order.quantity,
                 parent_order_id: (order as TimeParameterOrder & { parent_id?: number }).parent_id,
@@ -295,7 +313,6 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
                             manufacturing_step_id: step.id,
                             sequence_number: index + 1,
                             name: step.name,
-                            description: '',
                             work_cell_id: step.work_cell_id,
                             work_cell: step.work_cell,
                             parentId: orderId,
@@ -392,18 +409,21 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
         });
     }, []);
 
-    const handleStepUpdate = useCallback((step: { id: string }) => {
+    const handleStepUpdate = useCallback((stepIdOrStep: string | { id: string }, _updates?: Record<string, unknown>) => {
+        // Handle both signatures
+        const stepId = typeof stepIdOrStep === 'string' ? stepIdOrStep : stepIdOrStep.id;
+        
         // Extract order ID and step ID from the combined ID
-        const [orderIdStr, stepIdStr] = step.id.split('-');
+        const [orderIdStr, stepIdStr] = stepId.split('-');
         const orderId = parseInt(orderIdStr);
-        const stepId = parseInt(stepIdStr);
+        const stepIdNum = parseInt(stepIdStr);
 
         // Find the original step data
         const order = orders.find(o => o.id === orderId);
-        const originalStep = order?.steps.find(s => s.id === stepId);
+        const originalStep = order?.steps.find(s => s.id === stepIdNum);
 
         if (originalStep && onEditStep) {
-            onEditStep(orderId, stepId, originalStep);
+            onEditStep(orderId, stepIdNum, originalStep);
         }
     }, [orders, onEditStep]);
 
@@ -534,7 +554,7 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
                             onResize={setLeftPanelSize}
                         >
                             <GanttGrid
-                                tasks={visibleTasks}
+                                tasks={visibleTasks as any}
                                 onTaskToggle={(taskId) => {
                                     const numId = typeof taskId === 'string' ? parseInt(taskId) : taskId;
                                     handleOrderToggle(numId);
@@ -546,10 +566,10 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
 
                         <ResizablePanel defaultSize={100 - leftPanelSize}>
                             <TimelineWithValidation
-                                tasks={visibleTasks}
+                                tasks={visibleTasks as any}
                                 viewConfig={viewConfig}
                                 zoomLevel={zoomLevel}
-                                onStepUpdate={handleStepUpdate}
+                                onStepUpdate={(step) => handleStepUpdate(step.id)}
                             />
                         </ResizablePanel>
                     </ResizablePanelGroup>
@@ -642,7 +662,7 @@ const TimelineWithValidation: React.FC<{
                 viewConfig={viewConfig}
                 zoomLevel={zoomLevel}
                 timelineWidth={timelineLayout.totalWidth}
-                onStepUpdate={onStepUpdate}
+                onStepUpdate={(stepId) => onStepUpdate({ id: stepId })}
                 showDependencies={false}
             />
         </div>

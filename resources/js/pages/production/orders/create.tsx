@@ -67,8 +67,8 @@ export default function CreateManufacturingOrder({
         form.data.order_type = orderType;
         form.data.route_creation_mode = routeCreationMode;
         form.data.template_source_id = selectedTemplate;
-        form.data.auto_select_template = routeCreationMode === 'auto' && templates.length === 1;
-        form.data.create_empty_route = routeCreationMode === 'empty';
+        (form.data as any).auto_select_template = routeCreationMode === 'auto' && templates.length === 1;
+        (form.data as any).create_empty_route = routeCreationMode === 'empty';
 
         form.post(route('production.orders.store'), {
             preserveScroll: true,
@@ -153,17 +153,17 @@ export default function CreateManufacturingOrder({
                         <CardContent>
                             {orderType === 'item' ? (
                                 <ItemSelect
-                                    value={form.data.item_id}
-                                    onValueChange={(value) => form.setData('item_id', value)}
+                                    value={form.data.item_id ? String(form.data.item_id) : ''}
+                                    onValueChange={(value) => form.setData('item_id', value ? Number(value) : null)}
                                     items={items}
                                     placeholder="Select an item to manufacture"
                                     required
                                 />
                             ) : (
                                 <ItemSelect
-                                    value={form.data.bill_of_material_id}
-                                    onValueChange={(value) => form.setData('bill_of_material_id', value)}
-                                    type="bom"
+                                    items={billsOfMaterial}
+                                    value={form.data.bill_of_material_id ? String(form.data.bill_of_material_id) : ''}
+                                    onValueChange={(value) => form.setData('bill_of_material_id', value ? Number(value) : null)}
                                     placeholder="Select a bill of materials"
                                     required
                                 />
@@ -184,21 +184,21 @@ export default function CreateManufacturingOrder({
                                 <div className="space-y-2">
                                     <Label htmlFor="quantity">Quantity</Label>
                                     <TextInput
-                                        id="quantity"
                                         form={formAdapter}
                                         name="quantity"
+                                        label=""
+                                        placeholder="Enter quantity"
                                         type="number"
-                                        min="0.01"
-                                        step="0.01"
+                                        min="1"
                                         required
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="unit_of_measure">Unit of Measure</Label>
                                     <TextInput
-                                        id="unit_of_measure"
                                         form={formAdapter}
                                         name="unit_of_measure"
+                                        label=""
                                         placeholder="EA"
                                         required
                                     />
@@ -209,9 +209,10 @@ export default function CreateManufacturingOrder({
                                 <div className="space-y-2">
                                     <Label htmlFor="priority">Priority (0-100)</Label>
                                     <TextInput
-                                        id="priority"
                                         form={formAdapter}
                                         name="priority"
+                                        label=""
+                                        placeholder="Enter priority"
                                         type="number"
                                         min="0"
                                         max="100"
@@ -221,9 +222,10 @@ export default function CreateManufacturingOrder({
                                 <div className="space-y-2">
                                     <Label htmlFor="requested_date">Requested Date</Label>
                                     <TextInput
-                                        id="requested_date"
                                         form={formAdapter}
                                         name="requested_date"
+                                        label=""
+                                        placeholder=""
                                         type="date"
                                     />
                                 </div>
@@ -249,9 +251,9 @@ export default function CreateManufacturingOrder({
                                 <div className="space-y-2">
                                     <Label htmlFor="source_reference">Source Reference</Label>
                                     <TextInput
-                                        id="source_reference"
                                         form={formAdapter}
                                         name="source_reference"
+                                        label=""
                                         placeholder="Reference number"
                                         required
                                     />

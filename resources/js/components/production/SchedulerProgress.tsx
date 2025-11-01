@@ -55,9 +55,9 @@ export default function SchedulerProgress({
     useEffect(() => {
         if (!open || !jobId || !versionId) return;
 
-        const intervalId: NodeJS.Timeout | undefined = setInterval(pollProgress, 1000);
         let pollCount = 0;
         const maxPolls = 120; // Poll for max 2 minutes (120 * 1 second)
+        let intervalId: NodeJS.Timeout | undefined;
 
         const pollProgress = async () => {
             try {
@@ -148,6 +148,9 @@ export default function SchedulerProgress({
 
         // Start polling immediately
         pollProgress();
+        
+        // Set up the interval
+        intervalId = setInterval(pollProgress, 1000);
 
         return () => {
             if (intervalId) {

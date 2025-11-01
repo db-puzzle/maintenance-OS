@@ -22,7 +22,7 @@ export const ScrollContainer: React.FC<ScrollContainerProps> = ({
     const ref = useRef<HTMLDivElement>(null);
     const { registerScrollContainer, unregisterScrollContainer, syncScroll } = useScrollSync();
     const lastScrollTime = useRef(0);
-    const scrollTimeout = useRef<NodeJS.Timeout>();
+    const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         if (ref.current) {
