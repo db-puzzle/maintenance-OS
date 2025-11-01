@@ -87,7 +87,7 @@ export default function AlertsList({ alerts }: AlertsListProps) {
                 window.open(action.params.url as string, '_blank');
                 break;
             case 'adjust_dates':
-                router.visit(route('production.scheduler.index'), action.params as any);
+                router.visit(route('production.scheduler.index'), action.params as Record<string, unknown>);
                 break;
             default:
                 console.log('Unknown action:', action);

@@ -6,7 +6,6 @@ import { ManufacturingOrder, WorkCell, ManufacturingStep } from '@/types/product
 import { ScheduleVersion, ProductionSchedule, ScheduleAlert } from '@/types/scheduler';
 import { ScrollSyncProvider } from '@/components/production/scheduler-v2/contexts/ScrollSyncContext';
 import { ProductionScheduler } from '@/components/production/scheduler-v2/ProductionScheduler';
-import { SchedulerOrder } from '@/components/production/scheduler-v2/types';
 import { formatNumber } from '@/utils/number';
 import SchedulerProgress from '@/components/production/SchedulerProgress';
 
@@ -131,8 +130,8 @@ export default function SchedulerV2Index({
     const _activeScheduleVersion = propsActiveScheduleVersion;
 
     // Get flash data from page props
-    const pageProps = usePage().props;
-    const flash = (pageProps as any).flash as FlashData;
+    const pageProps = usePage<PageProps>().props;
+    const flash = pageProps.flash as FlashData | undefined;
 
 
     const [schedules, setSchedules] = useState(propsSchedules || []);
@@ -292,7 +291,7 @@ export default function SchedulerV2Index({
         };
     }, [orders, schedules, workCells, expandedOrders]);
 
-    const handleScheduleUpdate = useCallback((updatedSchedule: ProductionSchedule) => {
+    const _handleScheduleUpdate = useCallback((updatedSchedule: ProductionSchedule) => {
         // Update local state
         setSchedules((prev) => prev.map((s) =>
             s.id === updatedSchedule.id ? updatedSchedule : s
@@ -362,7 +361,7 @@ export default function SchedulerV2Index({
                         quantity: order.quantity,
                         scheduled_start: order.steps.length > 0 ? order.steps[0].planned_start_date : undefined,
                         scheduled_end: order.steps.length > 0 ? order.steps[order.steps.length - 1].planned_end_date : undefined,
-                        steps: order.steps.map((step, index) => ({
+                        steps: order.steps.map((step, _index) => ({
                             id: Number(step.id),
                             order_id: order.id,
                             order_number: order.order_number,

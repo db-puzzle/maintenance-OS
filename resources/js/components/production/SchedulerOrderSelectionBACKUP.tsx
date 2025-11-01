@@ -15,9 +15,9 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import OrderSelectionPanel from '@/pages/production/scheduler/components/OrderSelectionPanel';
-import FamilyVisualization from '@/pages/production/scheduler/components/FamilyVisualization';
-import ValidationModal from '@/pages/production/scheduler/components/ValidationModal';
+import OrderSelectionPanel from '@/pages/production/Scheduler/components/OrderSelectionPanel';
+import FamilyVisualization from '@/pages/production/Scheduler/components/FamilyVisualization';
+import ValidationModal from '@/pages/production/Scheduler/components/ValidationModal';
 
 interface SchedulerRunData {
     version_id: number;
@@ -242,7 +242,7 @@ export default function SchedulerOrderSelection({
                 <DialogHeader className="px-4 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <DialogTitle className="text-lg font-semibold">Seleção de Ordens para Programação</DialogTitle>
+                            <DialogTitle className="text-lg font-semibold">Sele??o de Ordens para Programa??o</DialogTitle>
                             {activeScheduleVersion && (
                                 <Badge variant="outline" className="flex items-center gap-1 text-xs">
                                     <Clock className="w-3 h-3" />
@@ -340,7 +340,26 @@ export default function SchedulerOrderSelection({
                                 {/* Desktop Side-by-Side */}
                                 <div className="flex-1 border-r px-4 py-3 overflow-hidden flex flex-col min-h-0">
                                     <OrderSelectionPanel
-                                        orders={orders as any}
+                                        orders={orders as Array<{
+                                            id: number;
+                                            order_number: string;
+                                            item: { code: string; name: string; description: string };
+                                            quantity: number;
+                                            status: string;
+                                            priority: number;
+                                            requested_date: string;
+                                            parent_id: number | null;
+                                            manufacturingRoute?: {
+                                                id: number;
+                                                name: string;
+                                                steps: Array<{
+                                                    id: number;
+                                                    name: string;
+                                                    sequence_number: number;
+                                                    work_cell_id: number;
+                                                }>;
+                                            } | null;
+                                        }>}
                                         selectedOrders={selectedOrders}
                                         onSelectionChange={handleOrderSelection}
                                         selectionMode={selectionMode}
@@ -350,7 +369,22 @@ export default function SchedulerOrderSelection({
                                 <div className="flex-1 px-4 py-3 overflow-hidden flex flex-col min-h-0">
                                     {selectedOrders.length > 0 ? (
                                         <FamilyVisualization
-                                            families={families as any}
+                                            families={families as unknown as Array<{
+                                                top_parent: { id: number; order_number: string; priority: number };
+                                                members: Array<{
+                                                    id: number;
+                                                    order_number: string;
+                                                    parent_id: number | null;
+                                                    quantity: number;
+                                                    status: string;
+                                                    has_route: boolean;
+                                                    step_count: number;
+                                                }>;
+                                                total_steps: number;
+                                                total_orders: number;
+                                                priority: number;
+                                                has_dependencies: boolean;
+                                            }>}
                                             selectedOrders={selectedOrders}
                                         />
                                     ) : (
@@ -372,7 +406,26 @@ export default function SchedulerOrderSelection({
                                     </TabsList>
                                     <TabsContent value="orders" className="flex-1 overflow-hidden mt-0 px-4 py-3 flex flex-col min-h-0">
                                         <OrderSelectionPanel
-                                            orders={orders as any}
+                                            orders={orders as Array<{
+                                                id: number;
+                                                order_number: string;
+                                                item: { code: string; name: string; description: string };
+                                                quantity: number;
+                                                status: string;
+                                                priority: number;
+                                                requested_date: string;
+                                                parent_id: number | null;
+                                                manufacturingRoute?: {
+                                                    id: number;
+                                                    name: string;
+                                                    steps: Array<{
+                                                        id: number;
+                                                        name: string;
+                                                        sequence_number: number;
+                                                        work_cell_id: number;
+                                                    }>;
+                                                } | null;
+                                            }>}
                                             selectedOrders={selectedOrders}
                                             onSelectionChange={handleOrderSelection}
                                             selectionMode={selectionMode}
@@ -382,7 +435,22 @@ export default function SchedulerOrderSelection({
                                     <TabsContent value="families" className="flex-1 overflow-hidden mt-0 px-4 py-3 flex flex-col min-h-0">
                                         {selectedOrders.length > 0 ? (
                                             <FamilyVisualization
-                                                families={families as any}
+                                                families={families as unknown as Array<{
+                                                    top_parent: { id: number; order_number: string; priority: number };
+                                                    members: Array<{
+                                                        id: number;
+                                                        order_number: string;
+                                                        parent_id: number | null;
+                                                        quantity: number;
+                                                        status: string;
+                                                        has_route: boolean;
+                                                        step_count: number;
+                                                    }>;
+                                                    total_steps: number;
+                                                    total_orders: number;
+                                                    priority: number;
+                                                    has_dependencies: boolean;
+                                                }>}
                                                 selectedOrders={selectedOrders}
                                             />
                                         ) : (

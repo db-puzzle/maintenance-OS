@@ -554,7 +554,18 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
                             onResize={setLeftPanelSize}
                         >
                             <GanttGrid
-                                tasks={visibleTasks as any}
+                                tasks={visibleTasks as unknown as Array<{
+                                    id: string | number;
+                                    type: 'order' | 'step';
+                                    name: string;
+                                    isParent?: boolean;
+                                    level: number;
+                                    hasChildren?: boolean;
+                                    parentId?: number;
+                                    orderId?: number;
+                                    expanded?: boolean;
+                                    [key: string]: unknown;
+                                }>}
                                 onTaskToggle={(taskId) => {
                                     const numId = typeof taskId === 'string' ? parseInt(taskId) : taskId;
                                     handleOrderToggle(numId);
@@ -566,7 +577,10 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
 
                         <ResizablePanel defaultSize={100 - leftPanelSize}>
                             <TimelineWithValidation
-                                tasks={visibleTasks as any}
+                                tasks={visibleTasks.map(task => ({
+                                    ...task,
+                                    duration_hours: task.duration_hours ?? 0,
+                                })) as unknown as Parameters<typeof TimelineWithValidation>[0]['tasks']}
                                 viewConfig={viewConfig}
                                 zoomLevel={zoomLevel}
                                 onStepUpdate={(step) => handleStepUpdate(step.id)}

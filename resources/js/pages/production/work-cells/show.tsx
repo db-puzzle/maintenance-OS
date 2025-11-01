@@ -703,13 +703,14 @@ export default function Show({
                                 width: 'w-[200px]',
                                 render: (value, row) => {
                                     const schedule = row as unknown as ProductionSchedule;
-                                    if (schedule.manufacturing_order) {
+                                    const manufacturingOrder = (schedule.manufacturing_step as { manufacturing_route?: { manufacturing_order?: { id: number; order_number: string } } })?.manufacturing_route?.manufacturing_order;
+                                    if (manufacturingOrder) {
                                         return (
                                             <Link
-                                                href={route('production.manufacturing-orders.show', (schedule.manufacturing_order as any).id)}
+                                                href={route('production.manufacturing-orders.show', manufacturingOrder.id)}
                                                 className="hover:text-primary font-medium"
                                             >
-                                                {(schedule.manufacturing_order as any).order_number}
+                                                {manufacturingOrder.order_number}
                                             </Link>
                                         );
                                     }
@@ -723,12 +724,13 @@ export default function Show({
                                 width: 'w-[250px]',
                                 render: (value, row) => {
                                     const schedule = row as unknown as ProductionSchedule;
-                                    if (schedule.manufacturing_step) {
+                                    const step = schedule.manufacturing_step as { id: number; description?: string } | undefined;
+                                    if (step) {
                                         return (
                                             <div>
-                                                <div>Etapa #{(schedule.manufacturing_step as any).step_number}</div>
+                                                <div>Etapa #{step.id}</div>
                                                 <div className="text-muted-foreground text-sm">
-                                                    {(schedule.manufacturing_step as any)?.description || ''}
+                                                    {step.description || ''}
                                                 </div>
                                             </div>
                                         );

@@ -170,7 +170,28 @@ export default function Results({
                                     {families.map((family, index) => (
                                         <FamilyScheduleView
                                             key={family.top_parent}
-                                            family={family as any}
+                                            family={(family as unknown) as {
+                                                top_parent: string;
+                                                priority: number;
+                                                orders: Array<{
+                                                    order_number: string;
+                                                    schedules: Array<{
+                                                        id: number;
+                                                        step_name: string;
+                                                        work_cell: string;
+                                                        scheduled_start: string;
+                                                        scheduled_end: string;
+                                                        is_locked: boolean;
+                                                        conflicts: Array<{ id: string; description: string }>;
+                                                    }>;
+                                                }>;
+                                                metrics: {
+                                                    start_date: string;
+                                                    end_date: string;
+                                                    total_duration: number;
+                                                    utilization: number;
+                                                };
+                                            }}
                                             index={index}
                                             isExpanded={selectedFamily === family.top_parent}
                                             onToggle={() => setSelectedFamily(
@@ -203,7 +224,23 @@ export default function Results({
                     </TabsContent>
 
                     <TabsContent value="alerts">
-                        <AlertsList alerts={alerts as any} />
+                        <AlertsList                         alerts={alerts.map(alert => ({
+                            ...alert,
+                            type: alert.alert_type || 'unknown',
+                        })) as Array<{
+                            id: number;
+                            schedule_version_id?: number;
+                            type: string;
+                            severity: 'error' | 'warning' | 'info';
+                            message: string;
+                            details?: Record<string, unknown>;
+                            actions?: Array<{
+                                label: string;
+                                action: string;
+                                params: Record<string, unknown>;
+                            }>;
+                            resolved_at?: string;
+                        }>} />
                     </TabsContent>
                 </Tabs>
             </div>

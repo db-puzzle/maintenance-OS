@@ -278,7 +278,19 @@ export default function TimeParameterStatus({ orders, onRefresh }: TimeParameter
                 <TimeParameterForm
                     open={true}
                     onOpenChange={(open) => !open && setEditingStep(null)}
-                    step={editingStep.step as any}
+                    step={{
+                        id: editingStep.step.id,
+                        name: editingStep.step.name,
+                        has_step_time: editingStep.step.has_step_time,
+                        has_work_cell_rate: editingStep.step.has_work_cell_rate,
+                        setup_time_minutes: editingStep.step.setup_time_minutes ?? undefined,
+                        cycle_time_minutes: editingStep.step.cycle_time_minutes ?? undefined,
+                        work_cell: editingStep.step.work_cell ? {
+                            id: editingStep.step.work_cell.id,
+                            name: editingStep.step.work_cell.name,
+                            production_rate_per_hour: editingStep.step.work_cell_rate?.production_rate_per_hour,
+                        } : undefined,
+                    }}
                     orderQuantity={orders.find(o => o.id === editingStep.orderId)?.quantity || 1}
                     itemId={orders.find(o => o.id === editingStep.orderId)?.item?.id}
                     onSuccess={() => {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { TimeParametersGanttView, type TimeParameterOrder } from './TimeParametersGanttView';
+import { TimeParametersGanttView } from './TimeParametersGanttView';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import TimeParameterForm from '@/components/production/scheduler/TimeParameterForm';
@@ -61,7 +61,7 @@ export function TimeParametersStep({
     const invalidCount = countInvalidOrders(orders);
 
     // Handle step editing
-    const handleEditStep = (orderId: number, stepId: number, step: any) => {
+    const handleEditStep = (orderId: number, stepId: number, step: ManufacturingStep) => {
         setEditingStep({ orderId, stepId, step });
     };
 
@@ -112,10 +112,10 @@ export function TimeParametersStep({
                     </div>
                 ) : orders.length > 0 ? (
                     <TimeParametersGanttView
-                        orders={orders as any}
+                        orders={orders as unknown as import('./TimeParametersGanttView').TimeParameterOrder[]}
                         startDate={startDate}
                         endDate={endDate}
-                        onEditStep={handleEditStep}
+                        onEditStep={(orderId, stepId, step) => handleEditStep(orderId, stepId, step as unknown as ManufacturingStep)}
                         onRefresh={onRefresh}
                     />
                 ) : (

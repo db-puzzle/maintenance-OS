@@ -291,7 +291,24 @@ export const ProductionScheduler: React.FC<Props> = ({
                         {/* Gantt View */}
                         <ResizablePanel defaultSize={60} minSize={30}>
                             <GanttView
-                                orders={schedulerState.visibleOrders as any}
+                                orders={schedulerState.visibleOrders as unknown as Array<{
+                                    id: number;
+                                    expanded?: boolean;
+                                    children?: Array<{
+                                        id: number;
+                                        expanded?: boolean;
+                                        steps?: Array<{
+                                            id: string;
+                                            planned_start_date: string;
+                                            planned_end_date: string;
+                                        }>;
+                                    }>;
+                                    steps?: Array<{
+                                        id: string;
+                                        planned_start_date: string;
+                                        planned_end_date: string;
+                                    }>;
+                                }>}
                                 viewConfig={viewConfig}
                                 zoomLevel={currentZoomLevel}
                                 onStepUpdate={handleStepUpdate}
@@ -311,8 +328,25 @@ export const ProductionScheduler: React.FC<Props> = ({
                         {/* Scheduler View */}
                         <ResizablePanel defaultSize={40} minSize={20}>
                             <SchedulerView
-                                workCells={schedulerState.workCells as any}
-                                allocations={schedulerState.allocations as any}
+                                workCells={schedulerState.workCells as unknown as Array<{
+                                    id: number;
+                                    name: string;
+                                    cell_type: string;
+                                    has_finite_capacity: boolean;
+                                    current_utilization?: number;
+                                    scheduled_steps?: Array<{
+                                        id: string;
+                                        is_locked?: boolean;
+                                        planned_start_date: string;
+                                        planned_end_date: string;
+                                    }>;
+                                }>}
+                                allocations={schedulerState.allocations as unknown as Array<{
+                                    id: string;
+                                    is_locked?: boolean;
+                                    planned_start_date: string;
+                                    planned_end_date: string;
+                                }>}
                                 viewConfig={viewConfig}
                                 zoomLevel={currentZoomLevel}
                                 onAllocationUpdate={handleAllocationUpdate}
