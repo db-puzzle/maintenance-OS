@@ -99,7 +99,7 @@ export default function SchedulerSetup({
 
     // Monitor flash data for scheduling job response
     useEffect(() => {
-        const flashWithJob = flash as any & {
+        interface FlashWithJob {
             schedulingJob?: {
                 job_id: string;
                 websocket_channel: string;
@@ -108,14 +108,21 @@ export default function SchedulerSetup({
             job_id?: string;
             websocket_channel?: string;
             version_id?: number;
-        };
+            success?: string | boolean;
+            error?: string;
+            warning?: string;
+            info?: string;
+            [key: string]: unknown;
+        }
 
-        const schedulingJob = flashWithJob?.schedulingJob ||
-            (flashWithJob?.success && flashWithJob?.job_id ? flashWithJob : null);
+        const flashWithJob = flash as FlashWithJob;
+
+        const schedulingJob = (flashWithJob?.schedulingJob as FlashWithJob['schedulingJob']) ||
+            (flashWithJob?.success && flashWithJob?.job_id ? (flashWithJob as FlashWithJob) : null);
 
         if (schedulingJob) {
             // Redirect to scheduler with job info
-            const jobData = schedulingJob.schedulingJob || schedulingJob;
+            const jobData = (schedulingJob as FlashWithJob).schedulingJob || schedulingJob;
             window.location.href = route('production.scheduler.index', {
                 job_id: jobData.job_id,
                 websocket_channel: jobData.websocket_channel,
@@ -247,7 +254,7 @@ export default function SchedulerSetup({
                                                 }
                                             )}
                                         >
-                                            {isCompleted ? '✓' : index + 1}
+                                            {isCompleted ? '?' : index + 1}
                                         </div>
                                         <div className="ml-3">
                                             <p className={cn('text-sm font-medium whitespace-nowrap', {
@@ -315,7 +322,11 @@ export default function SchedulerSetup({
                             data={data}
                             selectedOrders={selectedOrders}
                             orders={orders}
-                            families={families as any}
+                            families={families as Array<{
+                                family_id: string;
+                                family_name: string;
+                                orders: number[];
+                            }>}
                             algorithms={algorithms}
                             processing={processing}
                             errors={errors}

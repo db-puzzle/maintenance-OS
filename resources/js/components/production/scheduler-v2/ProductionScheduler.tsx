@@ -94,9 +94,21 @@ export const ProductionScheduler: React.FC<Props> = ({
         }));
     }, [orders]);
 
+    // Transform WorkCell to WorkCellState format
+    const transformedWorkCells = useMemo(() => {
+        return workCells.map(cell => ({
+            id: cell.id,
+            name: cell.name,
+            cell_type: cell.cell_type || 'internal',
+            has_finite_capacity: cell.has_finite_capacity ?? false,
+            // Note: current_utilization is not part of the WorkCell type from production,
+            // so it's omitted here. If needed, it would need to be added to the WorkCell type.
+        }));
+    }, [workCells]);
+
     const schedulerState = useSchedulerState({
         orders: transformedOrders,
-        workCells,
+        workCells: transformedWorkCells,
         viewConfig,
         zoomLevel: currentZoomLevel,
     });
@@ -291,7 +303,7 @@ export const ProductionScheduler: React.FC<Props> = ({
                         {/* Gantt View */}
                         <ResizablePanel defaultSize={60} minSize={30}>
                             <GanttView
-                                orders={schedulerState.visibleOrders as any}
+                                orders={schedulerState.visibleOrders}
                                 viewConfig={viewConfig}
                                 zoomLevel={currentZoomLevel}
                                 onStepUpdate={handleStepUpdate}
@@ -311,8 +323,8 @@ export const ProductionScheduler: React.FC<Props> = ({
                         {/* Scheduler View */}
                         <ResizablePanel defaultSize={40} minSize={20}>
                             <SchedulerView
-                                workCells={schedulerState.workCells as any}
-                                allocations={schedulerState.allocations as any}
+                                workCells={schedulerState.workCells}
+                                allocations={schedulerState.allocations}
                                 viewConfig={viewConfig}
                                 zoomLevel={currentZoomLevel}
                                 onAllocationUpdate={handleAllocationUpdate}

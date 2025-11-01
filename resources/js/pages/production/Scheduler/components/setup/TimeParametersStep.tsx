@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { TimeParametersGanttView, type TimeParameterOrder } from './TimeParametersGanttView';
@@ -60,8 +60,46 @@ export function TimeParametersStep({
     const allValid = checkAllOrdersValid(orders);
     const invalidCount = countInvalidOrders(orders);
 
+    // Transform OrderWithTimeParams to TimeParameterOrder format
+    const transformOrder = useCallback((order: OrderWithTimeParams): TimeParameterOrder => {
+        return {
+            id: order.id,
+            order_number: order.order_number,
+            item: order.item ? {
+                id: order.item.id,
+                name: order.item.name,
+            } : null,
+            quantity: order.quantity,
+            status: order.status,
+            has_route: order.has_route ?? false,
+            time_parameter_status: (order.time_parameter_status as 'valid' | 'partial' | 'missing') || 'missing',
+            steps: (order.manufacturing_route?.steps || []).map(step => ({
+                id: step.id,
+                name: step.name,
+                work_cell_id: step.work_cell_id ?? null,
+                work_cell: step.work_cell || null,
+                has_step_time: !!(step.setup_time_minutes && step.cycle_time_minutes),
+                setup_time_minutes: step.setup_time_minutes ?? null,
+                cycle_time_minutes: step.cycle_time_minutes ?? null,
+                use_workcell_throughput: step.use_workcell_throughput ?? null,
+                has_work_cell_rate: false, // This would need to be determined from actual data
+                work_cell_rate: null, // This would need to be populated from actual data
+                effective_time_source: null, // This would need to be calculated
+                effective_setup_time: step.setup_time_minutes ?? null,
+                effective_cycle_time: step.cycle_time_minutes ?? null,
+                effective_total_time: step.setup_time_minutes && step.cycle_time_minutes 
+                    ? step.setup_time_minutes + step.cycle_time_minutes 
+                    : null,
+            })),
+            issues: [], // This would need to be populated from validation
+            children: order.children?.map(transformOrder),
+        };
+    }, []);
+
+    const transformedOrders = useMemo(() => orders.map(transformOrder), [orders, transformOrder]);
+
     // Handle step editing
-    const handleEditStep = (orderId: number, stepId: number, step: any) => {
+    const handleEditStep = (orderId: number, stepId: number, step: ManufacturingStep) => {
         setEditingStep({ orderId, stepId, step });
     };
 
@@ -112,10 +150,17 @@ export function TimeParametersStep({
                     </div>
                 ) : orders.length > 0 ? (
                     <TimeParametersGanttView
-                        orders={orders as any}
+                        orders={transformedOrders}
                         startDate={startDate}
                         endDate={endDate}
-                        onEditStep={handleEditStep}
+                        onEditStep={(orderId, stepId) => {
+                            // Find the original step from the order
+                            const order = orders.find(o => o.id === orderId);
+                            const originalStep = order?.manufacturing_route?.steps?.find(s => s.id === stepId);
+                            if (originalStep) {
+                                handleEditStep(orderId, stepId, originalStep);
+                            }
+                        }}
                         onRefresh={onRefresh}
                     />
                 ) : (

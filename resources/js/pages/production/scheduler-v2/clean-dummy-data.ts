@@ -7,7 +7,6 @@ import type {
     Item
 } from '@/types/production';
 import type {
-    ProductionSchedule,
     ScheduleAlert,
     ScheduleVersion
 } from '@/types/scheduler';
