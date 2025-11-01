@@ -15,9 +15,9 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import OrderSelectionPanel from '@/pages/production/scheduler/components/OrderSelectionPanel';
-import FamilyVisualization from '@/pages/production/scheduler/components/FamilyVisualization';
-import ValidationModal from '@/pages/production/scheduler/components/ValidationModal';
+import OrderSelectionPanel from '@/pages/production/Scheduler/components/OrderSelectionPanel';
+import FamilyVisualization from '@/pages/production/Scheduler/components/FamilyVisualization';
+import ValidationModal from '@/pages/production/Scheduler/components/ValidationModal';
 
 interface SchedulerRunData {
     version_id: number;

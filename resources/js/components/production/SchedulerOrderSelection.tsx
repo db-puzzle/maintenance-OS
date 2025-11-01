@@ -15,9 +15,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import OrderSelectionPanel from '@/pages/production/scheduler/components/OrderSelectionPanel';
-import FamilyVisualization from '@/pages/production/scheduler/components/FamilyVisualization';
-import ValidationModal from '@/pages/production/scheduler/components/ValidationModal';
+import OrderSelectionPanel from '@/pages/production/Scheduler/components/OrderSelectionPanel';
+import FamilyVisualization from '@/pages/production/Scheduler/components/FamilyVisualization';
+import ValidationModal from '@/pages/production/Scheduler/components/ValidationModal';
 import TimeParameterHierarchicalView, { type TimeParameterTreeNode } from '@/components/production/scheduler/TimeParameterHierarchicalView';
 import { cn } from '@/lib/utils';
 
