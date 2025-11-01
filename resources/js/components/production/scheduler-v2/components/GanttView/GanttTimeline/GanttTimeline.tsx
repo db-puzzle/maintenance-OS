@@ -13,19 +13,32 @@ interface Step {
     planned_start_date: string;
     planned_end_date: string;
     is_locked?: boolean;
+    name?: string;
+    status?: string;
+    percent_complete?: number;
 }
 
 interface Order {
-    id: string;
+    id: string | number;
+    order_number?: string;
     steps?: Step[];
     children?: Order[];
 }
 
 interface Task {
-    type: string;
-    id: string;
+    type: 'order' | 'step';
+    id: string | number;
     level?: number;
     data?: Order | Step;
+    parentId?: number;
+    orderId?: number;
+    order_number?: string;
+    name?: string;
+    status?: string;
+    percent_complete?: number;
+    planned_start_date?: string;
+    planned_end_date?: string;
+    is_locked?: boolean;
 }
 
 interface StepUpdate {
@@ -78,10 +91,13 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
     const rows = useMemo(() => {
         return tasks.map((task, _index) => ({
             type: task.type,
-            data: task,
+            data: {
+                ...task,
+                id: String(task.id)
+            },
             level: task.level || 0,
             id: task.type === 'order' ? `order-${task.id}` : `step-${task.id}`,
-            orderId: (task as any).orderId || (task.type === 'step' ? (task as any).parentId : task.id),
+            orderId: task.orderId || (task.type === 'step' ? task.parentId : task.id),
         }));
     }, [tasks]);
     const rowHeight = 45;
@@ -271,14 +287,14 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                                         order.level === 0 ? "bg-blue-500 text-white" : "bg-blue-200"
                                     )}>
                                         <span className="text-xs font-medium truncate">
-                                            {(order.data as any)?.order_number || ''}
+                                            {(order.data as Order)?.order_number || ''}
                                         </span>
                                     </div>
                                 </div>
                             );
                         } else if (row.type === 'step') {
                             // Render step bar
-                            const step = row.data as any;
+                            const step = row.data as Step & { name?: string; status?: string; percent_complete?: number; };
                             const isDragging = draggedStep?.id === step.id;
 
                             if (!step.planned_start_date || !step.planned_end_date) {
@@ -289,10 +305,10 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                                 <StepBar
                                     key={row.id}
                                     step={{
-                                        name: (step as any).name || '',
-                                        status: (step as any).status || 'pending',
+                                        name: step.name || '',
+                                        status: step.status || 'pending',
                                         is_locked: step.is_locked || false,
-                                        percent_complete: (step as any).percent_complete || 0,
+                                        percent_complete: step.percent_complete || 0,
                                     }}
                                     x={timelineLayout.getPositionForDate(new Date(step.planned_start_date)) +
                                         (isDragging && draggedStep ? draggedStep.offsetX : 0)}
@@ -302,11 +318,11 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                                     height={rowHeight}
                                     isSelected={selectedStepId === step.id}
                                     isDragging={isDragging}
-                                    onSelect={() => setSelectedStepId(step.id)}
+                                    onSelect={() => setSelectedStepId(String(step.id))}
                                     onDragStart={(e) => handleStepDragStart(e, {
-                                        id: step.id,
-                                        planned_start_date: step.planned_start_date,
-                                        planned_end_date: step.planned_end_date,
+                                        id: String(step.id),
+                                        planned_start_date: step.planned_start_date || '',
+                                        planned_end_date: step.planned_end_date || '',
                                         is_locked: step.is_locked || false,
                                     })}
                                 />
@@ -321,9 +337,9 @@ export const GanttTimeline: React.FC<GanttTimelineProps> = ({
                         <>
                             <Dependencies
                                 steps={rows.filter(r => r.type === 'step').map(r => ({
-                                    id: (r.data as any).id,
-                                    planned_start_date: (r.data as any).planned_start_date || '',
-                                    planned_end_date: (r.data as any).planned_end_date || '',
+                                    id: r.data.id,
+                                    planned_start_date: r.data.planned_start_date || '',
+                                    planned_end_date: r.data.planned_end_date || '',
                                 }))}
                                 rows={rows}
                                 rowHeight={rowHeight}

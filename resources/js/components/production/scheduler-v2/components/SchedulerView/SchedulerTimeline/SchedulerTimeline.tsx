@@ -11,6 +11,8 @@ interface WorkCell {
     id: number;
     has_finite_capacity?: boolean;
     scheduled_steps?: Allocation[];
+    default_production_rate_per_hour?: number;
+    cell_type?: string;
 }
 
 interface Allocation {
@@ -201,7 +203,7 @@ export const SchedulerTimeline: React.FC<SchedulerTimelineProps> = ({
                                 {/* Capacity indicator for finite capacity cells */}
                                 {workCell.has_finite_capacity && (
                                     <CapacityIndicator
-                                        workCell={workCell as any}
+                                        workCell={workCell}
                                         allocations={cellAllocations}
                                         layout={timelineLayout}
                                         height={rowHeight}

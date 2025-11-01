@@ -24,7 +24,7 @@ export const DirectExecution: React.FC<DirectExecutionProps> = ({ order }) => {
         quantity_completed: 0,
         quantity_scrapped: 0,
         notes: '',
-        mark_complete: false
+        mark_complete: false as boolean
     });
 
     const formAdapter = createFormAdapter(form);
@@ -50,9 +50,9 @@ export const DirectExecution: React.FC<DirectExecutionProps> = ({ order }) => {
     };
 
     const handleMarkComplete = () => {
-        form.setData('mark_complete', true as any);
+        form.setData('mark_complete', true);
         form.setData('quantity_completed', remainingQuantity);
-        handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+        handleSubmit({ preventDefault: () => { } } as React.FormEvent);
     };
 
     if (!canReport) {

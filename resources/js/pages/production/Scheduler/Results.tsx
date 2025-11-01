@@ -133,9 +133,9 @@ export default function Results({
                     id: version.id,
                     version_number: version.version_number,
                     published_at: version.published_at,
-                    published_by: version.published_by ? {name: 'Unknown'} : undefined,
+                    published_by: version.published_by ? { name: 'Unknown' } : undefined,
                     created_at: version.created_at,
-                    created_by: version.created_by ? {name: 'Unknown'} : undefined,
+                    created_by: version.created_by ? { name: 'Unknown' } : undefined,
                 }} />
 
                 {/* Main Content Tabs */}
@@ -203,7 +203,7 @@ export default function Results({
                     </TabsContent>
 
                     <TabsContent value="alerts">
-                                <AlertsList alerts={alerts as any} />
+                        <AlertsList alerts={alerts as any} />
                     </TabsContent>
                 </Tabs>
             </div>

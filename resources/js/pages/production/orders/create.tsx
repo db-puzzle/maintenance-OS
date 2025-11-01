@@ -52,8 +52,8 @@ export default function CreateManufacturingOrder({
         source_type: 'manual',
         source_reference: '',
         template_source_id: null as number | null,
-        auto_select_template: false,
-        create_empty_route: false,
+        auto_select_template: false as boolean,
+        create_empty_route: false as boolean,
         auto_complete_on_children: true,
         route_creation_mode: routeCreationMode
     });
@@ -67,8 +67,8 @@ export default function CreateManufacturingOrder({
         form.data.order_type = orderType;
         form.data.route_creation_mode = routeCreationMode;
         form.data.template_source_id = selectedTemplate;
-        (form.data as any).auto_select_template = routeCreationMode === 'auto' && templates.length === 1;
-        (form.data as any).create_empty_route = routeCreationMode === 'empty';
+        form.data.auto_select_template = routeCreationMode === 'auto' && templates.length === 1;
+        form.data.create_empty_route = routeCreationMode === 'empty';
 
         form.post(route('production.orders.store'), {
             preserveScroll: true,

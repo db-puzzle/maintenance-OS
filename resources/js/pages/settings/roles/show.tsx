@@ -82,7 +82,7 @@ interface Props {
 
 export default function RoleShow({ role, can }: Props) {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [isCompressed, setIsCompressed] = useState(false);
+    const [_isCompressed, _setIsCompressed] = useState(false);
 
     if (!role) {
         return (

@@ -19,6 +19,7 @@ interface StepWithStatus extends ManufacturingStep {
     can_start: boolean;
     dependency_info?: string;
     active_execution?: ManufacturingStepExecution;
+    step_number?: number;
 }
 
 interface StepCardProps {
@@ -107,7 +108,7 @@ export function StepCard({ step, isActive, onClick }: StepCardProps) {
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs font-medium text-muted-foreground">
-                            Step {(step as any).step_number || step.display_position || 1}
+                            Step {step.step_number || step.display_position || 1}
                         </span>
                         {getStepTypeBadge()}
                         {step.active_execution && (

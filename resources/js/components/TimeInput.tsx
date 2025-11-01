@@ -91,7 +91,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({
     }, [getActualScale, mode, localDisplayMode]);
 
     // Convert from display value to seconds
-    const convertToSeconds = (displayValue: number): number => {
+    const convertToSeconds = useCallback((displayValue: number): number => {
         const actualScale = getActualScale(value);
 
         if (mode === 'throughput' || (mode === 'cycle_time' && localDisplayMode === 'throughput')) {
@@ -104,7 +104,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({
             const multiplier = actualScale === 'hours' ? 3600 : actualScale === 'minutes' ? 60 : 1;
             return displayValue * multiplier;
         }
-    };
+    }, [getActualScale, value, mode, localDisplayMode]);
 
     // Update input value when value prop changes
     useEffect(() => {
@@ -145,7 +145,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({
     // Custom form adapter to handle conversion
     const customFormAdapter = useMemo(() => {
         if (!form || !name) return undefined;
-        
+
         return {
             ...form,
             data: {
@@ -155,11 +155,11 @@ export const TimeInput: React.FC<TimeInputProps> = ({
             setData: ((key: string, value: string | number | boolean | File | null | undefined) => {
                 if (key === name && typeof value === 'number') {
                     const seconds = convertToSeconds(value);
-                    
+
                     // Validate min/max
                     if (min !== undefined && seconds < min) return;
                     if (max !== undefined && seconds > max) return;
-                    
+
                     onChange(seconds);
                     form.setData(name, seconds);
                     setInputValue(value.toString());

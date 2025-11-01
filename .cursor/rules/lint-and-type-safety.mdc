@@ -1,0 +1,85 @@
+# Lint and Type Safety Requirements
+
+## MANDATORY: Zero Tolerance for Lint and Type Errors
+
+This project maintains **ZERO tolerance** for lint errors, type errors, or warnings. Every piece of code must pass strict type checking and linting.
+
+### Required Actions on EVERY Code Change
+
+1. **Before finalizing ANY code changes**, you MUST run:
+   - `npm run lint` on all modified files
+   - `npm run types` to check TypeScript compilation
+   
+2. **If errors are found**, you MUST:
+   - Fix ALL errors - no exceptions
+   - Never use `any` type unless absolutely necessary and documented
+   - Never use `@ts-ignore` or `@ts-expect-error` without explicit user approval
+   - Never disable ESLint rules without explicit user approval
+
+### Resolving Type Errors - The Right Way
+
+When encountering type errors:
+
+1. **INVESTIGATE the root cause**:
+   - Trace the type definitions back to their source
+   - Understand what types are expected vs. what's being provided
+   - Check if interfaces/types need updating to reflect actual usage
+
+2. **Fix at the source, not the symptom**:
+   - If a function expects certain props, ensure the caller provides them correctly
+   - If an API returns different data than typed, update the type definitions
+   - If a component has incorrect prop types, fix the component's interface
+
+3. **Common patterns to fix properly**:
+   - Missing properties: Add them to interfaces or provide default values
+   - Type mismatches: Update types to match actual usage or fix the implementation
+   - Union type issues: Use proper type guards or discriminated unions
+   - Generic constraints: Add proper type parameters and constraints
+
+4. **When dealing with external data**:
+   - Create proper type definitions for API responses
+   - Use type guards to validate data at runtime
+   - Consider using libraries like Zod for runtime validation if needed
+
+### Examples of GOOD vs BAD Solutions
+
+**BAD - Masking the problem:**
+```typescript
+// DON'T DO THIS
+const data = response as any;
+const result = someFunction(data as unknown as ExpectedType);
+```
+
+**GOOD - Fixing the root cause:**
+```typescript
+// DO THIS INSTEAD
+interface ApiResponse {
+  // Define the actual shape of the response
+}
+
+const data: ApiResponse = response;
+// Or validate and transform the data properly
+const result = validateAndTransform(response);
+```
+
+### Workflow Integration
+
+1. Make your code changes
+2. Run `npm run lint` on modified files
+3. Run `npm run types` 
+4. If errors exist:
+   - Read and understand each error
+   - Fix the underlying issue (not just the symptom)
+   - Re-run checks until clean
+5. Only then consider the task complete
+
+### Special Considerations
+
+- **Form handling**: Use proper form adapters as defined in form-adapter-usage.mdc
+- **Inertia types**: Ensure proper typing of page props and shared data
+- **Laravel API responses**: Create interfaces matching backend responses
+- **Component props**: Define complete interfaces including all required/optional props
+
+### Remember
+
+Type safety is not a burden - it's a feature that prevents runtime errors. Every `any` removed and every type error fixed properly makes the codebase more maintainable and reliable. Take the time to understand and fix issues correctly rather than taking shortcuts.

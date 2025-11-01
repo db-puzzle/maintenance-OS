@@ -57,7 +57,14 @@ export default function SchedulerProgress({
 
         let pollCount = 0;
         const maxPolls = 120; // Poll for max 2 minutes (120 * 1 second)
-        let intervalId: NodeJS.Timeout | undefined;
+        const intervalRef = { current: null as NodeJS.Timeout | null };
+
+        const clearIntervalIfExists = () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+        };
 
         const pollProgress = async () => {
             try {
@@ -93,7 +100,7 @@ export default function SchedulerProgress({
                         });
 
                         // Stop polling
-                        if (intervalId) clearInterval(intervalId);
+                        clearIntervalIfExists();
 
                         // Call onComplete callback after a short delay
                         setTimeout(() => {
@@ -127,7 +134,7 @@ export default function SchedulerProgress({
                             }
                         }
                         setError(errorMessage);
-                        if (intervalId) clearInterval(intervalId);
+                        clearIntervalIfExists();
                         break;
                     }
                 }
@@ -136,7 +143,7 @@ export default function SchedulerProgress({
 
                 // Stop polling after max attempts
                 if (pollCount >= maxPolls) {
-                    if (intervalId) clearInterval(intervalId);
+                    clearIntervalIfExists();
                     setStatus('failed');
                     setError('Scheduling is taking longer than expected. Please check the logs.');
                 }
@@ -148,14 +155,12 @@ export default function SchedulerProgress({
 
         // Start polling immediately
         pollProgress();
-        
+
         // Set up the interval
-        intervalId = setInterval(pollProgress, 1000);
+        intervalRef.current = setInterval(pollProgress, 1000);
 
         return () => {
-            if (intervalId) {
-                clearInterval(intervalId);
-            }
+            clearIntervalIfExists();
         };
     }, [versionId, jobId, open, onComplete, onOpenChange]);
 

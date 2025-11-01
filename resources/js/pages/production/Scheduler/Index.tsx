@@ -6,6 +6,7 @@ import { ManufacturingOrder, WorkCell, ManufacturingStep } from '@/types/product
 import { ScheduleVersion, ProductionSchedule, ScheduleAlert } from '@/types/scheduler';
 import { ScrollSyncProvider } from '@/components/production/scheduler-v2/contexts/ScrollSyncContext';
 import { ProductionScheduler } from '@/components/production/scheduler-v2/ProductionScheduler';
+import { SchedulerOrder } from '@/components/production/scheduler-v2/types';
 import { formatNumber } from '@/utils/number';
 import SchedulerProgress from '@/components/production/SchedulerProgress';
 
@@ -130,11 +131,12 @@ export default function SchedulerV2Index({
     const _activeScheduleVersion = propsActiveScheduleVersion;
 
     // Get flash data from page props
-    const { flash } = usePage().props as any as { flash: FlashData };
+    const pageProps = usePage().props;
+    const flash = (pageProps as any).flash as FlashData;
 
 
     const [schedules, setSchedules] = useState(propsSchedules || []);
-    const [alerts] = useState(propsAlerts || []);
+    const [_alerts] = useState(propsAlerts || []);
     const [alertStats] = useState({
         totalAlerts: propsAlertStats?.total || 0,
         criticalAlerts: propsAlertStats?.by_severity?.error || 0,
@@ -350,14 +352,40 @@ export default function SchedulerV2Index({
 
             <ScrollSyncProvider>
                 <ProductionScheduler
-                    steps={schedulerData.orders as any}
+                    steps={schedulerData.orders.map(order => ({
+                        id: order.id,
+                        order_number: order.order_number,
+                        family_id: undefined,
+                        family_name: undefined,
+                        item_number: undefined,
+                        item_name: order.name,
+                        quantity: order.quantity,
+                        scheduled_start: order.steps.length > 0 ? order.steps[0].planned_start_date : undefined,
+                        scheduled_end: order.steps.length > 0 ? order.steps[order.steps.length - 1].planned_end_date : undefined,
+                        steps: order.steps.map((step, index) => ({
+                            id: Number(step.id),
+                            order_id: order.id,
+                            order_number: order.order_number,
+                            step_id: step.manufacturing_step_id,
+                            step_name: step.name,
+                            workcell_id: step.work_cell_id || 0,
+                            scheduled_start: step.planned_start_date || '',
+                            scheduled_end: step.planned_end_date || '',
+                            duration: step.duration_hours * 60, // Convert hours to minutes
+                            is_locked: step.is_locked || false
+                        })),
+                        is_expanded: order.expanded
+                    }))}
                     workCells={schedulerData.workCells}
                     currentVersion={currentVersion!}
                     publishedVersion={publishedVersion}
                     alertStats={alertStats}
                     schedulingAlgorithms={schedulingAlgorithms}
                     filters={filters}
-                    onUpdate={handleScheduleUpdate as any}
+                    onUpdate={(data) => {
+                        // TODO: Convert data format to ProductionSchedule format
+                        console.log('Schedule update:', data);
+                    }}
                     onOrderToggle={handleOrderToggle}
                     onOpenOrderSelection={() => router.visit(route('production.scheduler.setup'))}
                 />

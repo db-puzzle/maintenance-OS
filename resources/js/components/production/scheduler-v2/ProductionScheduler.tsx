@@ -10,6 +10,7 @@ import { WorkCell } from '@/types/production';
 import { ZoomLevel, getDefaultZoomLevel, getZoomLevelById, getNextZoomLevel } from './utils/zoomConfig';
 import { calculateTimelineLayout } from './utils/timelineCalculations';
 import { SchedulerOrder, AlertStats, SchedulerFilters } from './types';
+import { useMemo } from 'react';
 
 interface Props {
     steps: SchedulerOrder[]; // Manufacturing orders with steps
@@ -80,8 +81,21 @@ export const ProductionScheduler: React.FC<Props> = ({
         localStorage.setItem('scheduler-show-dependencies', showDependencies.toString());
     }, [showDependencies]);
 
+    // Transform SchedulerOrder to the internal Order type expected by components
+    const transformedOrders = useMemo(() => {
+        return orders.map(order => ({
+            ...order,
+            steps: order.steps.map(step => ({
+                ...step,
+                id: String(step.id), // Ensure id is a string
+                planned_start_date: step.scheduled_start,
+                planned_end_date: step.scheduled_end
+            }))
+        }));
+    }, [orders]);
+
     const schedulerState = useSchedulerState({
-        orders: orders as any,
+        orders: transformedOrders,
         workCells,
         viewConfig,
         zoomLevel: currentZoomLevel,
@@ -206,15 +220,35 @@ export const ProductionScheduler: React.FC<Props> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleZoomIn, handleZoomOut, handleZoomFit]);
 
-    const handleStepUpdate = useCallback((stepId: string, updates: { start?: Date; end?: Date }) => {
+    const handleStepUpdate = useCallback((stepId: string, updates: { planned_start_date?: string; planned_end_date?: string }) => {
         // Handle step updates
-        onUpdate({ version_id: currentVersion.id, changes: [{ step_id: parseInt(stepId, 10), start: updates.start?.toISOString() || '', end: updates.end?.toISOString() || '' }] });
-    }, [onUpdate]);
+        const changes = [];
+        if (updates.planned_start_date || updates.planned_end_date) {
+            changes.push({
+                step_id: parseInt(stepId, 10),
+                start: updates.planned_start_date || '',
+                end: updates.planned_end_date || ''
+            });
+        }
+        if (changes.length > 0) {
+            onUpdate({ version_id: currentVersion.id, changes });
+        }
+    }, [onUpdate, currentVersion.id]);
 
-    const handleAllocationUpdate = useCallback((allocationId: string, updates: { quantity?: number; start?: Date; end?: Date }) => {
+    const handleAllocationUpdate = useCallback((allocationId: string, updates: { scheduled_start?: string; scheduled_end?: string; workcell_id?: number }) => {
         // Handle work cell allocation updates
-        onUpdate({ version_id: currentVersion.id, changes: [{ step_id: parseInt(allocationId, 10), start: updates.start?.toISOString() || '', end: updates.end?.toISOString() || '' }] });
-    }, [onUpdate]);
+        const changes = [];
+        if (updates.scheduled_start || updates.scheduled_end) {
+            changes.push({
+                step_id: parseInt(allocationId, 10),
+                start: updates.scheduled_start || '',
+                end: updates.scheduled_end || ''
+            });
+        }
+        if (changes.length > 0) {
+            onUpdate({ version_id: currentVersion.id, changes });
+        }
+    }, [onUpdate, currentVersion.id]);
 
     const handleLeftPanelResize = useCallback((size: number, source: 'gantt' | 'scheduler') => {
         setLeftPanelSize(size);
@@ -260,7 +294,7 @@ export const ProductionScheduler: React.FC<Props> = ({
                                 orders={schedulerState.visibleOrders as any}
                                 viewConfig={viewConfig}
                                 zoomLevel={currentZoomLevel}
-                                onStepUpdate={handleStepUpdate as any}
+                                onStepUpdate={handleStepUpdate}
                                 onOrderToggle={onOrderToggle}
                                 leftPanelSize={leftPanelSize}
                                 onLeftPanelResize={(size) => handleLeftPanelResize(size, 'gantt')}
@@ -281,7 +315,7 @@ export const ProductionScheduler: React.FC<Props> = ({
                                 allocations={schedulerState.allocations as any}
                                 viewConfig={viewConfig}
                                 zoomLevel={currentZoomLevel}
-                                onAllocationUpdate={handleAllocationUpdate as any}
+                                onAllocationUpdate={handleAllocationUpdate}
                                 leftPanelSize={leftPanelSize}
                                 onLeftPanelResize={(size) => handleLeftPanelResize(size, 'scheduler')}
                                 panelGroupRef={schedulerPanelGroupRef}

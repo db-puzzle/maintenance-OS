@@ -92,7 +92,8 @@ interface Props {
 export default function Show({ asset, plants, assetTypes, manufacturers, isCreating = false, newRoutineId }: Props) {
     const page = usePage<{
         flash?: { success?: string };
-        auth: { user: User;
+        auth: {
+            user: User;
             permissions: string[];
         };
     }>();
@@ -125,7 +126,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         }
     }, [asset?.routines]);
     // Estado para controlar o modo comprimido
-    const [isCompressed, setIsCompressed] = useState(false);
+    const [isCompressed] = useState(false);
     // Estado para controlar refresh do histórico de runtime
     // Estados para turnos
     const [shifts, setShifts] = useState<Shift[]>([]);

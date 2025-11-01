@@ -38,7 +38,7 @@ interface TimeParameterStep {
     effective_total_time: number | null;
 }
 
-interface TimeParameterOrder {
+export interface TimeParameterOrder {
     id: number;
     order_number: string;
     item: {
@@ -67,27 +67,27 @@ interface GanttTask {
     status?: string;
     parentId?: string | number;
     orderId?: number;
-    
+
     // Display properties
     isParent?: boolean;
     hasChildren?: boolean;
     expanded?: boolean;
     level?: number;
-    
+
     // Time properties
     planned_start_date: string;
     planned_end_date: string;
     requested_date?: string;
     percent_complete: number;
-    
+
     // Order specific
     quantity?: number;
     parent_order_id?: number | null;
     time_parameter_status?: string;
     has_missing_times?: boolean;
     is_fictitious?: boolean;
-    steps?: any[];
-    
+    steps?: TimeParameterOrder[];
+
     // Step specific  
     manufacturing_step_id?: number;
     sequence_number?: number;
@@ -412,7 +412,7 @@ export const TimeParametersGanttView: React.FC<TimeParametersGanttViewProps> = (
     const handleStepUpdate = useCallback((stepIdOrStep: string | { id: string }, _updates?: Record<string, unknown>) => {
         // Handle both signatures
         const stepId = typeof stepIdOrStep === 'string' ? stepIdOrStep : stepIdOrStep.id;
-        
+
         // Extract order ID and step ID from the combined ID
         const [orderIdStr, stepIdStr] = stepId.split('-');
         const orderId = parseInt(orderIdStr);

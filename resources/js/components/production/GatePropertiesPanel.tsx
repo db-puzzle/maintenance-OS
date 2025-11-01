@@ -60,7 +60,7 @@ export default function GatePropertiesPanel({
                 description: ''
             });
         }
-    }, [selectedGate]);
+    }, [selectedGate, gateForm]);
 
     // Handle panel visibility animation
     useEffect(() => {

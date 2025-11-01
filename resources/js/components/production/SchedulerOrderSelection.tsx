@@ -18,7 +18,7 @@ import {
 import OrderSelectionPanel from '@/pages/production/scheduler/components/OrderSelectionPanel';
 import FamilyVisualization from '@/pages/production/scheduler/components/FamilyVisualization';
 import ValidationModal from '@/pages/production/scheduler/components/ValidationModal';
-import TimeParameterHierarchicalView from '@/components/production/scheduler/TimeParameterHierarchicalView';
+import TimeParameterHierarchicalView, { type TimeParameterTreeNode } from '@/components/production/scheduler/TimeParameterHierarchicalView';
 import { cn } from '@/lib/utils';
 
 interface SchedulerRunData {
@@ -37,12 +37,12 @@ interface SchedulerOrderSelectionProps {
     onSchedulerStarted?: (jobData: { job_id: string; websocket_channel: string; version_id: number }) => void;
     algorithms: Array<{ value: string; label: string }>;
     defaultStartDate: string;
-    activeScheduleVersion: { id: number; name: string } | null;
+    activeScheduleVersion: { id: number; name?: string; version_number?: number } | null;
     currentVersion: { id: number; name: string } | null;
-    orders: Array<{ 
-        id: number; 
-        order_number: string; 
-        item: { id?: number; name: string; code?: string; description?: string; item_number?: string }; 
+    orders: Array<{
+        id: number;
+        order_number: string;
+        item: { id?: number; name: string; code?: string; description?: string; item_number?: string };
         family_id?: number;
         quantity?: number;
         status?: string;
@@ -123,13 +123,50 @@ export default function SchedulerOrderSelection({
     workCells: _workCells,
     filters: _filters
 }: SchedulerOrderSelectionProps) {
+    interface FlashData {
+        success?: string | boolean;
+        error?: string;
+        schedulingJob?: {
+            job_id: string;
+            websocket_channel: string;
+            version_id: number;
+        };
+        job_id?: string;
+        websocket_channel?: string;
+        version_id?: number;
+        [key: string]: unknown;
+    }
 
-    const { flash = { success: undefined, error: undefined } } = usePage().props as any;
+    const { flash = { success: undefined, error: undefined } } = usePage().props as { flash?: FlashData;[key: string]: unknown };
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
-    const [families, setFamilies] = useState<Array<{ id: number; name: string; orders: Array<{ id: number }> }>>([]);
+    interface FamilyMember {
+        id: number;
+        order_number: string;
+        parent_id: number | null;
+        quantity: number;
+        status: string;
+        has_route: boolean;
+        step_count: number;
+        priority?: number;
+    }
+
+    interface Family {
+        top_parent: {
+            id: number;
+            order_number: string;
+            priority: number;
+        };
+        members: FamilyMember[];
+        total_steps: number;
+        total_orders: number;
+        priority: number;
+        has_dependencies: boolean;
+    }
+
+    const [families, setFamilies] = useState<Family[]>([]);
     const [selectionMode, setSelectionMode] = useState<'individual' | 'family'>('family');
     const [validationResult, setValidationResult] = useState<{ is_valid: boolean; errors: string[]; warnings: string[] } | null>(null);
-    const [timeParameterData, setTimeParameterData] = useState<any[]>([]);
+    const [timeParameterData, setTimeParameterData] = useState<TimeParameterTreeNode[]>([]);
     const [loadingTimeParams, setLoadingTimeParams] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
 
@@ -140,22 +177,25 @@ export default function SchedulerOrderSelection({
         start_date: defaultStartDate || format(new Date(), 'yyyy-MM-dd'),
         end_date: format(new Date(new Date().setMonth(new Date().getMonth() + 3)), 'yyyy-MM-dd'),
         manufacturing_order_ids: [] as number[],
-        respect_locked_schedules: true,
+        respect_locked_schedules: true as boolean,
     });
 
     // Monitor flash data for scheduling job response
     useEffect(() => {
-        const schedulingJob = (flash as any)?.schedulingJob ||
-            (flash?.success && (flash as any)?.job_id ? flash : null);
+        const schedulingJob = flash?.schedulingJob ||
+            (flash?.success && flash?.job_id && flash?.websocket_channel && flash?.version_id ? {
+                job_id: flash.job_id,
+                websocket_channel: flash.websocket_channel,
+                version_id: flash.version_id
+            } : null);
 
         if (schedulingJob && open) {
             onOpenChange(false);
             if (onSchedulerStarted) {
-                const jobData = (schedulingJob as any).schedulingJob || schedulingJob;
                 onSchedulerStarted({
-                    job_id: jobData.job_id,
-                    websocket_channel: jobData.websocket_channel,
-                    version_id: jobData.version_id
+                    job_id: schedulingJob.job_id,
+                    websocket_channel: schedulingJob.websocket_channel,
+                    version_id: schedulingJob.version_id
                 });
             }
         }
@@ -223,7 +263,7 @@ export default function SchedulerOrderSelection({
                 return selectedOrders.length > 0;
             case 2: {
                 // Check all orders in the hierarchical structure
-                const checkAllOrdersValid = (orders: Array<{ order_id: number; time_parameter_status: string; children?: Array<{ order_id: number; time_parameter_status: string }> }>): boolean => {
+                const checkAllOrdersValid = (orders: TimeParameterTreeNode[]): boolean => {
                     return orders.every(order => {
                         const isValid = order.time_parameter_status === 'valid';
                         const childrenValid = order.children ? checkAllOrdersValid(order.children) : true;
@@ -265,7 +305,7 @@ export default function SchedulerOrderSelection({
                             {activeScheduleVersion && (
                                 <Badge variant="outline" className="flex items-center gap-1 text-xs">
                                     <Clock className="w-3 h-3" />
-                                    v{(activeScheduleVersion as any).version_number || 'Unknown'}
+                                    v{activeScheduleVersion.version_number || 'Unknown'}
                                 </Badge>
                             )}
                         </div>
@@ -333,9 +373,8 @@ export default function SchedulerOrderSelection({
                                             id="respect-locked"
                                             checked={data.respect_locked_schedules}
                                             onCheckedChange={(checked: boolean | "indeterminate") => {
-                                                (setData as any)('respect_locked_schedules', checked === true);
-                                            }
-                                            }
+                                                setData('respect_locked_schedules', checked === 'indeterminate' ? false : Boolean(checked));
+                                            }}
                                             className="h-4 w-4"
                                         />
                                         <Label htmlFor="respect-locked" className="text-sm font-medium cursor-pointer whitespace-nowrap">
@@ -362,14 +401,14 @@ export default function SchedulerOrderSelection({
                                             id: order.id,
                                             order_number: order.order_number,
                                             item: {
-                                                code: (order.item as any)?.code || '',
+                                                code: order.item?.code || '',
                                                 name: order.item?.name || '',
-                                                description: (order.item as any)?.description || ''
+                                                description: order.item?.description || ''
                                             },
                                             quantity: order.quantity || 0,
                                             status: order.status || '',
                                             priority: order.priority || 0,
-                                            requested_date: (order as any).requested_date || '',
+                                            requested_date: order.requested_date || '',
                                             parent_id: order.parent_id || null
                                         }))}
                                         selectedOrders={selectedOrders}
@@ -384,25 +423,12 @@ export default function SchedulerOrderSelection({
                                         {selectedOrders.length > 0 ? (
                                             <FamilyVisualization
                                                 families={families.map(family => ({
-                                                    top_parent: {
-                                                        id: family.id,
-                                                        order_number: (family as any).order_number || `Family ${family.id}`,
-                                                        priority: (family as any).priority || 0
-                                                    },
-                                                    members: family.orders.map(order => ({
-                                                        id: order.id,
-                                                        order_number: (order as any).order_number || `Order ${order.id}`,
-                                                        parent_id: (order as any).parent_id || null,
-                                                        quantity: (order as any).quantity || 0,
-                                                        priority: (order as any).priority || 0,
-                                                        status: (order as any).status || '',
-                                                        has_route: (order as any).has_route || false,
-                                                        step_count: (order as any).step_count || 0
-                                                    })),
-                                                    total_steps: (family as any).total_steps || 0,
-                                                    total_orders: family.orders.length,
-                                                    priority: (family as any).highest_priority || 0,
-                                                    has_dependencies: true
+                                                    top_parent: family.top_parent,
+                                                    members: family.members,
+                                                    total_steps: family.total_steps,
+                                                    total_orders: family.total_orders,
+                                                    priority: family.priority,
+                                                    has_dependencies: family.has_dependencies
                                                 }))}
                                                 selectedOrders={selectedOrders}
                                             />
@@ -512,7 +538,7 @@ export default function SchedulerOrderSelection({
                             selectedOrders.length === 0 ? 'Select orders to continue' : `${selectedOrders.length} order${selectedOrders.length > 1 ? 's' : ''} selected`
                         )}
                         {currentStep === 2 && (() => {
-                            const countInvalidOrders = (orders: Array<{ order_id: number; time_parameter_status: string; children?: Array<{ order_id: number; time_parameter_status: string }> }>): number => {
+                            const countInvalidOrders = (orders: TimeParameterTreeNode[]): number => {
                                 return orders.reduce((count, order) => {
                                     const orderInvalid = order.time_parameter_status !== 'valid' ? 1 : 0;
                                     const childrenInvalid = order.children ? countInvalidOrders(order.children) : 0;
@@ -583,8 +609,16 @@ export default function SchedulerOrderSelection({
                     <ValidationModal
                         validation={{
                             valid: validationResult.is_valid,
-                            errors: validationResult.errors as any,
-                            warnings: validationResult.warnings as any
+                            errors: validationResult.errors.map(error => ({
+                                order_number: '',
+                                issue: error,
+                                message: error
+                            })),
+                            warnings: validationResult.warnings.map(warning => ({
+                                order_number: '',
+                                issue: warning,
+                                message: warning
+                            }))
                         }}
                         onClose={() => setValidationResult(null)}
                         onContinue={() => {

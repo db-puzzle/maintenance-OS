@@ -15,13 +15,26 @@ import { ImageDisplayToggleButton } from '@/components/ImageDisplayToggleButton'
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
-import { Item, ItemCategory } from '@/types/production';
+import { Item, ItemCategory, ItemImage } from '@/types/production';
 
 import { toast } from 'sonner';
 
+// Extended Item type with additional properties from API response
+interface ExtendedItem extends Item {
+    images_count?: number;
+    images?: Array<{
+        id: string;
+        item_id: number;
+        image_url: string;
+        thumbnail_url?: string;
+        blurhash?: string;
+        is_primary?: boolean;
+    }>;
+}
+
 interface Props {
     items: {
-        data: Item[];
+        data: ExtendedItem[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -57,7 +70,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
     const [loading] = useState(false);
     const [editItem, setEditItem] = useState<Item | null>(null);
     const [showImages, setShowImages] = useState(true);
-    const [carouselItem, setCarouselItem] = useState<Item | null>(null);
+    const [carouselItem, setCarouselItem] = useState<ExtendedItem | null>(null);
     const [carouselOpen, setCarouselOpen] = useState(false);
     const [loadingImages, setLoadingImages] = useState(false);
     const [_deletingItem, setDeletingItem] = useState<number | null>(null);
@@ -201,19 +214,19 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         key: 'images',
         label: 'Imagem',
         width: 'w-[160px]',
-        render: (value: unknown, item: Item) => (
+        render: (value: unknown, item: ExtendedItem) => (
             <ItemImagePreview
                 primaryImageData={item.primary_image_data}
                 primaryImageUrl={item.primary_image_url}
-                imageCount={(item as any).images_count || 0}
+                imageCount={item.images_count || 0}
                 className="w-36 h-36"
                 onClick={async (e) => {
                     e?.stopPropagation(); // Prevent row click event
                     // If item has images, use them, otherwise fetch
-                    if ((item as any).images && (item as any).images.length > 0) {
+                    if (item.images && item.images.length > 0) {
                         setCarouselItem(item);
                         setCarouselOpen(true);
-                    } else if ((item as any).images_count && (item as any).images_count > 0) {
+                    } else if (item.images_count && item.images_count > 0) {
                         setLoadingImages(true);
                         try {
                             // Fetch the item with images using our API endpoint
@@ -452,9 +465,21 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                 confirmationValue={deleteItem?.item_number || ''}
                 confirmationLabel={deleteItem ? `Digite o número do item (${deleteItem.item_number}) para confirmar` : ''}
             />
-            {carouselItem && (carouselItem as any).images && (carouselItem as any).images.length > 0 && (
+            {carouselItem && carouselItem.images && carouselItem.images.length > 0 && (
                 <ItemImageCarouselDialog
-                    images={(carouselItem as any).images}
+                    images={carouselItem.images.map(img => ({
+                        ...img,
+                        filename: '',
+                        storage_path: '',
+                        url: img.image_url,
+                        mime_type: 'image/jpeg',
+                        file_size: 0,
+                        width: 0,
+                        height: 0,
+                        uploaded_by: '',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    } as ItemImage))}
                     open={carouselOpen}
                     onOpenChange={(open) => {
                         setCarouselOpen(open);

@@ -998,11 +998,11 @@ export function getCleanDummyData() {
         ];
 
     // Fix the manufacturing_step structure for each schedule
-    const schedules: ProductionSchedule[] = schedulesTemp.map((schedule: any) => {
-        const step = (schedule as any).manufacturing_step;
-        const route = step.manufacturing_route;
-        const order = route.manufacturing_order;
-        const item = order.item;
+    const schedules = schedulesTemp.map((schedule) => {
+        const step = steps.find(s => s.id === schedule.manufacturing_step_id)!;
+        const route = routes.find(r => r.id === step.manufacturing_route_id)!;
+        const order = orders.find(o => o.id === route.manufacturing_order_id)!;
+        const item = items.find(i => i.id === order.item_id)!;
 
         return {
             ...schedule,

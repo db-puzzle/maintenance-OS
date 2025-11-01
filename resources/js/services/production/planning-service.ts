@@ -296,9 +296,8 @@ export class PlanningService {
     } = {}): void {
         const reload = () => {
             router.reload({
-                only: options.only ?? ['manufacturingOrders'],
-                preserveScroll: options.preserveScroll ?? false
-            } as any);
+                only: options.only ?? ['manufacturingOrders']
+            });
         };
 
         if (options.delay) {

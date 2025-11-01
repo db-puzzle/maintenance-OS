@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils';
 import { ResizableTableHeader } from '../../shared/ResizableTableHeader';
 import { useScrollbarWidth } from '../../../hooks/useScrollbarWidth';
 import { ScrollContainer } from '../../shared/ScrollContainer';
-import { SchedulerOrder } from '../../../types';
 
 interface Column {
     key: string;

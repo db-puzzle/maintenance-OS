@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -90,9 +90,25 @@ export default function SchedulerOrderSelection({
     filters
 }: SchedulerOrderSelectionProps) {
 
-    const pageProps = usePage().props;
-    const schedulingConfig = (pageProps as any).schedulingConfig || { time_horizon_days: 7 };
-    const flash = (pageProps as any).flash || {};
+    interface PagePropsWithScheduling {
+        schedulingConfig?: { time_horizon_days: number; locked_schedules_enabled?: boolean };
+        flash?: {
+            success?: string | boolean;
+            error?: string;
+            schedulingJob?: {
+                job_id: string;
+                websocket_channel: string;
+                version_id: number;
+            };
+            job_id?: string;
+            validation?: { is_valid: boolean; errors: string[]; warnings: string[] };
+            [key: string]: unknown;
+        };
+        [key: string]: unknown;
+    }
+    const pageProps = usePage().props as PagePropsWithScheduling;
+    const schedulingConfig = pageProps.schedulingConfig || { time_horizon_days: 7 };
+    const flash = useMemo(() => pageProps.flash || {}, [pageProps.flash]);
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
     const [families, setFamilies] = useState<Array<{ id: number; name: string; orders: Array<{ id: number }> }>>([]);
     const [selectionMode, setSelectionMode] = useState<'individual' | 'family'>('family');
@@ -112,7 +128,9 @@ export default function SchedulerOrderSelection({
             // Trigger the progress modal
             if (onSchedulerStarted) {
                 // Handle different data structures
-                const jobData = (schedulingJob as any).schedulingJob || schedulingJob;
+                const jobData = 'schedulingJob' in schedulingJob && schedulingJob.schedulingJob
+                    ? schedulingJob.schedulingJob
+                    : schedulingJob as { job_id: string; websocket_channel: string; version_id: number };
                 onSchedulerStarted({
                     job_id: jobData.job_id,
                     websocket_channel: jobData.websocket_channel,
@@ -129,7 +147,7 @@ export default function SchedulerOrderSelection({
         start_date: defaultStartDate,
         end_date: (filters?.end_date as string) || format(new Date().setMonth(new Date().getMonth() + 3), 'yyyy-MM-dd'),
         manufacturing_order_ids: [] as number[],
-        respect_locked_schedules: (schedulingConfig as any)?.locked_schedules_enabled || true,
+        respect_locked_schedules: (schedulingConfig?.locked_schedules_enabled || true) as boolean,
     });
 
     // Handle family selection mode
@@ -169,7 +187,7 @@ export default function SchedulerOrderSelection({
     };
 
     const validateAndRun = () => {
-        if (!data.manufacturing_order_ids || (data.manufacturing_order_ids as any).length === 0) {
+        if (!data.manufacturing_order_ids || data.manufacturing_order_ids.length === 0) {
             alert('Please select at least one manufacturing order');
             return;
         }
@@ -228,7 +246,7 @@ export default function SchedulerOrderSelection({
                             {activeScheduleVersion && (
                                 <Badge variant="outline" className="flex items-center gap-1 text-xs">
                                     <Clock className="w-3 h-3" />
-                                    v{(activeScheduleVersion as any).version_number || activeScheduleVersion.id}
+                                    v{activeScheduleVersion?.id || 'Unknown'}
                                 </Badge>
                             )}
                         </div>
@@ -295,7 +313,7 @@ export default function SchedulerOrderSelection({
                                     id="respect-locked"
                                     checked={data.respect_locked_schedules}
                                     onCheckedChange={(checked) =>
-                                        setData('respect_locked_schedules', checked as boolean)
+                                        setData('respect_locked_schedules', checked === 'indeterminate' ? false : Boolean(checked))
                                     }
                                     className="h-4 w-4"
                                 />
@@ -408,7 +426,19 @@ export default function SchedulerOrderSelection({
                 {/* Validation Modal */}
                 {validationResult && !validationResult.is_valid && (
                     <ValidationModal
-                        validation={validationResult as any}
+                        validation={{
+                            valid: validationResult.is_valid,
+                            errors: validationResult.errors.map(error => ({
+                                order_number: '',
+                                issue: error,
+                                message: error
+                            })),
+                            warnings: validationResult.warnings.map(warning => ({
+                                order_number: '',
+                                issue: warning,
+                                message: warning
+                            }))
+                        }}
                         onClose={() => setValidationResult(null)}
                         onContinue={runScheduler}
                     />

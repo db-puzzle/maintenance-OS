@@ -9,7 +9,7 @@ interface ProductionSchedule {
     scheduled_start: string;
     scheduled_end: string;
     status: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 import { Head, Link, router } from '@inertiajs/react';
 import { Factory, Clock, Building2, Infinity as InfinityIcon, CheckCircle2, XCircle, Info, Pencil, Save, X } from 'lucide-react';
@@ -706,10 +706,10 @@ export default function Show({
                                     if (schedule.manufacturing_order) {
                                         return (
                                             <Link
-                                                href={route('production.manufacturing-orders.show', schedule.manufacturing_order.id)}
+                                                href={route('production.manufacturing-orders.show', (schedule.manufacturing_order as any).id)}
                                                 className="hover:text-primary font-medium"
                                             >
-                                                {schedule.manufacturing_order.order_number}
+                                                {(schedule.manufacturing_order as any).order_number}
                                             </Link>
                                         );
                                     }
@@ -726,9 +726,9 @@ export default function Show({
                                     if (schedule.manufacturing_step) {
                                         return (
                                             <div>
-                                                <div>Etapa #{schedule.manufacturing_step.step_number}</div>
+                                                <div>Etapa #{(schedule.manufacturing_step as any).step_number}</div>
                                                 <div className="text-muted-foreground text-sm">
-                                                    {schedule.manufacturing_step?.description || ''}
+                                                    {(schedule.manufacturing_step as any)?.description || ''}
                                                 </div>
                                             </div>
                                         );

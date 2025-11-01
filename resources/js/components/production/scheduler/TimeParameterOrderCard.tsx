@@ -28,7 +28,7 @@ interface TimeParameterData {
         item_number: string;
         primary_image_thumbnail_url?: string;
         primary_image_url?: string;
-        media?: Array<any>;
+        media?: Array<{ id: number; url: string; thumbnail_url?: string; name?: string }>;
     };
     quantity: number;
     status: string;

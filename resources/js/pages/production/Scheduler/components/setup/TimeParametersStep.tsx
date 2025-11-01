@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { TimeParametersGanttView } from './TimeParametersGanttView';
+import { TimeParametersGanttView, type TimeParameterOrder } from './TimeParametersGanttView';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import TimeParameterForm from '@/components/production/scheduler/TimeParameterForm';
@@ -61,7 +61,7 @@ export function TimeParametersStep({
     const invalidCount = countInvalidOrders(orders);
 
     // Handle step editing
-    const handleEditStep = (orderId: number, stepId: number, step: ManufacturingStep) => {
+    const handleEditStep = (orderId: number, stepId: number, step: any) => {
         setEditingStep({ orderId, stepId, step });
     };
 
@@ -115,7 +115,7 @@ export function TimeParametersStep({
                         orders={orders as any}
                         startDate={startDate}
                         endDate={endDate}
-                        onEditStep={handleEditStep as any}
+                        onEditStep={handleEditStep}
                         onRefresh={onRefresh}
                     />
                 ) : (
@@ -185,7 +185,7 @@ export function TimeParametersStep({
                     step={{
                         ...editingStep.step,
                         has_step_time: !!(editingStep.step.setup_time_minutes || editingStep.step.cycle_time_minutes)
-                    } as any}
+                    } as ManufacturingStep & { has_step_time: boolean }}
                     orderQuantity={editingOrder.quantity}
                     itemId={editingOrder.item?.id}
                     onSuccess={() => {

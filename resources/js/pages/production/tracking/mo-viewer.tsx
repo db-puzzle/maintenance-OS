@@ -65,7 +65,10 @@ interface RouteStep {
     actual_start_time?: string;
     actual_end_time?: string;
     skip_reason?: string;
-    skipped_by?: any;
+    skipped_by?: {
+        id: number;
+        name: string;
+    } | null;
     skipped_at?: string;
     current_operator: {
         id: number;
@@ -774,7 +777,7 @@ export default function MOViewer({
         };
 
         // Find the clicked step
-        const targetStep = fullOrder.manufacturing_route?.steps?.find((s) => s.id === stepId);
+        // const targetStep = fullOrder.manufacturing_route?.steps?.find((s) => s.id === stepId);
         // Note: current_step is not used by MODetailsDialog, it uses selectedStepId instead
 
 

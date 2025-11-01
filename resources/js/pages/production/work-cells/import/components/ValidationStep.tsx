@@ -52,17 +52,18 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
 
                     headers.forEach((header, i) => {
                         const fieldKey = Object.keys(mapping).find(key => mapping[key] === header);
-                        if (fieldKey && fieldKey in workCell) {
+                        if (fieldKey && fieldKey in workCell && values[i] !== undefined) {
                             (workCell as any)[fieldKey] = values[i];
                         }
                     });
 
                     // Convert boolean values
-                    const hasCapacity = (workCell as any).has_finite_capacity;
+                    const workCellRecord = workCell as any;
+                    const hasCapacity = workCellRecord.has_finite_capacity;
                     if (typeof hasCapacity === 'string') {
                         workCell.has_finite_capacity = ['yes', 'true', '1'].includes(hasCapacity.toLowerCase());
                     }
-                    const isActive = (workCell as any).is_active;
+                    const isActive = workCellRecord.is_active;
                     if (typeof isActive === 'string') {
                         workCell.is_active = ['yes', 'true', '1'].includes(isActive.toLowerCase());
                     }

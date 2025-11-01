@@ -30,6 +30,7 @@ interface Task {
     steps?: Step[];
     planned_start_date?: string;
     planned_end_date?: string;
+    [key: string]: unknown;
 }
 
 interface StepUpdate {
@@ -162,7 +163,7 @@ export const GanttView: React.FC<GanttViewProps> = ({
                 maxSize={50}
             >
                 <GanttGrid
-                    tasks={visibleTasks as any}
+                    tasks={visibleTasks}
                     onTaskToggle={(taskId) => {
                         // Handle expand/collapse
                         // taskId is a string, but order.id is a number
@@ -195,7 +196,7 @@ export const GanttView: React.FC<GanttViewProps> = ({
             {/* Right Panel - Timeline */}
             <ResizablePanel defaultSize={100 - leftPanelSize}>
                 <GanttTimeline
-                    tasks={visibleTasks as any}
+                    tasks={visibleTasks}
                     viewConfig={viewConfig}
                     zoomLevel={zoomLevel}
                     timelineWidth={timelineWidth}

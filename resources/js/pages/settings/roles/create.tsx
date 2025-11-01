@@ -77,7 +77,7 @@ export default function RoleCreate({ permissions, roles }: Props) {
         name: '',
         display_name: '',
         description: '',
-        parent_role_id: '',
+        parent_role_id: '' as string | null,
         icon: '',
         permissions: [] as number[],
     });
@@ -91,7 +91,7 @@ export default function RoleCreate({ permissions, roles }: Props) {
             ...data,
             permissions: selectedPermissions,
             parent_role_id: data.parent_role_id || null,
-        } as any);
+        });
 
         post(route('roles.store'));
     };
@@ -213,7 +213,7 @@ export default function RoleCreate({ permissions, roles }: Props) {
                                 <div className="space-y-2">
                                     <Label htmlFor="parent_role_id">Parent Role (Optional)</Label>
                                     <Select
-                                        value={data.parent_role_id}
+                                        value={data.parent_role_id || undefined}
                                         onValueChange={(value) => setData('parent_role_id', value)}
                                     >
                                         <SelectTrigger id="parent_role_id">

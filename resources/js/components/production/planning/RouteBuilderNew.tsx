@@ -25,8 +25,12 @@ import {
 import { toast } from 'sonner';
 import CreateWorkCellSheet from '@/components/production/CreateWorkCellSheet';
 import { ManufacturingOrder } from '@/types';
-import { WorkCell } from '@/types/production';
+import { WorkCell, ManufacturingStep } from '@/types/production';
 import RouteBuilderCanvas from '@/components/production/RouteBuilderCanvas';
+
+interface ExtendedManufacturingStep extends ManufacturingStep {
+    isNew?: boolean;
+}
 
 interface RouteStep {
     id: string;
@@ -298,7 +302,7 @@ export default function RouteBuilder({
                         depends_on_step_id: step.sequence > 1 ? parseInt(steps[step.sequence - 2]?.id) || undefined : undefined,
                         can_start_when_dependency: 'completed' as const,
                         isNew: !step.id.includes('existing'),
-                    } as any))}
+                    } as ExtendedManufacturingStep))}
                     selectedStep={selectedStep ? {
                         id: parseInt(selectedStep.id) || 0,
                         manufacturing_route_id: manufacturingOrder.manufacturingRoute?.id || 0,
@@ -314,10 +318,10 @@ export default function RouteBuilder({
                         depends_on_step_id: selectedStep.sequence > 1 ? parseInt(steps[selectedStep.sequence - 2]?.id) || undefined : undefined,
                         can_start_when_dependency: 'completed' as const,
                         isNew: !selectedStep.id.includes('existing'),
-                    } as any : null}
+                    } as ExtendedManufacturingStep : null}
                     zoom={100}
                     can={{ manage_steps: permissions.canEditRoute }}
-                    onStepSelect={(step: any) => {
+                    onStepSelect={(step: ExtendedManufacturingStep | null) => {
                         if (step) {
                             const routeStep = steps.find(s => parseInt(s.id) === step.id);
                             setSelectedStep(routeStep || null);
@@ -326,7 +330,7 @@ export default function RouteBuilder({
                         }
                     }}
                     onStepAdd={handleAddStep}
-                    onStepReorder={(updatedSteps: any[]) => {
+                    onStepReorder={(updatedSteps: ExtendedManufacturingStep[]) => {
                         const newSteps = updatedSteps.map((step, index) => ({
                             id: step.id.toString(),
                             sequence: index + 1,
@@ -340,7 +344,7 @@ export default function RouteBuilder({
                         } as RouteStep));
                         setSteps(newSteps);
                     }}
-                    onStepDelete={(step: any) => {
+                    onStepDelete={(step: ExtendedManufacturingStep) => {
                         const index = steps.findIndex(s => parseInt(s.id) === step.id);
                         if (index >= 0) {
                             handleDeleteStep(index);
@@ -348,8 +352,30 @@ export default function RouteBuilder({
                     }}
                     isDragging={isDragging}
                     onDragStart={setIsDragging}
-                    draggedStep={draggedStep as any}
-                    onDraggedStepChange={(step: any) => setDraggedStep(step as RouteStep)}
+                    draggedStep={draggedStep ? {
+                        id: parseInt(draggedStep.id) || 0,
+                        manufacturing_route_id: manufacturingOrder.manufacturingRoute?.id || 0,
+                        display_position: draggedStep.sequence,
+                        name: draggedStep.name,
+                        description: draggedStep.description,
+                        step_type: 'standard' as const,
+                        status: 'pending' as const,
+                        work_cell_id: draggedStep.work_cell_id || undefined,
+                        work_cell: draggedStep.work_cell_id ? workCells.find(wc => wc.id === draggedStep.work_cell_id) : undefined,
+                        setup_time_minutes: draggedStep.setup_time_minutes || 0,
+                        cycle_time_minutes: draggedStep.cycle_time_minutes || 0,
+                        depends_on_step_id: draggedStep.sequence > 1 ? parseInt(steps[draggedStep.sequence - 2]?.id) || undefined : undefined,
+                        can_start_when_dependency: 'completed' as const,
+                        isNew: !draggedStep.id.includes('existing'),
+                    } as ExtendedManufacturingStep : null}
+                    onDraggedStepChange={(step: ExtendedManufacturingStep | null) => {
+                        if (step) {
+                            const routeStep = steps.find(s => parseInt(s.id) === step.id);
+                            setDraggedStep(routeStep || null);
+                        } else {
+                            setDraggedStep(null);
+                        }
+                    }}
                     isPanelOpen={!!selectedStep}
                     viewMode={!permissions.canEditRoute}
                 />

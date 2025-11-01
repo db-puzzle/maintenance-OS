@@ -113,24 +113,36 @@ export default function BomImportWizard({ supportedFormats }: Props) {
         } catch (error) {
             console.error('Failed to upload file:', error);
 
-            const axiosError = error as { response?: { status: number; data: { message?: string; errors?: Record<string, string[]> } } };
+            const axiosError = error as {
+                response?: {
+                    status: number;
+                    data: {
+                        message?: string;
+                        errors?: Record<string, string[]>;
+                        error?: string;
+                        details?: string;
+                        line?: number;
+                        column?: number;
+                    }
+                }
+            };
             if (axiosError.response?.status === 422) {
                 const errorData = axiosError.response.data;
 
                 // Set error state to show in UI
-                if ((errorData as any).error) {
+                if (errorData.error) {
                     // Log the full error data for debugging
                     console.log('Error data received:', errorData);
 
-                    let description = (errorData as any).details || 'Por favor, verifique o arquivo e tente novamente.';
+                    let description = errorData.details || 'Por favor, verifique o arquivo e tente novamente.';
 
                     // Add line/column info if available
-                    if ((errorData as any).line && (errorData as any).column) {
-                        description = `Linha ${(errorData as any).line}, Coluna ${(errorData as any).column}: ${description}`;
+                    if (errorData.line && errorData.column) {
+                        description = `Linha ${errorData.line}, Coluna ${errorData.column}: ${description}`;
                     }
 
                     setUploadError({
-                        title: (errorData as any).error,
+                        title: errorData.error,
                         description: description
                     });
                 } else if (errorData.errors) {

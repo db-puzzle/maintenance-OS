@@ -43,6 +43,7 @@ interface Step {
     effective_time_source: 'step' | 'work_cell' | null;
     effective_setup_time: number | null;
     effective_cycle_time: number | null;
+    use_workcell_throughput?: boolean;
     effective_total_time: number | null;
 }
 
@@ -219,7 +220,7 @@ export default function TimeParameterStatus({ orders, onRefresh }: TimeParameter
                                                                 <Clock className="w-3 h-3" />
                                                                 Step Times
                                                             </div>
-                                                            {(step as any).use_workcell_throughput ? (
+                                                            {step.use_workcell_throughput ? (
                                                                 <div className="ml-5 text-blue-600">Using work cell throughput</div>
                                                             ) : step.has_step_time ? (
                                                                 <div className="ml-5 space-y-1">

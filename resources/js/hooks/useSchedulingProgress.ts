@@ -147,7 +147,7 @@ export function useSchedulingProgress(scheduleVersionId: number): SchedulingProg
                     ...prev,
                     status: 'completed',
                     completedAt: new Date(e.timestamp),
-                    alerts: (e as any).alertBreakdown || e.stats?.alerts,
+                    alerts: e.stats?.alerts || { errors: 0, warnings: 0 },
                 }));
 
                 // Auto-refresh schedule data
@@ -311,16 +311,19 @@ export function useSchedulingProgressWithParams() {
                 {
                     preserveState: true,
                     preserveUrl: true,
-                    onSuccess: (page: any) => {
-                        const data = page.props.flash?.data || page.props;
-                        if (data.job_id) {
+                    onSuccess: (page) => {
+                        const pageWithProps = page as { props?: { flash?: { data?: { job_id?: string } } } };
+                        const pageProps = pageWithProps.props;
+                        const flashData = pageProps?.flash?.data;
+                        const jobId = flashData?.job_id || (pageProps as { job_id?: string } | undefined)?.job_id;
+                        if (jobId) {
                             setState(prev => ({
                                 ...prev,
-                                jobId: data.job_id || null,
+                                jobId: jobId,
                                 status: 'queued'
                             }));
                             // Set up Echo listener
-                            setupEchoListener(params.versionId, data.job_id);
+                            setupEchoListener(params.versionId, jobId);
                         }
                     },
                     onError: (errors: { message?: string }) => {

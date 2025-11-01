@@ -18,7 +18,6 @@ interface MediaManagerProps {
     }[];
     canDelete?: boolean;
     canUpload?: boolean;
-    onMediaClick?: (media: Media) => void;
     className?: string;
 }
 
@@ -28,7 +27,6 @@ export function MediaManager({
     collections = [{ name: 'default', label: 'Files' }],
     canDelete = true,
     canUpload = true,
-    onMediaClick,
     className,
 }: MediaManagerProps) {
     const [activeCollection, setActiveCollection] = useState(collections[0].name);
@@ -38,7 +36,6 @@ export function MediaManager({
         isLoading,
         error,
         addMedia,
-        removeMedia,
     } = useMedia({
         modelType,
         modelId,
@@ -47,10 +44,6 @@ export function MediaManager({
 
     const handleUploadComplete = (uploadedMedia: Media[]) => {
         addMedia(uploadedMedia);
-    };
-
-    const handleDelete = (deletedMedia: Media) => {
-        removeMedia(deletedMedia.id);
     };
 
     if (collections.length === 1) {

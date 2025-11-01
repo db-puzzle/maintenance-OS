@@ -26,7 +26,20 @@ interface GanttTask {
     is_locked?: boolean;
     level?: number;
     orderId?: number;
+    planned_start_date?: string;
+    planned_end_date?: string;
 }
+
+// Extended type for orders with dates and steps
+type OrderWithDates = GanttTask & {
+    planned_start_date?: string;
+    planned_end_date?: string;
+    steps?: Array<{
+        planned_start_date?: string;
+        planned_end_date?: string;
+    }>;
+    children?: OrderWithDates[];
+};
 
 interface GanttRow {
     type: 'order' | 'step';
@@ -309,7 +322,7 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
                             const order = row.data;
 
                             // Get all dates from order and its steps
-                            const getAllDatesFromOrder = (order: GanttTask & { planned_start_date?: string; planned_end_date?: string; steps?: Array<{ planned_start_date?: string; planned_end_date?: string }>; children?: Array<GanttTask & { planned_start_date?: string; planned_end_date?: string; steps?: Array<{ planned_start_date?: string; planned_end_date?: string }>; children?: unknown[] }> }): { starts: Date[], ends: Date[] } => {
+                            const getAllDatesFromOrder = (order: OrderWithDates): { starts: Date[], ends: Date[] } => {
                                 const dates = { starts: [] as Date[], ends: [] as Date[] };
 
                                 // Add order dates if available
@@ -331,7 +344,7 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
                                 // Add child order dates recursively
                                 if (order.children) {
                                     order.children.forEach((child) => {
-                                        const childDates = getAllDatesFromOrder(child as any);
+                                        const childDates = getAllDatesFromOrder(child);
                                         dates.starts.push(...childDates.starts);
                                         dates.ends.push(...childDates.ends);
                                     });
@@ -340,7 +353,7 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
                                 return dates;
                             };
 
-                            const allDates = getAllDatesFromOrder(order as GanttTask & { planned_start_date?: string; planned_end_date?: string; steps?: Array<{ planned_start_date?: string; planned_end_date?: string }>; children?: Array<GanttTask & { planned_start_date?: string; planned_end_date?: string; steps?: Array<{ planned_start_date?: string; planned_end_date?: string }>; children?: unknown[] }> });
+                            const allDates = getAllDatesFromOrder(order as OrderWithDates);
 
                             // Skip if no dates found
                             if (allDates.starts.length === 0) return null;
@@ -370,10 +383,10 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
                             // Render step bar
                             const step = row.data;
 
-                            if (!(step as any).planned_start_date || !(step as any).planned_end_date) return null;
+                            if (!step.planned_start_date || !step.planned_end_date) return null;
 
-                            const startDate = new Date((step as any).planned_start_date);
-                            const endDate = new Date((step as any).planned_end_date);
+                            const startDate = new Date(step.planned_start_date);
+                            const endDate = new Date(step.planned_end_date);
 
                             if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return null;
 
@@ -404,8 +417,15 @@ export const TimeParametersGanttTimeline: React.FC<GanttTimelineProps> = ({
                     {/* Dependencies */}
                     {showDependencies && (
                         <Dependencies
-                            steps={tasks.filter(t => t.type === 'step') as any}
-                            rows={rows as any}
+                            steps={tasks.filter(t => t.type === 'step').map(step => ({
+                                id: String(step.id),
+                                planned_start_date: step.planned_start_date || '',
+                                planned_end_date: step.planned_end_date || ''
+                            }))}
+                            rows={rows.map(row => ({
+                                type: row.type,
+                                data: { id: String(row.data.id) }
+                            }))}
                             layout={timelineLayout}
                             rowHeight={rowHeight}
                         />

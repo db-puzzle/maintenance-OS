@@ -25,6 +25,9 @@ interface MetricsDisplayProps {
         published_by?: { name: string };
         created_at: string;
         created_by?: { name: string };
+        last_algorithm_used?: string;
+        algorithm_execution_time?: number;
+        last_scheduled_at?: string;
     };
 }
 
@@ -129,14 +132,14 @@ export default function MetricsDisplay({ metrics, version }: MetricsDisplayProps
             </Card>
 
             {/* Algorithm Info */}
-            {(version as any).last_algorithm_used && (
+            {version.last_algorithm_used && (
                 <Card className="md:col-span-2 lg:col-span-4">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Algorithm Used</p>
                                 <p className="text-lg font-semibold mt-1">
-                                    {(version as any).last_algorithm_used === 'asap' ? 'ASAP (Forward)' : 'Due Date (Backward)'}
+                                    {version.last_algorithm_used === 'asap' ? 'ASAP (Forward)' : 'Due Date (Backward)'}
                                 </p>
                                 {metrics.fallbacks_used !== undefined && metrics.fallbacks_used > 0 && (
                                     <div className="flex items-center gap-2 mt-2 text-yellow-600">
@@ -148,8 +151,8 @@ export default function MetricsDisplay({ metrics, version }: MetricsDisplayProps
                                 )}
                             </div>
                             <div className="text-right text-sm text-muted-foreground">
-                                <p>Execution time: {(version as any).algorithm_execution_time?.toFixed(2)}s</p>
-                                <p>Completed: {new Date((version as any).last_scheduled_at).toLocaleString()}</p>
+                                <p>Execution time: {version.algorithm_execution_time?.toFixed(2)}s</p>
+                                <p>Completed: {version.last_scheduled_at ? new Date(version.last_scheduled_at).toLocaleString() : 'N/A'}</p>
                             </div>
                         </div>
                     </CardContent>

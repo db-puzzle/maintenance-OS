@@ -15,6 +15,7 @@ import { router } from '@inertiajs/react';
 
 interface ScheduleAlert {
     id: number;
+    schedule_version_id?: number;
     type: string;
     severity: 'error' | 'warning' | 'info';
     message: string;
@@ -86,9 +87,7 @@ export default function AlertsList({ alerts }: AlertsListProps) {
                 window.open(action.params.url as string, '_blank');
                 break;
             case 'adjust_dates':
-                router.visit(route('production.scheduler.index'), {
-                    data: action.params as any
-                });
+                router.visit(route('production.scheduler.index'), action.params as any);
                 break;
             default:
                 console.log('Unknown action:', action);
@@ -96,7 +95,7 @@ export default function AlertsList({ alerts }: AlertsListProps) {
     };
 
     const resolveAlert = (alertId: number) => {
-        router.post(route('production.scheduler.alerts.resolve', [(alerts[0] as any).schedule_version_id, alertId]), {}, {
+        router.post(route('production.scheduler.alerts.resolve', [alerts[0]?.schedule_version_id || 0, alertId]), {}, {
             preserveScroll: true,
             onSuccess: () => {
                 // Alert resolved

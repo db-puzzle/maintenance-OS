@@ -87,7 +87,7 @@ export default function RoleEdit({ role, permissions, rolePermissionIds, roles }
         name: role.name,
         display_name: role.display_name || '',
         description: role.description || '',
-        parent_role_id: role.parent_role_id?.toString() || '',
+        parent_role_id: (role.parent_role_id?.toString() || '') as string | null,
         icon: role.icon || '',
         permissions: rolePermissionIds,
     });
@@ -101,7 +101,7 @@ export default function RoleEdit({ role, permissions, rolePermissionIds, roles }
             ...data,
             permissions: selectedPermissions,
             parent_role_id: data.parent_role_id || null,
-        } as any);
+        });
 
         put(route('roles.update', { role: role.id }));
     };
@@ -239,7 +239,7 @@ export default function RoleEdit({ role, permissions, rolePermissionIds, roles }
                                 <div className="space-y-2">
                                     <Label htmlFor="parent_role_id">Parent Role (Optional)</Label>
                                     <Select
-                                        value={data.parent_role_id}
+                                        value={data.parent_role_id || undefined}
                                         onValueChange={(value) => setData('parent_role_id', value)}
                                         disabled={role.is_system}
                                     >

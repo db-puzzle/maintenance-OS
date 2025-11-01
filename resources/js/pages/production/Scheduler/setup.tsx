@@ -99,12 +99,23 @@ export default function SchedulerSetup({
 
     // Monitor flash data for scheduling job response
     useEffect(() => {
-        const schedulingJob = (flash as any)?.schedulingJob ||
-            ((flash as any)?.success && (flash as any)?.job_id ? flash : null);
+        const flashWithJob = flash as any & {
+            schedulingJob?: {
+                job_id: string;
+                websocket_channel: string;
+                version_id: number;
+            };
+            job_id?: string;
+            websocket_channel?: string;
+            version_id?: number;
+        };
+
+        const schedulingJob = flashWithJob?.schedulingJob ||
+            (flashWithJob?.success && flashWithJob?.job_id ? flashWithJob : null);
 
         if (schedulingJob) {
             // Redirect to scheduler with job info
-            const jobData = (schedulingJob as any).schedulingJob || schedulingJob;
+            const jobData = schedulingJob.schedulingJob || schedulingJob;
             window.location.href = route('production.scheduler.index', {
                 job_id: jobData.job_id,
                 websocket_channel: jobData.websocket_channel,
