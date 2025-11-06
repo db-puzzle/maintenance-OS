@@ -190,6 +190,7 @@ export default function Signup({ plans }: SignupPageProps) {
         <AuthLayout
             title="Create Your Account"
             description="Start your 30-day free trial - no credit card required"
+            className="max-w-5xl"
         >
             <Head title="Sign Up" />
 
@@ -207,147 +208,272 @@ export default function Signup({ plans }: SignupPageProps) {
             )}
 
             <form className="flex flex-col gap-6" onSubmit={submit}>
-                <div className="grid gap-6">
-                    {/* Company Information */}
-                    <div className="grid gap-2">
-                        <Label htmlFor="company_name">Company Name</Label>
-                        <Input
-                            id="company_name"
-                            type="text"
-                            required
-                            autoFocus
-                            tabIndex={1}
-                            value={data.company_name}
-                            onChange={(e) => setData('company_name', e.target.value)}
-                            disabled={processing}
-                            placeholder="Acme Corporation"
-                        />
-                        <InputError message={errors.company_name} />
-                    </div>
-
-                    {/* Subdomain Selection */}
-                    <div className="grid gap-2">
-                        <Label htmlFor="subdomain">Choose Your Subdomain</Label>
-                        <div className="flex gap-2">
-                            <div className="flex flex-1">
-                                <Input
-                                    id="subdomain"
-                                    type="text"
-                                    required
-                                    tabIndex={2}
-                                    value={data.subdomain}
-                                    onChange={(e) => {
-                                        const newValue = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-                                        setData('subdomain', newValue);
-                                        // Reset availability status when user changes input
-                                        if (subdomainStatus.lastChecked !== newValue) {
-                                            setSubdomainStatus({
-                                                checking: false,
-                                                available: null,
-                                                message: '',
-                                                lastChecked: '',
-                                            });
-                                        }
-                                    }}
-                                    disabled={processing}
-                                    placeholder="acme"
-                                    className={cn(
-                                        'rounded-r-none',
-                                        subdomainStatus.available === true &&
-                                            'border-green-500 focus-visible:ring-green-500',
-                                        subdomainStatus.available === false &&
-                                            'border-red-500 focus-visible:ring-red-500'
-                                    )}
-                                />
-                                <span className="border-input bg-muted text-muted-foreground inline-flex items-center rounded-r-md border border-l-0 px-3 text-sm">
-                                    .{appDomain}
-                                </span>
-                            </div>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={checkSubdomainAvailability}
-                                disabled={
-                                    processing ||
-                                    subdomainStatus.checking ||
-                                    !data.subdomain ||
-                                    data.subdomain.length < 3
-                                }
-                                className="shrink-0"
-                            >
-                                {subdomainStatus.checking ? (
-                                    <>
-                                        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                                        Checking
-                                    </>
-                                ) : subdomainStatus.available === true ? (
-                                    <>
-                                        <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
-                                        Available
-                                    </>
-                                ) : subdomainStatus.available === false ? (
-                                    <>
-                                        <XCircle className="mr-2 h-4 w-4 text-red-600" />
-                                        Taken
-                                    </>
-                                ) : (
-                                    'Check Availability'
-                                )}
-                            </Button>
+                {/* Two-column layout on medium+ screens, single column on small screens */}
+                <div className="grid gap-6 md:grid-cols-2">
+                    {/* Left Column: Form Fields */}
+                    <div className="grid gap-6">
+                        {/* Company Information */}
+                        <div className="grid gap-2">
+                            <Label htmlFor="company_name">Company Name</Label>
+                            <Input
+                                id="company_name"
+                                type="text"
+                                required
+                                autoFocus
+                                tabIndex={1}
+                                value={data.company_name}
+                                onChange={(e) => setData('company_name', e.target.value)}
+                                disabled={processing}
+                                placeholder="Acme Corporation"
+                            />
+                            <InputError message={errors.company_name} />
                         </div>
 
-                        {/* Status Message */}
-                        {subdomainStatus.message && (
-                            <p
-                                className={cn(
-                                    'text-sm',
-                                    subdomainStatus.available === true && 'text-green-600',
-                                    subdomainStatus.available === false && 'text-red-600',
-                                    subdomainStatus.available === null && 'text-muted-foreground'
-                                )}
-                            >
-                                {subdomainStatus.message}
-                            </p>
-                        )}
+                        {/* Subdomain Selection */}
+                        <div className="grid gap-2">
+                            <Label htmlFor="subdomain">Choose Your Subdomain</Label>
+                            <div className="flex gap-2">
+                                <div className="flex flex-1">
+                                    <Input
+                                        id="subdomain"
+                                        type="text"
+                                        required
+                                        tabIndex={2}
+                                        value={data.subdomain}
+                                        onChange={(e) => {
+                                            const newValue = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                                            setData('subdomain', newValue);
+                                            // Reset availability status when user changes input
+                                            if (subdomainStatus.lastChecked !== newValue) {
+                                                setSubdomainStatus({
+                                                    checking: false,
+                                                    available: null,
+                                                    message: '',
+                                                    lastChecked: '',
+                                                });
+                                            }
+                                        }}
+                                        disabled={processing}
+                                        placeholder="acme"
+                                        className={cn(
+                                            'rounded-r-none',
+                                            subdomainStatus.available === true &&
+                                                'border-green-500 focus-visible:ring-green-500',
+                                            subdomainStatus.available === false &&
+                                                'border-red-500 focus-visible:ring-red-500'
+                                        )}
+                                    />
+                                    <span className="border-input bg-muted text-muted-foreground inline-flex h-9 items-center rounded-r-md border border-l-0 px-3 text-sm">
+                                        .{appDomain}
+                                    </span>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={checkSubdomainAvailability}
+                                    disabled={
+                                        processing ||
+                                        subdomainStatus.checking ||
+                                        !data.subdomain ||
+                                        data.subdomain.length < 3
+                                    }
+                                    className="shrink-0"
+                                >
+                                    {subdomainStatus.checking ? (
+                                        <>
+                                            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                                            Checking
+                                        </>
+                                    ) : subdomainStatus.available === true ? (
+                                        <>
+                                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
+                                            Available
+                                        </>
+                                    ) : subdomainStatus.available === false ? (
+                                        <>
+                                            <XCircle className="mr-2 h-4 w-4 text-red-600" />
+                                            Taken
+                                        </>
+                                    ) : (
+                                        'Check Availability'
+                                    )}
+                                </Button>
+                            </div>
 
-                        <InputError message={errors.subdomain} />
-                        <p className="text-muted-foreground text-xs">
-                            Your subdomain can only contain lowercase letters, numbers, and hyphens (3-63 characters).
-                        </p>
+                            {/* Status Message */}
+                            {subdomainStatus.message && (
+                                <p
+                                    className={cn(
+                                        'text-sm',
+                                        subdomainStatus.available === true && 'text-green-600',
+                                        subdomainStatus.available === false && 'text-red-600',
+                                        subdomainStatus.available === null && 'text-muted-foreground'
+                                    )}
+                                >
+                                    {subdomainStatus.message}
+                                </p>
+                            )}
+
+                            <InputError message={errors.subdomain} />
+                            <p className="text-muted-foreground text-xs">
+                                Your subdomain can only contain lowercase letters, numbers, and hyphens (3-63 characters).
+                            </p>
+                        </div>
+
+                        {/* Admin User Information */}
+                        <div className="border-t pt-6">
+                            <h3 className="mb-4 text-sm font-medium">Administrator Account</h3>
+
+                            <div className="grid gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="admin_name">Your Name</Label>
+                                    <Input
+                                        id="admin_name"
+                                        type="text"
+                                        required
+                                        tabIndex={3}
+                                        autoComplete="name"
+                                        value={data.admin_name}
+                                        onChange={(e) => setData('admin_name', e.target.value)}
+                                        disabled={processing}
+                                        placeholder="John Doe"
+                                    />
+                                    <InputError message={errors.admin_name} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="admin_email">Email Address</Label>
+                                    <Input
+                                        id="admin_email"
+                                        type="email"
+                                        required
+                                        tabIndex={4}
+                                        autoComplete="email"
+                                        value={data.admin_email}
+                                        onChange={(e) => setData('admin_email', e.target.value)}
+                                        disabled={processing}
+                                        placeholder="john@example.com"
+                                    />
+                                    <InputError message={errors.admin_email} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="admin_password">Password</Label>
+                                    <Input
+                                        id="admin_password"
+                                        type="password"
+                                        required
+                                        tabIndex={5}
+                                        autoComplete="new-password"
+                                        value={data.admin_password}
+                                        onChange={(e) => setData('admin_password', e.target.value)}
+                                        disabled={processing}
+                                        placeholder="••••••••"
+                                    />
+                                    <InputError message={errors.admin_password} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="admin_password_confirmation">Confirm Password</Label>
+                                    <Input
+                                        id="admin_password_confirmation"
+                                        type="password"
+                                        required
+                                        tabIndex={6}
+                                        autoComplete="new-password"
+                                        value={data.admin_password_confirmation}
+                                        onChange={(e) => setData('admin_password_confirmation', e.target.value)}
+                                        disabled={processing}
+                                        placeholder="••••••••"
+                                    />
+                                    <InputError message={errors.admin_password_confirmation} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Terms Acceptance */}
+                        <div className="flex items-start gap-2">
+                            <Checkbox
+                                id="terms_accepted"
+                                checked={data.terms_accepted}
+                                onCheckedChange={(checked) => setData('terms_accepted', checked === true)}
+                                disabled={processing}
+                                tabIndex={7}
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                                <label
+                                    htmlFor="terms_accepted"
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                    I agree to the{' '}
+                                    <TextLink href="/terms" target="_blank">
+                                        Terms of Service
+                                    </TextLink>{' '}
+                                    and{' '}
+                                    <TextLink href="/privacy" target="_blank">
+                                        Privacy Policy
+                                    </TextLink>
+                                </label>
+                                <InputError message={errors.terms_accepted} className="mt-1" />
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Plan Selection */}
+                    {/* Right Column: Plan Selection (moves to bottom on small screens) */}
                     {plans.length > 0 && (
-                        <div className="grid gap-4">
-                            <Label>Select Your Plan</Label>
+                        <div className="grid gap-4 md:border-l md:pl-6">
+                            <div>
+                                <Label className="text-base">Select Your Plan</Label>
+                                <p className="text-muted-foreground mt-1 text-sm">
+                                    Choose the plan that best fits your needs
+                                </p>
+                            </div>
                             <RadioGroup
                                 value={data.plan_id.toString()}
                                 onValueChange={(value) => setData('plan_id', parseInt(value))}
                                 disabled={processing}
+                                className="grid gap-3"
                             >
                                 {plans.map((plan) => (
                                     <div
                                         key={plan.id}
-                                        className={`border-input flex items-center justify-between rounded-lg border p-4 ${data.plan_id === plan.id ? 'ring-primary border-primary ring-2' : ''
-                                            }`}
+                                        className={cn(
+                                            'border-input flex flex-col gap-3 rounded-lg border p-4 transition-all',
+                                            data.plan_id === plan.id
+                                                ? 'ring-primary border-primary bg-primary/5 ring-2'
+                                                : 'hover:border-muted-foreground/30'
+                                        )}
                                     >
-                                        <div className="flex items-center gap-4">
-                                            <RadioGroupItem value={plan.id.toString()} id={`plan-${plan.id}`} />
-                                            <div>
+                                        <div className="flex items-start gap-3">
+                                            <RadioGroupItem
+                                                value={plan.id.toString()}
+                                                id={`plan-${plan.id}`}
+                                                className="mt-0.5"
+                                            />
+                                            <div className="flex-1">
                                                 <Label
                                                     htmlFor={`plan-${plan.id}`}
-                                                    className="cursor-pointer font-medium"
+                                                    className="cursor-pointer text-base font-semibold"
                                                 >
                                                     {plan.name}
                                                 </Label>
                                                 {plan.description && (
-                                                    <p className="text-muted-foreground text-sm">{plan.description}</p>
+                                                    <p className="text-muted-foreground mt-1 text-sm">
+                                                        {plan.description}
+                                                    </p>
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="font-semibold">${plan.price}</div>
-                                            <div className="text-muted-foreground text-xs">per month</div>
+                                        <div className="border-t pt-3">
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-2xl font-bold">${plan.price}</span>
+                                                <span className="text-muted-foreground text-sm">/ month</span>
+                                            </div>
+                                            {plan.trial_days > 0 && (
+                                                <p className="text-muted-foreground mt-1 text-xs">
+                                                    {plan.trial_days} days free trial
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -355,121 +481,23 @@ export default function Signup({ plans }: SignupPageProps) {
                             <InputError message={errors.plan_id} />
                         </div>
                     )}
-
-                    {/* Admin User Information */}
-                    <div className="border-t pt-6">
-                        <h3 className="mb-4 text-sm font-medium">Administrator Account</h3>
-
-                        <div className="grid gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="admin_name">Your Name</Label>
-                                <Input
-                                    id="admin_name"
-                                    type="text"
-                                    required
-                                    tabIndex={3}
-                                    autoComplete="name"
-                                    value={data.admin_name}
-                                    onChange={(e) => setData('admin_name', e.target.value)}
-                                    disabled={processing}
-                                    placeholder="John Doe"
-                                />
-                                <InputError message={errors.admin_name} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="admin_email">Email Address</Label>
-                                <Input
-                                    id="admin_email"
-                                    type="email"
-                                    required
-                                    tabIndex={4}
-                                    autoComplete="email"
-                                    value={data.admin_email}
-                                    onChange={(e) => setData('admin_email', e.target.value)}
-                                    disabled={processing}
-                                    placeholder="john@example.com"
-                                />
-                                <InputError message={errors.admin_email} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="admin_password">Password</Label>
-                                <Input
-                                    id="admin_password"
-                                    type="password"
-                                    required
-                                    tabIndex={5}
-                                    autoComplete="new-password"
-                                    value={data.admin_password}
-                                    onChange={(e) => setData('admin_password', e.target.value)}
-                                    disabled={processing}
-                                    placeholder="••••••••"
-                                />
-                                <InputError message={errors.admin_password} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="admin_password_confirmation">Confirm Password</Label>
-                                <Input
-                                    id="admin_password_confirmation"
-                                    type="password"
-                                    required
-                                    tabIndex={6}
-                                    autoComplete="new-password"
-                                    value={data.admin_password_confirmation}
-                                    onChange={(e) => setData('admin_password_confirmation', e.target.value)}
-                                    disabled={processing}
-                                    placeholder="••••••••"
-                                />
-                                <InputError message={errors.admin_password_confirmation} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Terms Acceptance */}
-                    <div className="flex items-start gap-2">
-                        <Checkbox
-                            id="terms_accepted"
-                            checked={data.terms_accepted}
-                            onCheckedChange={(checked) => setData('terms_accepted', checked === true)}
-                            disabled={processing}
-                            tabIndex={7}
-                        />
-                        <div className="grid gap-1.5 leading-none">
-                            <label
-                                htmlFor="terms_accepted"
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                                I agree to the{' '}
-                                <TextLink href="/terms" target="_blank">
-                                    Terms of Service
-                                </TextLink>{' '}
-                                and{' '}
-                                <TextLink href="/privacy" target="_blank">
-                                    Privacy Policy
-                                </TextLink>
-                            </label>
-                            <InputError message={errors.terms_accepted} className="mt-1" />
-                        </div>
-                    </div>
-
-                    {/* Submit Button */}
-                    <Button
-                        type="submit"
-                        className="mt-2 w-full"
-                        tabIndex={8}
-                        disabled={
-                            processing ||
-                            !data.terms_accepted ||
-                            subdomainStatus.available !== true ||
-                            subdomainStatus.lastChecked !== data.subdomain
-                        }
-                    >
-                        {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-                        {processing ? 'Creating your account...' : 'Create Account'}
-                    </Button>
                 </div>
+
+                {/* Submit Button - Full width below the grid */}
+                <Button
+                    type="submit"
+                    className="mt-2 w-full"
+                    tabIndex={8}
+                    disabled={
+                        processing ||
+                        !data.terms_accepted ||
+                        subdomainStatus.available !== true ||
+                        subdomainStatus.lastChecked !== data.subdomain
+                    }
+                >
+                    {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
+                    {processing ? 'Creating your account...' : 'Create Account'}
+                </Button>
 
                 {/* Login Link */}
                 <div className="text-muted-foreground text-center text-sm">
