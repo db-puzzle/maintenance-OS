@@ -4,8 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Skill;
 use App\Models\User;
-use App\Models\Role;
-use App\Models\Permission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -48,9 +46,10 @@ class SkillTest extends TestCase
         $response = $this->actingAs($this->admin)->get(route('skills.index'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('skills/index')
-            ->has('skills.data', 5)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('skills/index')
+                ->has('skills.data', 5)
         );
     }
 
@@ -62,10 +61,11 @@ class SkillTest extends TestCase
         $response = $this->actingAs($this->technician)->get(route('skills.index'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('skills/index')
-            ->has('skills.data', 3)
-            ->where('can.create', false)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('skills/index')
+                ->has('skills.data', 3)
+                ->where('can.create', false)
         );
     }
 
@@ -177,7 +177,7 @@ class SkillTest extends TestCase
     {
         $skill = Skill::factory()->create();
         $users = User::factory()->count(3)->create();
-        
+
         foreach ($users as $user) {
             $skill->users()->attach($user, ['proficiency_level' => 'expert']);
         }
@@ -224,8 +224,9 @@ class SkillTest extends TestCase
             ->get(route('skills.index', ['search' => 'soldagem']));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->has('skills.data', 2)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->has('skills.data', 2)
         );
     }
 
@@ -245,11 +246,12 @@ class SkillTest extends TestCase
         $response = $this->actingAs($this->admin)->get(route('skills.show', $skill));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('skills/show')
-            ->where('skill.name', 'Test Skill')
-            ->where('skill.category', 'Técnica')
-            ->has('skill.users', 2)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('skills/show')
+                ->where('skill.name', 'Test Skill')
+                ->where('skill.category', 'Técnica')
+                ->has('skill.users', 2)
         );
     }
 
@@ -260,10 +262,10 @@ class SkillTest extends TestCase
 
         // Can create
         $this->assertTrue($this->plantManager->can('create', Skill::class));
-        
+
         // Can update
         $this->assertTrue($this->plantManager->can('update', $skill));
-        
+
         // Can delete
         $this->assertTrue($this->plantManager->can('delete', $skill));
     }
@@ -278,10 +280,10 @@ class SkillTest extends TestCase
 
         // Can create
         $this->assertTrue($supervisor->can('create', Skill::class));
-        
+
         // Can update
         $this->assertTrue($supervisor->can('update', $skill));
-        
+
         // Can delete
         $this->assertTrue($supervisor->can('delete', $skill));
     }

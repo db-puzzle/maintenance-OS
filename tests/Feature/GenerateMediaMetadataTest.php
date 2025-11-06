@@ -25,7 +25,7 @@ class GenerateMediaMetadataTest extends TestCase
 
         $this->user = User::factory()->create();
         $this->actingAs($this->user);
-        
+
         $this->item = Item::factory()->create();
     }
 
@@ -39,7 +39,7 @@ class GenerateMediaMetadataTest extends TestCase
 
         // Create a test image
         $file = UploadedFile::fake()->image('test-image.jpg', 800, 600);
-        
+
         // Add media to item
         $media = $this->item->addMedia($file)
             ->toMediaCollection('images');
@@ -74,7 +74,7 @@ class GenerateMediaMetadataTest extends TestCase
 
         // Create a test image
         $file = UploadedFile::fake()->image('test-image.jpg', 1024, 768);
-        
+
         // Manually create media record to simulate remote storage scenario
         $media = new Media([
             'model_type' => Item::class,
@@ -126,7 +126,7 @@ class GenerateMediaMetadataTest extends TestCase
 
         // Create a test PDF
         $file = UploadedFile::fake()->create('document.pdf', 100);
-        
+
         // Add media to item
         $media = $this->item->addMedia($file)
             ->toMediaCollection('documents');
@@ -173,7 +173,7 @@ class GenerateMediaMetadataTest extends TestCase
 
         // Expect exception when file doesn't exist
         $this->expectException(\Exception::class);
-        
+
         // Dispatch the job
         $job = new GenerateMediaMetadata($media);
         $job->handle(
@@ -186,14 +186,14 @@ class GenerateMediaMetadataTest extends TestCase
     public function it_queues_metadata_generation_when_media_is_created()
     {
         Queue::fake();
-        
+
         // Configure local storage
         config(['media-library.disk_name' => 'media-local']);
         Storage::fake('media-local');
 
         // Create a test image
         $file = UploadedFile::fake()->image('test-image.jpg');
-        
+
         // Add media to item
         $media = $this->item->addMedia($file)
             ->toMediaCollection('images');

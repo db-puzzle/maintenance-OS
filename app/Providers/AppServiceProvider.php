@@ -11,21 +11,26 @@ use App\Models\Production\ManufacturingRoute;
 use App\Models\Production\ManufacturingStep;
 use App\Models\Production\ManufacturingStepExecution;
 use App\Models\Role;
+use App\Models\User;
 use App\Models\WorkOrders\WorkOrder;
 use App\Models\WorkOrders\WorkOrderExecution;
 use App\Observers\AreaObserver;
 use App\Observers\AssetObserver;
 use App\Observers\ManufacturingOrderObserver;
 use App\Observers\ManufacturingRouteObserver;
-use App\Observers\ManufacturingStepObserver;
 use App\Observers\ManufacturingStepExecutionObserver;
+use App\Observers\ManufacturingStepObserver;
 use App\Observers\PlantObserver;
 use App\Observers\RoleObserver;
 use App\Observers\SectorObserver;
+use App\Observers\UserObserver;
 use App\Observers\WorkOrderExecutionObserver;
 use App\Observers\WorkOrderObserver;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -44,6 +49,11 @@ class AppServiceProvider extends ServiceProvider
         // Model::preventLazyLoading(! $this->app->isProduction());
         // Model::preventLazyLoading();
         // Model::automaticallyEagerLoadRelationships(); // Disabled to prevent memory issues during imports
+
+        // Configure rate limiters
+        RateLimiter::for('subdomain-check', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
 
         // Cache user permissions to avoid repeated database hits
         if (auth()->check()) {
@@ -68,6 +78,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Register role observer for cache management
         Role::observe(RoleObserver::class);
+
+        // Register user observer for tenant-specific logic (first user admin assignment)
+        User::observe(UserObserver::class);
 
         // Register work order observer
         WorkOrder::observe(WorkOrderObserver::class);

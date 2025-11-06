@@ -2,7 +2,6 @@
 
 use App\Models\User;
 use App\Models\UserInvitation;
-use App\Services\AuditLogService;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;
@@ -53,7 +52,7 @@ it('can delete a revoked invitation', function () {
         'email' => 'revoked@example.com',
         'invited_by' => $this->admin->id,
     ]);
-    
+
     $invitation->revoke($this->admin, 'Test revocation');
 
     actingAs($this->admin)
@@ -114,7 +113,7 @@ it('requires authentication to delete invitations', function () {
 
 it('respects permissions when deleting invitations', function () {
     $regularUser = User::factory()->create();
-    
+
     $invitation = UserInvitation::create([
         'email' => 'permission-test@example.com',
         'invited_by' => $this->admin->id,

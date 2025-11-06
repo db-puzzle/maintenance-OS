@@ -7,7 +7,6 @@ use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\Permission;
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -48,23 +47,23 @@ class SectorPermissionTest extends TestCase
         // Create hierarchy - this will trigger observers to create permissions
         $this->plant = Plant::factory()->create(['name' => 'Test Plant']);
         $this->otherPlant = Plant::factory()->create(['name' => 'Other Plant']);
-        
+
         $this->area = Area::factory()->create([
             'name' => 'Test Area',
-            'plant_id' => $this->plant->id
+            'plant_id' => $this->plant->id,
         ]);
         $this->otherArea = Area::factory()->create([
             'name' => 'Other Area',
-            'plant_id' => $this->otherPlant->id
+            'plant_id' => $this->otherPlant->id,
         ]);
-        
+
         $this->sector = Sector::factory()->create([
             'name' => 'Test Sector',
-            'area_id' => $this->area->id
+            'area_id' => $this->area->id,
         ]);
         $this->otherSector = Sector::factory()->create([
             'name' => 'Other Sector',
-            'area_id' => $this->otherArea->id
+            'area_id' => $this->otherArea->id,
         ]);
 
         // Create Plant Manager and assign to test plant
@@ -92,7 +91,7 @@ class SectorPermissionTest extends TestCase
     }
 
     /**
-     * Assign plant manager permissions according to the system design
+     * Assign plant manager permissions according to the system design.
      */
     protected function assignPlantManagerPermissions(User $user, Plant $plant): void
     {
@@ -128,7 +127,7 @@ class SectorPermissionTest extends TestCase
     }
 
     /**
-     * Assign area manager permissions according to the system design
+     * Assign area manager permissions according to the system design.
      */
     protected function assignAreaManagerPermissions(User $user, Area $area): void
     {
@@ -153,7 +152,7 @@ class SectorPermissionTest extends TestCase
     }
 
     /**
-     * Assign sector manager permissions according to the system design
+     * Assign sector manager permissions according to the system design.
      */
     protected function assignSectorManagerPermissions(User $user, Sector $sector): void
     {
@@ -189,10 +188,11 @@ class SectorPermissionTest extends TestCase
             ->get(route('asset-hierarchy.sectors'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/sectors/index')
-            ->has('sectors.data', 1) // Should only see the one sector they have permission for
-            ->where('sectors.data.0.name', 'Test Sector')
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/sectors/index')
+                ->has('sectors.data', 1) // Should only see the one sector they have permission for
+                ->where('sectors.data.0.name', 'Test Sector')
         );
     }
 
@@ -201,16 +201,17 @@ class SectorPermissionTest extends TestCase
         // Create another sector in the same area
         $anotherSector = Sector::factory()->create([
             'name' => 'Another Sector',
-            'area_id' => $this->area->id
+            'area_id' => $this->area->id,
         ]);
 
         $response = $this->actingAs($this->areaManager)
             ->get(route('asset-hierarchy.sectors'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/sectors/index')
-            ->has('sectors.data', 2) // Should see both sectors in their area
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/sectors/index')
+                ->has('sectors.data', 2) // Should see both sectors in their area
         );
 
         $sectorIds = collect($response->original->getData()['page']['props']['sectors']['data'])
@@ -226,20 +227,21 @@ class SectorPermissionTest extends TestCase
         // Create another area and sector in the same plant
         $anotherArea = Area::factory()->create([
             'name' => 'Another Area',
-            'plant_id' => $this->plant->id
+            'plant_id' => $this->plant->id,
         ]);
         $plantSector = Sector::factory()->create([
             'name' => 'Plant Sector',
-            'area_id' => $anotherArea->id
+            'area_id' => $anotherArea->id,
         ]);
 
         $response = $this->actingAs($this->plantManager)
             ->get(route('asset-hierarchy.sectors'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/sectors/index')
-            ->has('sectors.data', 2) // Should see all sectors in their plant
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/sectors/index')
+                ->has('sectors.data', 2) // Should see all sectors in their plant
         );
 
         $sectorIds = collect($response->original->getData()['page']['props']['sectors']['data'])
@@ -256,9 +258,10 @@ class SectorPermissionTest extends TestCase
             ->get(route('asset-hierarchy.sectors'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/sectors/index')
-            ->has('sectors.data', 2) // Admin should see all sectors
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/sectors/index')
+                ->has('sectors.data', 2) // Admin should see all sectors
         );
     }
 
@@ -276,10 +279,11 @@ class SectorPermissionTest extends TestCase
             ->get(route('asset-hierarchy.sectors.show', $this->sector));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/sectors/show')
-            ->has('sector')
-            ->where('sector.id', $this->sector->id)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/sectors/show')
+                ->has('sector')
+                ->where('sector.id', $this->sector->id)
         );
     }
 
@@ -365,7 +369,7 @@ class SectorPermissionTest extends TestCase
         // Sector managers don't have delete permission by default
         $deletableSector = Sector::factory()->create([
             'name' => 'Deletable Sector',
-            'area_id' => $this->area->id
+            'area_id' => $this->area->id,
         ]);
         $this->assignSectorManagerPermissions($this->sectorManager, $deletableSector);
 
@@ -379,11 +383,11 @@ class SectorPermissionTest extends TestCase
     {
         // Give area manager delete permission for this test
         $this->areaManager->givePermissionTo("areas.delete.{$this->area->id}");
-        
+
         // Area managers with delete permission can delete sectors in their area
         $deletableSector = Sector::factory()->create([
             'name' => 'Deletable by Area Manager',
-            'area_id' => $this->area->id
+            'area_id' => $this->area->id,
         ]);
 
         $response = $this->actingAs($this->areaManager)
@@ -398,9 +402,9 @@ class SectorPermissionTest extends TestCase
         // Create a user with specific sector delete permission
         $deletableSector = Sector::factory()->create([
             'name' => 'Deletable Sector',
-            'area_id' => $this->area->id
+            'area_id' => $this->area->id,
         ]);
-        
+
         $userWithDelete = User::factory()->create(['name' => 'Delete User']);
         $userWithDelete->givePermissionTo("sectors.delete.{$deletableSector->id}");
 
@@ -417,7 +421,7 @@ class SectorPermissionTest extends TestCase
         Asset::factory()->create([
             'sector_id' => $this->sector->id,
             'area_id' => $this->area->id,
-            'plant_id' => $this->plant->id
+            'plant_id' => $this->plant->id,
         ]);
 
         $response = $this->actingAs($this->admin)
@@ -435,7 +439,7 @@ class SectorPermissionTest extends TestCase
             ->get(route('asset-hierarchy.sectors'));
 
         $response->assertStatus(200);
-        
+
         // Check that plants dropdown only shows the plant the user has access to
         $plants = $response->original->getData()['page']['props']['plants'];
         $this->assertCount(1, $plants);
@@ -446,13 +450,13 @@ class SectorPermissionTest extends TestCase
     {
         // Create a user with only the system.create-sectors permission
         $systemUser = User::factory()->create(['name' => 'System Create User']);
-        
+
         // First ensure the permission exists
         Permission::firstOrCreate([
             'name' => 'system.create-sectors',
-            'guard_name' => 'web'
+            'guard_name' => 'web',
         ]);
-        
+
         $systemUser->givePermissionTo('system.create-sectors');
 
         $response = $this->actingAs($systemUser)
@@ -469,10 +473,10 @@ class SectorPermissionTest extends TestCase
     {
         // Act as admin to create a new sector
         $this->actingAs($this->admin);
-        
+
         $newSector = Sector::factory()->create([
             'name' => 'Observer Test Sector',
-            'area_id' => $this->area->id
+            'area_id' => $this->area->id,
         ]);
 
         // Check that permissions were created by the observer
@@ -492,7 +496,7 @@ class SectorPermissionTest extends TestCase
         // Create a sector to be deleted
         $deletableSector = Sector::factory()->create([
             'name' => 'To Be Deleted',
-            'area_id' => $this->area->id
+            'area_id' => $this->area->id,
         ]);
 
         // Verify permissions exist
@@ -507,4 +511,4 @@ class SectorPermissionTest extends TestCase
         $this->assertDatabaseMissing('permissions', ['name' => "sectors.update.{$deletableSector->id}"]);
         $this->assertDatabaseMissing('permissions', ['name' => "sectors.delete.{$deletableSector->id}"]);
     }
-} 
+}

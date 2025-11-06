@@ -11,7 +11,6 @@ use Tests\Unit\ModelTestCase;
 
 class ShiftTest extends ModelTestCase
 {
-
     public function test_shift_can_be_created_with_factory()
     {
         $shift = Shift::factory()->create();
@@ -22,7 +21,7 @@ class ShiftTest extends ModelTestCase
         ]);
         $this->assertNotNull($shift->name);
         $this->assertNotNull($shift->timezone);
-        
+
         // Check that schedules and times were created
         $shift->load('schedules.shiftTimes'); // Eager load to avoid lazy loading
         $this->assertCount(5, $shift->schedules); // Monday to Friday by default
@@ -34,7 +33,7 @@ class ShiftTest extends ModelTestCase
     public function test_shift_has_many_schedules()
     {
         $shift = Shift::factory()->create();
-        
+
         $this->assertGreaterThan(0, $shift->schedules->count());
         $this->assertInstanceOf(ShiftSchedule::class, $shift->schedules->first());
     }
@@ -53,14 +52,14 @@ class ShiftTest extends ModelTestCase
     public function test_shift_asset_count_attribute()
     {
         $shift = Shift::factory()->create();
-        
+
         $this->assertEquals(0, $shift->asset_count);
 
         // Create assets for this shift
         $plant = \App\Models\AssetHierarchy\Plant::factory()->withShift($shift)->create();
         $area = \App\Models\AssetHierarchy\Area::factory()->forPlant($plant)->create();
         $sector = \App\Models\AssetHierarchy\Sector::factory()->forArea($area)->create();
-        
+
         \App\Models\AssetHierarchy\Asset::factory()->count(5)->forPlantHierarchy($plant, $area, $sector)->create();
 
         $shift->refresh();
@@ -72,7 +71,7 @@ class ShiftTest extends ModelTestCase
         $shift = Shift::factory()->fullWeek()->create();
 
         $this->assertCount(7, $shift->schedules); // All days of the week
-        
+
         $weekdays = $shift->schedules->pluck('weekday')->toArray();
         $this->assertContains('Saturday', $weekdays);
         $this->assertContains('Sunday', $weekdays);
@@ -97,7 +96,7 @@ class ShiftTest extends ModelTestCase
 
         $this->assertInstanceOf(Carbon::class, $utcTime);
         $this->assertEquals('UTC', $utcTime->timezone->getName());
-        
+
         // São Paulo is UTC-3 in January, so 08:00 local = 11:00 UTC
         $this->assertEquals('11:00', $utcTime->format('H:i'));
     }
@@ -121,14 +120,14 @@ class ShiftTest extends ModelTestCase
         $shift = Shift::factory()->create([
             'timezone' => 'America/Sao_Paulo',
         ]);
-        
+
         // Get Monday schedule
         $mondaySchedule = $shift->schedules->where('weekday', 'Monday')->first();
         $shiftTimes = $shift->getShiftTimesForDateInUTC('2024-01-15', 'Monday');
 
         $this->assertIsArray($shiftTimes);
         $this->assertCount(1, $shiftTimes); // One shift time by default
-        
+
         $shiftTime = $shiftTimes[0];
         $this->assertArrayHasKey('start', $shiftTime);
         $this->assertArrayHasKey('end', $shiftTime);
@@ -148,7 +147,7 @@ class ShiftTest extends ModelTestCase
         $this->assertArrayHasKey('work_minutes', $totals);
         $this->assertArrayHasKey('break_hours', $totals);
         $this->assertArrayHasKey('break_minutes', $totals);
-        
+
         // Default shift is 8 hours with 1 hour break = 7 hours work per day
         // 5 days * 7 hours = 35 hours
         $this->assertEquals(35, $totals['work_hours']);
@@ -173,7 +172,7 @@ class ShiftTest extends ModelTestCase
         $shift = Shift::factory()->create();
         $shift->load('schedules'); // Eager load
         $schedule = $shift->schedules->first();
-        
+
         // Create a night shift (22:00 to 06:00)
         $schedule->shiftTimes()->delete();
         ShiftTime::factory()->night()->create([
@@ -181,11 +180,11 @@ class ShiftTest extends ModelTestCase
         ]);
 
         $shiftTimes = $shift->getShiftTimesForDateInUTC('2024-01-15', $schedule->weekday);
-        
+
         $this->assertCount(1, $shiftTimes);
         $shiftTime = $shiftTimes[0];
-        
+
         // End time should be after the start time
         $this->assertTrue($shiftTime['end']->greaterThan($shiftTime['start']));
     }
-} 
+}

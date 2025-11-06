@@ -35,7 +35,7 @@ test('it shows database isolation between tests', function () {
 
     // Each test gets a fresh database with only system admin
     $user = User::factory()->create(['name' => 'Isolated User']);
-    
+
     expect(\DB::table('users')->where('name', 'Isolated User')->exists())->toBeTrue();
     expect(User::count())->toBe(2); // 1 system admin + 1 test user
 });
@@ -44,20 +44,20 @@ test('it can test user creation and database queries', function () {
     // Demonstrate testing basic CRUD operations
     $user = User::factory()->create([
         'name' => 'Test User',
-        'email' => 'test@example.com'
+        'email' => 'test@example.com',
     ]);
 
     // Test database assertions
     expect(\DB::table('users')->where([
         'email' => 'test@example.com',
-        'name' => 'Test User'
+        'name' => 'Test User',
     ])->exists())->toBeTrue();
 
     // Test model relationships work
     expect($user)->toBeInstanceOf(User::class);
     expect($user->email)->toBe('test@example.com');
-    
+
     // Verify this test user is not an admin (admin protection working)
     expect($user->isAdministrator())->toBeFalse();
     expect(User::count())->toBe(2); // 1 system admin + 1 test user
-}); 
+});

@@ -67,19 +67,30 @@ class UserInvitationMail extends Mailable implements ShouldQueue
             }
         }
 
+        // Get tenant-specific accept URL
+        // If we're in a tenant context, the URL will automatically include the tenant subdomain
+        $acceptUrl = $this->invitation->generateSignedUrl();
+
+        // Get tenant name for the email subject if in tenant context
+        $organizationName = tenancy()->initialized
+            ? tenant('name') ?? config('app.name')
+            : config('app.name');
+
         return $this->to($this->invitation->email)
-            ->subject('Você foi convidado para ' . config('app.name'))
+            ->subject('Você foi convidado para ' . $organizationName)
             ->view('emails.user-invitation')
             ->with([
                 'invitation' => $this->invitation,
                 'inviterName' => $this->invitation->inviter?->name ?? 'the system',
-                'acceptUrl' => $this->invitation->generateSignedUrl(),
+                'acceptUrl' => $acceptUrl,
                 'roleDisplayList' => $roleDisplayList,
+                'organizationName' => $organizationName,
             ])
             ->tap(function () {
                 Log::info('[invitations] Invitation email sent successfully', [
                     'email' => $this->invitation->email,
                     'invitation_id' => $this->invitation->id,
+                    'tenant_id' => tenancy()->initialized ? tenant('id') : null,
                 ]);
             });
     }

@@ -8,7 +8,6 @@ use Tests\Unit\ModelTestCase;
 
 class AssetTypeTest extends ModelTestCase
 {
-
     public function test_asset_type_can_be_created_with_factory()
     {
         $assetType = AssetType::factory()->create();
@@ -86,7 +85,7 @@ class AssetTypeTest extends ModelTestCase
 
     public function test_asset_type_uses_correct_table()
     {
-        $assetType = new AssetType();
+        $assetType = new AssetType;
         $this->assertEquals('asset_types', $assetType->getTable());
     }
-} 
+}

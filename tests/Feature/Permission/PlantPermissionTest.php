@@ -67,10 +67,11 @@ class PlantPermissionTest extends TestCase
             ->get(route('asset-hierarchy.plants'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/plants/index')
-            ->has('plants.data', 1) // Should only see the one plant they have permission for
-            ->where('plants.data.0.name', 'Test Plant')
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/plants/index')
+                ->has('plants.data', 1) // Should only see the one plant they have permission for
+                ->where('plants.data.0.name', 'Test Plant')
         );
     }
 
@@ -80,9 +81,10 @@ class PlantPermissionTest extends TestCase
             ->get(route('asset-hierarchy.plants'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/plants/index')
-            ->has('plants.data', 2) // Admin should see both plants
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/plants/index')
+                ->has('plants.data', 2) // Admin should see both plants
         );
     }
 
@@ -100,10 +102,11 @@ class PlantPermissionTest extends TestCase
             ->get(route('asset-hierarchy.plants.show', $this->plant));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/plants/show')
-            ->has('plant')
-            ->where('plant.id', $this->plant->id)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/plants/show')
+                ->has('plant')
+                ->where('plant.id', $this->plant->id)
         );
     }
 
@@ -111,7 +114,7 @@ class PlantPermissionTest extends TestCase
     {
         // Create area in the plant
         $area = Area::factory()->create(['plant_id' => $this->plant->id]);
-        
+
         // Create user with area permission
         $areaUser = User::factory()->create();
         $areaUser->givePermissionTo("areas.view.{$area->id}");
@@ -244,10 +247,11 @@ class PlantPermissionTest extends TestCase
             ->get(route('asset-hierarchy.plants'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/plants/index')
-            ->has('plants.data', 1)
-            ->where('plants.data.0.id', $this->plant->id)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/plants/index')
+                ->has('plants.data', 1)
+                ->where('plants.data.0.id', $this->plant->id)
         );
 
         // User should not see the other plant
@@ -278,9 +282,10 @@ class PlantPermissionTest extends TestCase
             ->get(route('asset-hierarchy.plants'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->has('plants.data', 1)
-            ->where('plants.data.0.id', $this->plant->id)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->has('plants.data', 1)
+                ->where('plants.data.0.id', $this->plant->id)
         );
     }
 
@@ -301,4 +306,4 @@ class PlantPermissionTest extends TestCase
         $shiftManager->givePermissionTo("shifts.manage.plant.{$this->plant->id}");
         $this->assertTrue($shiftManager->can('manageShifts', $this->plant));
     }
-} 
+}

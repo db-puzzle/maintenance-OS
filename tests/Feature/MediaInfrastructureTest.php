@@ -68,7 +68,7 @@ class MediaInfrastructureTest extends TestCase
 
         // The path includes the full media path structure
         $fullPath = $media->getPath() . $media->file_name;
-        
+
         Storage::disk(MediaDiskResolver::getPublicDisk())->assertExists($fullPath);
         Storage::disk(MediaDiskResolver::getPrivateDisk())->assertMissing($fullPath);
     }
@@ -108,11 +108,11 @@ class MediaInfrastructureTest extends TestCase
         // Create admin user to ensure permissions
         $user = User::factory()->create();
         $user->assignRole('Admin'); // Ensure user has permissions
-        
+
         $item = Item::factory()->create();
 
         $response = $this->actingAs($user)->get("/production/items/{$item->id}");
-        
+
         // Should contain our media components in the page
         $response->assertOk();
         // The actual component testing would be done in Jest/React tests

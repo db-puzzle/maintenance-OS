@@ -14,11 +14,18 @@ abstract class TestCase extends BaseTestCase
     protected $withoutObservers = false;
 
     /**
+     * Indicates if automatic seeding should be disabled during the test.
+     *
+     * @var bool
+     */
+    protected $withoutSeeding = false;
+
+    /**
      * Creates the application.
      */
     public function createApplication()
     {
-        $app = require __DIR__.'/../bootstrap/app.php';
+        $app = require __DIR__ . '/../bootstrap/app.php';
 
         $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
@@ -45,20 +52,22 @@ abstract class TestCase extends BaseTestCase
             \Illuminate\Database\Eloquent\Model::unsetEventDispatcher();
         }
 
-        // Seed necessary data for tests
-        $this->seed([
-            \Database\Seeders\PermissionSeeder::class,
-            \Database\Seeders\RoleSeeder::class,
-        ]);
+        // Seed necessary data for tests (unless explicitly disabled)
+        if (! $this->withoutSeeding) {
+            $this->seed([
+                \Database\Seeders\PermissionSeeder::class,
+                \Database\Seeders\RoleSeeder::class,
+            ]);
 
-        // CRITICAL: Always create system admin as first user
-        // This prevents any test user from accidentally becoming administrator
-        $this->ensureSystemAdminExists();
+            // CRITICAL: Always create system admin as first user
+            // This prevents any test user from accidentally becoming administrator
+            $this->ensureSystemAdminExists();
+        }
     }
 
     /**
      * Ensure system admin user exists as first user
-     * This prevents test users from accidentally getting admin privileges
+     * This prevents test users from accidentally getting admin privileges.
      */
     protected function ensureSystemAdminExists(): void
     {
@@ -67,11 +76,11 @@ abstract class TestCase extends BaseTestCase
             $adminUser = \App\Models\User::factory()->create([
                 'email' => 'system@admin.com',
                 'name' => 'System Administrator',
-                'password' => bcrypt('system-admin-password')
+                'password' => bcrypt('system-admin-password'),
             ]);
-            
+
             // Verify first user is admin
-            if (!$adminUser->isAdministrator()) {
+            if (! $adminUser->isAdministrator()) {
                 // Debug output
                 \Log::error('Administrator role check failed:', [
                     'user_id' => $adminUser->id,
@@ -81,7 +90,7 @@ abstract class TestCase extends BaseTestCase
                     'admin_role_exists' => \App\Models\Role::where('is_administrator', true)->exists(),
                     'admin_role' => \App\Models\Role::where('is_administrator', true)->first()?->toArray(),
                 ]);
-                
+
                 throw new \Exception('Critical: First user is not an administrator!');
             }
         }

@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Permission;
 
-use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\Area;
+use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\Permission;
@@ -67,9 +67,10 @@ class AssetPermissionTest extends TestCase
             ->get(route('asset-hierarchy.assets'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/assets/index')
-            ->has('asset.data', 1) // Should only see the one asset in their plant
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/assets/index')
+                ->has('asset.data', 1) // Should only see the one asset in their plant
         );
     }
 
@@ -77,7 +78,7 @@ class AssetPermissionTest extends TestCase
     {
         // Act as admin when creating plants to ensure audit logs have a user_id
         $this->actingAs($this->admin);
-        
+
         // Create another asset in a different plant
         $otherPlant = Plant::factory()->create();
         $otherArea = Area::factory()->create(['plant_id' => $otherPlant->id]);
@@ -92,9 +93,10 @@ class AssetPermissionTest extends TestCase
             ->get(route('asset-hierarchy.assets'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/assets/index')
-            ->has('asset.data', 2) // Admin should see both assets
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/assets/index')
+                ->has('asset.data', 2) // Admin should see both assets
         );
     }
 
@@ -112,9 +114,10 @@ class AssetPermissionTest extends TestCase
             ->get(route('asset-hierarchy.assets.show', $this->asset));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/assets/show')
-            ->has('asset')
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/assets/show')
+                ->has('asset')
         );
     }
 
@@ -164,10 +167,11 @@ class AssetPermissionTest extends TestCase
             ->get(route('asset-hierarchy.assets'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/assets/index')
-            ->has('asset.data', 1) // Should only see asset in their sector
-            ->where('asset.data.0.id', $this->asset->id)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/assets/index')
+                ->has('asset.data', 1) // Should only see asset in their sector
+                ->where('asset.data.0.id', $this->asset->id)
         );
     }
 
@@ -288,4 +292,4 @@ class AssetPermissionTest extends TestCase
 
         $response->assertStatus(403);
     }
-} 
+}

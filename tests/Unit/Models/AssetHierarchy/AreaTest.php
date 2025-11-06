@@ -11,7 +11,6 @@ use Tests\Unit\ModelTestCase;
 
 class AreaTest extends ModelTestCase
 {
-
     public function test_area_can_be_created_with_factory()
     {
         $area = Area::factory()->create();
@@ -107,7 +106,7 @@ class AreaTest extends ModelTestCase
     {
         $plant = Plant::factory()->create();
         $shift = Shift::factory()->create();
-        
+
         $data = [
             'name' => 'Test Area',
             'description' => 'Test Description',
@@ -121,4 +120,4 @@ class AreaTest extends ModelTestCase
         $this->assertEquals('Test Area', $area->name);
         $this->assertEquals('Test Description', $area->description);
     }
-} 
+}

@@ -13,12 +13,16 @@ return [
     | incoming requests. Laravel supports a variety of storage options to
     | persist session data. Database storage is a great default choice.
     |
+    | MULTI-TENANCY NOTE: This application uses Redis for session storage
+    | with automatic tenant prefixing via RedisTenancyBootstrapper.
+    | The 'database' fallback is kept for emergency rollback scenarios.
+    |
     | Supported: "file", "cookie", "database", "apc",
     |            "memcached", "redis", "dynamodb", "array"
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'database'),
+    'driver' => env('SESSION_DRIVER', 'database'),  // Production uses 'redis'
 
     /*
     |--------------------------------------------------------------------------
@@ -71,9 +75,13 @@ return [
     | connection that should be used to manage these sessions. This should
     | correspond to a connection in your database configuration options.
     |
+    | MULTI-TENANCY NOTE: With Redis sessions, RedisTenancyBootstrapper
+    | automatically prefixes all Redis keys with the tenant UUID, ensuring
+    | complete session isolation across tenants.
+    |
     */
 
-    'connection' => env('SESSION_CONNECTION'),
+    'connection' => env('SESSION_CONNECTION'),  // Uses 'default' Redis connection
 
     /*
     |--------------------------------------------------------------------------
@@ -129,7 +137,7 @@ return [
 
     'cookie' => env(
         'SESSION_COOKIE',
-        Str::slug(env('APP_NAME', 'laravel'), '_').'_session'
+        Str::slug(env('APP_NAME', 'laravel'), '_') . '_session'
     ),
 
     /*
@@ -154,9 +162,12 @@ return [
     | available to. By default, the cookie will be available to the root
     | domain and all subdomains. Typically, this shouldn't be changed.
     |
+    | For multi-tenancy with subdomains, set SESSION_DOMAIN to .yourdomain.com
+    | to allow session sharing across all tenant subdomains.
+    |
     */
 
-    'domain' => env('SESSION_DOMAIN'),
+    'domain' => env('SESSION_DOMAIN', null),
 
     /*
     |--------------------------------------------------------------------------

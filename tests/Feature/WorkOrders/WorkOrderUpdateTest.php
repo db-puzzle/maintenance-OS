@@ -2,16 +2,16 @@
 
 namespace Tests\Feature\WorkOrders;
 
-use Tests\TestCase;
+use App\Models\AssetHierarchy\Area;
+use App\Models\AssetHierarchy\Asset;
+use App\Models\AssetHierarchy\Plant;
+use App\Models\AssetHierarchy\Sector;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\WorkOrders\WorkOrder;
 use App\Models\WorkOrders\WorkOrderType;
-use App\Models\AssetHierarchy\Asset;
-use App\Models\AssetHierarchy\Plant;
-use App\Models\AssetHierarchy\Area;
-use App\Models\AssetHierarchy\Sector;
-use App\Models\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class WorkOrderUpdateTest extends TestCase
 {
@@ -30,7 +30,7 @@ class WorkOrderUpdateTest extends TestCase
         $this->admin = User::factory()->create();
         $adminRole = Role::firstOrCreate(['name' => 'Administrator']);
         $this->admin->assignRole($adminRole);
-        
+
         // Authenticate as admin before creating entities
         $this->actingAs($this->admin);
 
@@ -46,7 +46,7 @@ class WorkOrderUpdateTest extends TestCase
 
         // Create work order type
         $this->workOrderType = WorkOrderType::factory()->create([
-            'category' => 'corrective'
+            'category' => 'corrective',
         ]);
 
         // Create work order
@@ -74,7 +74,7 @@ class WorkOrderUpdateTest extends TestCase
 
         $newAsset = Asset::factory()->create();
         $newType = WorkOrderType::factory()->create([
-            'category' => 'preventive'
+            'category' => 'preventive',
         ]);
 
         $updateData = [
@@ -101,7 +101,7 @@ class WorkOrderUpdateTest extends TestCase
 
         // Verify the work order was updated
         $this->workOrder->refresh();
-        
+
         $this->assertEquals($newType->id, $this->workOrder->work_order_type_id);
         $this->assertEquals('preventive', $this->workOrder->work_order_category);
         $this->assertEquals('Updated Title', $this->workOrder->title);
@@ -135,10 +135,10 @@ class WorkOrderUpdateTest extends TestCase
 
         // Verify only specified fields were updated
         $this->workOrder->refresh();
-        
+
         $this->assertEquals('Only Title Updated', $this->workOrder->title);
         $this->assertEquals('Only Description Updated', $this->workOrder->description);
-        
+
         // Verify other fields remain unchanged
         $this->assertEquals('corrective', $this->workOrder->work_order_category);
         $this->assertEquals(50, $this->workOrder->priority_score);
@@ -169,7 +169,7 @@ class WorkOrderUpdateTest extends TestCase
 
         // Verify only allowed fields were updated
         $this->workOrder->refresh();
-        
+
         // These fields should NOT have been updated for in_progress status
         $this->assertEquals('Original Title', $this->workOrder->title);
         $this->assertEquals('corrective', $this->workOrder->work_order_category);
@@ -194,7 +194,7 @@ class WorkOrderUpdateTest extends TestCase
         $response->assertSessionHasErrors([
             'priority_score',
             'work_order_category',
-            'work_order_type_id'
+            'work_order_type_id',
         ]);
 
         // Verify nothing was updated
@@ -204,7 +204,7 @@ class WorkOrderUpdateTest extends TestCase
     }
 
     /**
-     * Test that work orders can only be edited when in 'requested' status
+     * Test that work orders can only be edited when in 'requested' status.
      */
     public function test_can_only_update_work_order_in_requested_status()
     {
@@ -224,7 +224,7 @@ class WorkOrderUpdateTest extends TestCase
     }
 
     /**
-     * Test that approved work orders cannot be edited
+     * Test that approved work orders cannot be edited.
      */
     public function test_cannot_update_approved_work_order()
     {
@@ -256,7 +256,7 @@ class WorkOrderUpdateTest extends TestCase
     }
 
     /**
-     * Test that rejected work orders cannot be edited
+     * Test that rejected work orders cannot be edited.
      */
     public function test_cannot_update_rejected_work_order()
     {
@@ -284,7 +284,7 @@ class WorkOrderUpdateTest extends TestCase
     }
 
     /**
-     * Test that planned work orders cannot be edited
+     * Test that planned work orders cannot be edited.
      */
     public function test_cannot_update_planned_work_order()
     {
@@ -312,7 +312,7 @@ class WorkOrderUpdateTest extends TestCase
     }
 
     /**
-     * Test that completed work orders cannot be edited
+     * Test that completed work orders cannot be edited.
      */
     public function test_cannot_update_completed_work_order()
     {
@@ -338,7 +338,7 @@ class WorkOrderUpdateTest extends TestCase
     }
 
     /**
-     * Test all different statuses to ensure only 'requested' allows updates
+     * Test all different statuses to ensure only 'requested' allows updates.
      */
     public function test_comprehensive_status_update_restrictions()
     {
@@ -374,11 +374,11 @@ class WorkOrderUpdateTest extends TestCase
             );
 
             $response->assertRedirect();
-            
+
             $workOrder->refresh();
             // Title should not have been updated for any of these statuses
             $this->assertEquals(
-                'Original Title', 
+                'Original Title',
                 $workOrder->title,
                 "Work order in '{$status}' status should not allow title updates"
             );
@@ -386,7 +386,7 @@ class WorkOrderUpdateTest extends TestCase
     }
 
     /**
-     * Test that in_progress status only allows specific field updates
+     * Test that in_progress status only allows specific field updates.
      */
     public function test_in_progress_allows_only_estimated_hours_update()
     {
@@ -414,4 +414,4 @@ class WorkOrderUpdateTest extends TestCase
         $this->assertEquals(50, $this->workOrder->priority_score);
         $this->assertEquals(8.5, $this->workOrder->estimated_hours);
     }
-} 
+}

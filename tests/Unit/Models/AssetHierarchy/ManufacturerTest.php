@@ -8,7 +8,6 @@ use Tests\Unit\ModelTestCase;
 
 class ManufacturerTest extends ModelTestCase
 {
-
     public function test_manufacturer_can_be_created_with_factory()
     {
         $manufacturer = Manufacturer::factory()->create();
@@ -35,7 +34,7 @@ class ManufacturerTest extends ModelTestCase
     public function test_manufacturer_asset_count_attribute()
     {
         $manufacturer = Manufacturer::factory()->create();
-        
+
         $this->assertEquals(0, $manufacturer->asset_count);
 
         Asset::factory()->count(5)->create([
@@ -93,4 +92,4 @@ class ManufacturerTest extends ModelTestCase
         $this->assertNotNull($manufacturer->name);
         $this->assertNotNull($manufacturer->country);
     }
-} 
+}

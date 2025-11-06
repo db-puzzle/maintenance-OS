@@ -12,15 +12,18 @@ use Illuminate\Queue\SerializesModels;
 
 class GenerateImageVariants implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
+
     /**
      * Create a new job instance.
      */
     public function __construct(
         private ItemImage $itemImage
     ) {}
-    
+
     /**
      * Execute the job.
      */
@@ -30,7 +33,7 @@ class GenerateImageVariants implements ShouldQueue
             $this->itemImage->id,
             $this->itemImage->storage_path
         );
-        
+
         foreach ($variants as $variantData) {
             $this->itemImage->variants()->create($variantData);
         }

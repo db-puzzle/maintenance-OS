@@ -43,7 +43,7 @@ class RolePermissionsMatrixTest extends TestCase
             ['name' => 'assets.view', 'guard_name' => 'web'],
             ['display_name' => 'View Assets']
         );
-        
+
         // Create custom roles
         $managerRole = Role::create(['name' => 'manager', 'display_name' => 'Manager']);
         $managerRole->givePermissionTo([$viewUsersPermission, $viewAssetsPermission]);
@@ -56,14 +56,14 @@ class RolePermissionsMatrixTest extends TestCase
 
         // Assert
         $response->assertSuccessful();
-        $response->assertInertia(fn ($page) => $page
-            ->component('settings/roles/index')
-            ->has('permissions') // Has permissions array
-            ->has('rolesWithPermissions') // Has roles with permissions
-            ->where('filters.view', 'grid')
-            ->has('rolesWithPermissions.0.permissions') // First role should have permissions
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('settings/roles/index')
+                ->has('permissions') // Has permissions array
+                ->has('rolesWithPermissions') // Has roles with permissions
+                ->where('filters.view', 'grid')
+                ->has('rolesWithPermissions.0.permissions') // First role should have permissions
         );
-
     }
 
     /** @test */
@@ -77,11 +77,12 @@ class RolePermissionsMatrixTest extends TestCase
 
         // Assert
         $response->assertSuccessful();
-        $response->assertInertia(fn ($page) => $page
-            ->component('settings/roles/index')
-            ->missing('permissions')
-            ->missing('rolesWithPermissions')
-            ->missing('filters.view') // Default doesn't include view parameter
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('settings/roles/index')
+                ->missing('permissions')
+                ->missing('rolesWithPermissions')
+                ->missing('filters.view') // Default doesn't include view parameter
         );
     }
 
@@ -93,23 +94,25 @@ class RolePermissionsMatrixTest extends TestCase
 
         // Act - First check list view
         $listResponse = $this->get('/settings/roles?view=list');
-        
+
         // Assert list view
         $listResponse->assertSuccessful();
-        $listResponse->assertInertia(fn ($page) => $page
-            ->where('filters.view', 'list')
-            ->missing('permissions')
+        $listResponse->assertInertia(
+            fn ($page) => $page
+                ->where('filters.view', 'list')
+                ->missing('permissions')
         );
 
         // Act - Then check grid view
         $gridResponse = $this->get('/settings/roles?view=grid');
-        
+
         // Assert grid view
         $gridResponse->assertSuccessful();
-        $gridResponse->assertInertia(fn ($page) => $page
-            ->where('filters.view', 'grid')
-            ->has('permissions')
-            ->has('rolesWithPermissions')
+        $gridResponse->assertInertia(
+            fn ($page) => $page
+                ->where('filters.view', 'grid')
+                ->has('permissions')
+                ->has('rolesWithPermissions')
         );
     }
 
@@ -124,12 +127,13 @@ class RolePermissionsMatrixTest extends TestCase
 
         // Assert
         $response->assertSuccessful();
-        $response->assertInertia(fn ($page) => $page
-            ->where('filters.search', 'admin')
-            ->where('filters.type', 'system')
-            ->where('filters.view', 'grid')
-            ->where('filters.sort', 'name')
-            ->where('filters.direction', 'desc')
+        $response->assertInertia(
+            fn ($page) => $page
+                ->where('filters.search', 'admin')
+                ->where('filters.type', 'system')
+                ->where('filters.view', 'grid')
+                ->where('filters.sort', 'name')
+                ->where('filters.direction', 'desc')
         );
     }
 

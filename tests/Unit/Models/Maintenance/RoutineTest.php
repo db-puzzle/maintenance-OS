@@ -2,23 +2,18 @@
 
 namespace Tests\Unit\Models\Maintenance;
 
-use App\Models\AssetHierarchy\Asset;
-use App\Models\Forms\Form;
-use App\Models\Forms\FormVersion;
 use App\Models\Maintenance\Routine;
-use App\Models\WorkOrders\WorkOrder;
-use App\Models\User;
 use Tests\Unit\ModelTestCase;
 
 class RoutineTest extends ModelTestCase
 {
     /**
-     * Test routine relationship methods exist
+     * Test routine relationship methods exist.
      */
     public function test_routine_relationship_methods_exist()
     {
-        $routine = new Routine();
-        
+        $routine = new Routine;
+
         // Test that relationship methods exist
         $this->assertTrue(method_exists($routine, 'asset'));
         $this->assertTrue(method_exists($routine, 'form'));
@@ -29,7 +24,7 @@ class RoutineTest extends ModelTestCase
     }
 
     /**
-     * Test routine factory states set correct attributes
+     * Test routine factory states set correct attributes.
      */
     public function test_routine_factory_states_attributes()
     {
@@ -38,29 +33,29 @@ class RoutineTest extends ModelTestCase
         $this->assertEquals('runtime_hours', $dailyRoutine->trigger_type);
         $this->assertEquals(24, $dailyRoutine->trigger_runtime_hours);
         $this->assertEquals('Daily Inspection', $dailyRoutine->name);
-        
+
         // Test weekly state
         $weeklyRoutine = Routine::factory()->weekly()->make();
         $this->assertEquals('runtime_hours', $weeklyRoutine->trigger_type);
         $this->assertEquals(168, $weeklyRoutine->trigger_runtime_hours);
         $this->assertEquals('Weekly Maintenance', $weeklyRoutine->name);
-        
+
         // Test monthly state
         $monthlyRoutine = Routine::factory()->monthly()->make();
         $this->assertEquals('calendar_days', $monthlyRoutine->trigger_type);
         $this->assertEquals(30, $monthlyRoutine->trigger_calendar_days);
         $this->assertEquals('Monthly Maintenance', $monthlyRoutine->name);
-        
+
         // Test manual state
         $manualRoutine = Routine::factory()->manual()->make();
         $this->assertEquals('manual', $manualRoutine->execution_mode);
-        
+
         // Test runtime-based state
         $runtimeRoutine = Routine::factory()->runtimeBased()->make();
         $this->assertEquals('runtime_hours', $runtimeRoutine->trigger_type);
         $this->assertNotNull($runtimeRoutine->trigger_runtime_hours);
         $this->assertNull($runtimeRoutine->trigger_calendar_days);
-        
+
         // Test calendar-based state
         $calendarRoutine = Routine::factory()->calendarBased()->make();
         $this->assertEquals('calendar_days', $calendarRoutine->trigger_type);
@@ -69,7 +64,7 @@ class RoutineTest extends ModelTestCase
     }
 
     /**
-     * Test routine fillable attributes
+     * Test routine fillable attributes.
      */
     public function test_routine_fillable_attributes()
     {
@@ -92,22 +87,22 @@ class RoutineTest extends ModelTestCase
             'is_active',
             'created_by',
         ];
-        
-        $routine = new Routine();
-        
+
+        $routine = new Routine;
+
         foreach ($fillable as $field) {
             $this->assertContains($field, $routine->getFillable());
         }
     }
 
     /**
-     * Test routine casts
+     * Test routine casts.
      */
     public function test_routine_casts()
     {
-        $routine = new Routine();
+        $routine = new Routine;
         $casts = $routine->getCasts();
-        
+
         $this->assertEquals('integer', $casts['trigger_runtime_hours']);
         $this->assertEquals('integer', $casts['trigger_calendar_days']);
         $this->assertEquals('integer', $casts['advance_generation_days']);
@@ -119,12 +114,12 @@ class RoutineTest extends ModelTestCase
     }
 
     /**
-     * Test routine scopes
+     * Test routine scopes.
      */
     public function test_routine_scopes()
     {
-        $routine = new Routine();
-        
+        $routine = new Routine;
+
         // Test that scope methods exist
         $this->assertTrue(method_exists($routine, 'scopeAutomatic'));
         $this->assertTrue(method_exists($routine, 'scopeManual'));
@@ -134,12 +129,12 @@ class RoutineTest extends ModelTestCase
     }
 
     /**
-     * Test routine helper methods
+     * Test routine helper methods.
      */
     public function test_routine_helper_methods()
     {
-        $routine = new Routine();
-        
+        $routine = new Routine;
+
         // Test that helper methods exist
         $this->assertTrue(method_exists($routine, 'isDue'));
         $this->assertTrue(method_exists($routine, 'getHoursUntilDue'));
@@ -152,7 +147,7 @@ class RoutineTest extends ModelTestCase
     }
 
     /**
-     * Test routine computed attributes
+     * Test routine computed attributes.
      */
     public function test_routine_computed_attributes()
     {
@@ -161,27 +156,27 @@ class RoutineTest extends ModelTestCase
             'trigger_runtime_hours' => 500,
             'last_execution_runtime_hours' => 1000,
         ]);
-        
+
         // Test progress percentage attribute
         $this->assertIsNumeric($routine->progress_percentage);
-        
+
         // Test estimated hours until due attribute
         $this->assertIsNumeric($routine->estimated_hours_until_due);
-        
+
         // Test next due date attribute (should be null for runtime-based)
         $this->assertNull($routine->next_due_date);
-        
+
         // Test calendar-based routine
         $calendarRoutine = Routine::factory()->make([
             'trigger_type' => 'calendar_days',
             'trigger_calendar_days' => 30,
             'last_execution_completed_at' => now()->subDays(20),
         ]);
-        
+
         // Next due date should be set for calendar-based
         $this->assertNotNull($calendarRoutine->next_due_date);
-        
+
         // Estimated hours should be null for calendar-based
         $this->assertNull($calendarRoutine->estimated_hours_until_due);
     }
-} 
+}

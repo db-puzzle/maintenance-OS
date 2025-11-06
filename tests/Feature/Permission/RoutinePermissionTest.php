@@ -2,15 +2,15 @@
 
 namespace Tests\Feature\Permission;
 
-use Tests\TestCase;
-use App\Models\User;
+use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\Plant;
-use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\Maintenance\Routine;
 use App\Models\Permission;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class RoutinePermissionTest extends TestCase
 {
@@ -65,14 +65,14 @@ class RoutinePermissionTest extends TestCase
             ->post(route('maintenance.assets.routines.store', $this->asset), [
                 'name' => 'Test Routine',
                 'trigger_hours' => 24,
-                'description' => 'Test description'
+                'description' => 'Test description',
             ]);
 
         $response->assertRedirect();
         $response->assertSessionHas('success');
         $this->assertDatabaseHas('routines', [
             'name' => 'Test Routine',
-            'asset_id' => $this->asset->id
+            'asset_id' => $this->asset->id,
         ]);
     }
 
@@ -82,14 +82,14 @@ class RoutinePermissionTest extends TestCase
             ->post(route('maintenance.assets.routines.store', $this->asset), [
                 'name' => 'Test Routine',
                 'trigger_hours' => 24,
-                'description' => 'Test description'
+                'description' => 'Test description',
             ]);
 
         $response->assertRedirect();
         $response->assertSessionHas('success');
         $this->assertDatabaseHas('routines', [
             'name' => 'Test Routine',
-            'asset_id' => $this->asset->id
+            'asset_id' => $this->asset->id,
         ]);
     }
 
@@ -99,13 +99,13 @@ class RoutinePermissionTest extends TestCase
             ->post(route('maintenance.assets.routines.store', $this->asset), [
                 'name' => 'Test Routine',
                 'trigger_hours' => 24,
-                'description' => 'Test description'
+                'description' => 'Test description',
             ]);
 
         $response->assertForbidden();
         $this->assertDatabaseMissing('routines', [
             'name' => 'Test Routine',
-            'asset_id' => $this->asset->id
+            'asset_id' => $this->asset->id,
         ]);
     }
 
@@ -115,10 +115,10 @@ class RoutinePermissionTest extends TestCase
         // can execute routines. However, since routine execution requires form
         // responses and we're testing permissions (not the execution flow),
         // we'll test the authorization directly.
-        
+
         // Verify the technician has the correct permission
         $this->assertTrue($this->technician->hasPermissionTo("assets.execute-routines.plant.{$this->plant->id}"));
-        
+
         // Verify the technician can execute routines on this asset
         $this->assertTrue($this->technician->can('execute-routines', $this->asset));
     }
@@ -133,7 +133,7 @@ class RoutinePermissionTest extends TestCase
         $response->assertForbidden();
         $this->assertDatabaseMissing('routine_executions', [
             'routine_id' => $this->routine->id,
-            'executed_by' => $unauthorizedUser->id
+            'executed_by' => $unauthorizedUser->id,
         ]);
     }
 
@@ -141,19 +141,19 @@ class RoutinePermissionTest extends TestCase
     {
         // Verify that no routine-specific permissions exist in the database
         $this->assertDatabaseMissing('permissions', [
-            'name' => 'routines.viewAny.plant.' . $this->plant->id
+            'name' => 'routines.viewAny.plant.' . $this->plant->id,
         ]);
         $this->assertDatabaseMissing('permissions', [
-            'name' => 'routines.create.plant.' . $this->plant->id
+            'name' => 'routines.create.plant.' . $this->plant->id,
         ]);
         $this->assertDatabaseMissing('permissions', [
-            'name' => 'routines.update.plant.' . $this->plant->id
+            'name' => 'routines.update.plant.' . $this->plant->id,
         ]);
         $this->assertDatabaseMissing('permissions', [
-            'name' => 'routines.delete.plant.' . $this->plant->id
+            'name' => 'routines.delete.plant.' . $this->plant->id,
         ]);
         $this->assertDatabaseMissing('permissions', [
-            'name' => 'routines.execute.plant.' . $this->plant->id
+            'name' => 'routines.execute.plant.' . $this->plant->id,
         ]);
     }
 
@@ -175,8 +175,8 @@ class RoutinePermissionTest extends TestCase
                 'name' => 'Updated Routine',
                 'trigger_hours' => 48,
                 'status' => 'Active',
-                'description' => 'Updated description'
+                'description' => 'Updated description',
             ]);
         $response->assertForbidden();
     }
-} 
+}

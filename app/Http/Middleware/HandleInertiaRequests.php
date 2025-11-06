@@ -48,13 +48,19 @@ class HandleInertiaRequests extends Middleware
                     'id' => $request->user()->id,
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
-                    'timezone' => $request->user()->timezone,
-                    'roles' => $request->user()->roles->map(function ($role) {
-                        return ['id' => $role->id, 'name' => $role->name];
-                    }),
+                    'timezone' => $request->user()->timezone ?? null,
+                    'roles' => method_exists($request->user(), 'getRoleNames')
+                        ? $request->user()->roles->map(function ($role) {
+                            return ['id' => $role->id, 'name' => $role->name];
+                        })
+                        : [],
                 ] : null,
-                'permissions' => $request->user() ? $request->user()->getAllEffectivePermissions()->pluck('name') : [],
-                'roles' => $request->user() ? $request->user()->getRoleNames() : [],
+                'permissions' => $request->user() && method_exists($request->user(), 'getAllEffectivePermissions')
+                    ? $request->user()->getAllEffectivePermissions()->pluck('name')
+                    : [],
+                'roles' => $request->user() && method_exists($request->user(), 'getRoleNames')
+                    ? $request->user()->getRoleNames()
+                    : [],
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
@@ -68,6 +74,7 @@ class HandleInertiaRequests extends Middleware
                 'showValidationModal' => fn () => $request->session()->get('showValidationModal', false),
                 'schedulingJob' => fn () => $request->session()->get('schedulingJob'),
             ],
+            'subdomainCheck' => fn () => $request->session()->get('subdomainCheck'),
             'schedulingConfig' => fn () => [
                 'locked_schedules_enabled' => config('scheduling.respect_locked_schedules', true),
                 'max_scheduling_days' => config('scheduling.max_days_ahead', 90),

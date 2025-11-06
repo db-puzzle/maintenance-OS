@@ -4,11 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Certification;
 use App\Models\User;
-use App\Models\Role;
-use App\Models\Permission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-use Carbon\Carbon;
 
 class CertificationTest extends TestCase
 {
@@ -49,9 +46,10 @@ class CertificationTest extends TestCase
         $response = $this->actingAs($this->admin)->get(route('certifications.index'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('certifications/index')
-            ->has('certifications.data', 5)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('certifications/index')
+                ->has('certifications.data', 5)
         );
     }
 
@@ -63,10 +61,11 @@ class CertificationTest extends TestCase
         $response = $this->actingAs($this->technician)->get(route('certifications.index'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('certifications/index')
-            ->has('certifications.data', 3)
-            ->where('can.create', false)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('certifications/index')
+                ->has('certifications.data', 3)
+                ->where('can.create', false)
         );
     }
 
@@ -213,7 +212,7 @@ class CertificationTest extends TestCase
     {
         $certification = Certification::factory()->create();
         $users = User::factory()->count(3)->create();
-        
+
         foreach ($users as $user) {
             $certification->users()->attach($user, [
                 'issued_at' => now(),
@@ -266,8 +265,9 @@ class CertificationTest extends TestCase
             ->get(route('certifications.index', ['search' => 'ISO']));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->has('certifications.data', 2)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->has('certifications.data', 2)
         );
     }
 
@@ -281,8 +281,9 @@ class CertificationTest extends TestCase
             ->get(route('certifications.index', ['active' => '1']));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->has('certifications.data', 3)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->has('certifications.data', 3)
         );
     }
 
@@ -308,11 +309,12 @@ class CertificationTest extends TestCase
         $response = $this->actingAs($this->admin)->get(route('certifications.show', $certification));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('certifications/show')
-            ->where('certification.name', 'Test Certification')
-            ->where('certification.issuing_organization', 'Test Org')
-            ->has('certification.users', 2)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('certifications/show')
+                ->where('certification.name', 'Test Certification')
+                ->where('certification.issuing_organization', 'Test Org')
+                ->has('certification.users', 2)
         );
     }
 
@@ -324,7 +326,7 @@ class CertificationTest extends TestCase
         ]);
 
         $user = User::factory()->create();
-        
+
         // Add an expired certification
         $certification->users()->attach($user, [
             'issued_at' => now()->subYears(2),
@@ -335,8 +337,9 @@ class CertificationTest extends TestCase
         $response = $this->actingAs($this->admin)->get(route('certifications.show', $certification));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->where('certification.users.0.is_expired', true)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->where('certification.users.0.is_expired', true)
         );
     }
 
@@ -347,10 +350,10 @@ class CertificationTest extends TestCase
 
         // Can create
         $this->assertTrue($this->plantManager->can('create', Certification::class));
-        
+
         // Can update
         $this->assertTrue($this->plantManager->can('update', $certification));
-        
+
         // Can delete
         $this->assertTrue($this->plantManager->can('delete', $certification));
     }
@@ -365,10 +368,10 @@ class CertificationTest extends TestCase
 
         // Can create
         $this->assertTrue($supervisor->can('create', Certification::class));
-        
+
         // Can update
         $this->assertTrue($supervisor->can('update', $certification));
-        
+
         // Can delete
         $this->assertTrue($supervisor->can('delete', $certification));
     }

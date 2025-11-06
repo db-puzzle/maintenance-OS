@@ -11,6 +11,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // For multi-tenancy, we'll use the CentralDatabaseSeeder for the central database
+        // This seeder should not be run directly anymore
+        $this->command->warn('Note: This seeder contains tenant-specific seeds.');
+        $this->command->warn('Use CentralDatabaseSeeder for central database seeding.');
+        $this->command->warn('Use TenantDatabaseSeeder for tenant database seeding.');
+
+        return;
         $this->call([
             // Core System
             PermissionSeeder::class,

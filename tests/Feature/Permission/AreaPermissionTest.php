@@ -77,10 +77,11 @@ class AreaPermissionTest extends TestCase
             ->get(route('asset-hierarchy.areas'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/areas/index')
-            ->has('areas.data', 1) // Should only see the one area they have permission for
-            ->where('areas.data.0.name', 'Test Area')
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/areas/index')
+                ->has('areas.data', 1) // Should only see the one area they have permission for
+                ->where('areas.data.0.name', 'Test Area')
         );
     }
 
@@ -90,9 +91,10 @@ class AreaPermissionTest extends TestCase
             ->get(route('asset-hierarchy.areas'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/areas/index')
-            ->has('areas.data', 2) // Admin should see both areas
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/areas/index')
+                ->has('areas.data', 2) // Admin should see both areas
         );
     }
 
@@ -110,10 +112,11 @@ class AreaPermissionTest extends TestCase
             ->get(route('asset-hierarchy.areas.show', $this->area));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/areas/show')
-            ->has('area')
-            ->where('area.id', $this->area->id)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/areas/show')
+                ->has('area')
+                ->where('area.id', $this->area->id)
         );
     }
 
@@ -133,7 +136,7 @@ class AreaPermissionTest extends TestCase
     {
         // Create sector in the area
         $sector = Sector::factory()->create(['area_id' => $this->area->id]);
-        
+
         // Create user with sector permission
         $sectorUser = User::factory()->create();
         $sectorUser->givePermissionTo("sectors.view.{$sector->id}");
@@ -337,10 +340,11 @@ class AreaPermissionTest extends TestCase
             ->get(route('asset-hierarchy.areas'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('asset-hierarchy/areas/index')
-            ->has('areas.data', 1)
-            ->where('areas.data.0.id', $this->area->id)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->component('asset-hierarchy/areas/index')
+                ->has('areas.data', 1)
+                ->where('areas.data.0.id', $this->area->id)
         );
 
         // User should not see the other area
@@ -366,8 +370,9 @@ class AreaPermissionTest extends TestCase
             ->get(route('asset-hierarchy.areas'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->has('areas.data', 2) // Should see both areas in the plant
+        $response->assertInertia(
+            fn ($page) => $page
+                ->has('areas.data', 2) // Should see both areas in the plant
         );
 
         // Verify both areas are from the same plant
@@ -396,9 +401,10 @@ class AreaPermissionTest extends TestCase
             ->get(route('asset-hierarchy.areas'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->has('areas.data', 1)
-            ->where('areas.data.0.id', $this->area->id)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->has('areas.data', 1)
+                ->where('areas.data.0.id', $this->area->id)
         );
     }
 
@@ -412,9 +418,10 @@ class AreaPermissionTest extends TestCase
             ->get(route('asset-hierarchy.areas'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->has('plants', 1) // Should only see one plant in dropdown
-            ->where('plants.0.id', $this->plant->id)
+        $response->assertInertia(
+            fn ($page) => $page
+                ->has('plants', 1) // Should only see one plant in dropdown
+                ->where('plants.0.id', $this->plant->id)
         );
 
         // Admin should see all plants
@@ -422,8 +429,9 @@ class AreaPermissionTest extends TestCase
             ->get(route('asset-hierarchy.areas'));
 
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->has('plants', 2) // Admin sees all plants
+        $response->assertInertia(
+            fn ($page) => $page
+                ->has('plants', 2) // Admin sees all plants
         );
     }
-} 
+}

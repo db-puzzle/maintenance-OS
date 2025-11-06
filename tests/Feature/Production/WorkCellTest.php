@@ -2,16 +2,15 @@
 
 namespace Tests\Feature\Production;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Production\WorkCell;
-use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Area;
-use App\Models\AssetHierarchy\Sector;
-use App\Models\AssetHierarchy\Shift;
 use App\Models\AssetHierarchy\Manufacturer;
+use App\Models\AssetHierarchy\Plant;
+use App\Models\AssetHierarchy\Shift;
+use App\Models\Production\WorkCell;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
+use Tests\TestCase;
 
 class WorkCellTest extends TestCase
 {
@@ -50,13 +49,14 @@ class WorkCellTest extends TestCase
 
         $this->actingAs($this->admin)
             ->get(route('production.work-cells.index'))
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('production/work-cells/index')
-                ->has('workCells.data', 3)
-                ->has('filters')
-                ->has('plants')
-                ->has('shifts')
-                ->has('manufacturers')
+            ->assertInertia(
+                fn (AssertableInertia $page) => $page
+                    ->component('production/work-cells/index')
+                    ->has('workCells.data', 3)
+                    ->has('filters')
+                    ->has('plants')
+                    ->has('shifts')
+                    ->has('manufacturers')
             );
     }
 
@@ -119,16 +119,19 @@ class WorkCellTest extends TestCase
 
         $this->actingAs($this->admin)
             ->get(route('production.work-cells.show', $workCell))
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('production/work-cells/show')
-                ->has('workCell', fn (AssertableInertia $prop) => $prop
-                    ->where('id', $workCell->id)
-                    ->where('name', $workCell->name)
-                    ->etc()
-                )
-                ->has('routingSteps')
-                ->has('productionSchedules')
-                ->has('utilization')
+            ->assertInertia(
+                fn (AssertableInertia $page) => $page
+                    ->component('production/work-cells/show')
+                    ->has(
+                        'workCell',
+                        fn (AssertableInertia $prop) => $prop
+                            ->where('id', $workCell->id)
+                            ->where('name', $workCell->name)
+                            ->etc()
+                    )
+                    ->has('routingSteps')
+                    ->has('productionSchedules')
+                    ->has('utilization')
             );
     }
 

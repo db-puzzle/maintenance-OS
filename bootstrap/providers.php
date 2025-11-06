@@ -5,4 +5,5 @@ return [
     App\Providers\AuthServiceProvider::class,
     App\Providers\PermissionServiceProvider::class,
     App\Providers\MediaServiceProvider::class,
+    App\Providers\TenancyServiceProvider::class,
 ];

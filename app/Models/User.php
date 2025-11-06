@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\WorkOrders\WorkOrder;
 use App\Traits\HasMediaTrait;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -123,6 +124,14 @@ class User extends Authenticatable implements HasMedia
     public function approvedWorkOrders(): HasMany
     {
         return $this->hasMany(WorkOrder::class, 'approved_by');
+    }
+
+    /**
+     * Get work orders requested by this user.
+     */
+    public function requestedWorkOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class, 'requested_by');
     }
 
     /**

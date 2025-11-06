@@ -37,10 +37,10 @@ abstract class ModelTestCase extends TestCase
     }
 
     /**
-     * Override to prevent system admin creation for unit tests
+     * Override to prevent system admin creation for unit tests.
      */
     protected function ensureSystemAdminExists(): void
     {
         // Do nothing - unit tests don't need system admin
     }
-} 
+}

@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\Log;
 
 class GenerateExecutionPDF implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
 
     /**
      * The number of seconds the job can run before timing out.
@@ -41,7 +44,7 @@ class GenerateExecutionPDF implements ShouldQueue
             $filePath = match ($this->export->export_format) {
                 'csv' => $this->generateCSV($pdfService),
                 'pdf' => $this->generatePDF($pdfService),
-                default => throw new \Exception('Unsupported export format: '.$this->export->export_format),
+                default => throw new \Exception('Unsupported export format: ' . $this->export->export_format),
             };
 
             // Update export record
@@ -54,7 +57,7 @@ class GenerateExecutionPDF implements ShouldQueue
                 $this->sendCompletionEmail();
             }
         } catch (\Exception $e) {
-            Log::error('PDF generation failed for export '.$this->export->id, [
+            Log::error('PDF generation failed for export ' . $this->export->id, [
                 'export_id' => $this->export->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -68,7 +71,7 @@ class GenerateExecutionPDF implements ShouldQueue
     }
 
     /**
-     * Generate PDF based on export type
+     * Generate PDF based on export type.
      */
     private function generatePDF(PDFGeneratorService $pdfService): string
     {
@@ -95,7 +98,7 @@ class GenerateExecutionPDF implements ShouldQueue
     }
 
     /**
-     * Generate CSV export
+     * Generate CSV export.
      */
     private function generateCSV(PDFGeneratorService $pdfService): string
     {
@@ -109,7 +112,7 @@ class GenerateExecutionPDF implements ShouldQueue
     }
 
     /**
-     * Check if email should be sent
+     * Check if email should be sent.
      */
     private function shouldSendEmail(): bool
     {
@@ -121,7 +124,7 @@ class GenerateExecutionPDF implements ShouldQueue
     }
 
     /**
-     * Send completion email
+     * Send completion email.
      */
     private function sendCompletionEmail()
     {
@@ -141,7 +144,7 @@ class GenerateExecutionPDF implements ShouldQueue
     }
 
     /**
-     * Get estimated progress percentage
+     * Get estimated progress percentage.
      */
     public function getProgressPercentage(): int
     {
@@ -168,7 +171,7 @@ class GenerateExecutionPDF implements ShouldQueue
     }
 
     /**
-     * Get estimated duration in seconds
+     * Get estimated duration in seconds.
      */
     private function getEstimatedDuration(int $executionCount): int
     {

@@ -34,7 +34,6 @@ class AssembleChunkedUpload implements ShouldQueue
 
     public function handle(MediaService $mediaService): void
     {
-
         $upload = ChunkedUpload::find($this->uploadId);
 
         if (! $upload) {
@@ -42,7 +41,6 @@ class AssembleChunkedUpload implements ShouldQueue
 
             return;
         }
-
 
         if (! $upload->isComplete()) {
             Log::error("[AssembleChunkedUpload] Upload not complete: {$this->uploadId}. Expected {$upload->total_chunks}, found " . count($upload->uploaded_chunks), [
@@ -57,22 +55,18 @@ class AssembleChunkedUpload implements ShouldQueue
         }
 
         try {
-
             $tempPath = $this->assembleChunks($upload);
-
 
             $modelClass = $upload->model_type;
             $modelId = $upload->model_id;
             $collection = $upload->collection;
             $fileName = $upload->filename;
 
-
             $model = $modelClass::find($modelId);
 
             if (! $model) {
                 throw new ModelNotFoundException("Model {$modelClass} with ID {$modelId} not found");
             }
-
 
             // Check if this is part of an import session
             $sessionId = $upload->metadata['sessionId'] ?? null;
@@ -87,7 +81,6 @@ class AssembleChunkedUpload implements ShouldQueue
                 // Move assembled file to session directory
                 $sessionFilePath = "{$sessionDir}/{$fileName}";
                 Storage::disk('local')->put($sessionFilePath, file_get_contents($tempPath));
-
 
                 // Update upload status without creating media yet
                 $upload->status = 'completed';
@@ -116,7 +109,6 @@ class AssembleChunkedUpload implements ShouldQueue
                     'original_size' => $upload->total_size,
                 ]);
 
-
                 // Update upload status
                 $upload->status = 'completed';
                 $upload->metadata = array_merge($upload->metadata, [
@@ -125,7 +117,6 @@ class AssembleChunkedUpload implements ShouldQueue
                 ]);
                 $upload->save();
             }
-
 
             // Cleanup
             Storage::disk('local')->deleteDirectory("chunks/{$upload->id}");
@@ -163,8 +154,7 @@ class AssembleChunkedUpload implements ShouldQueue
         // Sort chunks to ensure correct order
         $chunks = $upload->uploaded_chunks;
         sort($chunks);
-        
-        
+
         $totalBytesWritten = 0;
 
         foreach ($chunks as $chunkIndex) {
@@ -180,17 +170,15 @@ class AssembleChunkedUpload implements ShouldQueue
             $chunkSize = strlen($chunkContent);
             $bytesWritten = fwrite($handle, $chunkContent);
             $totalBytesWritten += $bytesWritten;
-            
         }
 
         fclose($handle);
-        
+
         $finalFileSize = filesize($tempPath);
 
         // Verify file hash using SHA-256 (same as frontend)
         $actualHash = hash_file('sha256', $tempPath);
-        
-        
+
         if ($actualHash !== $upload->file_hash) {
             unlink($tempPath);
             throw new \Exception('File integrity check failed');

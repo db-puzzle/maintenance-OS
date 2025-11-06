@@ -10,7 +10,6 @@ use Tests\Unit\ModelTestCase;
 
 class AssetRuntimeMeasurementTest extends ModelTestCase
 {
-
     public function test_runtime_measurement_can_be_created_with_factory()
     {
         $measurement = AssetRuntimeMeasurement::factory()->create();
@@ -47,12 +46,12 @@ class AssetRuntimeMeasurementTest extends ModelTestCase
     public function test_runtime_measurement_source_types()
     {
         $sources = ['manual', 'shift_change', 'shift_update', 'iot', 'api'];
-        
+
         foreach ($sources as $source) {
             $measurement = AssetRuntimeMeasurement::factory()->create([
                 'source' => $source,
             ]);
-            
+
             $this->assertEquals($source, $measurement->source);
         }
     }
@@ -150,7 +149,7 @@ class AssetRuntimeMeasurementTest extends ModelTestCase
     {
         $asset = Asset::factory()->create();
         $user = User::factory()->create();
-        
+
         $data = [
             'asset_id' => $asset->id,
             'user_id' => $user->id,
@@ -185,7 +184,7 @@ class AssetRuntimeMeasurementTest extends ModelTestCase
     public function test_runtime_measurement_ordering()
     {
         $asset = Asset::factory()->create();
-        
+
         // Create measurements in random order
         $oldest = AssetRuntimeMeasurement::factory()->forAsset($asset)->create([
             'created_at' => now()->subDays(3),
@@ -203,4 +202,4 @@ class AssetRuntimeMeasurementTest extends ModelTestCase
         $this->assertTrue($measurements[1]->is($middle));
         $this->assertTrue($measurements[2]->is($oldest));
     }
-} 
+}

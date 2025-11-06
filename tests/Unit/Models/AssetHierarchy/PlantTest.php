@@ -11,7 +11,6 @@ use Tests\Unit\ModelTestCase;
 
 class PlantTest extends ModelTestCase
 {
-
     public function test_plant_can_be_created_with_factory()
     {
         $plant = Plant::factory()->create();
@@ -119,4 +118,4 @@ class PlantTest extends ModelTestCase
         $this->assertEquals('Test Street', $plant->street);
         $this->assertEquals('123', $plant->number);
     }
-} 
+}

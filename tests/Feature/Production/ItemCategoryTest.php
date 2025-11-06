@@ -2,13 +2,12 @@
 
 namespace Tests\Feature\Production;
 
-use App\Models\Production\ItemCategory;
 use App\Models\Production\Item;
+use App\Models\Production\ItemCategory;
 use App\Models\User;
-use App\Models\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
 
 class ItemCategoryTest extends TestCase
 {
@@ -54,9 +53,10 @@ class ItemCategoryTest extends TestCase
             ->get(route('production.categories.index'));
 
         $response->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('production/item-categories/index')
-                ->has('categories.data', 5)
+            ->assertInertia(
+                fn (Assert $page) => $page
+                    ->component('production/item-categories/index')
+                    ->has('categories.data', 5)
             );
     }
 
@@ -104,7 +104,7 @@ class ItemCategoryTest extends TestCase
             ->post(route('production.categories.store'), $categoryData);
 
         $response->assertRedirect(route('production.categories.index'));
-        
+
         $this->assertDatabaseHas('item_categories', [
             'name' => 'Test Category',
             'description' => 'Test Description',
@@ -126,7 +126,7 @@ class ItemCategoryTest extends TestCase
             ->post(route('production.categories.store'), $categoryData);
 
         $response->assertRedirect(route('production.categories.index'));
-        
+
         $this->assertDatabaseHas('item_categories', [
             'name' => 'Plant Manager Category',
             'created_by' => $this->plantManagerUser->id,
@@ -146,7 +146,7 @@ class ItemCategoryTest extends TestCase
             ->post(route('production.categories.store'), $categoryData);
 
         $response->assertForbidden();
-        
+
         $this->assertDatabaseMissing('item_categories', [
             'name' => 'Technician Category',
         ]);
@@ -179,11 +179,12 @@ class ItemCategoryTest extends TestCase
             ->get(route('production.categories.show', $category));
 
         $response->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('production/item-categories/show')
-                ->has('category')
-                ->where('category.id', $category->id)
-                ->has('items.data', 3)
+            ->assertInertia(
+                fn (Assert $page) => $page
+                    ->component('production/item-categories/show')
+                    ->has('category')
+                    ->where('category.id', $category->id)
+                    ->has('items.data', 3)
             );
     }
 
@@ -206,7 +207,7 @@ class ItemCategoryTest extends TestCase
             ->put(route('production.categories.update', $category), $updateData);
 
         $response->assertRedirect(route('production.categories.show', $category));
-        
+
         $category->refresh();
         $this->assertEquals('Updated Name', $category->name);
         $this->assertEquals('Updated Description', $category->description);
@@ -228,7 +229,7 @@ class ItemCategoryTest extends TestCase
             ->put(route('production.categories.update', $category), $updateData);
 
         $response->assertForbidden();
-        
+
         $category->refresh();
         $this->assertEquals('Original Name', $category->name);
     }
@@ -242,7 +243,7 @@ class ItemCategoryTest extends TestCase
             ->delete(route('production.categories.destroy', $category));
 
         $response->assertRedirect(route('production.categories.index'));
-        
+
         $this->assertDatabaseMissing('item_categories', [
             'id' => $category->id,
         ]);
@@ -259,7 +260,7 @@ class ItemCategoryTest extends TestCase
 
         $response->assertRedirect()
             ->assertSessionHas('error');
-        
+
         $this->assertDatabaseHas('item_categories', [
             'id' => $category->id,
         ]);

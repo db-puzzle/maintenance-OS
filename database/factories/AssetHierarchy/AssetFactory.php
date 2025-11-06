@@ -2,13 +2,12 @@
 
 namespace Database\Factories\AssetHierarchy;
 
+use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\AssetType;
-use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
-use App\Models\AssetHierarchy\Shift;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -33,7 +32,7 @@ class AssetFactory extends Factory
         $plant = Plant::factory()->create();
         $area = Area::factory()->forPlant($plant)->create();
         $sector = Sector::factory()->forArea($area)->create();
-        
+
         return [
             'tag' => strtoupper($this->faker->unique()->bothify('??-###-??')),
             'serial_number' => $this->faker->unique()->numerify('SN-########'),
@@ -46,7 +45,6 @@ class AssetFactory extends Factory
             'area_id' => $area->id,
             'sector_id' => $sector->id,
             'shift_id' => $plant->shift_id,
-            'photo_path' => null,
         ];
     }
 
@@ -60,14 +58,14 @@ class AssetFactory extends Factory
                 'plant_id' => $plant->id,
                 'shift_id' => $plant->shift_id,
             ];
-            
+
             if ($area) {
                 $state['area_id'] = $area->id;
                 if ($sector) {
                     $state['sector_id'] = $sector->id;
                 }
             }
-            
+
             return $state;
         });
     }
@@ -108,12 +106,15 @@ class AssetFactory extends Factory
     }
 
     /**
-     * Indicate that the asset has a photo.
+     * Indicate that the asset has a photo (uses Media Library).
      */
     public function withPhoto(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'photo_path' => 'assets/' . $this->faker->uuid() . '.jpg',
-        ]);
+        return $this->afterCreating(function (Asset $asset) {
+            // Use Spatie Media Library instead of photo_path
+            $asset->addMediaFromString('fake image content')
+                ->usingFileName($this->faker->uuid() . '.jpg')
+                ->toMediaCollection('photos');
+        });
     }
-} 
+}

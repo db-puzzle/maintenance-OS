@@ -10,7 +10,6 @@ use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\AssetHierarchy\Shift;
-use App\Models\Maintenance\Routine;
 use Tests\Unit\ModelTestCase;
 
 class AssetTest extends ModelTestCase
@@ -37,7 +36,7 @@ class AssetTest extends ModelTestCase
 
     public function test_asset_belongs_to_relationships()
     {
-        $asset = new Asset();
+        $asset = new Asset;
 
         // Test that all belongsTo relationship methods exist
         $this->assertTrue(method_exists($asset, 'assetType'));
@@ -46,16 +45,16 @@ class AssetTest extends ModelTestCase
         $this->assertTrue(method_exists($asset, 'sector'));
         $this->assertTrue(method_exists($asset, 'shift'));
         $this->assertTrue(method_exists($asset, 'manufacturer'));
-        
+
         // Create an asset and verify relationships can be accessed
         $asset = Asset::factory()->create();
-        
+
         $this->assertInstanceOf(AssetType::class, $asset->assetType);
         $this->assertInstanceOf(Plant::class, $asset->plant);
         $this->assertInstanceOf(Area::class, $asset->area);
         $this->assertInstanceOf(Sector::class, $asset->sector);
         $this->assertInstanceOf(Shift::class, $asset->shift);
-        
+
         // Test manufacturer separately since it seems problematic
         $this->assertNotNull($asset->manufacturer_id);
         $manufacturer = Manufacturer::find($asset->manufacturer_id);
@@ -136,10 +135,10 @@ class AssetTest extends ModelTestCase
     public function test_asset_current_runtime_hours_attribute()
     {
         $asset = Asset::factory()->create();
-        
+
         // This uses the AssetRuntimeCalculator trait
         $runtime = $asset->current_runtime_hours;
-        
+
         $this->assertIsFloat($runtime);
         $this->assertGreaterThanOrEqual(0, $runtime);
     }
@@ -149,7 +148,7 @@ class AssetTest extends ModelTestCase
         $plant = Plant::factory()->create();
         $assetType = AssetType::factory()->create();
         $manufacturer = Manufacturer::factory()->create();
-        
+
         $data = [
             'tag' => 'TEST-001',
             'serial_number' => 'SN-12345678',
@@ -176,19 +175,17 @@ class AssetTest extends ModelTestCase
     {
         $assetType = AssetType::factory()->create();
         $assets = Asset::factory()->count(3)->create(['asset_type_id' => $assetType->id]);
-        
+
         $this->assertCount(3, $assetType->asset);
         $this->assertTrue($assetType->asset->contains($assets->first()));
     }
-    
+
     public function test_manufacturer_has_many_assets()
     {
         $manufacturer = Manufacturer::factory()->create();
         $assets = Asset::factory()->count(3)->create(['manufacturer_id' => $manufacturer->id]);
-        
+
         $this->assertCount(3, $manufacturer->assets);
         $this->assertEquals(3, $manufacturer->asset_count);
     }
-
-
-} 
+}

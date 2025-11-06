@@ -18,8 +18,8 @@ class SmartProgressServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
-        $this->service = new SmartProgressService();
+
+        $this->service = new SmartProgressService;
         Queue::fake();
     }
 
@@ -29,13 +29,13 @@ class SmartProgressServiceTest extends TestCase
         $childOrder = ManufacturingOrder::factory()->create([
             'parent_id' => $parentOrder->id,
             'quantity' => 100,
-            'quantity_completed' => 50
+            'quantity_completed' => 50,
         ]);
 
         $progress = $this->service->updateProgress($childOrder, true);
 
         $this->assertEquals(50.0, $progress);
-        
+
         // Should queue parent update
         Queue::assertPushed(UpdateSmartProgress::class, function ($job) use ($parentOrder) {
             return $job->order->id === $parentOrder->id;
@@ -48,13 +48,13 @@ class SmartProgressServiceTest extends TestCase
         $childOrder = ManufacturingOrder::factory()->create([
             'parent_id' => $parentOrder->id,
             'quantity' => 100,
-            'quantity_completed' => 50
+            'quantity_completed' => 50,
         ]);
 
         $progress = $this->service->updateProgress($childOrder, false);
 
         $this->assertEquals(50.0, $progress);
-        
+
         // Should NOT queue parent update
         Queue::assertNotPushed(UpdateSmartProgress::class);
     }
@@ -63,7 +63,7 @@ class SmartProgressServiceTest extends TestCase
     {
         $orders = ManufacturingOrder::factory()->count(5)->create([
             'quantity' => 100,
-            'quantity_completed' => 25
+            'quantity_completed' => 25,
         ]);
 
         $updated = $this->service->batchUpdateProgress($orders->pluck('id'));
@@ -83,10 +83,10 @@ class SmartProgressServiceTest extends TestCase
         // Create hierarchy: grandparent -> parent -> child
         $grandparent = ManufacturingOrder::factory()->create();
         $parent = ManufacturingOrder::factory()->create([
-            'parent_id' => $grandparent->id
+            'parent_id' => $grandparent->id,
         ]);
         $child = ManufacturingOrder::factory()->create([
-            'parent_id' => $parent->id
+            'parent_id' => $parent->id,
         ]);
 
         $affected = $this->service->getAffectedOrders($child->id);
@@ -102,7 +102,7 @@ class SmartProgressServiceTest extends TestCase
     {
         $order = ManufacturingOrder::factory()->create([
             'smart_progress_percentage' => 50,
-            'progress_calculated_at' => now()
+            'progress_calculated_at' => now(),
         ]);
 
         $this->service->invalidateProgressCache($order);
@@ -120,19 +120,19 @@ class SmartProgressServiceTest extends TestCase
     {
         $root = ManufacturingOrder::factory()->create([
             'quantity' => 10,
-            'quantity_completed' => 5
+            'quantity_completed' => 5,
         ]);
 
         $child1 = ManufacturingOrder::factory()->create([
             'parent_id' => $root->id,
             'quantity' => 20,
-            'quantity_completed' => 10
+            'quantity_completed' => 10,
         ]);
 
         $child2 = ManufacturingOrder::factory()->create([
             'parent_id' => $root->id,
             'quantity' => 30,
-            'quantity_completed' => 15
+            'quantity_completed' => 15,
         ]);
 
         $breakdown = $this->service->recalculateHierarchy($child1);

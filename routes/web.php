@@ -1,105 +1,62 @@
 <?php
 
-use App\Http\Controllers\AuditLogController;
-use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\SuperAdminController;
-use App\Http\Controllers\UserInvitationController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('welcome');
-})->name('welcome');
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('home', function () {
-        return Inertia::render('home');
-    })->name('home');
+// Get central domains from config
+$centralDomains = config('tenancy.central_domains', ['localhost']);
+$appDomain = config('app.domain', 'localhost');
 
-    // User Invitations (authenticated routes)
-    Route::prefix('invitations')->group(function () {
-        Route::get('/', [UserInvitationController::class, 'index'])->name('invitations.index');
-        Route::get('/create', [UserInvitationController::class, 'create'])->name('invitations.create');
-        Route::post('/', [UserInvitationController::class, 'store'])->name('invitations.store');
-        Route::post('/{invitation}/resend', [UserInvitationController::class, 'resend'])->name('invitations.resend');
-        Route::delete('/{invitation}', [UserInvitationController::class, 'destroy'])->name('invitations.destroy');
-        Route::get('/pending', [UserInvitationController::class, 'pending'])->name('invitations.pending');
+// Central domain routes (marketing, registration, etc.)
+// NOTE: These routes are bound to specific domains and won't match tenant subdomains
+foreach ($centralDomains as $domain) {
+    Route::domain($domain)->group(function () {
+        Route::get('/', function () {
+            return \Inertia\Inertia::render('welcome');
+        })->name('welcome');
+
+        // Registration for new tenants
+        Route::get('/register', [\App\Http\Controllers\Auth\TenantRegistrationController::class, 'create'])
+            ->name('register');
+        Route::post('/register', [\App\Http\Controllers\Auth\TenantRegistrationController::class, 'store']);
+
+        // Subdomain availability check
+        Route::post('/check-subdomain', [\App\Http\Controllers\Auth\SubdomainCheckController::class, 'check'])
+            ->middleware(['throttle:subdomain-check'])
+            ->name('subdomain.check');
     });
+}
 
-    // User Invitations (public routes for accepting invitations - must come after specific routes)
-    Route::get('/invitations/{token}', [UserInvitationController::class, 'show'])->name('invitations.show')->middleware('signed')->withoutMiddleware(['auth', 'verified']);
-    Route::post('/invitations/{token}/accept', [UserInvitationController::class, 'accept'])->name('invitations.accept')->withoutMiddleware(['auth', 'verified']);
-
-    // Permission Management (Admin only)
-    Route::middleware('can:users.manage-permissions')->group(function () {
-        // Route::resource('permissions', PermissionController::class); // Deprecated - use roles page instead
-        Route::post('permissions/sync-matrix', [PermissionController::class, 'syncMatrix'])->name('permissions.sync-matrix');
-        Route::post('permissions/check', [PermissionController::class, 'check'])->name('permissions.check');
-        Route::post('permissions/check-bulk', [PermissionController::class, 'checkBulk'])->name('permissions.check-bulk');
-    });
-
-    // Role Management
-    // Route::resource('roles', RoleController::class); // Temporarily disabled - pages not implemented
-    Route::get('roles/{role}/permissions', [RoleController::class, 'permissions'])->name('roles.permissions');
-    Route::post('roles/{role}/assign-user', [RoleController::class, 'assignUser'])->name('roles.assign-user');
-    Route::post('roles/{role}/remove-user/{user}', [RoleController::class, 'removeUser'])->name('roles.remove-user');
-    Route::post('roles/{role}/duplicate', [RoleController::class, 'duplicate'])->name('roles.duplicate');
-
-    // Audit Logs (Super Admin only)
-    Route::prefix('audit-logs')->group(function () {
-        Route::get('/', [AuditLogController::class, 'index'])->name('audit-logs.index');
-        Route::get('/export', [AuditLogController::class, 'export'])->name('audit-logs.export');
-        Route::get('/stats', [AuditLogController::class, 'stats'])->name('audit-logs.stats');
-        Route::get('/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
-        Route::post('/cleanup', [AuditLogController::class, 'cleanup'])->name('audit-logs.cleanup');
-        Route::get('/event-breakdown', [AuditLogController::class, 'eventBreakdown'])->name('audit-logs.event-breakdown');
-        Route::get('/timeline', [AuditLogController::class, 'timeline'])->name('audit-logs.timeline');
-    });
-
-    // Super Admin Management
-    Route::prefix('super-admin')->group(function () {
-        Route::post('/users/{user}/grant', [SuperAdminController::class, 'grant'])->name('super-admin.grant');
-        Route::post('/users/{user}/revoke', [SuperAdminController::class, 'revoke'])->name('super-admin.revoke');
-        Route::get('/grants', [SuperAdminController::class, 'grants'])->name('super-admin.grants');
-        Route::get('/current', [SuperAdminController::class, 'current'])->name('super-admin.current');
-    });
+// Admin portal routes on admin subdomain
+Route::domain('admin.' . $appDomain)->middleware(['web'])->group(function () {
+    require __DIR__ . '/central.php';
 });
 
-// Asset Hierarchy
-require __DIR__ . '/asset-hierarchy.php';
+// Tenant routes - all existing application routes
+// Apply both 'tenant' (for tenancy initialization) and 'web' (for sessions, CSRF, etc.)
+// Order matters: tenant MUST come before web so tenancy is initialized before sessions load
+Route::middleware(['tenant', 'web'])->group(function () {
+    // Dashboard/Home route
+    Route::middleware(['auth', 'verified'])->group(function () {
+        Route::get('/', function () {
+            return \Inertia\Inertia::render('home');
+        })->name('home');
 
-// Maintenance
-require __DIR__ . '/maintenance.php';
+        Route::get('/home', function () {
+            return redirect('/');
+        });
+    });
 
-// Work Orders
-require __DIR__ . '/work-orders.php';
-
-// Parts
-require __DIR__ . '/parts.php';
-
-// Skills and Certifications
-require __DIR__ . '/skills-certifications.php';
-
-// Settings
-require __DIR__ . '/settings.php';
-
-// Scheduler
-require __DIR__ . '/scheduler.php';
-
-// Users
-require __DIR__ . '/users.php';
-
-// Production
-require __DIR__ . '/production.php';
-
-// Planning
-require __DIR__ . '/planning.php';
-
-// QR Scanning (public routes)
-require __DIR__ . '/qr.php';
-
-// Media
-require __DIR__ . '/media.php';
-
-require __DIR__ . '/auth.php';
+    // Include all tenant-specific routes
+    require __DIR__ . '/tenant.php';
+});

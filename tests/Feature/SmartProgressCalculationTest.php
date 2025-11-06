@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Production\Item;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingRoute;
 use App\Models\Production\ManufacturingStep;
-use App\Models\Production\Item;
 use App\Models\Production\WorkCell;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,11 +23,11 @@ class SmartProgressCalculationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->item = Item::factory()->create();
         $this->workCell = WorkCell::factory()->create();
-        
+
         $this->actingAs($this->user);
     }
 
@@ -36,7 +36,7 @@ class SmartProgressCalculationTest extends TestCase
         $order = ManufacturingOrder::factory()->create([
             'quantity' => 100,
             'quantity_completed' => 25,
-            'status' => 'in_progress'
+            'status' => 'in_progress',
         ]);
 
         $progress = $order->calculateSmartProgress();
@@ -51,30 +51,30 @@ class SmartProgressCalculationTest extends TestCase
         $order = ManufacturingOrder::factory()->create([
             'quantity' => 10,
             'quantity_completed' => 0,
-            'status' => 'released'
+            'status' => 'released',
         ]);
 
         $route = ManufacturingRoute::factory()->create([
-            'manufacturing_order_id' => $order->id
+            'manufacturing_order_id' => $order->id,
         ]);
 
         // Create 3 steps
         $step1 = ManufacturingStep::factory()->create([
             'manufacturing_route_id' => $route->id,
             'display_order' => 1,
-            'cumulative_quantity_completed' => 10 // All units completed step 1
+            'cumulative_quantity_completed' => 10, // All units completed step 1
         ]);
 
         $step2 = ManufacturingStep::factory()->create([
             'manufacturing_route_id' => $route->id,
             'display_order' => 2,
-            'cumulative_quantity_completed' => 5 // 5 units completed step 2
+            'cumulative_quantity_completed' => 5, // 5 units completed step 2
         ]);
 
         $step3 = ManufacturingStep::factory()->create([
             'manufacturing_route_id' => $route->id,
             'display_order' => 3,
-            'cumulative_quantity_completed' => 0 // No units completed step 3
+            'cumulative_quantity_completed' => 0, // No units completed step 3
         ]);
 
         // Expected: 10 units × 3 steps = 30 work units total
@@ -91,16 +91,16 @@ class SmartProgressCalculationTest extends TestCase
         $parentOrder = ManufacturingOrder::factory()->create([
             'quantity' => 10,
             'quantity_completed' => 0,
-            'status' => 'released'
+            'status' => 'released',
         ]);
 
         $parentRoute = ManufacturingRoute::factory()->create([
-            'manufacturing_order_id' => $parentOrder->id
+            'manufacturing_order_id' => $parentOrder->id,
         ]);
 
         ManufacturingStep::factory()->count(2)->create([
             'manufacturing_route_id' => $parentRoute->id,
-            'cumulative_quantity_completed' => 5 // Each step has 5 units completed
+            'cumulative_quantity_completed' => 5, // Each step has 5 units completed
         ]);
 
         // Child order: 20 units, 1 step
@@ -108,16 +108,16 @@ class SmartProgressCalculationTest extends TestCase
             'parent_id' => $parentOrder->id,
             'quantity' => 20,
             'quantity_completed' => 0,
-            'status' => 'released'
+            'status' => 'released',
         ]);
 
         $childRoute = ManufacturingRoute::factory()->create([
-            'manufacturing_order_id' => $childOrder->id
+            'manufacturing_order_id' => $childOrder->id,
         ]);
 
         ManufacturingStep::factory()->create([
             'manufacturing_route_id' => $childRoute->id,
-            'cumulative_quantity_completed' => 10
+            'cumulative_quantity_completed' => 10,
         ]);
 
         // Update child count
@@ -144,22 +144,22 @@ class SmartProgressCalculationTest extends TestCase
         $parentOrder = ManufacturingOrder::factory()->create([
             'order_number' => 'MO-2024-001',
             'quantity' => 10,
-            'status' => 'released'
+            'status' => 'released',
         ]);
 
         $childOrder = ManufacturingOrder::factory()->create([
             'parent_id' => $parentOrder->id,
             'order_number' => 'MO-2024-001.1',
             'quantity' => 20,
-            'status' => 'released'
+            'status' => 'released',
         ]);
 
         $parentRoute = ManufacturingRoute::factory()->create([
-            'manufacturing_order_id' => $parentOrder->id
+            'manufacturing_order_id' => $parentOrder->id,
         ]);
 
         ManufacturingStep::factory()->count(2)->create([
-            'manufacturing_route_id' => $parentRoute->id
+            'manufacturing_route_id' => $parentRoute->id,
         ]);
 
         $breakdown = $parentOrder->getWorkUnitsBreakdown();
@@ -174,27 +174,27 @@ class SmartProgressCalculationTest extends TestCase
     {
         // Create complex hierarchy
         $orders = ManufacturingOrder::factory()->count(20)->create();
-        
+
         foreach ($orders as $order) {
             // Each order has 3 children
             $children = ManufacturingOrder::factory()->count(3)->create([
-                'parent_id' => $order->id
+                'parent_id' => $order->id,
             ]);
-            
+
             // Each child has a route with 2 steps
             foreach ($children as $child) {
                 $route = ManufacturingRoute::factory()->create([
-                    'manufacturing_order_id' => $child->id
+                    'manufacturing_order_id' => $child->id,
                 ]);
-                
+
                 ManufacturingStep::factory()->count(2)->create([
-                    'manufacturing_route_id' => $route->id
+                    'manufacturing_route_id' => $route->id,
                 ]);
             }
         }
 
         DB::enableQueryLog();
-        
+
         // Simulate index page load
         $loadedOrders = ManufacturingOrder::with([
             'item',
@@ -202,11 +202,11 @@ class SmartProgressCalculationTest extends TestCase
             'parent',
             'children.manufacturingRoute.steps',
             'manufacturingRoute.steps',
-            'createdBy'
+            'createdBy',
         ])->paginate(20);
-        
+
         $queryCount = count(DB::getQueryLog());
-        
+
         // Should be minimal queries: base + eager loads
         // Not 20+ queries
         $this->assertLessThan(15, $queryCount, 'Too many queries detected - possible N+1 problem');
@@ -216,7 +216,7 @@ class SmartProgressCalculationTest extends TestCase
     {
         $order = ManufacturingOrder::factory()->create([
             'quantity' => 100,
-            'quantity_completed' => 50
+            'quantity_completed' => 50,
         ]);
 
         // First calculation
@@ -247,13 +247,13 @@ class SmartProgressCalculationTest extends TestCase
     {
         $parentOrder = ManufacturingOrder::factory()->create([
             'smart_progress_percentage' => 50,
-            'progress_calculated_at' => now()->subHours(2)
+            'progress_calculated_at' => now()->subHours(2),
         ]);
 
         $childOrder = ManufacturingOrder::factory()->create([
             'parent_id' => $parentOrder->id,
             'smart_progress_percentage' => 75,
-            'progress_calculated_at' => now()->subHours(2)
+            'progress_calculated_at' => now()->subHours(2),
         ]);
 
         // Invalidate child
@@ -272,7 +272,7 @@ class SmartProgressCalculationTest extends TestCase
         $order = ManufacturingOrder::factory()->create([
             'quantity' => 0,
             'quantity_completed' => 0,
-            'status' => 'completed'
+            'status' => 'completed',
         ]);
 
         $progress = $order->calculateSmartProgress();
@@ -285,23 +285,23 @@ class SmartProgressCalculationTest extends TestCase
     {
         // Create a complex hierarchy
         $parentOrder = ManufacturingOrder::factory()->create([
-            'quantity' => 10
+            'quantity' => 10,
         ]);
 
         // Create children with routes
         for ($i = 0; $i < 3; $i++) {
             $child = ManufacturingOrder::factory()->create([
                 'parent_id' => $parentOrder->id,
-                'quantity' => 20
+                'quantity' => 20,
             ]);
 
             $route = ManufacturingRoute::factory()->create([
-                'manufacturing_order_id' => $child->id
+                'manufacturing_order_id' => $child->id,
             ]);
 
             ManufacturingStep::factory()->count(2)->create([
                 'manufacturing_route_id' => $route->id,
-                'cumulative_quantity_completed' => 10
+                'cumulative_quantity_completed' => 10,
             ]);
         }
 

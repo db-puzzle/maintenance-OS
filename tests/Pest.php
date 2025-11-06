@@ -11,6 +11,13 @@
 |
 */
 
+// Multi-tenancy tests - use MultiTenancyTestCase, NO RefreshDatabase
+// IMPORTANT: Must be defined FIRST to take precedence over the general Feature config
+pest()->extend(Tests\MultiTenancyTestCase::class)
+    ->in('Feature/MultiTenancy');
+
+// Regular feature tests - use RefreshDatabase
+// Note: The MultiTenancy config above takes precedence for Feature/MultiTenancy
 pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');

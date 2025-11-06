@@ -37,7 +37,7 @@ test('users can logout', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
-    
+
     $response = $this->post('/logout');
 
     $response->assertRedirect('/');

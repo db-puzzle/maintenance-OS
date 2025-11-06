@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Permission;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Role;
 use App\Models\Production\WorkCell;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class WorkCellPermissionTest extends TestCase
 {

@@ -49,13 +49,10 @@ class ProcessImageImportSession implements ShouldQueue
      */
     public function handle(MediaService $mediaService, ItemImageBulkImportServiceV2 $bulkService): void
     {
-
         $sessionData = Cache::get("image_import_session_{$this->sessionId}");
         if (! $sessionData) {
-
             return;
         }
-
 
         // Update session status
         $sessionData['status'] = 'processing';
@@ -74,28 +71,24 @@ class ProcessImageImportSession implements ShouldQueue
         try {
             $validFiles = collect($sessionData['files'])->where('valid', true);
 
-
             // Set total to valid files count for progress tracking
             $sessionData['total'] = $validFiles->count();
             $sessionData['processed'] = 0;
             Cache::put("image_import_session_{$this->sessionId}", $sessionData, now()->addHours(24));
 
             foreach ($validFiles as $index => $fileInfo) {
-
                 $this->processFile($fileInfo, $mediaService, $summary);
 
                 // Update progress - always increment even if file was skipped
                 $sessionData['processed'] = $index + 1;
                 $sessionData['summary'] = $summary;
                 Cache::put("image_import_session_{$this->sessionId}", $sessionData, now()->addHours(24));
-
             }
 
             // Mark session as complete
             $sessionData['status'] = 'completed';
             $sessionData['completed_at'] = now();
             $sessionData['summary'] = $summary;
-
 
             Cache::put("image_import_session_{$this->sessionId}", $sessionData, now()->addHours(24));
         } catch (\Exception $e) {
@@ -119,7 +112,6 @@ class ProcessImageImportSession implements ShouldQueue
         $filename = $fileInfo['filename'];
         $itemCode = $fileInfo['itemCode'];
 
-
         // Find the assembled file
         $filePath = "imports/{$this->sessionId}/{$filename}";
         if (! Storage::disk('local')->exists($filePath)) {
@@ -138,7 +130,7 @@ class ProcessImageImportSession implements ShouldQueue
             return;
         }
 
-        DB::transaction(function () use ($item, $filePath, $filename, $mediaService, &$summary, $itemCode) {
+        DB::transaction(function () use ($item, $filePath, $filename, $mediaService, &$summary) {
             try {
                 // Check if we should replace existing
                 $hasExisting = $item->hasMedia('images');
@@ -159,7 +151,6 @@ class ProcessImageImportSession implements ShouldQueue
                 // Create temporary uploaded file
                 $tempPath = Storage::disk('local')->path($filePath);
                 $mimeType = Storage::disk('local')->mimeType($filePath);
-
 
                 $uploadedFile = new \Illuminate\Http\UploadedFile(
                     $tempPath,

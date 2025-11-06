@@ -28,6 +28,7 @@
         "spatie/laravel-image-optimizer": "^1.7",
         "spatie/laravel-medialibrary": "^11.0",
         "spatie/laravel-permission": "^6.20",
+        "stancl/tenancy": "^3.9",
         "tightenco/ziggy": "^2.4"
     },
     "require-dev": {
@@ -47,7 +48,10 @@
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
-        }
+        },
+        "files": [
+            "app/Support/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

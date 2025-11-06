@@ -12,9 +12,24 @@ class CleanupExpiredChunkedUploads extends Command
 
     protected $description = 'Clean up expired chunked uploads and their associated files';
 
+    /**
+     * Execute the console command.
+     *
+     * IMPORTANT: This command MUST be run via `tenants:run` to ensure proper tenant context.
+     * ChunkedUpload model is tenant-specific.
+     */
     public function handle()
     {
-        $this->info('Starting cleanup of expired chunked uploads...');
+        // Verify we're in a tenant context (safety check)
+        if (! tenancy()->initialized) {
+            $this->error('ERROR: This command must be run in tenant context via "tenants:run"');
+            $this->error('Usage: php artisan tenants:run media:cleanup-chunked-uploads');
+
+            return 1;
+        }
+
+        $tenantName = tenant('name') ?? 'Unknown';
+        $this->info("Starting cleanup of expired chunked uploads (Tenant: {$tenantName})...");
 
         $expiredUploads = ChunkedUpload::expired()->get();
 

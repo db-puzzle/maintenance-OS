@@ -19,12 +19,20 @@ class AuditLogService
         array $newValues = [],
         array $metadata = []
     ): PermissionAuditLog {
+        // Handle cross-database admin user references
+        // If authenticated user is from central database (AdminUser), don't record user_id
+        // in tenant database audit logs to avoid foreign key violations
+        $userId = null;
+        if (Auth::check() && Auth::user() instanceof \App\Models\User) {
+            $userId = Auth::id();
+        }
+
         return PermissionAuditLog::create([
             'event_type' => $eventType,
             'event_action' => $eventAction,
             'auditable_type' => get_class($auditable),
             'auditable_id' => $auditable->id,
-            'user_id' => Auth::id(),
+            'user_id' => $userId,
             'impersonator_id' => session('impersonator_id'),
             'old_values' => $oldValues,
             'new_values' => $newValues,

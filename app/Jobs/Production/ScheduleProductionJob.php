@@ -54,7 +54,7 @@ class ScheduleProductionJob implements ShouldQueue
     public function handle(SchedulingService $schedulingService): void
     {
         Log::info('ScheduleProductionJob::handle - Job execution started');
-        
+
         Log::info('ScheduleProductionJob::handle - Start', [
             'job_id' => $this->jobId,
             'version_id' => $this->version->id,
@@ -67,7 +67,7 @@ class ScheduleProductionJob implements ShouldQueue
 
         try {
             Log::info('ScheduleProductionJob::handle - Entering try block');
-            
+
             // Mark job as started
             $this->version->markSchedulingStarted(
                 $this->request->algorithmType,
@@ -117,7 +117,7 @@ class ScheduleProductionJob implements ShouldQueue
                 'alerts_count' => count($result->alerts ?? []),
                 'execution_time' => $result->executionTime ?? null,
                 'result_details' => [
-                    'has_scheduled_steps' => !empty($result->scheduledSteps),
+                    'has_scheduled_steps' => ! empty($result->scheduledSteps),
                     'metrics' => $result->metrics ?? [],
                     'alerts' => $result->alerts ?? [],
                 ],
