@@ -390,7 +390,14 @@ class PlanningController extends Controller
                     $order->save();
                     $successCount++;
                 } else {
-                    $skipReason = "Order {$order->order_number} cannot be planned - missing route or work cells";
+                    // Provide more specific error message
+                    if (! $order->manufacturingRoute) {
+                        $skipReason = "Order {$order->order_number} cannot be planned - no manufacturing route defined";
+                    } elseif ($order->manufacturingRoute->steps()->count() === 0) {
+                        $skipReason = "Order {$order->order_number} cannot be planned - route has no steps";
+                    } else {
+                        $skipReason = "Order {$order->order_number} cannot be planned - some steps are missing work cell assignments";
+                    }
                     $skippedCount++;
                 }
             } elseif ($targetState === 'released' && $order->status === 'planned') {

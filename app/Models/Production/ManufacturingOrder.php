@@ -718,6 +718,12 @@ class ManufacturingOrder extends Model
 
     /**
      * Check if order can be planned.
+     *
+     * Requirements for planning:
+     * 1. Order must be in draft status
+     * 2. Must have a manufacturing route
+     * 3. Route must have at least one step
+     * 4. All steps must have work cells assigned
      */
     public function canBePlanned(): bool
     {
@@ -726,8 +732,14 @@ class ManufacturingOrder extends Model
             return false;
         }
 
-        // Must have a route with all steps assigned to work cells
+        // Must have a manufacturing route
         if (! $this->manufacturingRoute) {
+            return false;
+        }
+
+        // Route must have at least one step
+        $stepsCount = $this->manufacturingRoute->steps()->count();
+        if ($stepsCount === 0) {
             return false;
         }
 

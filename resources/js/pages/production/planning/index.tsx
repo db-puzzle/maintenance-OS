@@ -455,6 +455,67 @@ export default function PlanningPage({
         }
     }, [activeMODetails]);
 
+    // Helper function to check if MO can be planned
+    const canMOBePlanned = useCallback((moId: number): { canPlan: boolean; reason?: string } => {
+        const mo = findMOInHierarchy(currentManufacturingOrders, moId);
+        if (!mo) {
+            return { canPlan: false, reason: 'Ordem de fabricação não encontrada' };
+        }
+
+        if (mo.status !== 'draft') {
+            return { canPlan: false, reason: 'Ordem não está em rascunho' };
+        }
+
+        if (!mo.manufacturing_route) {
+            return { canPlan: false, reason: 'Ordem não possui rota de fabricação' };
+        }
+
+        if (!mo.manufacturing_route.steps || mo.manufacturing_route.steps.length === 0) {
+            return { canPlan: false, reason: 'Rota não possui etapas definidas' };
+        }
+
+        // Check if all steps have work cells
+        const stepsWithoutWorkCells = mo.manufacturing_route.steps.filter(
+            step => !step.work_cell_id
+        );
+
+        if (stepsWithoutWorkCells.length > 0) {
+            return {
+                canPlan: false,
+                reason: `${stepsWithoutWorkCells.length} etapa(s) sem célula de trabalho atribuída`
+            };
+        }
+
+        return { canPlan: true };
+    }, [currentManufacturingOrders, findMOInHierarchy]);
+
+    // Helper function to validate multiple orders
+    const validateOrdersForPlanning = useCallback((orderIds: number[]): {
+        valid: number[];
+        invalid: Array<{ id: number; orderNumber: string; reason: string }>
+    } => {
+        const valid: number[] = [];
+        const invalid: Array<{ id: number; orderNumber: string; reason: string }> = [];
+
+        orderIds.forEach(orderId => {
+            const mo = findMOInHierarchy(currentManufacturingOrders, orderId);
+            if (!mo) return;
+
+            const { canPlan, reason } = canMOBePlanned(orderId);
+            if (canPlan) {
+                valid.push(orderId);
+            } else {
+                invalid.push({
+                    id: orderId,
+                    orderNumber: mo.order_number,
+                    reason: reason || 'Erro desconhecido'
+                });
+            }
+        });
+
+        return { valid, invalid };
+    }, [canMOBePlanned, currentManufacturingOrders, findMOInHierarchy]);
+
     // Helper function to get target state based on current status
     const getTargetState = useCallback((currentStatus: string): 'draft' | 'planned' | 'released' | null => {
         switch (currentStatus) {
@@ -540,6 +601,22 @@ export default function PlanningPage({
         }
 
         const orderIds = Array.from(selectedMOs);
+
+        // Validate orders can be planned if transitioning to planned state
+        if (targetState === 'planned' && activeMODetails?.status === 'draft') {
+            const { invalid } = validateOrdersForPlanning(orderIds);
+
+            if (invalid.length > 0) {
+                // Show detailed error for orders that cannot be planned
+                const errorMessage = invalid.length === 1
+                    ? `A ordem ${invalid[0].orderNumber} não pode ser planejada: ${invalid[0].reason}`
+                    : `${invalid.length} ordens não podem ser planejadas. Primeira: ${invalid[0].orderNumber} - ${invalid[0].reason}`;
+
+                toast.error(errorMessage);
+                return;
+            }
+        }
+
         const childrenCount = countChildrenForOrders(orderIds);
 
         // Check if transitioning to planned and if any selected order has children
@@ -568,7 +645,7 @@ export default function PlanningPage({
 
         // No children or transitioning without children consideration - proceed directly
         performStatusTransition(orderIds, targetState, false);
-    }, [selectedMOs, activeMODetails, hasUnsavedChanges, countChildrenForOrders, getTargetState, performStatusTransition]);
+    }, [selectedMOs, activeMODetails, hasUnsavedChanges, countChildrenForOrders, getTargetState, performStatusTransition, validateOrdersForPlanning]);
 
     // Handle MO selection from modal
     const handleModalMOSelect = useCallback((orderIds: number[]) => {

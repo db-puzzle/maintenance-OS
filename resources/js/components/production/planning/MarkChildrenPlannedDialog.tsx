@@ -53,6 +53,11 @@ export function MarkChildrenPlannedDialog({
         return !order.manufacturing_route?.steps || order.manufacturing_route.steps.length === 0;
     };
 
+    // Count how many children cannot be planned
+    const childrenWithNoSteps = useMemo(() => {
+        return allChildren.filter(child => hasNoRouteSteps(child));
+    }, [allChildren]);
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
@@ -160,6 +165,27 @@ export function MarkChildrenPlannedDialog({
                     </div>
                 )}
 
+                {childrenWithNoSteps.length > 0 && (
+                    <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-950">
+                        <div className="flex items-start gap-3">
+                            <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+                            <div className="flex-1 space-y-2">
+                                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                    Aviso: Ordens sem etapas de rota
+                                </p>
+                                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                                    {childrenWithNoSteps.length === 1
+                                        ? '1 ordem filha não possui etapas de rota definidas e será ignorada.'
+                                        : `${childrenWithNoSteps.length} ordens filhas não possuem etapas de rota definidas e serão ignoradas.`}
+                                </p>
+                                <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                                    Apenas ordens com rotas completas serão marcadas como planejadas.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2">
                     <Button
                         variant="ghost"
@@ -182,8 +208,11 @@ export function MarkChildrenPlannedDialog({
                                 onConfirm(true);
                                 onOpenChange(false);
                             }}
+                            variant={childrenWithNoSteps.length > 0 ? 'outline' : 'default'}
                         >
-                            Sim, incluir ordens filhas
+                            {childrenWithNoSteps.length > 0
+                                ? `Sim, apenas ordens válidas (${allChildren.length - childrenWithNoSteps.length})`
+                                : 'Sim, incluir ordens filhas'}
                         </Button>
                     </div>
                 </DialogFooter>
