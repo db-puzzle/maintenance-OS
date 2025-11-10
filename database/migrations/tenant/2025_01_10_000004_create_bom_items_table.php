@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('bom_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('bom_version_id')->constrained('bom_versions')->cascadeOnDelete();
+            $table->foreignId('bill_of_material_id')->constrained('bill_of_materials')->cascadeOnDelete();
             $table->unsignedBigInteger('parent_item_id')->nullable();
             $table->foreign('parent_item_id')->references('id')->on('bom_items')->cascadeOnDelete();
 
@@ -44,7 +44,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Indexes
-            $table->index(['bom_version_id', 'parent_item_id']);
+            $table->index(['bill_of_material_id', 'parent_item_id']);
             $table->index('item_id');
             // QR code index removed
             $table->index(['level', 'sequence_number']);

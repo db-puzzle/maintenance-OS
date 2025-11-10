@@ -5,7 +5,6 @@ import { router } from '@inertiajs/react';
 import { Head } from '@inertiajs/react';
 import {
     Box,
-    ArrowUpDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,8 +13,6 @@ import { TextInput } from '@/components/TextInput';
 import { ItemSelect } from '@/components/ItemSelect';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { EntityDataTable } from '@/components/shared/EntityDataTable';
-import EmptyCard from '@/components/ui/empty-card';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import BomConfiguration from '@/components/production/BomConfiguration';
@@ -25,7 +22,6 @@ import {
     ItemCategory,
     BomItem,
 } from '@/types/production';
-import { ColumnConfig } from '@/types/shared';
 import { type BreadcrumbItem } from '@/types';
 import { toast } from 'sonner';
 
@@ -69,13 +65,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
         },
     ];
 
-    // Column configurations
-    const versionColumns: ColumnConfig[] = [
-        { key: 'version_number', label: 'Versão', sortable: true },
-        { key: 'published_at', label: 'Publicado em', sortable: true, render: (value) => new Date(value as string).toLocaleDateString('pt-BR') },
-        { key: 'revision_notes', label: 'Notas de Revisão' },
-        { key: 'is_current', label: 'Status', render: (value) => value ? <Badge>Atual</Badge> : <Badge variant="secondary">Histórica</Badge> },
-    ];
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -238,8 +227,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                     content: (
                         <BomConfiguration
                             bomId={bom?.id || 0}
-                            versionId={bom?.current_version?.id || 0}
-                            bomItems={(bom?.current_version?.items || [])
+                            bomItems={(bom?.items || [])
                                 .filter(item => item.item)
                                 .map(item => {
                                     const mappedItem: BomItem & { item: Item; children?: (BomItem & { item: Item })[] } = {
@@ -259,59 +247,9 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                             bom={bom ? {
                                 name: bom.name,
                                 bom_number: bom.bom_number,
-                                current_version: bom.current_version ? {
-                                    version_number: bom.current_version.version_number,
-                                    items: bom.current_version.items
-                                } : undefined,
-                                versions: bom.versions
+                                items: bom.items
                             } : undefined}
                         />
-                    ),
-                },
-                {
-                    id: 'versions',
-                    label: `Versões (${bom?.versions?.length || 0})`,
-                    content: (
-                        <div className="py-6">
-                            {bom?.versions && bom.versions.length > 0 ? (
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-lg font-medium">Histórico de Versões</h3>
-                                        {can.update && (
-                                            <Button onClick={() => {/* TODO: Create version */ }}>
-                                                <ArrowUpDown className="h-4 w-4 mr-2" />
-                                                Nova Versão
-                                            </Button>
-                                        )}
-                                    </div>
-                                    <EntityDataTable
-                                        data={bom.versions as unknown as Record<string, unknown>[]}
-                                        columns={versionColumns}
-                                        loading={false}
-                                        actions={(version) => (
-                                            can.update && !version.is_current ? (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => router.post(route('production.bom.versions.set-current', {
-                                                        bom: bom.id,
-                                                        version: version.id
-                                                    }))}
-                                                >
-                                                    Definir como Atual
-                                                </Button>
-                                            ) : null
-                                        )}
-                                    />
-                                </div>
-                            ) : (
-                                <EmptyCard
-                                    icon={Box}
-                                    title="Nenhuma versão criada"
-                                    description="Versões serão listadas aqui conforme forem criadas"
-                                />
-                            )}
-                        </div>
                     ),
                 },
             ]),
@@ -330,9 +268,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                             <span className="text-muted-foreground">{bom?.name}</span>
                             <span className="text-muted-foreground">•</span>
-                            <span className="text-muted-foreground">{bom?.current_version?.items?.length || 0} itens</span>
-                            <span className="text-muted-foreground">•</span>
-                            <span className="text-muted-foreground">{bom?.versions?.length || 0} versões</span>
+                            <span className="text-muted-foreground">{bom?.items?.length || 0} itens</span>
                         </span>
                     )
                 }

@@ -49,25 +49,30 @@ class ManufacturingOrderDependencyInheritanceTest extends TestCase
             'can_be_manufactured' => true,
         ]);
 
-        // Create BOM (factory automatically creates a version with root item)
+        // Create BOM
         $bom = BillOfMaterial::factory()->create([
             'output_item_id' => $parentItem->id,
             'is_active' => true,
         ]);
 
-        // Get the auto-created version and root item
-        $bomVersion = $bom->currentVersion;
-        $rootBomItem = $bomVersion->items()->whereNull('parent_item_id')->first();
+        // Create root item
+        $rootBomItem = BomItem::factory()->create([
+            'bill_of_material_id' => $bom->id,
+            'item_id' => $parentItem->id,
+            'parent_item_id' => null,
+            'level' => 0,
+            'quantity' => 1,
+        ]);
 
         BomItem::factory()->create([
-            'bom_version_id' => $bomVersion->id,
+            'bill_of_material_id' => $bom->id,
             'item_id' => $childItem1->id,
             'parent_item_id' => $rootBomItem->id,
             'quantity' => 2,
         ]);
 
         BomItem::factory()->create([
-            'bom_version_id' => $bomVersion->id,
+            'bill_of_material_id' => $bom->id,
             'item_id' => $childItem2->id,
             'parent_item_id' => $rootBomItem->id,
             'quantity' => 3,
@@ -105,12 +110,17 @@ class ManufacturingOrderDependencyInheritanceTest extends TestCase
         $childItem = Item::factory()->create(['item_category_id' => $category->id, 'can_be_manufactured' => true]);
 
         $bom = BillOfMaterial::factory()->create(['output_item_id' => $parentItem->id, 'is_active' => true]);
-        $bomVersion = $bom->currentVersion;
 
-        $rootBomItem = $bomVersion->items()->whereNull('parent_item_id')->first();
+        $rootBomItem = BomItem::factory()->create([
+            'bill_of_material_id' => $bom->id,
+            'item_id' => $parentItem->id,
+            'parent_item_id' => null,
+            'level' => 0,
+            'quantity' => 1,
+        ]);
 
         BomItem::factory()->create([
-            'bom_version_id' => $bomVersion->id,
+            'bill_of_material_id' => $bom->id,
             'item_id' => $childItem->id,
             'parent_item_id' => $rootBomItem->id,
             'quantity' => 5,
@@ -153,13 +163,18 @@ class ManufacturingOrderDependencyInheritanceTest extends TestCase
         $childItem2 = Item::factory()->create(['item_category_id' => $category->id, 'can_be_manufactured' => true]);
 
         $bom = BillOfMaterial::factory()->create(['output_item_id' => $parentItem->id, 'is_active' => true]);
-        $bomVersion = $bom->currentVersion;
 
-        $rootBomItem = $bomVersion->items()->whereNull('parent_item_id')->first();
+        $rootBomItem = BomItem::factory()->create([
+            'bill_of_material_id' => $bom->id,
+            'item_id' => $parentItem->id,
+            'parent_item_id' => null,
+            'level' => 0,
+            'quantity' => 1,
+        ]);
 
         // Child 1: quantity 2 per parent
         BomItem::factory()->create([
-            'bom_version_id' => $bomVersion->id,
+            'bill_of_material_id' => $bom->id,
             'item_id' => $childItem1->id,
             'parent_item_id' => $rootBomItem->id,
             'quantity' => 2,
@@ -167,7 +182,7 @@ class ManufacturingOrderDependencyInheritanceTest extends TestCase
 
         // Child 2: quantity 5 per parent
         BomItem::factory()->create([
-            'bom_version_id' => $bomVersion->id,
+            'bill_of_material_id' => $bom->id,
             'item_id' => $childItem2->id,
             'parent_item_id' => $rootBomItem->id,
             'quantity' => 5,
@@ -209,13 +224,18 @@ class ManufacturingOrderDependencyInheritanceTest extends TestCase
         $childItem = Item::factory()->create(['item_category_id' => $category->id, 'can_be_manufactured' => true]);
 
         $bom = BillOfMaterial::factory()->create(['output_item_id' => $parentItem->id, 'is_active' => true]);
-        $bomVersion = $bom->currentVersion;
 
-        $rootBomItem = $bomVersion->items()->whereNull('parent_item_id')->first();
+        $rootBomItem = BomItem::factory()->create([
+            'bill_of_material_id' => $bom->id,
+            'item_id' => $parentItem->id,
+            'parent_item_id' => null,
+            'level' => 0,
+            'quantity' => 1,
+        ]);
 
         // Child with very small quantity
         BomItem::factory()->create([
-            'bom_version_id' => $bomVersion->id,
+            'bill_of_material_id' => $bom->id,
             'item_id' => $childItem->id,
             'parent_item_id' => $rootBomItem->id,
             'quantity' => 0.1, // 0.1 per parent
@@ -254,12 +274,17 @@ class ManufacturingOrderDependencyInheritanceTest extends TestCase
 
         // Level 1 BOM
         $bom1 = BillOfMaterial::factory()->create(['output_item_id' => $level1Item->id, 'is_active' => true]);
-        $bomVersion1 = $bom1->currentVersion;
 
-        $rootBomItem1 = $bomVersion1->items()->whereNull('parent_item_id')->first();
+        $rootBomItem1 = BomItem::factory()->create([
+            'bill_of_material_id' => $bom1->id,
+            'item_id' => $level1Item->id,
+            'parent_item_id' => null,
+            'level' => 0,
+            'quantity' => 1,
+        ]);
 
         BomItem::factory()->create([
-            'bom_version_id' => $bomVersion1->id,
+            'bill_of_material_id' => $bom1->id,
             'item_id' => $level2Item->id,
             'parent_item_id' => $rootBomItem1->id,
             'quantity' => 2,
@@ -267,12 +292,17 @@ class ManufacturingOrderDependencyInheritanceTest extends TestCase
 
         // Level 2 BOM
         $bom2 = BillOfMaterial::factory()->create(['output_item_id' => $level2Item->id, 'is_active' => true]);
-        $bomVersion2 = $bom2->currentVersion;
 
-        $rootBomItem2 = $bomVersion2->items()->whereNull('parent_item_id')->first();
+        $rootBomItem2 = BomItem::factory()->create([
+            'bill_of_material_id' => $bom2->id,
+            'item_id' => $level2Item->id,
+            'parent_item_id' => null,
+            'level' => 0,
+            'quantity' => 1,
+        ]);
 
         BomItem::factory()->create([
-            'bom_version_id' => $bomVersion2->id,
+            'bill_of_material_id' => $bom2->id,
             'item_id' => $level3Item->id,
             'parent_item_id' => $rootBomItem2->id,
             'quantity' => 3,

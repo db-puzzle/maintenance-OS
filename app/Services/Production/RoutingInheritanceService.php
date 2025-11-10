@@ -85,9 +85,9 @@ class RoutingInheritanceService
     /**
      * Check if all items in a BOM have routing.
      */
-    public function validateBomRouting(int $bomVersionId): array
+    public function validateBomRouting(int $billOfMaterialId): array
     {
-        $items = BomItem::where('bom_version_id', $bomVersionId)->get();
+        $items = BomItem::where('bill_of_material_id', $billOfMaterialId)->get();
         $missingRouting = [];
 
         foreach ($items as $item) {

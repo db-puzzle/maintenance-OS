@@ -14,7 +14,7 @@ class BomItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        'bom_version_id',
+        'bill_of_material_id',
         'parent_item_id',
         'item_id', // Now references items table
         'quantity',
@@ -51,11 +51,11 @@ class BomItem extends Model
     }
 
     /**
-     * Get the BOM version that owns the item.
+     * Get the BOM that owns the item.
      */
-    public function bomVersion(): BelongsTo
+    public function billOfMaterial(): BelongsTo
     {
-        return $this->belongsTo(BomVersion::class, 'bom_version_id');
+        return $this->belongsTo(BillOfMaterial::class, 'bill_of_material_id');
     }
 
     /**
@@ -244,12 +244,12 @@ class BomItem extends Model
     /**
      * Validation rules for BOM structure.
      */
-    public static function validateStructure(BomVersion $version): array
+    public static function validateStructure(BillOfMaterial $bom): array
     {
         $errors = [];
 
         // Check for single root item
-        $rootItems = $version->items()
+        $rootItems = $bom->items()
             ->whereNull('parent_item_id')
             ->get();
 
@@ -259,7 +259,6 @@ class BomItem extends Model
             $errors[] = 'BOM cannot have multiple root items';
         } else {
             $rootItem = $rootItems->first();
-            $bom = $version->billOfMaterial;
 
             if ($rootItem->item_id !== $bom->output_item_id) {
                 $errors[] = 'Root item must match BOM output item';

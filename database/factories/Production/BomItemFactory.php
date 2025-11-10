@@ -2,8 +2,8 @@
 
 namespace Database\Factories\Production;
 
+use App\Models\Production\BillOfMaterial;
 use App\Models\Production\BomItem;
-use App\Models\Production\BomVersion;
 use App\Models\Production\Item;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -22,7 +22,7 @@ class BomItemFactory extends Factory
     public function definition(): array
     {
         return [
-            'bom_version_id' => BomVersion::factory(),
+            'bill_of_material_id' => BillOfMaterial::factory(),
             'parent_item_id' => null,
             'item_id' => Item::factory(), // Reference to items table
             'quantity' => fake()->randomFloat(4, 0.0001, 100),
@@ -82,7 +82,7 @@ class BomItemFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'parent_item_id' => $parent->id,
             'level' => $parent->level + 1,
-            'bom_version_id' => $parent->bom_version_id,
+            'bill_of_material_id' => $parent->bill_of_material_id,
         ]);
     }
 

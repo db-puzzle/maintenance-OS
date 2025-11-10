@@ -45,17 +45,17 @@ class ManufacturingOrderService
     public function createOrderFromBom(array $data): ManufacturingOrder
     {
         return DB::transaction(function () use ($data) {
-            $bom = BillOfMaterial::with('currentVersion')->findOrFail($data['bill_of_material_id']);
+            $bom = BillOfMaterial::with('items')->findOrFail($data['bill_of_material_id']);
 
             // The MO is for the BOM's output item
             $data['item_id'] = $bom->output_item_id;
 
             // Ensure we have the root BOM item's unit of measure
-            $rootBomItem = $bom->currentVersion->items()
+            $rootBomItem = $bom->items()
                 ->whereNull('parent_item_id')
                 ->first();
 
-            $data['unit_of_measure'] = $data['unit_of_measure'] ?? $rootBomItem->unit_of_measure;
+            $data['unit_of_measure_code'] = $data['unit_of_measure_code'] ?? $rootBomItem->unit_of_measure_code;
 
             // Generate order number if not provided
             if (! isset($data['order_number'])) {

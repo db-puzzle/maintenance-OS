@@ -1,10 +1,9 @@
 import React from 'react';
 import BomHierarchicalView from './BomHierarchicalView';
-import { BomItem, Item, ItemCategory, BomVersion } from '@/types/production';
+import { BomItem, Item, ItemCategory } from '@/types/production';
 
 interface BomConfigurationProps {
   bomId: number;
-  versionId: number;
   bomItems: (BomItem & { item: Item; children?: (BomItem & { item: Item })[] })[];
   availableItems: Item[];
   categories?: ItemCategory[];
@@ -13,11 +12,7 @@ interface BomConfigurationProps {
   bom?: {
     name: string;
     bom_number: string;
-    current_version?: {
-      version_number: number;
-      items?: BomItem[];
-    };
-    versions?: BomVersion[];
+    items?: BomItem[];
   };
 }
 
@@ -28,7 +23,6 @@ interface BomConfigurationProps {
  */
 export default function BomConfiguration({
   bomId,
-  versionId,
   bomItems,
   availableItems,
   categories,
@@ -39,7 +33,6 @@ export default function BomConfiguration({
   return (
     <BomHierarchicalView
       bomId={bomId}
-      versionId={versionId}
       bomItems={bomItems}
       availableItems={availableItems}
       categories={categories}

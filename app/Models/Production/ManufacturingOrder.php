@@ -193,11 +193,11 @@ class ManufacturingOrder extends Model
             return;
         }
 
-        $this->load(['billOfMaterial.currentVersion.items']);
+        $this->load(['billOfMaterial.items']);
 
         DB::transaction(function () {
             // Get the root BOM item
-            $rootBomItem = $this->billOfMaterial->currentVersion->items()
+            $rootBomItem = $this->billOfMaterial->items()
                 ->whereNull('parent_item_id')
                 ->first();
 
@@ -212,7 +212,7 @@ class ManufacturingOrder extends Model
 
             // Create orders for the root item's children only
             $this->createChildOrdersFromBomItems(
-                $this->billOfMaterial->currentVersion->id,
+                $this->billOfMaterial->id,
                 $rootBomItem->id, // Use root BOM item as parent, not null
                 $this->id, // This order represents the root item
                 1 // Initial quantity multiplier
@@ -225,10 +225,10 @@ class ManufacturingOrder extends Model
     /**
      * Recursively create child orders from BOM items hierarchy.
      */
-    private function createChildOrdersFromBomItems($bomVersionId, $parentItemId, $parentOrderId, $parentQuantity = 1): void
+    private function createChildOrdersFromBomItems($billOfMaterialId, $parentItemId, $parentOrderId, $parentQuantity = 1): void
     {
         // Get BOM items that are children of the specified parent
-        $bomItems = \App\Models\Production\BomItem::where('bom_version_id', $bomVersionId)
+        $bomItems = \App\Models\Production\BomItem::where('bill_of_material_id', $billOfMaterialId)
             ->where('parent_item_id', $parentItemId) // Always has a parent now
             ->with(['item.primaryBom']) // Eager load the primaryBom relationship
             ->get();
@@ -268,7 +268,7 @@ class ManufacturingOrder extends Model
             } else {
                 // Recursively create orders for children within the same BOM
                 $this->createChildOrdersFromBomItems(
-                    $bomVersionId,
+                    $billOfMaterialId,
                     $bomItem->id, // This BOM item is now the parent
                     $childOrder->id, // The newly created order is the parent order
                     $bomItem->quantity // Pass down the quantity multiplier

@@ -116,21 +116,6 @@ export interface BillOfMaterial {
     output_item?: Item;
     is_active: boolean;
     created_by?: number;
-    current_version?: BomVersion;
-    versions?: BomVersion[];
-    versions_count?: number;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface BomVersion {
-    id: number;
-    bill_of_material_id: number;
-    version_number: number;
-    revision_notes?: string;
-    published_at: string;
-    published_by?: number;
-    is_current: boolean;
     items?: BomItem[];
     created_at: string;
     updated_at: string;
@@ -138,12 +123,13 @@ export interface BomVersion {
 
 export interface BomItem {
     id: number;
-    bom_version_id: number;
+    bill_of_material_id: number;
     parent_item_id?: number;
     item_id: number;
     item?: Item;
     quantity: number;
     unit_of_measure: string;
+    unit_of_measure_code?: string;
     level: number;
     sequence_number?: number;
     reference_designators?: string;

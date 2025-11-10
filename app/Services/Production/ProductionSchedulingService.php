@@ -30,13 +30,8 @@ class ProductionSchedulingService
                 throw new \Exception('Production order must have a BOM assigned.');
             }
 
-            $currentVersion = $bom->currentVersion;
-            if (! $currentVersion) {
-                throw new \Exception('BOM must have a current version.');
-            }
-
             // Get all items that need routing
-            $itemsWithRouting = $this->getItemsRequiringRouting($currentVersion);
+            $itemsWithRouting = $this->getItemsRequiringRouting($bom);
 
             // Schedule items in dependency order
             $this->scheduleItemsInOrder($order, $itemsWithRouting);
@@ -150,8 +145,7 @@ class ProductionSchedulingService
             ];
         }
 
-        $currentVersion = $bom->currentVersion;
-        $itemsWithRouting = $this->getItemsRequiringRouting($currentVersion);
+        $itemsWithRouting = $this->getItemsRequiringRouting($bom);
 
         $totalMinutes = 0;
         $criticalPath = [];
@@ -188,9 +182,9 @@ class ProductionSchedulingService
     /**
      * Get items requiring routing in dependency order.
      */
-    protected function getItemsRequiringRouting($bomVersion): Collection
+    protected function getItemsRequiringRouting(BillOfMaterial $bom): Collection
     {
-        $items = $bomVersion->items()
+        $items = $bom->items()
             ->orderBy('level', 'desc')
             ->orderBy('sequence_number')
             ->get();

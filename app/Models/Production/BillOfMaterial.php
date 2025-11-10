@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class BillOfMaterial extends Model
 {
@@ -20,7 +19,7 @@ class BillOfMaterial extends Model
         'name',
         'description',
         'external_reference',
-        'output_item_id', // NEW
+        'output_item_id',
         'is_active',
         'created_by',
     ];
@@ -54,20 +53,21 @@ class BillOfMaterial extends Model
     }
 
     /**
-     * Get the versions for the BOM.
+     * Get all items in the BOM.
      */
-    public function versions(): HasMany
+    public function items(): HasMany
     {
-        return $this->hasMany(BomVersion::class, 'bill_of_material_id');
+        return $this->hasMany(BomItem::class, 'bill_of_material_id');
     }
 
     /**
-     * Get the current version of the BOM.
+     * Get the root items (items without parent).
      */
-    public function currentVersion(): HasOne
+    public function rootItems(): HasMany
     {
-        return $this->hasOne(BomVersion::class, 'bill_of_material_id')
-            ->where('is_current', true);
+        return $this->hasMany(BomItem::class, 'bill_of_material_id')
+            ->whereNull('parent_item_id')
+            ->orderBy('sequence_number');
     }
 
     /**
@@ -87,21 +87,6 @@ class BillOfMaterial extends Model
     }
 
     /**
-     * Get all items in the current version.
-     */
-    public function items()
-    {
-        return $this->hasManyThrough(
-            BomItem::class,
-            BomVersion::class,
-            'bill_of_material_id',
-            'bom_version_id',
-            'id',
-            'id'
-        )->where('bom_versions.is_current', true);
-    }
-
-    /**
      * Scope for active BOMs.
      */
     public function scopeActive($query)
@@ -110,52 +95,20 @@ class BillOfMaterial extends Model
     }
 
     /**
-     * Create a new version of the BOM.
+     * Ensure single root item.
      */
-    public function createVersion($revisionNotes = null, $publishedBy = null)
+    public function ensureSingleRootItem(): void
     {
-        $lastVersion = $this->versions()->orderBy('version_number', 'desc')->first();
-        $versionNumber = $lastVersion ? $lastVersion->version_number + 1 : 1;
-
-        // First version should be current by default
-        $isCurrent = !$lastVersion;
-
-        return $this->versions()->create([
-            'version_number' => $versionNumber,
-            'revision_notes' => $revisionNotes,
-            'published_at' => now(),
-            'published_by' => $publishedBy ?? auth()->id(),
-            'is_current' => $isCurrent,
-        ]);
-    }
-
-    /**
-     * Set a version as current.
-     */
-    public function setCurrentVersion(BomVersion $version)
-    {
-        // Deactivate all other versions
-        $this->versions()->update(['is_current' => false]);
-        
-        // Activate the specified version
-        $version->update(['is_current' => true]);
-    }
-
-    /**
-     * Ensure single root item in versions.
-     */
-    public function ensureSingleRootItem(BomVersion $version): void
-    {
-        $rootItems = $version->items()
+        $rootItems = $this->items()
             ->whereNull('parent_item_id')
             ->count();
 
         if ($rootItems > 1) {
-            throw new \Exception('BOM version cannot have multiple root items');
+            throw new \Exception('BOM cannot have multiple root items');
         }
 
         if ($rootItems === 1) {
-            $rootItem = $version->items()
+            $rootItem = $this->items()
                 ->whereNull('parent_item_id')
                 ->first();
 
@@ -172,7 +125,7 @@ class BillOfMaterial extends Model
     {
         $year = now()->format('y'); // 2-digit year
         $month = now()->format('m'); // 2-digit month
-        
+
         // Find the last BOM created in the current year and month
         $lastBom = static::whereYear('created_at', now()->year)
             ->whereMonth('created_at', now()->month)
@@ -186,7 +139,7 @@ class BillOfMaterial extends Model
             // No BOMs for current year and month, start at 1
             $sequence = 1;
         }
-        
+
         return sprintf('BOM-%s%s-%05d', $year, $month, $sequence);
     }
 }

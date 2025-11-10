@@ -92,7 +92,7 @@ class ManufacturingOrderController extends BaseSearchController
             ->get();
 
         $billsOfMaterial = \App\Models\Production\BillOfMaterial::with([
-            'currentVersion.items.item',
+            'items.item',
         ])
             ->where('is_active', true)
             ->orderBy('bom_number')
@@ -162,7 +162,7 @@ class ManufacturingOrderController extends BaseSearchController
             ->get();
 
         $billsOfMaterial = \App\Models\Production\BillOfMaterial::with([
-            'currentVersion.items.item',
+            'items.item',
         ])
             ->where('is_active', true)
             ->orderBy('bom_number')
@@ -240,7 +240,7 @@ class ManufacturingOrderController extends BaseSearchController
 
         $order->load([
             'item.category',
-            'billOfMaterial.currentVersion',
+            'billOfMaterial.items',
             'parent.item',
             'children' => function ($query) {
                 $query->with(['item', 'manufacturingRoute'])

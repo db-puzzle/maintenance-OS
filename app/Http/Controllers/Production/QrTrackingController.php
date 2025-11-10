@@ -118,7 +118,7 @@ class QrTrackingController extends Controller
 
         $activeOrders = ManufacturingOrder::query()
             ->whereIn('status', ['released', 'in_progress'])
-            ->with(['product', 'billOfMaterial.currentVersion.items'])
+            ->with(['product', 'billOfMaterial.items'])
             ->get();
 
         // Method temporarily disabled - page not implemented yet
@@ -139,7 +139,7 @@ class QrTrackingController extends Controller
         if ($request->filled('order_id')) {
             $order = ManufacturingOrder::with([
                 'product',
-                'billOfMaterial.currentVersion.items' => function ($query) {
+                'billOfMaterial.items' => function ($query) {
                     $query->with(['routing', 'thumbnail']);
                 },
             ])->find($request->input('order_id'));

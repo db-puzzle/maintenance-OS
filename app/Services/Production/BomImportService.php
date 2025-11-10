@@ -4,7 +4,6 @@ namespace App\Services\Production;
 
 use App\Models\Production\BillOfMaterial;
 use App\Models\Production\BomItem;
-use App\Models\Production\BomVersion;
 use App\Models\Production\Item;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -48,32 +47,20 @@ class BomImportService
                 'created_by' => auth()->id(),
             ]);
 
-            // Create initial version
-            $version = $bom->versions()->create([
-                'version_number' => 1,
-                'revision_notes' => 'Initial import from Inventor',
-                'published_at' => now(),
-                'published_by' => auth()->id(),
-                'is_current' => true,
-            ]);
-
             // Create root BOM item for the output
-            $rootBomItem = $version->items()->create([
+            $rootBomItem = $bom->items()->create([
                 'item_id' => $bom->output_item_id,
                 'parent_item_id' => null,
                 'quantity' => 1,
-                'unit_of_measure' => $outputItem->unit_of_measure,
+                'unit_of_measure_code' => $outputItem->unit_of_measure_code,
                 'level' => 0,
                 'sequence_number' => 0,
             ]);
 
             // Process items recursively - all items become children of root
-            $this->processInventorItems($version, $data['items'], $rootBomItem, 1);
+            $this->processInventorItems($bom, $data['items'], $rootBomItem, 1);
 
-            // Generate QR codes for all items
-            $this->generateQrCodesForVersion($version);
-
-            return $bom->fresh(['currentVersion.items']);
+            return $bom->fresh(['items']);
         });
     }
 
@@ -116,38 +103,29 @@ class BomImportService
                 'created_by' => auth()->id(),
             ]);
 
-            // Create initial version
-            $version = $bom->versions()->create([
-                'version_number' => 1,
-                'revision_notes' => 'Imported from JSON export',
-                'published_at' => now(),
-                'published_by' => auth()->id(),
-                'is_current' => true,
-            ]);
-
             // Create root BOM item
-            $rootBomItem = $version->items()->create([
+            $rootBomItem = $bom->items()->create([
                 'item_id' => $outputItem->id,
                 'parent_item_id' => null,
                 'quantity' => 1,
-                'unit_of_measure' => $outputItem->unit_of_measure,
+                'unit_of_measure_code' => $outputItem->unit_of_measure_code,
                 'level' => 0,
                 'sequence_number' => 0,
             ]);
 
             // Process items recursively
             if (! empty($data['items'][0]['children'])) {
-                $this->processNativeJsonItems($version, $data['items'][0]['children'], $rootBomItem, 1);
+                $this->processNativeJsonItems($bom, $data['items'][0]['children'], $rootBomItem, 1);
             }
 
-            return $bom->fresh(['currentVersion.items']);
+            return $bom->fresh(['items']);
         });
     }
 
     /**
      * Process native JSON items recursively.
      */
-    protected function processNativeJsonItems(BomVersion $version, array $items, BomItem $parentBomItem, int $level, int $sequenceOffset = 0): int
+    protected function processNativeJsonItems(BillOfMaterial $bom, array $items, BomItem $parentBomItem, int $level, int $sequenceOffset = 0): int
     {
         $sequenceNumber = $sequenceOffset;
 
@@ -159,18 +137,18 @@ class BomImportService
                 $item = Item::create([
                     'item_number' => $itemData['item_number'],
                     'name' => $itemData['item_name'] ?? $itemData['item_number'],
-                    'unit_of_measure' => $itemData['unit_of_measure'] ?? 'UN',
+                    'unit_of_measure_code' => $itemData['unit_of_measure'] ?? 'PC',
                     'is_active' => true,
                     'created_by' => auth()->id(),
                 ]);
             }
 
             // Create BOM item
-            $bomItem = $version->items()->create([
+            $bomItem = $bom->items()->create([
                 'item_id' => $item->id,
                 'parent_item_id' => $parentBomItem->id,
                 'quantity' => $itemData['quantity'] ?? 1,
-                'unit_of_measure' => $itemData['unit_of_measure'] ?? $item->unit_of_measure,
+                'unit_of_measure_code' => $itemData['unit_of_measure'] ?? $item->unit_of_measure_code,
                 'reference_designators' => $itemData['reference_designators'] ?? null,
                 'bom_notes' => $itemData['bom_notes'] ?? null,
                 'level' => $level,
@@ -179,7 +157,7 @@ class BomImportService
 
             // Process children if exist
             if (! empty($itemData['children'])) {
-                $sequenceNumber = $this->processNativeJsonItems($version, $itemData['children'], $bomItem, $level + 1, $sequenceNumber);
+                $sequenceNumber = $this->processNativeJsonItems($bom, $itemData['children'], $bomItem, $level + 1, $sequenceNumber);
             }
         }
 
@@ -241,29 +219,20 @@ class BomImportService
                 'created_by' => auth()->id(),
             ]);
 
-            // Create initial version
-            $version = $bom->versions()->create([
-                'version_number' => 1,
-                'revision_notes' => 'Imported from CSV',
-                'published_at' => now(),
-                'published_by' => auth()->id(),
-                'is_current' => true,
-            ]);
-
             // Create root BOM item for the output
-            $rootBomItem = $version->items()->create([
+            $rootBomItem = $bom->items()->create([
                 'item_id' => $bom->output_item_id,
                 'parent_item_id' => null,
                 'quantity' => 1,
-                'unit_of_measure' => $outputItem->unit_of_measure,
+                'unit_of_measure_code' => $outputItem->unit_of_measure_code,
                 'level' => 0,
                 'sequence_number' => 0,
             ]);
 
             // Process hierarchy - all items become children of root
-            $this->processHierarchyItems($version, $hierarchy['items'], $rootBomItem, 1);
+            $this->processHierarchyItems($bom, $hierarchy['items'], $rootBomItem, 1);
 
-            return $bom->fresh(['currentVersion.items']);
+            return $bom->fresh(['items']);
         });
     }
 
@@ -271,7 +240,7 @@ class BomImportService
      * Process Inventor items recursively.
      */
     protected function processInventorItems(
-        BomVersion $version,
+        BillOfMaterial $bom,
         array $items,
         ?BomItem $parent,
         int $level
@@ -303,11 +272,11 @@ class BomImportService
             }
 
             // Create BOM item referencing the item
-            $bomItem = $version->items()->create([
+            $bomItem = $bom->items()->create([
                 'parent_item_id' => $parent?->id,
                 'item_id' => $item->id,
                 'quantity' => $itemData['quantity'] ?? 1,
-                'unit_of_measure' => $itemData['unit_of_measure'] ?? 'EA',
+                'unit_of_measure_code' => $itemData['unit_of_measure'] ?? 'PC',
                 'level' => $level,
                 'sequence_number' => $index + 1,
                 'reference_designators' => $itemData['reference_designators'] ?? null,
@@ -321,7 +290,7 @@ class BomImportService
 
             // Process children recursively
             if (! empty($itemData['children'])) {
-                $this->processInventorItems($version, $itemData['children'], $bomItem, $level + 1);
+                $this->processInventorItems($bom, $itemData['children'], $bomItem, $level + 1);
             }
         }
     }
@@ -400,7 +369,7 @@ class BomImportService
      * Process hierarchy items.
      */
     protected function processHierarchyItems(
-        BomVersion $version,
+        BillOfMaterial $bom,
         array $items,
         ?BomItem $parent,
         int $level
@@ -418,24 +387,24 @@ class BomImportService
                     'can_be_manufactured' => isset($itemData['children']) && ! empty($itemData['children']),
                     'can_be_purchased' => ! isset($itemData['children']) || empty($itemData['children']),
                     'is_active' => true,
-                    'unit_of_measure' => $itemData['unit_of_measure'] ?? 'EA',
+                    'unit_of_measure_code' => $itemData['unit_of_measure'] ?? 'PC',
                     'created_by' => auth()->id(),
                 ]);
             }
 
             // Create BOM item referencing the item
-            $bomItem = $version->items()->create([
+            $bomItem = $bom->items()->create([
                 'parent_item_id' => $parent?->id,
                 'item_id' => $item->id,
                 'quantity' => $itemData['quantity'] ?? 1,
-                'unit_of_measure' => $itemData['unit_of_measure'] ?? 'EA',
+                'unit_of_measure_code' => $itemData['unit_of_measure'] ?? 'PC',
                 'level' => $level,
                 'sequence_number' => $index + 1,
             ]);
 
             // Process children recursively
             if (! empty($itemData['children'])) {
-                $this->processHierarchyItems($version, $itemData['children'], $bomItem, $level + 1);
+                $this->processHierarchyItems($bom, $itemData['children'], $bomItem, $level + 1);
             }
         }
     }

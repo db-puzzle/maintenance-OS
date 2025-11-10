@@ -221,10 +221,10 @@ class ItemController extends BaseSearchController
         $item->load(['category', 'createdBy', 'billOfMaterials', 'primaryBom', 'media']);
 
         // Get BOMs where this item is used as a component (where-used analysis)
-        $whereUsedBomsQuery = BillOfMaterial::whereHas('currentVersion.items', function ($query) use ($item) {
+        $whereUsedBomsQuery = BillOfMaterial::whereHas('items', function ($query) use ($item) {
             $query->where('item_id', $item->id);
         })
-            ->with(['outputItem', 'currentVersion']);
+            ->with(['outputItem', 'items']);
 
         // Apply search filter
         if ($request->filled('bom_search')) {

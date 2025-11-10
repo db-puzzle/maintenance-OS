@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Production;
 use App\Http\Controllers\BaseSearchController;
 use App\Models\Production\BillOfMaterial;
 use App\Models\Production\BomItem;
-use App\Models\Production\BomVersion;
 use App\Models\Production\Item;
 use App\Models\Production\ItemCategory;
 use App\Services\JsonValidator;
@@ -43,30 +42,13 @@ class BillOfMaterialController extends BaseSearchController
                     $query->where('is_active', false);
                 }
             })
-            ->with(['currentVersion', 'createdBy'])
-            ->withCount(['versions' => function ($query) {
-                $query->where('is_current', false);
-            }])
+            ->with(['createdBy'])
+            ->withCount('items')
             ->paginate($request->input('per_page', 10));
 
-        // Load items count for current versions efficiently
-        $currentVersionIds = $boms->getCollection()
-            ->map(fn ($bom) => $bom->currentVersion?->id)
-            ->filter()
-            ->unique()
-            ->values();
-
-        $itemCounts = BomItem::whereIn('bom_version_id', $currentVersionIds)
-            ->groupBy('bom_version_id')
-            ->selectRaw('bom_version_id, COUNT(*) as items_count')
-            ->pluck('items_count', 'bom_version_id');
-
         // Add computed fields for frontend
-        $boms->getCollection()->transform(function ($bom) use ($itemCounts) {
-            $bom->version = $bom->currentVersion ? $bom->currentVersion->version_number : 1;
+        $boms->getCollection()->transform(function ($bom) {
             $bom->status = $bom->is_active ? 'active' : 'inactive';
-            $bom->effective_date = $bom->currentVersion ? $bom->currentVersion->effective_date : null;
-            $bom->items_count = $bom->currentVersion ? ($itemCounts[$bom->currentVersion->id] ?? 0) : 0;
 
             return $bom;
         });
@@ -89,7 +71,7 @@ class BillOfMaterialController extends BaseSearchController
             ->where('is_active', true)
             ->with('media')  // Load media for available items
             ->orderBy('item_number')
-            ->get(['id', 'item_number', 'name', 'unit_of_measure', 'can_be_manufactured', 'is_active']);
+            ->get(['id', 'item_number', 'name', 'unit_of_measure_code', 'can_be_manufactured', 'is_active']);
 
         // Load categories for CreateItemSheet
         $categories = ItemCategory::active()
@@ -135,15 +117,12 @@ class BillOfMaterialController extends BaseSearchController
         DB::transaction(function () use ($validated, &$bom) {
             $bom = BillOfMaterial::create($validated);
 
-            // Create initial version
-            $version = $bom->createVersion('Initial version', auth()->id());
-
             // Create root BOM item for the output
-            $version->items()->create([
+            $bom->items()->create([
                 'item_id' => $bom->output_item_id,
                 'parent_item_id' => null,
                 'quantity' => 1,
-                'unit_of_measure' => $bom->outputItem->unit_of_measure,
+                'unit_of_measure_code' => $bom->outputItem->unit_of_measure_code,
                 'level' => 0,
                 'sequence_number' => 0,
             ]);
@@ -161,35 +140,26 @@ class BillOfMaterialController extends BaseSearchController
         $bom->load([
             'createdBy',
             'outputItem',
-            'versions' => function ($query) {
-                $query->orderBy('version_number', 'desc')->limit(5);
-            },
         ]);
 
-        // Add computed counts for tab labels
-        $bom->versions_count = $bom->versions->count();
+        // Get all BOM items
+        $allBomItems = BomItem::where('bill_of_material_id', $bom->id)
+            ->with(['item.category']) // Load item relationship with category
+            ->orderBy('level')
+            ->orderBy('sequence_number')
+            ->get();
 
-        // Efficiently load current version with all nested items
-        if ($bom->currentVersion) {
-            // First, get all BOM items for the current version
-            $allBomItems = BomItem::where('bom_version_id', $bom->currentVersion->id)
-                ->with(['item.category']) // Load item relationship with category
-                ->orderBy('level')
-                ->orderBy('sequence_number')
-                ->get();
+        // Group items by parent_item_id for efficient hierarchy building
+        $itemsByParent = $allBomItems->groupBy('parent_item_id');
 
-            // Group items by parent_item_id for efficient hierarchy building
-            $itemsByParent = $allBomItems->groupBy('parent_item_id');
-
-            // Build the hierarchy in memory
-            foreach ($allBomItems as $bomItem) {
-                $children = $itemsByParent->get($bomItem->id, collect());
-                $bomItem->setRelation('children', $children);
-            }
-
-            // Set all items on the current version (frontend expects all items, not just root)
-            $bom->currentVersion->setRelation('items', $allBomItems);
+        // Build the hierarchy in memory
+        foreach ($allBomItems as $bomItem) {
+            $children = $itemsByParent->get($bomItem->id, collect());
+            $bomItem->setRelation('children', $children);
         }
+
+        // Set all items on the BOM (frontend expects all items, not just root)
+        $bom->setRelation('items', $allBomItems);
 
         // Load available items for BOM configuration
         $items = Item::where('is_active', true)
@@ -200,8 +170,8 @@ class BillOfMaterialController extends BaseSearchController
         $allItemIds = collect();
 
         // Add BOM item IDs
-        if ($bom->currentVersion && $bom->currentVersion->items) {
-            $bomItemIds = $bom->currentVersion->items->pluck('item_id');
+        if ($bom->items) {
+            $bomItemIds = $bom->items->pluck('item_id');
             $allItemIds = $allItemIds->merge($bomItemIds);
         }
 
@@ -224,8 +194,8 @@ class BillOfMaterialController extends BaseSearchController
                 ->groupBy('model_id');
 
             // Attach media to BOM items
-            if ($bom->currentVersion && $bom->currentVersion->items) {
-                foreach ($bom->currentVersion->items as $bomItem) {
+            if ($bom->items) {
+                foreach ($bom->items as $bomItem) {
                     if ($bomItem->item) {
                         $itemMedia = $media->get($bomItem->item->id, collect());
                         $bomItem->item->setRelation('media', $itemMedia);
@@ -321,16 +291,14 @@ class BillOfMaterialController extends BaseSearchController
             'created_by' => auth()->id(),
         ]);
 
-        // Create initial version and copy items if current version exists
-        $newVersion = $newBom->createVersion('Copied from BOM: ' . $bom->bom_number, auth()->id());
-
-        if ($bom->currentVersion && $bom->currentVersion->items) {
-            foreach ($bom->currentVersion->items as $item) {
+        // Copy items if they exist
+        if ($bom->items) {
+            foreach ($bom->items as $item) {
                 BomItem::create([
-                    'bom_version_id' => $newVersion->id,
+                    'bill_of_material_id' => $newBom->id,
                     'item_id' => $item->item_id,
                     'quantity' => $item->quantity,
-                    'unit_of_measure' => $item->unit_of_measure,
+                    'unit_of_measure_code' => $item->unit_of_measure_code,
                     'reference_designators' => $item->reference_designators,
                     'bom_notes' => $item->bom_notes,
                     'sequence_number' => $item->sequence_number,
@@ -358,30 +326,27 @@ class BillOfMaterialController extends BaseSearchController
             'name' => $bom->name,
             'description' => $bom->description,
             'external_reference' => $bom->external_reference,
-            'version' => $bom->currentVersion ? $bom->currentVersion->version_number : 1,
             'exported_at' => now()->toIso8601String(),
             'exported_by' => auth()->user()->name,
             'items' => [],
         ];
 
-        if ($bom->currentVersion) {
-            // Load all BOM items at once with their items to avoid N+1 queries
-            $allItems = BomItem::where('bom_version_id', $bom->currentVersion->id)
-                ->with('item')
-                ->orderBy('sequence_number')
-                ->get();
+        // Load all BOM items at once with their items to avoid N+1 queries
+        $allItems = BomItem::where('bill_of_material_id', $bom->id)
+            ->with('item')
+            ->orderBy('sequence_number')
+            ->get();
 
-            // Group items by parent_item_id for efficient hierarchy building
-            $itemsByParent = $allItems->groupBy('parent_item_id');
+        // Group items by parent_item_id for efficient hierarchy building
+        $itemsByParent = $allItems->groupBy('parent_item_id');
 
-            // Get root items (where parent_item_id is null)
-            $rootItems = $itemsByParent->get(null, collect());
+        // Get root items (where parent_item_id is null)
+        $rootItems = $itemsByParent->get(null, collect());
 
-            // Attach children to each item recursively
-            $this->attachChildren($rootItems, $itemsByParent);
+        // Attach children to each item recursively
+        $this->attachChildren($rootItems, $itemsByParent);
 
-            $exportData['items'] = $this->buildExportHierarchy($rootItems);
-        }
+        $exportData['items'] = $this->buildExportHierarchy($rootItems);
 
         if ($format === 'csv') {
             return $this->exportExcel($bom);
@@ -508,7 +473,7 @@ class BillOfMaterialController extends BaseSearchController
 
             return response()->json([
                 'success' => true,
-                'bom' => $bom->load('currentVersion.items'),
+                'bom' => $bom->load('items'),
                 'redirect' => route('production.bom.show', $bom),
             ]);
         } catch (\Exception $e) {
@@ -549,11 +514,6 @@ class BillOfMaterialController extends BaseSearchController
             'sequence_number' => 'nullable|integer',
         ]);
 
-        $currentVersion = $bom->currentVersion;
-        if (! $currentVersion) {
-            return back()->with('error', 'BOM has no current version.');
-        }
-
         // Prevent adding items at root level
         if (! $validated['parent_item_id']) {
             return back()->withErrors(['parent_item_id' => 'Items must be added under the root product']);
@@ -561,7 +521,7 @@ class BillOfMaterialController extends BaseSearchController
 
         // Verify parent belongs to this BOM
         $parent = BomItem::findOrFail($validated['parent_item_id']);
-        if ($parent->bomVersion->bill_of_material_id !== $bom->id) {
+        if ($parent->bill_of_material_id !== $bom->id) {
             return back()->withErrors(['parent_item_id' => 'Parent item does not belong to this BOM']);
         }
 
@@ -570,16 +530,16 @@ class BillOfMaterialController extends BaseSearchController
 
         // Get next sequence number if not provided
         if (! isset($validated['sequence_number'])) {
-            $validated['sequence_number'] = $currentVersion->items()
+            $validated['sequence_number'] = $bom->items()
                 ->where('parent_item_id', $validated['parent_item_id'])
                 ->max('sequence_number') + 10;
         }
 
-        $bomItem = $currentVersion->items()->create([
+        $bomItem = $bom->items()->create([
             'item_id' => $validated['item_id'],
             'parent_item_id' => $validated['parent_item_id'],
             'quantity' => $validated['quantity'],
-            'unit_of_measure' => $validated['unit_of_measure'],
+            'unit_of_measure_code' => $validated['unit_of_measure'],
             'reference_designators' => $validated['reference_designators'] ?? null,
             'bom_notes' => $validated['bom_notes'] ?? null,
             'assembly_instructions' => $validated['assembly_instructions'] ?? null,
@@ -597,7 +557,7 @@ class BillOfMaterialController extends BaseSearchController
     {
         $this->authorize('manageItems', $bom);
 
-        if ($item->bomVersion->bill_of_material_id !== $bom->id) {
+        if ($item->bill_of_material_id !== $bom->id) {
             abort(403, 'Item does not belong to this BOM.');
         }
 
@@ -621,7 +581,7 @@ class BillOfMaterialController extends BaseSearchController
     {
         $this->authorize('manageItems', $bom);
 
-        if ($item->bomVersion->bill_of_material_id !== $bom->id) {
+        if ($item->bill_of_material_id !== $bom->id) {
             abort(403, 'Item does not belong to this BOM.');
         }
 
@@ -667,96 +627,14 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Create new BOM version.
-     */
-    public function createVersion(Request $request, BillOfMaterial $bom)
-    {
-        $this->authorize('update', $bom);
-
-        $validated = $request->validate([
-            'revision_notes' => 'required|string',
-            'copy_from_version' => 'nullable|exists:bom_versions,id',
-        ]);
-
-        DB::transaction(function () use ($bom, $validated) {
-            $newVersion = $bom->createVersion($validated['revision_notes']);
-
-            // Copy items from previous version if requested
-            if ($validated['copy_from_version']) {
-                $sourceVersion = BomVersion::findOrFail($validated['copy_from_version']);
-
-                if ($sourceVersion->bill_of_material_id !== $bom->id) {
-                    throw new \Exception('Source version does not belong to this BOM.');
-                }
-
-                // Clone the version
-                $sourceVersion->cloneToNewVersion($newVersion->version_number, auth()->id());
-            }
-
-            // Set as current version
-            $bom->setCurrentVersion($newVersion);
-        });
-
-        return back()->with('success', 'New BOM version created successfully.');
-    }
-
-    /**
-     * Set version as current.
-     */
-    public function setCurrentVersion(BillOfMaterial $bom, BomVersion $version)
-    {
-        $this->authorize('update', $bom);
-
-        if ($version->bill_of_material_id !== $bom->id) {
-            abort(403, 'Version does not belong to this BOM.');
-        }
-
-        $bom->setCurrentVersion($version);
-
-        return back()->with('success', 'BOM version set as current successfully.');
-    }
-
-    /**
-     * Show BOM comparison.
-     */
-    public function compare(Request $request, BillOfMaterial $bom): Response
-    {
-        $this->authorize('view', $bom);
-
-        $request->validate([
-            'version1' => 'required|exists:bom_versions,id',
-            'version2' => 'required|exists:bom_versions,id',
-        ]);
-
-        $version1 = BomVersion::with('items.item')->findOrFail($request->version1);
-        $version2 = BomVersion::with('items.item')->findOrFail($request->version2);
-
-        // Ensure both versions belong to this BOM
-        if ($version1->bill_of_material_id !== $bom->id || $version2->bill_of_material_id !== $bom->id) {
-            abort(403, 'Versions do not belong to this BOM.');
-        }
-
-        // Method temporarily disabled - page not implemented yet
-        return Inertia::render('error/not-implemented', [
-            'status' => 501,
-            'message' => 'This feature is not yet implemented',
-        ]);
-    }
-
-    /**
      * Get BOM cost rollup.
      */
     public function costRollup(BillOfMaterial $bom): JsonResponse
     {
         $this->authorize('view', $bom);
 
-        $currentVersion = $bom->currentVersion;
-        if (! $currentVersion) {
-            return response()->json(['error' => 'No current version found'], 404);
-        }
-
         // Load all items with their relationships efficiently
-        $allItems = BomItem::where('bom_version_id', $currentVersion->id)
+        $allItems = BomItem::where('bill_of_material_id', $bom->id)
             ->with('item')
             ->get();
         $itemsByParent = $allItems->groupBy('parent_item_id');
@@ -764,13 +642,12 @@ class BillOfMaterialController extends BaseSearchController
         $this->attachChildren($rootItems, $itemsByParent);
 
         // Temporarily set the relation for cost calculation
-        $currentVersion->setRelation('rootItems', $rootItems);
+        $bom->setRelation('rootItems', $rootItems);
 
-        $costData = $this->calculateCostRollup($currentVersion);
+        $costData = $this->calculateCostRollup($bom);
 
         return response()->json([
             'bom' => $bom,
-            'version' => $currentVersion->version_number,
             'costs' => $costData,
             'generated_at' => now()->toIso8601String(),
         ]);
@@ -786,7 +663,7 @@ class BillOfMaterialController extends BaseSearchController
         // This would typically use a package like Laravel Excel
         // For now, we'll implement CSV export
         // Load all items efficiently to avoid N+1 queries
-        $allItems = BomItem::where('bom_version_id', $bom->currentVersion->id)
+        $allItems = BomItem::where('bill_of_material_id', $bom->id)
             ->with('item')
             ->get();
         $itemsByParent = $allItems->groupBy('parent_item_id');
@@ -794,7 +671,7 @@ class BillOfMaterialController extends BaseSearchController
         $this->attachChildren($rootItems, $itemsByParent);
 
         // Set the relation for the flattening process
-        $bom->currentVersion->setRelation('rootItems', $rootItems);
+        $bom->setRelation('rootItems', $rootItems);
 
         $headers = [
             'Level',
@@ -808,7 +685,7 @@ class BillOfMaterialController extends BaseSearchController
         ];
 
         $data = [];
-        $this->flattenBomItems($bom->currentVersion->rootItems, $data);
+        $this->flattenBomItems($bom->rootItems, $data);
 
         $csv = fopen('php://temp', 'r+');
         fputcsv($csv, $headers);
@@ -833,12 +710,7 @@ class BillOfMaterialController extends BaseSearchController
     {
         $this->authorize('manageItems', $bom);
 
-        $currentVersion = $bom->currentVersion;
-        if (! $currentVersion) {
-            return back()->with('error', 'No current version found.');
-        }
-
-        $itemsWithoutQr = $currentVersion->items()->whereNull('qr_code')->get();
+        $itemsWithoutQr = $bom->items()->whereNull('qr_code')->get();
 
         if ($itemsWithoutQr->isEmpty()) {
             return back()->with('info', 'All items already have QR codes.');
@@ -865,9 +737,7 @@ class BillOfMaterialController extends BaseSearchController
 
         $items = BomItem::with('item')
             ->whereIn('id', $validated['item_ids'])
-            ->whereHas('bomVersion', function ($query) use ($bom) {
-                $query->where('bill_of_material_id', $bom->id);
-            })
+            ->where('bill_of_material_id', $bom->id)
             ->get();
 
         // Method temporarily disabled - page not implemented yet
@@ -878,69 +748,14 @@ class BillOfMaterialController extends BaseSearchController
     }
 
     /**
-     * Compare two BOM versions.
+     * Calculate cost rollup for a BOM.
      */
-    private function compareVersions(BomVersion $version1, BomVersion $version2): array
-    {
-        $items1 = $version1->items->keyBy('item_id');
-        $items2 = $version2->items->keyBy('item_id');
-
-        $differences = [
-            'added' => [],
-            'removed' => [],
-            'modified' => [],
-        ];
-
-        // Find added and modified items
-        foreach ($items2 as $itemId => $item2) {
-            if (! $items1->has($itemId)) {
-                $differences['added'][] = $item2;
-            } else {
-                $item1 = $items1->get($itemId);
-                if ($this->itemsAreDifferent($item1, $item2)) {
-                    $differences['modified'][] = [
-                        'old' => $item1,
-                        'new' => $item2,
-                    ];
-                }
-            }
-        }
-
-        // Find removed items
-        foreach ($items1 as $itemId => $item1) {
-            if (! $items2->has($itemId)) {
-                $differences['removed'][] = $item1;
-            }
-        }
-
-        return $differences;
-    }
-
-    /**
-     * Check if two BOM items are different.
-     */
-    private function itemsAreDifferent(BomItem $item1, BomItem $item2): bool
-    {
-        $compareFields = ['quantity', 'unit_of_measure', 'parent_item_id', 'level'];
-
-        foreach ($compareFields as $field) {
-            if ($item1->$field != $item2->$field) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Calculate cost rollup for a BOM version.
-     */
-    private function calculateCostRollup(BomVersion $version): array
+    private function calculateCostRollup(BillOfMaterial $bom): array
     {
         $totalCost = 0;
         $itemCosts = [];
 
-        foreach ($version->rootItems as $rootItem) {
+        foreach ($bom->rootItems as $rootItem) {
             $itemCost = $this->calculateItemCost($rootItem);
             $itemCosts[] = [
                 'item' => $rootItem->item,

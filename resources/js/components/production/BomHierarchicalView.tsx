@@ -36,7 +36,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { BomItem, Item, ItemCategory, BomVersion } from '@/types/production';
+import { BomItem, Item, ItemCategory } from '@/types/production';
 import { CreateItemSheet } from '@/components/CreateItemSheet';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { ImageWithBlurEffect } from '@/components/production/ImageWithBlurEffect';
@@ -72,7 +72,6 @@ interface EditingItem {
 
 interface BomHierarchicalViewProps {
     bomId: number;
-    versionId: number;
     bomItems: (BomItem & { item: Item; children?: (BomItem & { item: Item })[] })[];
     availableItems: Item[];
     categories?: ItemCategory[];
@@ -81,17 +80,12 @@ interface BomHierarchicalViewProps {
     bom?: {
         name: string;
         bom_number: string;
-        current_version?: {
-            version_number: number;
-            items?: BomItem[];
-        };
-        versions?: BomVersion[];
+        items?: BomItem[];
     };
 }
 
 export default function BomHierarchicalView({
     bomId,
-    versionId,
     bomItems: initialBomItems,
     availableItems,
     categories,
@@ -358,7 +352,6 @@ export default function BomHierarchicalView({
 
         try {
             await router.post(route('production.bom.items.add', bomId), {
-                bom_version_id: versionId,
                 parent_item_id: newItemParentId,
                 item_id: selectedItemId,
                 quantity: editingItem.quantity,
@@ -650,11 +643,11 @@ export default function BomHierarchicalView({
             <div className="flex-shrink-0 px-6 lg:px-8 pt-6 lg:pt-8 pb-4">
                 <HierarchicalViewHeader
                     title=""
-                    subtitle={`${bom?.current_version?.items?.length || 0} itens na versão`}
+                    subtitle={`${bom?.items?.length || 0} itens`}
                     badge={
-                        bom?.current_version && (
+                        bom && (
                             <Badge variant="secondary">
-                                v{bom.current_version.version_number}
+                                {bom.bom_number}
                             </Badge>
                         )
                     }

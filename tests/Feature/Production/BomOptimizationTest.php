@@ -32,17 +32,9 @@ class BomOptimizationTest extends TestCase
         $outputItem = Item::factory()->create(['can_be_manufactured' => true]);
         $bom = BillOfMaterial::factory()->create(['output_item_id' => $outputItem->id]);
 
-        // Get the current version (should be created automatically)
-        $version = $bom->currentVersion;
-
-        // If no version exists, create one
-        if (! $version) {
-            $version = $bom->createVersion('Initial version');
-        }
-
         // Create root item
         $rootItem = BomItem::factory()->create([
-            'bom_version_id' => $version->id,
+            'bill_of_material_id' => $bom->id,
             'item_id' => $outputItem->id,
             'parent_item_id' => null,
             'level' => 0,
@@ -52,7 +44,7 @@ class BomOptimizationTest extends TestCase
         $level1Items = [];
         for ($i = 0; $i < 3; $i++) {
             $level1Items[] = BomItem::factory()->create([
-                'bom_version_id' => $version->id,
+                'bill_of_material_id' => $bom->id,
                 'parent_item_id' => $rootItem->id,
                 'level' => 1,
             ]);
@@ -62,7 +54,7 @@ class BomOptimizationTest extends TestCase
         foreach ($level1Items as $level1Item) {
             for ($i = 0; $i < 2; $i++) {
                 $level2Item = BomItem::factory()->create([
-                    'bom_version_id' => $version->id,
+                    'bill_of_material_id' => $bom->id,
                     'parent_item_id' => $level1Item->id,
                     'level' => 2,
                 ]);
@@ -70,7 +62,7 @@ class BomOptimizationTest extends TestCase
                 // Create level 3 items
                 for ($j = 0; $j < 2; $j++) {
                     BomItem::factory()->create([
-                        'bom_version_id' => $version->id,
+                        'bill_of_material_id' => $bom->id,
                         'parent_item_id' => $level2Item->id,
                         'level' => 3,
                     ]);
@@ -160,15 +152,9 @@ class BomOptimizationTest extends TestCase
             $outputItem = Item::factory()->create(['can_be_manufactured' => true]);
             $bom = BillOfMaterial::factory()->create(['output_item_id' => $outputItem->id]);
 
-            // Get or create current version
-            $version = $bom->currentVersion;
-            if (! $version) {
-                $version = $bom->createVersion('Initial version');
-            }
-
             // Create multiple items per BOM
             BomItem::factory()->count(10)->create([
-                'bom_version_id' => $version->id,
+                'bill_of_material_id' => $bom->id,
             ]);
         }
 

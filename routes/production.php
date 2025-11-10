@@ -130,11 +130,6 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::delete('bom/{bom}/items/{item}', [BillOfMaterialController::class, 'removeItem'])->name('bom.items.remove');
     Route::post('bom/{bom}/items/{item}/move', [BillOfMaterialController::class, 'moveItem'])->name('bom.items.move');
 
-    // BOM Versions
-    Route::post('bom/{bom}/versions', [BillOfMaterialController::class, 'createVersion'])->name('bom.versions.create');
-    Route::post('bom/{bom}/versions/{version}/set-current', [BillOfMaterialController::class, 'setCurrentVersion'])->name('bom.versions.set-current');
-    // Route::get('bom/{bom}/compare', [BillOfMaterialController::class, 'compare'])->name('bom.compare'); // Temporarily disabled - page not implemented
-
     // BOM Analysis
     Route::get('bom/{bom}/cost-rollup', [BillOfMaterialController::class, 'costRollup'])->name('bom.cost-rollup');
 

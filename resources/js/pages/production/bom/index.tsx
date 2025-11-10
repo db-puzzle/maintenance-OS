@@ -136,20 +136,6 @@ export default function BomIndex({ boms, filters }: Props) {
             )
         },
         {
-            key: 'version',
-            label: 'Versão',
-            width: 'w-[100px]',
-            headerAlign: 'center',
-            render: (value: unknown, row: BillOfMaterial) => {
-                const currentVersion = row.current_version?.version_number;
-                return (
-                    <div className="text-center">
-                        {currentVersion ? `v${currentVersion}` : '-'}
-                    </div>
-                );
-            }
-        },
-        {
             key: 'status',
             label: 'Status',
             sortable: true,
@@ -167,17 +153,6 @@ export default function BomIndex({ boms, filters }: Props) {
                     </div>
                 );
             }
-        },
-        {
-            key: 'versions_count',
-            label: 'Versões',
-            width: 'w-[100px]',
-            headerAlign: 'center',
-            render: (value: unknown, row: BillOfMaterial) => (
-                <div className="text-center">
-                    {row.versions_count || 0}
-                </div>
-            )
         },
         {
             key: 'item_masters_count',

@@ -99,7 +99,7 @@ class ProcessBomImportSession implements ShouldQueue
             $sessionData['result'] = [
                 'bom_id' => $bom->id,
                 'bom_number' => $bom->bom_number,
-                'items_created' => $bom->currentVersion->items->count(),
+                'items_created' => $bom->items()->count(),
                 'errors' => [],
             ];
 

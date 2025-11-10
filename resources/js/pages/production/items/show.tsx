@@ -925,15 +925,6 @@ export default function ItemShow({
                                                 },
                                                 headerAlign: 'center' as const,
                                             },
-                                            {
-                                                key: 'current_version',
-                                                label: 'Versão',
-                                                render: (value: unknown, row: unknown) => {
-                                                    const bom = row as BillOfMaterial;
-                                                    return <div className="text-center">{bom.current_version?.version_number || '1'}</div>;
-                                                },
-                                                headerAlign: 'center' as const,
-                                            },
                                         ]}
                                         loading={bomLoading}
                                         onRowClick={(row: unknown) => {

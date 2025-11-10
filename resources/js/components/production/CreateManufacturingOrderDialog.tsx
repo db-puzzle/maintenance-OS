@@ -24,7 +24,7 @@ import { Progress } from '@/components/ui/progress';
 import { ItemSelect } from '@/components/ItemSelect';
 import InputError from '@/components/input-error';
 import StateButton from '@/components/StateButton';
-import { Item, BillOfMaterial, RouteTemplate, BomVersion } from '@/types/production';
+import { Item, BillOfMaterial, RouteTemplate } from '@/types/production';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { ColumnConfig } from '@/types/shared';
@@ -182,8 +182,8 @@ export default function CreateManufacturingOrderDialog({
     }, [data.bill_of_material_id, data.order_type, billsOfMaterial]);
 
     const bomItems = useMemo(() => {
-        if (!selectedBOM?.current_version?.items) return [];
-        return selectedBOM.current_version.items;
+        if (!selectedBOM?.items) return [];
+        return selectedBOM.items;
     }, [selectedBOM]);
 
     const filteredRouteTemplates = useMemo(() => {
@@ -407,25 +407,12 @@ export default function CreateManufacturingOrderDialog({
             )
         },
         {
-            key: 'current_version',
-            label: 'Version',
-            width: 'w-[80px]',
-            render: (value: unknown) => {
-                const version = value as BomVersion | undefined;
-                return (
-                    <Badge variant="secondary" className="text-xs">
-                        v{version?.version_number || 1}
-                    </Badge>
-                );
-            }
-        },
-        {
             key: 'component_count',
             label: 'Components',
             width: 'w-[100px]',
             render: (_value: unknown, bom: BillOfMaterial) => {
-                const version = bom.current_version as BomVersion | undefined;
-                return <span>{version?.items?.length || 0} items</span>;
+                const bomItems = bom.items;
+                return <span>{bomItems?.length || 0} items</span>;
             }
         }
     ], [data.bill_of_material_id]);
