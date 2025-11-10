@@ -721,9 +721,7 @@ class ProductionRoutingController extends Controller
                     'name' => $template->name,
                     'description' => $template->description,
                     'item_category_name' => $template->itemCategory?->name,
-                    'version' => $template->version,
                     'is_active' => $template->is_active,
-                    'is_latest_for_category' => $template->is_latest_for_category,
                     'template_metadata' => $template->template_metadata,
                     'steps' => $template->steps->count() > 0
                         ? \App\Models\Production\ManufacturingStep::getOrderedStepsForRoute($template->id)

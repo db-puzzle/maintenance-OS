@@ -164,11 +164,21 @@ class Account extends Model implements \Stancl\Tenancy\Contracts\Tenant, TenantW
      */
     public function getDatabaseStats(): array
     {
+        // Check if database name is available
+        if (! $this->database_name) {
+            return [
+                'database_size' => 'N/A',
+                'connections' => 0,
+                'user_count' => 0,
+                'table_count' => 0,
+            ];
+        }
+
         // Use cache key with tenant ID for isolation
-        // In production with Redis, cache tags provide automatic isolation via CacheTenancyBootstrapper
+        // Use array cache driver in admin context to avoid tenancy cache issues
         $cacheKey = "tenant_{$this->id}_stats_database_stats";
 
-        return Cache::remember($cacheKey, 60, function () {
+        return Cache::driver('array')->remember($cacheKey, 60, function () {
             // Get formatted size and connections from central connection
             $stats = DB::connection('central')->selectOne('
                 SELECT 
@@ -177,21 +187,37 @@ class Account extends Model implements \Stancl\Tenancy\Contracts\Tenant, TenantW
             ', [$this->database_name, $this->database_name]);
 
             // Get tenant-specific stats with longer cache
-            $tenantStats = $this->run(function () {
-                $cacheKey = 'tenant_' . tenant()->id . '_counts_entity_counts';
+            // Wrap in try-catch to handle cases where tenant context isn't available
+            try {
+                $tenantStats = $this->run(function () {
+                    $cacheKey = 'tenant_' . $this->id . '_counts_entity_counts';
 
-                return Cache::remember($cacheKey, 300, function () {
-                    // Get table count using PostgreSQL query
-                    $tables = DB::select("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
+                    return Cache::remember($cacheKey, 300, function () {
+                        // Get table count using PostgreSQL query
+                        $tables = DB::select("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
 
-                    return [
-                        'table_count' => count($tables),
-                        'user_count' => \App\Models\User::count(),
-                        'work_order_count' => \App\Models\WorkOrders\WorkOrder::count(),
-                        'asset_count' => \App\Models\AssetHierarchy\Asset::count(),
-                    ];
+                        return [
+                            'table_count' => count($tables),
+                            'user_count' => \App\Models\User::count(),
+                            'work_order_count' => \App\Models\WorkOrders\WorkOrder::count(),
+                            'asset_count' => \App\Models\AssetHierarchy\Asset::count(),
+                        ];
+                    });
                 });
-            });
+            } catch (\Exception $e) {
+                // If we can't get tenant stats (e.g., called from admin context), return defaults
+                \Log::debug('Could not get tenant-specific stats', [
+                    'tenant_id' => $this->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $tenantStats = [
+                    'table_count' => 0,
+                    'user_count' => 0,
+                    'work_order_count' => 0,
+                    'asset_count' => 0,
+                ];
+            }
 
             return [
                 'database_size' => $stats->size ?? 'N/A',

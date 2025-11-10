@@ -142,11 +142,10 @@ class ManufacturingOrderController extends BaseSearchController
             $templates = \App\Models\Production\ManufacturingRoute::templates()
                 ->where('item_category_id', $item->item_category_id)
                 ->where('is_active', true)
-                ->orderBy('is_latest_for_category', 'desc')
-                ->orderBy('version', 'desc')
+                ->orderBy('updated_at', 'desc')
                 ->get();
 
-            $recommendedTemplate = $templates->firstWhere('is_latest_for_category', true);
+            $recommendedTemplate = $templates->first();
         }
 
         // Get all templates for manual selection

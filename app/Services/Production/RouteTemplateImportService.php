@@ -134,8 +134,6 @@ class RouteTemplateImportService
             'is_template' => true,
             'is_active' => isset($data['is_active']) ? $data['is_active'] : true,
             'item_category_id' => $categoryId,
-            'version' => isset($data['version']) ? $data['version'] : 1,
-            'is_latest_for_category' => isset($data['is_latest_for_category']) ? $data['is_latest_for_category'] : false,
             'template_metadata' => isset($data['template_metadata']) ? $data['template_metadata'] : [],
             'created_by' => auth()->id(),
         ];

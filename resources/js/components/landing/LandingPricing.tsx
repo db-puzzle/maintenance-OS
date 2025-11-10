@@ -142,7 +142,7 @@ export function LandingPricing() {
                         name="Starter"
                         price="$9"
                         description="Good for anyone who is self-employed and just getting started."
-                        href={route('register')}
+                        href="/register"
                         features={[
                             'Send 10 quotes and invoices',
                             'Connect up to 2 bank accounts',
@@ -156,7 +156,7 @@ export function LandingPricing() {
                         name="Small business"
                         price="$15"
                         description="Perfect for small / medium sized businesses."
-                        href={route('register')}
+                        href="/register"
                         features={[
                             'Send 25 quotes and invoices',
                             'Connect up to 5 bank accounts',
@@ -171,7 +171,7 @@ export function LandingPricing() {
                         name="Enterprise"
                         price="$39"
                         description="For even the biggest enterprise companies."
-                        href={route('register')}
+                        href="/register"
                         features={[
                             'Send unlimited quotes and invoices',
                             'Connect up to 15 bank accounts',

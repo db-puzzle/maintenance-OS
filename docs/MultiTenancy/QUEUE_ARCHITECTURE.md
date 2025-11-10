@@ -722,3 +722,7 @@ The beauty of this system is that **you don't have to think about it** - just di
 
 **Next Step**: Create the jobs tables using the migration path above, and your queue system will be fully functional!
 
+
+
+
+

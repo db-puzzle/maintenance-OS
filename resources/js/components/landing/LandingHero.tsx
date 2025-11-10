@@ -115,7 +115,7 @@ export function LandingHero() {
                             ) : (
                                 <>
                                     <Button asChild variant="blue">
-                                        <Link href={route('register')}>Get started</Link>
+                                        <Link href="/register">Get started</Link>
                                     </Button>
                                     <Button asChild variant="outline">
                                         <Link href="#features">Documentation</Link>

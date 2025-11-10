@@ -183,22 +183,11 @@ class ManufacturingOrderService
      */
     protected function findBestTemplateForItem(Item $item): ?ManufacturingRoute
     {
-        // First, try exact category match with latest version
-        $template = ManufacturingRoute::templates()
-            ->where('item_category_id', $item->item_category_id)
-            ->where('is_latest_for_category', true)
-            ->where('is_active', true)
-            ->first();
-
-        if ($template) {
-            return $template;
-        }
-
-        // Second, try any template for the category
+        // Get the most recently updated active template for the category
         return ManufacturingRoute::templates()
             ->where('item_category_id', $item->item_category_id)
             ->where('is_active', true)
-            ->orderBy('version', 'desc')
+            ->orderBy('updated_at', 'desc')
             ->first();
     }
 

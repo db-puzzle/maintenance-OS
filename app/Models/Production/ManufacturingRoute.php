@@ -28,8 +28,6 @@ class ManufacturingRoute extends Model
         'is_active',
         'is_template',
         'item_category_id',
-        'version',
-        'is_latest_for_category',
         'template_metadata',
         'created_by',
     ];
@@ -37,7 +35,6 @@ class ManufacturingRoute extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'is_template' => 'boolean',
-        'is_latest_for_category' => 'boolean',
         'template_metadata' => 'array',
     ];
 

@@ -21,6 +21,13 @@ abstract class CentralTestCase extends BaseTestCase
     use RefreshDatabase;
 
     /**
+     * Define the database connection to use for testing.
+     *
+     * @var string
+     */
+    protected $connection = 'central';
+
+    /**
      * Creates the application.
      */
     public function createApplication()
@@ -55,5 +62,43 @@ abstract class CentralTestCase extends BaseTestCase
 
         // Ensure we're using the central database connection
         config(['database.default' => 'central']);
+    }
+
+    /**
+     * Refresh the in-memory database.
+     *
+     * Overridden to use the central migrations path.
+     */
+    protected function refreshInMemoryDatabase(): void
+    {
+        $this->artisan('migrate:fresh', [
+            '--database' => 'central',
+            '--path' => 'database/migrations/central',
+        ]);
+
+        $this->app[\Illuminate\Contracts\Console\Kernel::class]->setArtisan(null);
+    }
+
+    /**
+     * Refresh a conventional test database.
+     *
+     * Overridden to use the central migrations path.
+     */
+    protected function refreshTestDatabase(): void
+    {
+        if (! \Illuminate\Foundation\Testing\RefreshDatabaseState::$migrated) {
+            $this->artisan('migrate:fresh', [
+                '--database' => 'central',
+                '--path' => 'database/migrations/central',
+                '--drop-views' => $this->shouldDropViews(),
+                '--drop-types' => $this->shouldDropTypes(),
+            ]);
+
+            $this->app[\Illuminate\Contracts\Console\Kernel::class]->setArtisan(null);
+
+            \Illuminate\Foundation\Testing\RefreshDatabaseState::$migrated = true;
+        }
+
+        $this->beginDatabaseTransaction();
     }
 }

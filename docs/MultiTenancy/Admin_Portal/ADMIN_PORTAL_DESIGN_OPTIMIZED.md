@@ -1,8 +1,20 @@
-# Admin Portal Design - Leveraging Laravel Tenancy Events
+    # Admin Portal Design - Leveraging Laravel Tenancy Events
+
+> **📝 Note**: For the complete implementation specification with detailed features, UI designs, and step-by-step implementation guide, see [ADMIN_PORTAL_SPECIFICATION.md](../ADMIN_PORTAL_SPECIFICATION.md)
 
 ## Overview
 
 This document details an optimized admin portal design that leverages Laravel Tenancy's built-in event system instead of custom job dispatching. By using package events, we reduce complexity and improve reliability.
+
+For comprehensive implementation details including:
+- Full feature specifications
+- Complete UI/UX designs  
+- Data structures and interfaces
+- Implementation phases with timelines
+- Testing strategies
+- Security considerations
+
+Please refer to the [**ADMIN_PORTAL_SPECIFICATION.md**](../ADMIN_PORTAL_SPECIFICATION.md) document.
 
 ## Key Optimizations
 

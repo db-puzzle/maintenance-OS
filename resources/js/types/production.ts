@@ -384,8 +384,6 @@ export interface ManufacturingRoute {
     is_template?: boolean;
     item_category_id?: number | null;
     item_category?: ItemCategory;
-    version?: number;
-    is_latest_for_category?: boolean;
     template_metadata?: {
         tags?: string[];
         [key: string]: unknown;

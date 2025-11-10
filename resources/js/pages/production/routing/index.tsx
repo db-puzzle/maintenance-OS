@@ -129,22 +129,6 @@ export default function RoutingTemplatesIndex({
             }
         },
         {
-            key: 'version',
-            label: 'Versão',
-            sortable: true,
-            width: 'w-[100px]',
-            render: (value: unknown, row) => {
-                return (
-                    <div className="flex items-center gap-2">
-                        <span>v{row.version || 1}</span>
-                        {row.is_latest_for_category && (
-                            <span className="text-xs text-green-600 font-medium">Mais recente</span>
-                        )}
-                    </div>
-                );
-            }
-        },
-        {
             key: 'usage_count',
             label: 'Uso',
             sortable: true,

@@ -75,12 +75,6 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                                             Recommended
                                         </Badge>
                                     )}
-                                    {template.is_latest_for_category && (
-                                        <Badge variant="secondary">Latest</Badge>
-                                    )}
-                                    {template.version && template.version > 1 && (
-                                        <Badge variant="outline">v{template.version}</Badge>
-                                    )}
                                 </div>
                                 {template.description && (
                                     <CardDescription className="mt-1">

@@ -19,9 +19,9 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Admin Authentication Routes
-Route::get('login', [\App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'create'])->name('admin.login');
-Route::post('login', [\App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'store']);
-Route::post('logout', [\App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'destroy'])->name('admin.logout');
+Route::get('login', [\App\Http\Controllers\Auth\AdminAuthenticatedSessionController::class, 'create'])->name('admin.login');
+Route::post('login', [\App\Http\Controllers\Auth\AdminAuthenticatedSessionController::class, 'store']);
+Route::post('logout', [\App\Http\Controllers\Auth\AdminAuthenticatedSessionController::class, 'destroy'])->name('admin.logout');
 
 // Protected Admin Routes
 Route::middleware(['auth:admin'])->group(function () {

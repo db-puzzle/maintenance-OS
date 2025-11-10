@@ -8,6 +8,7 @@ use App\Http\Controllers\Production\ItemImageImportController;
 use App\Http\Controllers\Production\ItemImageServeController;
 use App\Http\Controllers\Production\ManufacturingOrderController;
 use App\Http\Controllers\Production\ManufacturingStepController;
+use App\Http\Controllers\Production\PlanningController;
 use App\Http\Controllers\Production\ProductionExecutionController;
 use App\Http\Controllers\Production\ProductionRoutingController;
 use App\Http\Controllers\Production\ProductionScheduleController;
@@ -197,7 +198,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
 
     // Production Planning
     Route::prefix('planning')->name('planning.')->group(function () {
-        Route::get('/', [ProductionScheduleController::class, 'index'])->name('index');
+        Route::get('/', [PlanningController::class, 'index'])->name('index');
         // Route::get('/calendar', [ProductionScheduleController::class, 'calendar'])->name('calendar'); // Temporarily disabled - page not implemented
         // Route::get('/workload', [ProductionScheduleController::class, 'workload'])->name('workload'); // Temporarily disabled - page not implemented
         Route::post('/optimize', [ProductionScheduleController::class, 'optimize'])->name('optimize');

@@ -21,12 +21,6 @@ class RouteTemplateService
         $route->validateForProduction();
 
         return DB::transaction(function () use ($route, $data) {
-            // Determine version number
-            $version = 1;
-            if (isset($data['item_category_id'])) {
-                $version = $this->getNextVersionForCategory($data['item_category_id']);
-            }
-
             // Create template metadata
             $metadata = [
                 'source_type' => 'production_route',
@@ -44,20 +38,9 @@ class RouteTemplateService
                 'is_template' => true,
                 'is_active' => true,
                 'item_category_id' => $data['item_category_id'] ?? null,
-                'version' => $version,
-                'is_latest_for_category' => true,
-                'created_from_route_id' => $route->id,
                 'template_metadata' => $metadata,
                 'created_by' => auth()->id(),
             ]);
-
-            // Mark previous versions as not latest
-            if (isset($data['item_category_id'])) {
-                ManufacturingRoute::templates()
-                    ->where('item_category_id', $data['item_category_id'])
-                    ->where('id', '!=', $template->id)
-                    ->update(['is_latest_for_category' => false]);
-            }
 
             // Copy steps and preserve dependencies
             $stepMapping = [];
@@ -104,22 +87,6 @@ class RouteTemplateService
 
             return $template;
         });
-    }
-
-    /**
-     * Get next version number for a category.
-     */
-    protected function getNextVersionForCategory(?int $categoryId): int
-    {
-        if (! $categoryId) {
-            return 1;
-        }
-
-        $maxVersion = ManufacturingRoute::templates()
-            ->where('item_category_id', $categoryId)
-            ->max('version');
-
-        return ($maxVersion ?? 0) + 1;
     }
 
     /**
@@ -176,12 +143,6 @@ class RouteTemplateService
     public function createTemplate(array $data): ManufacturingRoute
     {
         return DB::transaction(function () use ($data) {
-            // Determine version number
-            $version = 1;
-            if (isset($data['item_category_id'])) {
-                $version = $this->getNextVersionForCategory($data['item_category_id']);
-            }
-
             // Create template metadata
             $metadata = [
                 'source_type' => 'manual',
@@ -198,19 +159,9 @@ class RouteTemplateService
                 'is_template' => true,
                 'is_active' => true,
                 'item_category_id' => $data['item_category_id'] ?? null,
-                'version' => $version,
-                'is_latest_for_category' => true,
                 'template_metadata' => $metadata,
                 'created_by' => auth()->id(),
             ]);
-
-            // Mark previous versions as not latest
-            if (isset($data['item_category_id'])) {
-                ManufacturingRoute::templates()
-                    ->where('item_category_id', $data['item_category_id'])
-                    ->where('id', '!=', $template->id)
-                    ->update(['is_latest_for_category' => false]);
-            }
 
             return $template;
         });
@@ -278,22 +229,11 @@ class RouteTemplateService
             return null;
         }
 
-        // First, try exact category match with latest version
-        $template = ManufacturingRoute::templates()
-            ->where('item_category_id', $categoryId)
-            ->where('is_latest_for_category', true)
-            ->where('is_active', true)
-            ->first();
-
-        if ($template) {
-            return $template;
-        }
-
-        // Second, try any template for the category
+        // Get the most recently updated active template for the category
         return ManufacturingRoute::templates()
             ->where('item_category_id', $categoryId)
             ->where('is_active', true)
-            ->orderBy('version', 'desc')
+            ->orderBy('updated_at', 'desc')
             ->first();
     }
 
@@ -305,7 +245,7 @@ class RouteTemplateService
         return ManufacturingRoute::templates()
             ->where('item_category_id', $categoryId)
             ->where('is_active', true)
-            ->orderBy('version', 'desc')
+            ->orderBy('name')
             ->get();
     }
 

@@ -105,13 +105,6 @@ class TenantRegistrationController extends Controller
     public function store(Request $request): RedirectResponse|HttpResponse
     {
         try {
-            // Log incoming request
-            \Log::info('🚀 Tenant registration started', [
-                'request_data' => $request->except(['admin_password', 'admin_password_confirmation']),
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-
             // Validate incoming data with simple rules
             // Let Laravel Tenancy middleware handle runtime validation
             $validated = $request->validate([
@@ -141,13 +134,8 @@ class TenantRegistrationController extends Controller
                 'subdomain.unique' => 'This subdomain is already taken. Please choose another.',
             ]);
 
-            \Log::info('✅ Validation passed', [
-                'validated_data' => collect($validated)->except(['admin_password', 'admin_password_confirmation'])->toArray(),
-            ]);
-
             // Create tenant - database operations happen automatically via Laravel Tenancy
             // Note: No transaction wrapper because PostgreSQL cannot CREATE DATABASE inside a transaction
-            \Log::info('🏗️ Creating tenant account...');
 
             // Create tenant - database created, migrated, and seeded automatically!
             $account = Account::create([
@@ -162,23 +150,17 @@ class TenantRegistrationController extends Controller
                 ],
             ]);
 
-            \Log::info('✅ Tenant created', ['tenant_id' => $account->id, 'subdomain' => $account->subdomain]);
-
             // Domain created automatically via Account model event
             // Database created automatically by package
             // Migrations run automatically
             // Seeding happens automatically via CreateTenantAdmin job
 
             // Create subscription
-            \Log::info('📝 Creating subscription...');
             $account->subscription()->create([
                 'plan_id' => $validated['plan_id'],
                 'status' => 'trialing',
                 'trial_ends_at' => $account->trial_ends_at,
             ]);
-
-            \Log::info('✅ Subscription created');
-            \Log::info('🎉 Tenant registration completed successfully', ['account_id' => $account->id]);
 
             // Fire registered event for any additional processing
             event(new Registered($account));
@@ -191,15 +173,10 @@ class TenantRegistrationController extends Controller
             // In production: https://subdomain.domain.com
             $tenantUrl = $this->getTenantUrl($domain->domain);
 
-            \Log::info('🔀 Redirecting to tenant domain', [
-                'domain' => $domain->domain,
-                'full_url' => $tenantUrl,
-            ]);
-
             // Use Inertia::location() for cross-domain redirects (forces full page visit)
             return Inertia::location($tenantUrl);
         } catch (UniqueConstraintViolationException $e) {
-            \Log::error('💥 Subdomain already exists', [
+            \Log::error('Subdomain already exists', [
                 'subdomain' => $validated['subdomain'] ?? 'unknown',
                 'error' => $e->getMessage(),
             ]);
@@ -210,9 +187,11 @@ class TenantRegistrationController extends Controller
                 ])
                 ->withInput($request->except(['admin_password', 'admin_password_confirmation']));
         } catch (\Exception $e) {
-            \Log::error('💥 Tenant registration failed', [
+            \Log::error('Tenant registration failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'error_class' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
 
             return back()

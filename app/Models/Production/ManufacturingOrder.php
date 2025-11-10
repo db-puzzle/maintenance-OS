@@ -293,8 +293,8 @@ class ManufacturingOrder extends Model
         if ($childOrder->item && $childOrder->item->item_category_id) {
             $template = ManufacturingRoute::templates()
                 ->where('item_category_id', $childOrder->item->item_category_id)
-                ->where('is_latest_for_category', true)
                 ->where('is_active', true)
+                ->orderBy('updated_at', 'desc')
                 ->first();
         }
 

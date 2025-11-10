@@ -21,8 +21,11 @@ class CentralDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // For now, we'll create some basic plans
         $this->call([
+            // Create initial system administrator
+            AdminUserSeeder::class,
+
+            // Create subscription plans
             CentralPlansSeeder::class,
         ]);
     }

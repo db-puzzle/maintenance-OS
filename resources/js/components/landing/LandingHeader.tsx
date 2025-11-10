@@ -90,11 +90,11 @@ function MobileNavigation() {
                         <MobileNavLink href="#features">Features</MobileNavLink>
                         <MobileNavLink href="#testimonials">Testimonials</MobileNavLink>
                         <MobileNavLink href="#pricing">Pricing</MobileNavLink>
-                        <hr className="m-2 border-slate-300/40 dark:border-slate-700/40" />
-                        {auth.user ? (
-                            <MobileNavLink href={route('home')}>Dashboard</MobileNavLink>
-                        ) : (
-                            <MobileNavLink href={route('login')}>Sign in</MobileNavLink>
+                        {auth.user && (
+                            <>
+                                <hr className="m-2 border-slate-300/40 dark:border-slate-700/40" />
+                                <MobileNavLink href={route('home')}>Dashboard</MobileNavLink>
+                            </>
                         )}
                     </PopoverPanel>
                 </TransitionChild>
@@ -152,26 +152,19 @@ export function LandingHeader() {
                     </div>
                     <div className="flex items-center gap-x-5 md:gap-x-8">
                         {auth.user ? (
-                            <>
-                                <Button asChild variant="blue">
-                                    <Link href={route('home')}>
-                                        <span>Go to Dashboard</span>
-                                    </Link>
-                                </Button>
-                            </>
+                            <Button asChild variant="blue">
+                                <Link href={route('home')}>
+                                    <span>Go to Dashboard</span>
+                                </Link>
+                            </Button>
                         ) : (
-                            <>
-                                <div className="hidden md:block">
-                                    <NavLink href={route('login')}>Sign in</NavLink>
-                                </div>
-                                <Button asChild variant="blue">
-                                    <Link href={route('register')}>
-                                        <span>
-                                            Get started <span className="hidden lg:inline">today</span>
-                                        </span>
-                                    </Link>
-                                </Button>
-                            </>
+                            <Button asChild variant="blue">
+                                <Link href="/register">
+                                    <span>
+                                        Get started <span className="hidden lg:inline">today</span>
+                                    </span>
+                                </Link>
+                            </Button>
                         )}
                         <div className="-mr-1 md:hidden">
                             <MobileNavigation />

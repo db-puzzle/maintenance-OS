@@ -1170,3 +1170,7 @@ $table->integer('last_activity')->index(); // Fast cleanup
 
 **You were right to question the complexity**, but the good news is that Laravel and Laravel Tenancy have already solved this problem elegantly. We just need to add the missing sessions table to the central database, and everything will work perfectly.
 
+
+
+
+

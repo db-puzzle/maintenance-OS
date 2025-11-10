@@ -261,8 +261,7 @@ class RouteTemplateController extends Controller
                 ->where('item_category_id', $order->item->item_category_id)
                 ->where('is_active', true)
                 ->with('steps')
-                ->orderBy('is_latest_for_category', 'desc')
-                ->orderBy('version', 'desc')
+                ->orderBy('updated_at', 'desc')
                 ->get();
         }
 
@@ -277,7 +276,7 @@ class RouteTemplateController extends Controller
             'order' => $order,
             'categoryTemplates' => $categoryTemplates,
             'allTemplates' => $allTemplates,
-            'recommendedTemplate' => $categoryTemplates->firstWhere('is_latest_for_category', true),
+            'recommendedTemplate' => $categoryTemplates->first(),
         ]);
     }
 }

@@ -12,15 +12,33 @@
 */
 
 // Multi-tenancy tests - use MultiTenancyTestCase, NO RefreshDatabase
-// IMPORTANT: Must be defined FIRST to take precedence over the general Feature config
 pest()->extend(Tests\MultiTenancyTestCase::class)
     ->in('Feature/MultiTenancy');
 
-// Regular feature tests - use RefreshDatabase
-// Note: The MultiTenancy config above takes precedence for Feature/MultiTenancy
+// Central database tests - use CentralTestCase
+// Tests for central-only features (admin portal, account management, etc.)
+pest()->extend(Tests\CentralTestCase::class)
+    ->in('Feature/Central');
+
+// Regular feature tests - use TestCase with RefreshDatabase
+// Explicitly list feature test directories to avoid conflicts with Central and MultiTenancy
 pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Feature');
+    ->in('Feature/Auth')
+    ->in('Feature/Permission')
+    ->in('Feature/Plant')
+    ->in('Feature/User')
+    ->in('Feature/WorkOrder')
+    ->in('Feature/Maintenance')
+    ->in('Feature/Production')
+    ->in('Feature/AssetHierarchy')
+    ->in('Feature/Parts')
+    ->in('Feature/Settings')
+    ->in('Feature/Skills');
+
+// Unit tests
+pest()->extend(Tests\TestCase::class)
+    ->in('Unit');
 
 /*
 |--------------------------------------------------------------------------

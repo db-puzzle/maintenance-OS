@@ -133,9 +133,12 @@ export default function Signup({ plans }: SignupPageProps) {
             lastChecked: '',
         });
 
-        // Use Inertia router to make request
-        // Use current origin to ensure we're posting to the right domain
-        const checkUrl = `${window.location.origin}/check-subdomain`;
+        // Build the check URL using the central domain (same logic as submit)
+        const currentHost = window.location.hostname;
+        const protocol = window.location.protocol;
+        const port = window.location.port;
+        const baseDomain = currentHost.replace(/^admin\./, '');
+        const checkUrl = `${protocol}//${baseDomain}${port ? `:${port}` : ''}/check-subdomain`;
 
         router.post(
             checkUrl,
@@ -143,13 +146,7 @@ export default function Signup({ plans }: SignupPageProps) {
             {
                 preserveState: true,
                 preserveScroll: true,
-                onSuccess: (page) => {
-                    // Flash data is available in page.props
-                    console.log('✅ Subdomain check response:', page.props);
-                },
                 onError: (errors) => {
-                    // Handle validation errors
-                    console.log('❌ Subdomain check errors:', errors);
                     setSubdomainStatus({
                         checking: false,
                         available: false,
@@ -164,23 +161,22 @@ export default function Signup({ plans }: SignupPageProps) {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        // Log form submission attempt
-        console.log('🚀 Form submission started');
-        console.log('📋 Form data:', data);
-        console.log('🔗 Posting to:', route('register'));
+        // Build the registration URL using the central domain
+        // Remove any subdomain from the current hostname to get the central domain
+        const currentHost = window.location.hostname;
+        const protocol = window.location.protocol;
+        const port = window.location.port;
 
-        post(route('register'), {
-            onStart: () => {
-                console.log('⏳ Request started...');
-            },
-            onSuccess: (response) => {
-                console.log('✅ Registration successful!', response);
-            },
-            onError: (errors) => {
-                console.error('❌ Registration failed with errors:', errors);
-            },
+        // Extract the base domain (remove admin. or any other subdomain)
+        // For admin.maintenance-os.com, we want maintenance-os.com
+        // For admin.localhost, we want localhost
+        const baseDomain = currentHost.replace(/^admin\./, '');
+
+        // Construct the central domain URL
+        const centralUrl = `${protocol}//${baseDomain}${port ? `:${port}` : ''}/register`;
+
+        post(centralUrl, {
             onFinish: () => {
-                console.log('🏁 Request finished');
                 reset('admin_password', 'admin_password_confirmation');
             },
         });
@@ -258,9 +254,9 @@ export default function Signup({ plans }: SignupPageProps) {
                                         className={cn(
                                             'rounded-r-none',
                                             subdomainStatus.available === true &&
-                                                'border-green-500 focus-visible:ring-green-500',
+                                            'border-green-500 focus-visible:ring-green-500',
                                             subdomainStatus.available === false &&
-                                                'border-red-500 focus-visible:ring-red-500'
+                                            'border-red-500 focus-visible:ring-red-500'
                                         )}
                                     />
                                     <span className="border-input bg-muted text-muted-foreground inline-flex h-9 items-center rounded-r-md border border-l-0 px-3 text-sm">
@@ -498,14 +494,6 @@ export default function Signup({ plans }: SignupPageProps) {
                     {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
                     {processing ? 'Creating your account...' : 'Create Account'}
                 </Button>
-
-                {/* Login Link */}
-                <div className="text-muted-foreground text-center text-sm">
-                    Already have an account?{' '}
-                    <TextLink href={route('login')} tabIndex={9}>
-                        Sign in
-                    </TextLink>
-                </div>
             </form>
         </AuthLayout>
     );

@@ -22,18 +22,25 @@ class AdminTenantService
         $cacheKey = 'admin_tenants_statistics';
 
         return Cache::remember($cacheKey, 300, function () {
+            $total = Account::count();
+            $active = Account::where('status', 'active')->count();
+            $suspended = Account::where('status', 'suspended')->count();
+            $trial = Account::where('trial_ends_at', '>', now())->count();
+
+            $byPlan = Account::query()
+                ->join('subscriptions', 'accounts.id', '=', 'subscriptions.account_id')
+                ->join('plans', 'subscriptions.plan_id', '=', 'plans.id')
+                ->groupBy('plans.name')
+                ->selectRaw('plans.name as plan, count(accounts.id) as count')
+                ->pluck('count', 'plan')
+                ->toArray();
+
             return [
-                'total' => Account::count(),
-                'active' => Account::where('status', 'active')->count(),
-                'suspended' => Account::where('status', 'suspended')->count(),
-                'trial' => Account::where('trial_ends_at', '>', now())->count(),
-                'by_plan' => Account::query()
-                    ->join('subscriptions', 'accounts.id', '=', 'subscriptions.account_id')
-                    ->join('plans', 'subscriptions.plan_id', '=', 'plans.id')
-                    ->groupBy('plans.name')
-                    ->selectRaw('plans.name as plan, count(accounts.id) as count')
-                    ->pluck('count', 'plan')
-                    ->toArray(),
+                'total' => $total,
+                'active' => $active,
+                'suspended' => $suspended,
+                'trial' => $trial,
+                'by_plan' => $byPlan,
             ];
         });
     }
@@ -55,18 +62,29 @@ class AdminTenantService
                     $query->select('tenant_id', 'domain');
                 }])
                 ->limit($limit)
-                ->get(['id', 'name', 'subdomain', 'created_at'])
+                ->get(['id', 'name', 'subdomain', 'created_at', 'tenancy_db_name'])
                 ->map(function ($tenant) {
-                    // Use cached stats from the model
-                    $stats = $tenant->getDatabaseStats();
+                    try {
+                        // Use cached stats from the model
+                        $stats = $tenant->getDatabaseStats();
+                        $databaseSize = $stats['database_size'] ?? 'N/A';
+                        $userCount = $stats['user_count'] ?? 0;
+                    } catch (\Exception $e) {
+                        \Log::warning('Failed to get database stats for tenant', [
+                            'tenant_id' => $tenant->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                        $databaseSize = 'N/A';
+                        $userCount = 0;
+                    }
 
                     return [
                         'id' => $tenant->id,
                         'name' => $tenant->name,
                         'subdomain' => $tenant->subdomain,
                         'domain' => $tenant->domains->first()?->domain,
-                        'database_size' => $stats['database_size'] ?? 'N/A',
-                        'users' => $stats['user_count'] ?? 0,
+                        'database_size' => $databaseSize,
+                        'users' => $userCount,
                         'created' => $tenant->created_at->diffForHumans(),
                     ];
                 });
