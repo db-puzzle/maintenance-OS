@@ -30,7 +30,6 @@ class FormFactory extends Factory
             'description' => $this->faker->optional()->paragraph(),
             'is_active' => true,
             'created_by' => User::factory(),
-            'current_version_id' => null,
         ];
     }
 
@@ -53,4 +52,4 @@ class FormFactory extends Factory
             'created_by' => $user->id,
         ]);
     }
-} 
+}

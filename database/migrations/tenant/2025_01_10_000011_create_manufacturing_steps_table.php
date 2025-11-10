@@ -27,7 +27,6 @@ return new class extends Migration
 
             // Form association
             $table->foreignId('form_id')->nullable()->constrained('forms');
-            $table->foreignId('form_version_id')->nullable()->constrained('form_versions');
 
             // Time tracking
             $table->integer('setup_time_seconds')->default(0);

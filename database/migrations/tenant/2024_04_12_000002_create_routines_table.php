@@ -25,7 +25,6 @@ return new class extends Migration
             $table->enum('execution_mode', ['automatic', 'manual'])->default('automatic');
             $table->text('description')->nullable();
             $table->foreignId('form_id')->constrained();
-            $table->foreignId('active_form_version_id')->nullable()->constrained('form_versions')->nullOnDelete();
 
             // Work order generation settings
             $table->integer('advance_generation_days')->default(24)->comment('Generate WO this many hours in advance');
@@ -35,7 +34,6 @@ return new class extends Migration
             // Execution tracking
             $table->decimal('last_execution_runtime_hours', 10, 2)->nullable();
             $table->timestamp('last_execution_completed_at')->nullable();
-            $table->foreignId('last_execution_form_version_id')->nullable()->constrained('form_versions')->nullOnDelete();
 
             // Status
             $table->boolean('is_active')->default(true);
@@ -50,7 +48,6 @@ return new class extends Migration
             $table->index(['trigger_type', 'is_active']);
             $table->index('last_execution_completed_at');
             $table->index('form_id');
-            $table->index('active_form_version_id');
             $table->index('asset_id');
         });
     }

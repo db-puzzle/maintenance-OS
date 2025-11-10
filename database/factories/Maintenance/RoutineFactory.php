@@ -3,8 +3,6 @@
 namespace Database\Factories\Maintenance;
 
 use App\Models\AssetHierarchy\Asset;
-use App\Models\Forms\Form;
-use App\Models\Forms\FormVersion;
 use App\Models\Maintenance\Routine;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -30,13 +28,13 @@ class RoutineFactory extends Factory
     {
         $routineTypes = ['Preventive Maintenance', 'Inspection', 'Lubrication', 'Calibration', 'Cleaning'];
         $triggerType = $this->faker->randomElement(['runtime_hours', 'calendar_days']);
-        
+
         // Runtime intervals in hours
         $runtimeIntervals = [24, 48, 72, 168, 336, 720, 2160, 4320, 8760];
-        
+
         // Calendar intervals in days
         $calendarIntervals = [1, 3, 7, 14, 30, 60, 90, 180, 365];
-        
+
         return [
             'asset_id' => Asset::factory(),
             'name' => $this->faker->randomElement($routineTypes) . ' - ' . $this->faker->words(2, true),
@@ -46,7 +44,6 @@ class RoutineFactory extends Factory
             'execution_mode' => 'automatic',
             'description' => $this->faker->paragraph(),
             'form_id' => null, // Will be created automatically in the model's creating event
-            'active_form_version_id' => null,
             'advance_generation_days' => $this->faker->randomElement([12, 24, 48, 72, 168, 180]),
             'auto_approve_work_orders' => false,
             'priority_score' => $this->faker->numberBetween(0, 100),
@@ -145,15 +142,15 @@ class RoutineFactory extends Factory
     {
         return $this->state(function (array $attributes) {
             $now = now();
-            
+
             if ($attributes['trigger_type'] === 'runtime_hours') {
                 // For runtime-based, set last execution runtime hours
                 $currentRuntime = $this->faker->numberBetween(1000, 5000);
                 $lastRuntime = $currentRuntime - $this->faker->numberBetween(
-                    (int)($attributes['trigger_runtime_hours'] * 0.5),
-                    (int)($attributes['trigger_runtime_hours'] * 0.8)
+                    (int) ($attributes['trigger_runtime_hours'] * 0.5),
+                    (int) ($attributes['trigger_runtime_hours'] * 0.8)
                 );
-                
+
                 return [
                     'last_execution_runtime_hours' => $lastRuntime,
                     'last_execution_completed_at' => $now->subDays($this->faker->numberBetween(5, 30)),
@@ -161,10 +158,10 @@ class RoutineFactory extends Factory
             } else {
                 // For calendar-based, set last execution date
                 $daysAgo = $this->faker->numberBetween(
-                    (int)($attributes['trigger_calendar_days'] * 0.5),
-                    (int)($attributes['trigger_calendar_days'] * 0.8)
+                    (int) ($attributes['trigger_calendar_days'] * 0.5),
+                    (int) ($attributes['trigger_calendar_days'] * 0.8)
                 );
-                
+
                 return [
                     'last_execution_completed_at' => $now->subDays($daysAgo),
                 ];
@@ -191,23 +188,4 @@ class RoutineFactory extends Factory
             'is_active' => false,
         ]);
     }
-
-    /**
-     * Indicate that the routine has a published form.
-     */
-    public function withPublishedForm(): static
-    {
-        return $this->afterCreating(function (Routine $routine) {
-            $form = \App\Models\Forms\Form::factory()->create();
-            $formVersion = \App\Models\Forms\FormVersion::factory()
-                ->published()
-                ->for($form)
-                ->create();
-            
-            $routine->update([
-                'form_id' => $form->id,
-                'active_form_version_id' => $formVersion->id,
-            ]);
-        });
-    }
-} 
+}

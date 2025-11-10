@@ -9,8 +9,6 @@ use App\Models\AssetHierarchy\AssetType;
 use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
-use App\Models\WorkOrders\WorkOrder;
-use App\Models\WorkOrders\WorkOrderExecution;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,22 +36,22 @@ class AssetController extends Controller
                 'area.plant:id,name',
                 'sector:id,name',
                 'shift:id,name',
-                'media'
+                'media',
             ])
             ->withCount('routines');
 
         // Filter assets based on user permissions (unless administrator)
-        if (!$user->isAdministrator()) {
+        if (! $user->isAdministrator()) {
             $query->where(function ($q) use ($user) {
                 // Get all user permissions
                 $permissions = $user->getAllPermissions()->pluck('name')->toArray();
-                
+
                 // Extract entity IDs from permissions
                 $assetIds = [];
                 $sectorIds = [];
                 $areaIds = [];
                 $plantIds = [];
-                
+
                 foreach ($permissions as $permission) {
                     // Direct asset permissions
                     if (preg_match('/^assets\.(view|viewAny|manage|execute-routines)\.(\d+)$/', $permission, $matches)) {
@@ -72,20 +70,20 @@ class AssetController extends Controller
                         $plantIds[] = $matches[2];
                     }
                 }
-                
+
                 // Build query conditions
-                if (!empty($assetIds)) {
+                if (! empty($assetIds)) {
                     $q->orWhereIn('id', $assetIds);
                 }
-                if (!empty($sectorIds)) {
+                if (! empty($sectorIds)) {
                     $q->orWhereIn('sector_id', $sectorIds);
                 }
-                if (!empty($areaIds)) {
+                if (! empty($areaIds)) {
                     $q->orWhereHas('sector', function ($sq) use ($areaIds) {
                         $sq->whereIn('area_id', $areaIds);
                     });
                 }
-                if (!empty($plantIds)) {
+                if (! empty($plantIds)) {
                     $q->orWhereHas('sector.area', function ($sq) use ($plantIds) {
                         $sq->whereIn('plant_id', $plantIds);
                     });
@@ -176,27 +174,27 @@ class AssetController extends Controller
         ]);
     }
 
-    public function createNew() //Open the asset creation page
+    public function createNew() // Open the asset creation page
     {
         // Check if user can create assets (they need at least one create permission)
         // This is used only to determine if the user can actually open the asset creation page
         $user = Auth::user();
-        if (!$user->isAdministrator()) {
+        if (! $user->isAdministrator()) {
             $permissions = $user->getAllPermissions()->pluck('name')->toArray();
             $hasCreatePermission = false;
-            
+
             foreach ($permissions as $permission) {
                 if (str_starts_with($permission, 'assets.create.') || str_starts_with($permission, 'assets.manage.')) {
                     $hasCreatePermission = true;
                     break;
                 }
             }
-            
-            if (!$hasCreatePermission) {
+
+            if (! $hasCreatePermission) {
                 abort(403, 'You do not have permission to create assets.');
             }
         }
-        
+
         // Redirect to the show page with the "new" parameter and informacoes tab
         return redirect()->route('asset-hierarchy.assets.show', ['asset' => 'new', 'tab' => 'informacoes']);
     }
@@ -211,7 +209,7 @@ class AssetController extends Controller
             'asset_type_id' => 'nullable|exists:asset_types,id',
             'description' => 'nullable|string',
             'manufacturer_id' => 'nullable|exists:manufacturers,id',
-            'manufacturing_year' => 'nullable|integer|min:1900|max:'.date('Y'),
+            'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
             'plant_id' => 'required|exists:plants,id',
             'area_id' => 'nullable|exists:areas,id|required_with:sector_id',
             'sector_id' => 'nullable|exists:sectors,id',
@@ -250,9 +248,9 @@ class AssetController extends Controller
 
         // Remove photo_path from validated data as we'll use media library
         unset($validated['photo_path']);
-        
+
         $asset = Asset::create($validated);
-        
+
         // Handle photo upload using Spatie Media Library
         if ($request->hasFile('photo')) {
             $asset->addMediaFromRequest('photo')
@@ -267,7 +265,7 @@ class AssetController extends Controller
     {
         // Check if user can update this asset
         $this->authorize('update', $asset);
-        
+
         // Redirect to the show page with the informacoes tab
         return redirect()->route('asset-hierarchy.assets.show', ['asset' => $asset->id, 'tab' => 'informacoes']);
     }
@@ -287,19 +285,17 @@ class AssetController extends Controller
 
         // Otherwise, it's an existing asset
         $loadedAsset = Asset::findOrFail($asset);
-        
+
         // Check if user can view this asset
         $this->authorize('view', $loadedAsset);
-        
+
         $loadedAsset->load([
             'assetType',
             'manufacturer',
             'plant',
             'area.plant',
             'sector',
-            'routines.form.currentVersion.tasks',
-            'routines.form.draftTasks',
-            'routines.lastExecutionFormVersion',
+            'routines.form.tasks',
             'routines.asset.shift.schedules.shiftTimes.breaks',
             'latestRuntimeMeasurement.user',
             'media',
@@ -309,7 +305,7 @@ class AssetController extends Controller
         // Include shift_id and runtime data in the response
         $assetData = $loadedAsset->toArray();
         $assetData['shift_id'] = $loadedAsset->shift_id;
-        
+
         // Ensure routines are properly included with updated fields
         $assetData['routines'] = $loadedAsset->routines->map(function ($routine) {
             return [
@@ -325,46 +321,20 @@ class AssetController extends Controller
                 'priority_score' => $routine->priority_score,
                 'last_execution_runtime_hours' => $routine->last_execution_runtime_hours,
                 'last_execution_completed_at' => $routine->last_execution_completed_at,
-                'last_execution_form_version_id' => $routine->last_execution_form_version_id,
                 'next_execution_date' => $routine->next_execution_date?->toIso8601String(),
-                'lastExecutionFormVersion' => $routine->lastExecutionFormVersion ? [
-                    'id' => $routine->lastExecutionFormVersion->id,
-                    'version_number' => $routine->lastExecutionFormVersion->version_number,
-                ] : null,
                 'form_id' => $routine->form_id,
                 'form' => $routine->form ? [
                     'id' => $routine->form->id,
                     'name' => $routine->form->name,
-                    // Show draft tasks if available, otherwise show published tasks
-                    'tasks' => $routine->form->draftTasks->count() > 0 
-                        ? $routine->form->draftTasks->map(function ($task) {
-                            return [
-                                'id' => $task->id,
-                                'type' => $task->type,
-                                'description' => $task->description,
-                                'is_required' => $task->is_required,
-                                'position' => $task->position,
-                            ];
-                        })
-                        : ($routine->form->currentVersion && $routine->form->currentVersion->tasks 
-                            ? $routine->form->currentVersion->tasks->map(function ($task) {
-                                return [
-                                    'id' => $task->id,
-                                    'type' => $task->type,
-                                    'description' => $task->description,
-                                    'is_required' => $task->is_required,
-                                    'position' => $task->position,
-                                ];
-                            })
-                            : collect()
-                        ),
-                    'current_version' => $routine->form->currentVersion ? [
-                        'id' => $routine->form->currentVersion->id,
-                        'version_number' => $routine->form->currentVersion->version_number,
-                        'published_at' => $routine->form->currentVersion->published_at,
-                    ] : null,
-                    'current_version_id' => $routine->form->currentVersion?->id,
-                    'has_draft_changes' => $routine->form->draftTasks->count() > 0,
+                    'tasks' => $routine->form->tasks->map(function ($task) {
+                        return [
+                            'id' => $task->id,
+                            'type' => $task->type,
+                            'description' => $task->description,
+                            'is_required' => $task->is_required,
+                            'position' => $task->position,
+                        ];
+                    }),
                 ] : null,
                 'is_active' => $routine->is_active,
             ];
@@ -406,7 +376,7 @@ class AssetController extends Controller
     {
         // Check if user can update this asset
         $this->authorize('update', $asset);
-        
+
         try {
             // Verifica se os dados estão vindo corretamente
             if (empty($request->all()) && empty($request->allFiles())) {
@@ -437,7 +407,7 @@ class AssetController extends Controller
                         'reported_hours' => $currentRuntime,
                         'source' => 'shift_change',
                         'notes' => $oldShiftId
-                            ? "Horímetro registrado automaticamente devido à mudança de turno (ID: {$oldShiftId} → ".($newShiftId ?: 'Nenhum').')'
+                            ? "Horímetro registrado automaticamente devido à mudança de turno (ID: {$oldShiftId} → " . ($newShiftId ?: 'Nenhum') . ')'
                             : "Horímetro registrado automaticamente devido à atribuição de turno (Nenhum → ID: {$newShiftId})",
                         'measurement_datetime' => now(),
                     ]);
@@ -479,7 +449,7 @@ class AssetController extends Controller
                 'asset_type_id' => 'nullable|exists:asset_types,id',
                 'description' => 'nullable|string',
                 'manufacturer_id' => 'nullable|exists:manufacturers,id',
-                'manufacturing_year' => 'nullable|integer|min:1900|max:'.date('Y'),
+                'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
                 'plant_id' => 'required|exists:plants,id',
                 'area_id' => 'nullable|exists:areas,id|required_with:sector_id',
                 'sector_id' => 'nullable|exists:sectors,id',
@@ -504,7 +474,7 @@ class AssetController extends Controller
                         'reported_hours' => $currentRuntime,
                         'source' => 'shift_change',
                         'notes' => $oldShiftId
-                            ? "Horímetro registrado automaticamente devido à mudança de turno (ID: {$oldShiftId} → ".($newShiftId ?: 'Nenhum').')'
+                            ? "Horímetro registrado automaticamente devido à mudança de turno (ID: {$oldShiftId} → " . ($newShiftId ?: 'Nenhum') . ')'
                             : "Horímetro registrado automaticamente devido à atribuição de turno (Nenhum → ID: {$newShiftId})",
                         'measurement_datetime' => now(),
                     ]);
@@ -535,12 +505,12 @@ class AssetController extends Controller
 
             // Remove photo_path from validated data as we'll use media library
             unset($validated['photo_path']);
-            
+
             // Handle photo upload using Spatie Media Library
             if ($request->hasFile('photo')) {
                 // Remove existing photo if any
                 $asset->clearMediaCollection('photos');
-                
+
                 // Add new photo
                 $asset->addMediaFromRequest('photo')
                     ->toMediaCollection('photos');
@@ -561,7 +531,7 @@ class AssetController extends Controller
     {
         // Check if user can delete this asset
         $this->authorize('delete', $asset);
-        
+
         $assetTag = $asset->tag;
 
         // Media will be automatically deleted when asset is deleted
@@ -575,9 +545,10 @@ class AssetController extends Controller
     {
         // Check if user can update this asset
         $this->authorize('update', $asset);
-        
+
         if ($asset->hasMedia('photos')) {
             $asset->clearMediaCollection('photos');
+
             return back()->with('success', 'Foto removida com sucesso.');
         }
 
@@ -585,13 +556,13 @@ class AssetController extends Controller
     }
 
     /**
-     * Get runtime data for an asset
+     * Get runtime data for an asset.
      */
     public function getRuntimeData(Asset $asset)
     {
         // Check if user can view this asset
         $this->authorize('view', $asset);
-        
+
         $asset->load('latestRuntimeMeasurement.user', 'shift');
 
         // Get the authenticated user for timezone conversion
@@ -614,13 +585,13 @@ class AssetController extends Controller
     }
 
     /**
-     * Report a new runtime measurement
+     * Report a new runtime measurement.
      */
     public function reportRuntime(Request $request, Asset $asset)
     {
         // Check if user can execute routines (which includes reporting runtime)
         $this->authorize('executeRoutines', $asset);
-        
+
         $validated = $request->validate([
             'reported_hours' => 'required|numeric|min:0',
             'notes' => 'nullable|string|max:500',
@@ -683,13 +654,13 @@ class AssetController extends Controller
     }
 
     /**
-     * Get runtime history for an asset
+     * Get runtime history for an asset.
      */
     public function getRuntimeHistory(Request $request, Asset $asset)
     {
         // Check if user can view this asset
         $this->authorize('view', $asset);
-        
+
         $perPage = $request->input('per_page', 10);
         $sort = $request->input('sort', 'measurement_datetime');
         $direction = $request->input('direction', 'desc');
@@ -711,13 +682,13 @@ class AssetController extends Controller
     }
 
     /**
-     * Get detailed runtime calculation breakdown
+     * Get detailed runtime calculation breakdown.
      */
     public function getRuntimeCalculationDetails(Asset $asset)
     {
         // Check if user can view this asset
         $this->authorize('view', $asset);
-        
+
         $asset->load('shift', 'latestRuntimeMeasurement');
 
         return response()->json([
@@ -731,13 +702,13 @@ class AssetController extends Controller
     }
 
     /**
-     * Get detailed runtime breakdown for debugging
+     * Get detailed runtime breakdown for debugging.
      */
     public function getRuntimeBreakdown(Asset $asset)
     {
         // Check if user can view this asset
         $this->authorize('view', $asset);
-        
+
         $asset->load('shift.schedules.shiftTimes.breaks', 'latestRuntimeMeasurement');
 
         return response()->json([
@@ -747,34 +718,34 @@ class AssetController extends Controller
     }
 
     /**
-     * Get work order history for an asset
+     * Get work order history for an asset.
      */
     public function getWorkOrderHistory(Request $request, Asset $asset)
     {
         // Check if user can view this asset
         $this->authorize('view', $asset);
-        
+
         $perPage = $request->input('per_page', 10);
         $page = $request->input('page', 1);
         $sort = $request->input('sort', 'created_at');
         $direction = $request->input('direction', 'desc');
         $category = $request->input('category'); // No default category - show all work orders
         $search = $request->input('search');
-        
+
         $query = $asset->workOrders()
             ->with([
                 'type',
                 'execution.executedBy',
                 'requestedBy',
                 'approvedBy',
-                'form.currentVersion'
+                'form',
             ]);
-            
+
         // Filter by category if provided
         if ($category) {
             $query->byCategory($category);
         }
-        
+
         // Apply search filter
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -783,48 +754,48 @@ class AssetController extends Controller
                     ->orWhere('description', 'like', "%{$search}%");
             });
         }
-        
+
         // Apply sorting with proper handling for related table fields
         switch ($sort) {
             case 'started_at':
                 $query->leftJoin('work_order_executions', 'work_orders.id', '=', 'work_order_executions.work_order_id')
-                      ->orderBy('work_order_executions.started_at', $direction)
-                      ->select('work_orders.*');
+                    ->orderBy('work_order_executions.started_at', $direction)
+                    ->select('work_orders.*');
                 break;
             case 'completed_at':
                 $query->leftJoin('work_order_executions', 'work_orders.id', '=', 'work_order_executions.work_order_id')
-                      ->orderBy('work_order_executions.completed_at', $direction)
-                      ->select('work_orders.*');
+                    ->orderBy('work_order_executions.completed_at', $direction)
+                    ->select('work_orders.*');
                 break;
             case 'executor_name':
                 $query->leftJoin('work_order_executions', 'work_orders.id', '=', 'work_order_executions.work_order_id')
-                      ->leftJoin('users', 'work_order_executions.executed_by', '=', 'users.id')
-                      ->orderBy('users.name', $direction)
-                      ->select('work_orders.*');
+                    ->leftJoin('users', 'work_order_executions.executed_by', '=', 'users.id')
+                    ->orderBy('users.name', $direction)
+                    ->select('work_orders.*');
                 break;
             case 'routine_name':
                 $query->leftJoin('routines', function ($join) {
-                          $join->on('work_orders.source_id', '=', 'routines.id')
-                               ->where('work_orders.source_type', '=', 'routine');
-                      })
-                      ->orderBy('routines.name', $direction)
-                      ->select('work_orders.*');
+                    $join->on('work_orders.source_id', '=', 'routines.id')
+                        ->where('work_orders.source_type', '=', 'routine');
+                })
+                    ->orderBy('routines.name', $direction)
+                    ->select('work_orders.*');
                 break;
             default:
                 // For fields that exist in the work_orders table
                 $query->orderBy($sort, $direction);
                 break;
         }
-        
+
         $workOrders = $query->paginate($perPage, ['*'], 'page', $page);
-        
+
         // Load sourceRoutine relationship for work orders with source_type = 'routine'
         $workOrders->getCollection()->load('sourceRoutine');
-        
+
         // Transform the data to match ExecutionHistory expected format
         $transformedData = $workOrders->getCollection()->map(function ($workOrder) {
             $execution = $workOrder->execution;
-            
+
             return [
                 'id' => $workOrder->id,
                 'work_order_id' => $workOrder->id,
@@ -842,17 +813,16 @@ class AssetController extends Controller
                     'name' => $execution->executedBy->name,
                 ] : null,
                 'executor_name' => $execution && $execution->executedBy ? $execution->executedBy->name : null,
-                'form_version' => $workOrder->form && $workOrder->form->currentVersion ? [
-                    'id' => $workOrder->form->currentVersion->id,
-                    'version_number' => $workOrder->form->currentVersion->version_number,
-                    'published_at' => $workOrder->form->currentVersion->published_at,
+                'form' => $workOrder->form ? [
+                    'id' => $workOrder->form->id,
+                    'name' => $workOrder->form->name,
                 ] : null,
                 'status' => $workOrder->status,
                 'scheduled_start_date' => $workOrder->scheduled_start_date,
                 'started_at' => $execution ? $execution->started_at : null,
                 'completed_at' => $execution ? $execution->completed_at : null,
-                'duration_minutes' => $execution && $execution->started_at && $execution->completed_at 
-                    ? $execution->started_at->diffInMinutes($execution->completed_at) 
+                'duration_minutes' => $execution && $execution->started_at && $execution->completed_at
+                    ? $execution->started_at->diffInMinutes($execution->completed_at)
                     : null,
                 'progress' => $this->calculateWorkOrderProgress($workOrder),
                 'task_summary' => $this->getTaskSummary($workOrder),
@@ -860,7 +830,7 @@ class AssetController extends Controller
                 'updated_at' => $workOrder->updated_at,
             ];
         });
-        
+
         return response()->json([
             'data' => $transformedData,
             'current_page' => $workOrders->currentPage(),
@@ -871,13 +841,13 @@ class AssetController extends Controller
             'to' => $workOrders->lastItem(),
         ]);
     }
-    
+
     /**
-     * Calculate work order progress percentage
+     * Calculate work order progress percentage.
      */
     private function calculateWorkOrderProgress($workOrder): int
     {
-        if (!$workOrder->execution || !$workOrder->form) {
+        if (! $workOrder->execution || ! $workOrder->form) {
             // If no form, base progress on status
             switch ($workOrder->status) {
                 case 'completed':
@@ -891,46 +861,44 @@ class AssetController extends Controller
                     return 0;
             }
         }
-        
-        $formVersion = $workOrder->form->currentVersion;
-        if (!$formVersion) {
+
+        if (! $workOrder->form) {
             return 0;
         }
-        
-        $totalTasks = $formVersion->tasks()->count();
+
+        $totalTasks = $workOrder->form->tasks()->count();
         if ($totalTasks === 0) {
             return $workOrder->status === 'completed' ? 100 : 0;
         }
-        
+
         $completedTasks = $workOrder->execution->taskResponses()
             ->whereNotNull('completed_at')
             ->count();
-            
+
         return (int) round(($completedTasks / $totalTasks) * 100);
     }
-    
+
     /**
-     * Get task summary for work order
+     * Get task summary for work order.
      */
     private function getTaskSummary($workOrder): ?array
     {
-        if (!$workOrder->execution || !$workOrder->form) {
+        if (! $workOrder->execution || ! $workOrder->form) {
             return null;
         }
-        
-        $formVersion = $workOrder->form->currentVersion;
-        if (!$formVersion) {
+
+        if (! $workOrder->form) {
             return null;
         }
-        
-        $totalTasks = $formVersion->tasks()->count();
+
+        $totalTasks = $workOrder->form->tasks()->count();
         $completedTasks = $workOrder->execution->taskResponses()
             ->whereNotNull('completed_at')
             ->count();
         $tasksWithIssues = $workOrder->execution->taskResponses()
             ->where('has_issues', true)
             ->count();
-            
+
         return [
             'total' => $totalTasks,
             'completed' => $completedTasks,
@@ -939,13 +907,13 @@ class AssetController extends Controller
     }
 
     /**
-     * Check dependencies before deletion
+     * Check dependencies before deletion.
      */
     public function checkDependencies(Asset $asset)
     {
         // Check if user can view this asset
         $this->authorize('view', $asset);
-        
+
         // For now, assets don't have dependencies that prevent deletion
         // In the future, you might want to check for:
         // - Maintenance records

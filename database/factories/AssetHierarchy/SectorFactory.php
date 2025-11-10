@@ -53,4 +53,4 @@ class SectorFactory extends Factory
             'shift_id' => $shift->id,
         ]);
     }
-} 
+}

@@ -2,10 +2,10 @@
 
 namespace Database\Factories\WorkOrders;
 
-use App\Models\WorkOrders\WorkOrder;
-use App\Models\WorkOrders\WorkOrderType;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\User;
+use App\Models\WorkOrders\WorkOrder;
+use App\Models\WorkOrders\WorkOrderType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -29,19 +29,19 @@ class WorkOrderFactory extends Factory
     {
         $disciplines = ['maintenance', 'quality'];
         $discipline = $this->faker->randomElement($disciplines);
-        
+
         // Get a random category for the discipline
         $category = \App\Models\WorkOrders\WorkOrderCategory::where('discipline', $discipline)
             ->inRandomOrder()
             ->first();
-            
-        if (!$category) {
+
+        if (! $category) {
             // Fallback if no categories exist
-            $categoryCodes = $discipline === 'maintenance' 
+            $categoryCodes = $discipline === 'maintenance'
                 ? ['corrective', 'preventive', 'inspection', 'project']
                 : ['calibration', 'quality_control', 'quality_audit', 'non_conformance'];
             $categoryCode = $this->faker->randomElement($categoryCodes);
-            
+
             $category = \App\Models\WorkOrders\WorkOrderCategory::firstOrCreate(
                 ['code' => $categoryCode, 'discipline' => $discipline],
                 [
@@ -50,9 +50,9 @@ class WorkOrderFactory extends Factory
                 ]
             );
         }
-            
+
         $statuses = ['pending', 'approved', 'in_progress', 'completed'];
-        
+
         return [
             'work_order_number' => 'WO-' . $this->faker->unique()->numberBetween(10000, 99999),
             'discipline' => $discipline,
@@ -85,7 +85,7 @@ class WorkOrderFactory extends Factory
             $category = \App\Models\WorkOrders\WorkOrderCategory::maintenance()
                 ->inRandomOrder()
                 ->first();
-            
+
             $workOrder->work_order_category_id = $category->id;
         });
     }
@@ -101,7 +101,7 @@ class WorkOrderFactory extends Factory
             $category = \App\Models\WorkOrders\WorkOrderCategory::quality()
                 ->inRandomOrder()
                 ->first();
-            
+
             $workOrder->work_order_category_id = $category->id;
         });
     }
@@ -139,4 +139,4 @@ class WorkOrderFactory extends Factory
             'assigned_technician_id' => User::factory(),
         ]);
     }
-} 
+}

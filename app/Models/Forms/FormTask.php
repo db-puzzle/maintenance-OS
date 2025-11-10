@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class FormTask extends Model
 {
     protected $fillable = [
-        'form_version_id',
         'form_id',
         'position',
         'type',
@@ -24,48 +23,22 @@ class FormTask extends Model
         'configuration' => 'array',
     ];
 
-    const TYPE_QUESTION = 'question';
+    public const TYPE_QUESTION = 'question';
 
-    const TYPE_MULTIPLE_CHOICE = 'multiple_choice';
+    public const TYPE_MULTIPLE_CHOICE = 'multiple_choice';
 
-    const TYPE_MULTIPLE_SELECT = 'multiple_select';
+    public const TYPE_MULTIPLE_SELECT = 'multiple_select';
 
-    const TYPE_MEASUREMENT = 'measurement';
+    public const TYPE_MEASUREMENT = 'measurement';
 
-    const TYPE_PHOTO = 'photo';
+    public const TYPE_PHOTO = 'photo';
 
-    const TYPE_CODE_READER = 'code_reader';
+    public const TYPE_CODE_READER = 'code_reader';
 
-    const TYPE_FILE_UPLOAD = 'file_upload';
-
-    /**
-     * Prevent modifications to tasks in published versions
-     */
-    protected static function booted()
-    {
-        static::updating(function ($task) {
-            if ($task->form_version_id !== null && ! $task->isDirty('form_version_id')) {
-                throw new \Exception('Tasks in published form versions are immutable and cannot be modified.');
-            }
-        });
-
-        static::deleting(function ($task) {
-            if ($task->form_version_id !== null) {
-                throw new \Exception('Tasks in published form versions cannot be deleted.');
-            }
-        });
-    }
+    public const TYPE_FILE_UPLOAD = 'file_upload';
 
     /**
-     * Get the form version that owns this task
-     */
-    public function formVersion(): BelongsTo
-    {
-        return $this->belongsTo(FormVersion::class);
-    }
-
-    /**
-     * Get the form that owns this draft task
+     * Get the form that owns this task.
      */
     public function form(): BelongsTo
     {
@@ -73,7 +46,7 @@ class FormTask extends Model
     }
 
     /**
-     * Get the instructions for this task
+     * Get the instructions for this task.
      */
     public function instructions(): HasMany
     {
@@ -81,7 +54,7 @@ class FormTask extends Model
     }
 
     /**
-     * Get the responses for this task
+     * Get the responses for this task.
      */
     public function responses(): HasMany
     {
@@ -89,15 +62,7 @@ class FormTask extends Model
     }
 
     /**
-     * Check if this task is in a draft (unpublished) state
-     */
-    public function isDraft(): bool
-    {
-        return $this->form_version_id === null;
-    }
-
-    /**
-     * Get measurement configuration if applicable
+     * Get measurement configuration if applicable.
      */
     public function getMeasurementConfig(): ?array
     {
@@ -107,7 +72,7 @@ class FormTask extends Model
     }
 
     /**
-     * Get options for choice/select tasks
+     * Get options for choice/select tasks.
      */
     public function getOptions(): array
     {
@@ -117,7 +82,7 @@ class FormTask extends Model
     }
 
     /**
-     * Get code reader type if applicable
+     * Get code reader type if applicable.
      */
     public function getCodeReaderType(): ?string
     {

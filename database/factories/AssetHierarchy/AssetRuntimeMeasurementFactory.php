@@ -116,4 +116,4 @@ class AssetRuntimeMeasurementFactory extends Factory
             }, range(1, $count))
         ));
     }
-} 
+}

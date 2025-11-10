@@ -40,7 +40,6 @@ class RoutingStepFactory extends Factory
             'work_cell_id' => WorkCell::factory(),
             'status' => 'pending',
             'form_id' => null,
-            'form_version_id' => null,
             'setup_time_seconds' => fake()->numberBetween(300, 3600), // 5-60 minutes
             'cycle_time_seconds' => fake()->numberBetween(60, 7200), // 1-120 minutes
             'use_workcell_throughput' => fake()->boolean(20),

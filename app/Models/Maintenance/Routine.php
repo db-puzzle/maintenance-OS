@@ -4,15 +4,14 @@ namespace App\Models\Maintenance;
 
 use App\Models\AssetHierarchy\Asset;
 use App\Models\Forms\Form;
-use App\Models\Forms\FormVersion;
-use App\Models\WorkOrders\WorkOrder;
 use App\Models\User;
+use App\Models\WorkOrders\WorkOrder;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class Routine extends Model
 {
@@ -27,13 +26,11 @@ class Routine extends Model
         'execution_mode',
         'description',
         'form_id',
-        'active_form_version_id',
         'advance_generation_days',
         'auto_approve_work_orders',
         'priority_score',
         'last_execution_runtime_hours',
         'last_execution_completed_at',
-        'last_execution_form_version_id',
         'is_active',
         'created_by',
     ];
@@ -59,12 +56,14 @@ class Routine extends Model
     {
         if ($value === null) {
             $this->attributes['last_execution_completed_at'] = null;
+
             return;
         }
 
         // If it's already a Carbon instance, use it
         if ($value instanceof \Carbon\Carbon) {
             $this->attributes['last_execution_completed_at'] = $value->format('Y-m-d H:i:s');
+
             return;
         }
 
@@ -72,6 +71,7 @@ class Routine extends Model
         if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
             // Parse as start of day in UTC
             $this->attributes['last_execution_completed_at'] = \Carbon\Carbon::parse($value)->startOfDay()->format('Y-m-d H:i:s');
+
             return;
         }
 
@@ -101,16 +101,6 @@ class Routine extends Model
     public function form(): BelongsTo
     {
         return $this->belongsTo(Form::class);
-    }
-
-    public function activeFormVersion(): BelongsTo
-    {
-        return $this->belongsTo(FormVersion::class, 'active_form_version_id');
-    }
-
-    public function lastExecutionFormVersion(): BelongsTo
-    {
-        return $this->belongsTo(FormVersion::class, 'last_execution_form_version_id');
     }
 
     public function workOrders(): HasMany
@@ -154,6 +144,7 @@ class Routine extends Model
     public function isDue(): bool
     {
         $hoursUntilDue = $this->calculateHoursUntilDue();
+
         return $hoursUntilDue !== null && $hoursUntilDue <= 0;
     }
 
@@ -173,37 +164,37 @@ class Routine extends Model
 
     private function calculateRuntimeHoursUntilDue(): ?float
     {
-        if (!$this->trigger_runtime_hours) {
+        if (! $this->trigger_runtime_hours) {
             return null;
         }
 
         // If never executed, due immediately
-        if (!$this->last_execution_runtime_hours) {
+        if (! $this->last_execution_runtime_hours) {
             return 0;
         }
-        
+
         $currentRuntime = $this->asset->current_runtime_hours ?? 0;
         $runtimeSinceLastExecution = $currentRuntime - $this->last_execution_runtime_hours;
         $hoursRemaining = $this->trigger_runtime_hours - $runtimeSinceLastExecution;
-        
+
         // Return actual runtime hours remaining, not calendar hours
         return max(0, $hoursRemaining);
     }
 
     private function calculateCalendarHoursUntilDue(): ?float
     {
-        if (!$this->trigger_calendar_days) {
+        if (! $this->trigger_calendar_days) {
             return null;
         }
 
         // If never executed, due immediately
-        if (!$this->last_execution_completed_at) {
+        if (! $this->last_execution_completed_at) {
             return 0;
         }
-        
+
         $nextDueDate = $this->last_execution_completed_at->addDays($this->trigger_calendar_days);
         $hoursUntilDue = now()->diffInHours($nextDueDate, false);
-        
+
         return max(0, $hoursUntilDue);
     }
 
@@ -211,11 +202,13 @@ class Routine extends Model
     {
         if ($this->trigger_type === 'runtime_hours') {
             $hoursUntilDue = $this->calculateRuntimeHoursUntilDue() ?? 0;
+
             return now()->addHours($hoursUntilDue);
         } else {
-            if (!$this->last_execution_completed_at) {
+            if (! $this->last_execution_completed_at) {
                 return now();
             }
+
             return $this->last_execution_completed_at->addDays($this->trigger_calendar_days);
         }
     }
@@ -223,7 +216,7 @@ class Routine extends Model
     public function shouldGenerateWorkOrder(): bool
     {
         // Check if routine is active
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return false;
         }
 
@@ -231,11 +224,11 @@ class Routine extends Model
         if ($this->hasOpenWorkOrder()) {
             return false;
         }
-        
+
         $hoursUntilDue = $this->calculateHoursUntilDue();
-        
-        return $hoursUntilDue !== null 
-            && $hoursUntilDue <= ($this->advance_generation_days ?? 24) 
+
+        return $hoursUntilDue !== null
+            && $hoursUntilDue <= ($this->advance_generation_days ?? 24)
             && $hoursUntilDue >= 0;
     }
 
@@ -258,16 +251,16 @@ class Routine extends Model
     public function generateWorkOrder(): WorkOrder
     {
         $dueDate = $this->calculateDueDate();
-        
+
         // Get preventive category
         $preventiveCategory = \App\Models\WorkOrders\WorkOrderCategory::where('code', 'preventive')
             ->where('discipline', 'maintenance')
             ->first();
-            
-        if (!$preventiveCategory) {
+
+        if (! $preventiveCategory) {
             throw new \RuntimeException('Preventive category not found for maintenance discipline');
         }
-        
+
         return WorkOrder::create([
             'discipline' => 'maintenance',
             'work_order_category_id' => $preventiveCategory->id,
@@ -280,7 +273,6 @@ class Routine extends Model
             'source_type' => 'routine',
             'source_id' => $this->id,
             'form_id' => $this->form_id,
-            'form_version_id' => $this->active_form_version_id ?? $this->form->current_version_id,
             'requested_by' => $this->created_by ?? auth()->id() ?? 1,
             'requested_at' => now(),
             'requested_due_date' => $dueDate,
@@ -290,10 +282,10 @@ class Routine extends Model
 
     private function generateWorkOrderTitle(): string
     {
-        $interval = $this->trigger_type === 'runtime_hours' 
-            ? "{$this->trigger_runtime_hours}h" 
+        $interval = $this->trigger_type === 'runtime_hours'
+            ? "{$this->trigger_runtime_hours}h"
             : "{$this->trigger_calendar_days} dias";
-            
+
         return "Manutenção Preventiva - {$this->name} ({$interval})";
     }
 
@@ -302,9 +294,9 @@ class Routine extends Model
         $triggerInfo = $this->trigger_type === 'runtime_hours'
             ? "Baseada em horas de operação: {$this->trigger_runtime_hours} horas"
             : "Baseada em calendário: a cada {$this->trigger_calendar_days} dias";
-            
-        $description = $this->description ?? "Executar rotina de manutenção preventiva conforme procedimento padrão.";
-        
+
+        $description = $this->description ?? 'Executar rotina de manutenção preventiva conforme procedimento padrão.';
+
         return "{$description}\n\n{$triggerInfo}";
     }
 
@@ -314,23 +306,23 @@ class Routine extends Model
         $workOrderType = \App\Models\WorkOrders\WorkOrderType::byCategory('preventive')
             ->where('is_active', true)
             ->first();
-            
-        if (!$workOrderType) {
+
+        if (! $workOrderType) {
             throw new \RuntimeException('No active preventive work order type found');
         }
-        
+
         return $workOrderType->id;
     }
 
     // Permission validation for auto-approval
     public function setAutoApproveWorkOrdersAttribute($value)
     {
-        if ($value && auth()->check() && !auth()->user()->can('work-orders.approve')) {
+        if ($value && auth()->check() && ! auth()->user()->can('work-orders.approve')) {
             throw new \Illuminate\Auth\Access\AuthorizationException(
                 'You do not have permission to enable automatic work order approval'
             );
         }
-        
+
         $this->attributes['auto_approve_work_orders'] = $value;
     }
 
@@ -338,28 +330,28 @@ class Routine extends Model
     public function getProgressPercentageAttribute(): float
     {
         $hoursUntilDue = $this->calculateHoursUntilDue();
-        
+
         if ($hoursUntilDue === null) {
             return 0;
         }
-        
+
         if ($this->trigger_type === 'runtime_hours') {
-            if (!$this->last_execution_runtime_hours || !$this->trigger_runtime_hours) {
+            if (! $this->last_execution_runtime_hours || ! $this->trigger_runtime_hours) {
                 return 100; // Due if never executed
             }
-            
+
             $currentRuntime = $this->asset->current_runtime_hours ?? 0;
             $runtimeSinceLastExecution = $currentRuntime - $this->last_execution_runtime_hours;
             $progress = ($runtimeSinceLastExecution / $this->trigger_runtime_hours) * 100;
         } else {
-            if (!$this->last_execution_completed_at || !$this->trigger_calendar_days) {
+            if (! $this->last_execution_completed_at || ! $this->trigger_calendar_days) {
                 return 100; // Due if never executed
             }
-            
+
             $daysSinceLastExecution = $this->last_execution_completed_at->diffInDays(now());
             $progress = ($daysSinceLastExecution / $this->trigger_calendar_days) * 100;
         }
-        
+
         return min(100, max(0, $progress));
     }
 
@@ -368,7 +360,7 @@ class Routine extends Model
         if ($this->trigger_type !== 'runtime_hours') {
             return null;
         }
-        
+
         return $this->calculateRuntimeHoursUntilDue();
     }
 
@@ -377,11 +369,11 @@ class Routine extends Model
         if ($this->trigger_type !== 'calendar_days') {
             return null;
         }
-        
-        if (!$this->last_execution_completed_at) {
+
+        if (! $this->last_execution_completed_at) {
             return now()->toIso8601String();
         }
-        
+
         return $this->last_execution_completed_at
             ->addDays($this->trigger_calendar_days)
             ->toIso8601String();
@@ -390,24 +382,25 @@ class Routine extends Model
     /**
      * Get the next execution date based on trigger type
      * For runtime hours, it estimates based on shift schedule
-     * For calendar days, it calculates from last execution
+     * For calendar days, it calculates from last execution.
      */
     public function getNextExecutionDateAttribute(): ?Carbon
     {
         if ($this->trigger_type === 'calendar_days') {
             // For calendar-based routines
-            if (!$this->last_execution_completed_at) {
+            if (! $this->last_execution_completed_at) {
                 return null; // Cannot calculate without last execution date
             }
+
             return $this->last_execution_completed_at->addDays($this->trigger_calendar_days);
         } elseif ($this->trigger_type === 'runtime_hours') {
             // For runtime-based routines
-            if (!$this->last_execution_runtime_hours && !$this->last_execution_completed_at) {
+            if (! $this->last_execution_runtime_hours && ! $this->last_execution_completed_at) {
                 return null; // Cannot calculate without last execution data
             }
-            
+
             // If we only have last_execution_completed_at but not runtime, estimate runtime
-            if (!$this->last_execution_runtime_hours && $this->last_execution_completed_at) {
+            if (! $this->last_execution_runtime_hours && $this->last_execution_completed_at) {
                 // Estimate runtime hours since last execution based on shift
                 if ($this->asset && $this->asset->shift) {
                     $hoursPerWeek = $this->calculateAssetWeeklyRuntime();
@@ -416,29 +409,31 @@ class Routine extends Model
                         $daysSinceLastExecution = $this->last_execution_completed_at->diffInDays(now());
                         $estimatedRuntimeSinceLastExecution = $daysSinceLastExecution * $hoursPerDay;
                         $remainingRuntimeHours = max(0, $this->trigger_runtime_hours - $estimatedRuntimeSinceLastExecution);
-                        
+
                         if ($remainingRuntimeHours <= 0) {
                             return now();
                         }
-                        
+
                         $daysUntilDue = $remainingRuntimeHours / $hoursPerDay;
+
                         return now()->addDays(ceil($daysUntilDue));
                     }
                 }
+
                 // Fallback without shift data
                 return null;
             }
-            
+
             // Calculate remaining runtime hours
             // Ensure asset is loaded with necessary relationships
-            if (!$this->relationLoaded('asset') || !$this->asset) {
+            if (! $this->relationLoaded('asset') || ! $this->asset) {
                 $this->load('asset.latestRuntimeMeasurement');
             }
-            
+
             $currentRuntime = $this->asset->current_runtime_hours ?? 0;
             $runtimeSinceLastExecution = $currentRuntime - $this->last_execution_runtime_hours;
             $remainingRuntimeHours = max(0, $this->trigger_runtime_hours - $runtimeSinceLastExecution);
-            
+
             // Log for debugging
             Log::info('Runtime calculation for routine ' . $this->id, [
                 'current_runtime' => $currentRuntime,
@@ -447,94 +442,96 @@ class Routine extends Model
                 'trigger_hours' => $this->trigger_runtime_hours,
                 'remaining_hours' => $remainingRuntimeHours,
             ]);
-            
+
             // If already due, return now
             if ($remainingRuntimeHours <= 0) {
                 return now();
             }
-            
+
             // Estimate based on asset's shift schedule
             if ($this->asset && $this->asset->shift) {
                 $hoursPerWeek = $this->calculateAssetWeeklyRuntime();
                 if ($hoursPerWeek > 0) {
                     $hoursPerDay = $hoursPerWeek / 7;
                     $daysUntilDue = $remainingRuntimeHours / $hoursPerDay;
+
                     return now()->addDays(ceil($daysUntilDue));
                 }
             }
-            
+
             // Fallback: assume 8 hours per day if no shift data
             $daysUntilDue = $remainingRuntimeHours / 8;
+
             return now()->addDays(ceil($daysUntilDue));
         }
-        
+
         return null;
     }
 
     /**
-     * Calculate weekly runtime hours for the asset
+     * Calculate weekly runtime hours for the asset.
      */
     private function calculateAssetWeeklyRuntime(): float
     {
-        if (!$this->asset || !$this->asset->shift) {
+        if (! $this->asset || ! $this->asset->shift) {
             return 0;
         }
-        
+
         // Load shift schedules if not already loaded
-        if (!$this->asset->shift->relationLoaded('schedules')) {
+        if (! $this->asset->shift->relationLoaded('schedules')) {
             $this->asset->shift->load('schedules.shiftTimes.breaks');
         }
-        
+
         $schedules = $this->asset->shift->schedules;
-        if (!$schedules || $schedules->isEmpty()) {
+        if (! $schedules || $schedules->isEmpty()) {
             return 0;
         }
-        
+
         $totalMinutes = 0;
-        
+
         foreach ($schedules as $schedule) {
             // Load shiftTimes if not already loaded
-            if (!$schedule->relationLoaded('shiftTimes')) {
+            if (! $schedule->relationLoaded('shiftTimes')) {
                 $schedule->load('shiftTimes.breaks');
             }
-            
+
             $shiftTimes = $schedule->shiftTimes;
-            if (!$shiftTimes || $shiftTimes->isEmpty()) {
+            if (! $shiftTimes || $shiftTimes->isEmpty()) {
                 continue;
             }
-            
+
             foreach ($shiftTimes as $shiftTime) {
                 if (isset($shiftTime->active) && $shiftTime->active) {
-                    if (!isset($shiftTime->start_time) || !isset($shiftTime->end_time)) {
+                    if (! isset($shiftTime->start_time) || ! isset($shiftTime->end_time)) {
                         continue;
                     }
-                    
+
                     try {
                         $startTime = Carbon::createFromTimeString($shiftTime->start_time);
                         $endTime = Carbon::createFromTimeString($shiftTime->end_time);
-                        
+
                         // Handle shifts that cross midnight
                         if ($endTime->lt($startTime)) {
                             $endTime->addDay();
                         }
-                        
+
                         $shiftMinutes = $startTime->diffInMinutes($endTime);
-                        
+
                         // Subtract break time if breaks exist
                         if (isset($shiftTime->breaks) && is_iterable($shiftTime->breaks)) {
                             foreach ($shiftTime->breaks as $break) {
-                                if (!isset($break->start_time) || !isset($break->end_time)) {
+                                if (! isset($break->start_time) || ! isset($break->end_time)) {
                                     continue;
                                 }
-                                
+
                                 try {
                                     $breakStart = Carbon::createFromTimeString($break->start_time);
                                     $breakEnd = Carbon::createFromTimeString($break->end_time);
-                                    
+
                                     if ($breakEnd->lt($breakStart)) {
                                         $breakEnd->addDay();
                                     }
-                                    
+
                                     $shiftMinutes -= $breakStart->diffInMinutes($breakEnd);
                                 } catch (\Exception $e) {
                                     // Skip invalid break times
@@ -542,7 +539,7 @@ class Routine extends Model
                                 }
                             }
                         }
-                        
+
                         $totalMinutes += max(0, $shiftMinutes); // Ensure non-negative
                     } catch (\Exception $e) {
                         // Skip invalid shift times
@@ -551,7 +548,7 @@ class Routine extends Model
                 }
             }
         }
-        
+
         return $totalMinutes / 60; // Convert to hours
     }
 
@@ -562,28 +559,26 @@ class Routine extends Model
 
         static::creating(function ($routine) {
             // Create associated form if not provided
-            if (!$routine->form_id) {
+            if (! $routine->form_id) {
                 $form = Form::create([
                     'name' => $routine->name . ' - Form',
                     'description' => 'Form for routine: ' . $routine->name,
                     'created_by' => $routine->created_by ?? auth()->id() ?? 1,
                     'is_active' => true,
                 ]);
-                
+
                 $routine->form_id = $form->id;
             }
         });
     }
 
     /**
-     * Convert priority score to priority string
-     *
-     * @return string
+     * Convert priority score to priority string.
      */
     public function getPriorityFromScore(): string
     {
         $score = $this->priority_score ?? 50;
-        
+
         if ($score >= 90) {
             return 'emergency';
         } elseif ($score >= 75) {
@@ -597,4 +592,3 @@ class Routine extends Model
         }
     }
 }
-

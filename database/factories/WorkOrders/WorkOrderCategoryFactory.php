@@ -26,13 +26,13 @@ class WorkOrderCategoryFactory extends Factory
     {
         $disciplines = ['maintenance', 'quality'];
         $discipline = $this->faker->randomElement($disciplines);
-        
-        $categoryCodes = $discipline === 'maintenance' 
+
+        $categoryCodes = $discipline === 'maintenance'
             ? ['preventive', 'corrective', 'inspection', 'project']
             : ['calibration', 'quality_control', 'quality_audit', 'non_conformance'];
-            
+
         $code = $this->faker->unique()->randomElement($categoryCodes);
-        
+
         $names = [
             'preventive' => 'Manutenção Preventiva',
             'corrective' => 'Manutenção Corretiva',
@@ -43,7 +43,7 @@ class WorkOrderCategoryFactory extends Factory
             'quality_audit' => 'Auditoria de Qualidade',
             'non_conformance' => 'Não Conformidade',
         ];
-        
+
         $colors = [
             'preventive' => '#10B981',
             'corrective' => '#EF4444',
@@ -54,7 +54,7 @@ class WorkOrderCategoryFactory extends Factory
             'quality_audit' => '#6366F1',
             'non_conformance' => '#DC2626',
         ];
-        
+
         $icons = [
             'preventive' => 'shield-check',
             'corrective' => 'wrench',
@@ -65,7 +65,7 @@ class WorkOrderCategoryFactory extends Factory
             'quality_audit' => 'clipboard-check',
             'non_conformance' => 'alert-triangle',
         ];
-        
+
         return [
             'discipline' => $discipline,
             'name' => $names[$code] ?? $this->faker->words(2, true),

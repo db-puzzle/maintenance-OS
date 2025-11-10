@@ -44,4 +44,34 @@ return Application::configure(basePath: dirname(__DIR__))
             // ... other middleware in default priority order
         ]);
     })
-    ->withExceptions(function (Exceptions $exceptions) {})->create();
+    ->withExceptions(function (Exceptions $exceptions) {
+        // Handle tenant not found exception with a graceful error page
+        $exceptions->render(function (\Stancl\Tenancy\Exceptions\TenantCouldNotBeIdentifiedOnDomainException $e, \Illuminate\Http\Request $request) {
+            // Extract subdomain from the domain
+            $domain = $request->getHost();
+            $subdomain = null;
+
+            // Try to extract subdomain (e.g., "test123" from "test123.localhost")
+            $centralDomains = config('tenancy.central_domains', ['localhost']);
+            foreach ($centralDomains as $centralDomain) {
+                if (str_ends_with($domain, '.' . $centralDomain)) {
+                    $subdomain = str_replace('.' . $centralDomain, '', $domain);
+                    break;
+                }
+            }
+
+            // Get the home URL from the central domain
+            $homeUrl = url()->to('/');
+            if ($centralDomains) {
+                $protocol = $request->secure() ? 'https://' : 'http://';
+                $port = $request->getPort();
+                $portSuffix = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+                $homeUrl = $protocol . $centralDomains[0] . $portSuffix . '/';
+            }
+
+            return inertia('error/tenant-not-found', [
+                'subdomain' => $subdomain,
+                'homeUrl' => $homeUrl,
+            ]);
+        });
+    })->create();

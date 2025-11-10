@@ -30,7 +30,6 @@ return new class extends Migration
 
             // Form/Task configuration
             $table->foreignId('form_id')->nullable()->constrained();
-            $table->foreignId('form_version_id')->nullable()->constrained('form_versions');
             $table->json('custom_tasks')->nullable()->comment('For ad-hoc tasks not using forms');
 
             // Planning fields

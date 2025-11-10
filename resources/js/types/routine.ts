@@ -1,5 +1,5 @@
 import { Asset } from './asset-hierarchy';
-import { Form, FormVersion } from './work-order';
+import { Form } from './work-order';
 import { User } from './index';
 
 export interface Routine {
@@ -12,13 +12,11 @@ export interface Routine {
     execution_mode: 'automatic' | 'manual';
     description?: string;
     form_id: number;
-    active_form_version_id?: number;
     advance_generation_days: number;
     auto_approve_work_orders: boolean;
     priority_score: number;
     last_execution_runtime_hours?: number;
     last_execution_completed_at?: string;
-    last_execution_form_version_id?: number;
     next_execution_date?: string;
     is_active: boolean;
     created_by?: number;
@@ -34,8 +32,6 @@ export interface Routine {
     // Relationships
     asset?: Asset;
     form?: Form;
-    active_form_version?: FormVersion;
-    last_execution_form_version?: FormVersion;
     created_by_user?: User;
 
     // Related open work order if exists

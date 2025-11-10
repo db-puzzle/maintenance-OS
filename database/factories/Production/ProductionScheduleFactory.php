@@ -3,10 +3,9 @@
 namespace Database\Factories\Production;
 
 use App\Models\Production\ManufacturingOrder;
-use App\Models\Production\ProductionSchedule;
 use App\Models\Production\ManufacturingStep;
+use App\Models\Production\ProductionSchedule;
 use App\Models\Production\WorkCell;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -25,7 +24,7 @@ class ProductionScheduleFactory extends Factory
     {
         $statuses = ['scheduled', 'ready', 'in_progress', 'completed', 'delayed'];
         $status = fake()->randomElement($statuses);
-        
+
         $scheduledStart = fake()->dateTimeBetween('now', '+2 weeks');
         $scheduledEnd = fake()->dateTimeBetween($scheduledStart, '+3 weeks');
 
@@ -124,4 +123,4 @@ class ProductionScheduleFactory extends Factory
             'assigned_team_id' => $teamId,
         ]);
     }
-} 
+}

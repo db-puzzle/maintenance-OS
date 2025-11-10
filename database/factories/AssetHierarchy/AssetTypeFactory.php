@@ -25,7 +25,7 @@ class AssetTypeFactory extends Factory
     public function definition(): array
     {
         $types = ['Pump', 'Motor', 'Valve', 'Compressor', 'Tank', 'Heat Exchanger', 'Conveyor', 'Generator'];
-        
+
         return [
             'name' => $this->faker->unique()->randomElement($types) . ' - ' . $this->faker->numerify('Type ###'),
             'description' => $this->faker->optional()->sentence(),
@@ -53,4 +53,4 @@ class AssetTypeFactory extends Factory
             'description' => 'Electric motor for mechanical drive',
         ]);
     }
-} 
+}

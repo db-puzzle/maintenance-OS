@@ -2,10 +2,10 @@
 
 namespace Database\Factories\Production;
 
-use App\Models\Production\ShipmentItem;
-use App\Models\Production\Shipment;
 use App\Models\Production\BomItem;
 use App\Models\Production\ManufacturingOrder;
+use App\Models\Production\Shipment;
+use App\Models\Production\ShipmentItem;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ShipmentItemFactory extends Factory
@@ -15,7 +15,7 @@ class ShipmentItemFactory extends Factory
     public function definition(): array
     {
         $bomItem = BomItem::factory()->create();
-        
+
         return [
             'shipment_id' => Shipment::factory(),
             'bom_item_id' => $bomItem->id,
@@ -40,17 +40,17 @@ class ShipmentItemFactory extends Factory
     /**
      * Indicate that the item has QR codes.
      */
-    public function withQrCodes(int $count = null): static
+    public function withQrCodes(?int $count = null): static
     {
         return $this->state(function (array $attributes) use ($count) {
             $quantity = $attributes['quantity'] ?? 1;
-            $qrCount = $count ?? min((int)$quantity, 10);
-            
+            $qrCount = $count ?? min((int) $quantity, 10);
+
             $qrCodes = [];
             for ($i = 0; $i < $qrCount; $i++) {
                 $qrCodes[] = 'QR-' . $this->faker->unique()->bothify('########');
             }
-            
+
             return [
                 'qr_codes' => json_encode($qrCodes),
             ];
@@ -105,4 +105,4 @@ class ShipmentItemFactory extends Factory
             'dimensions' => null,
         ]);
     }
-} 
+}

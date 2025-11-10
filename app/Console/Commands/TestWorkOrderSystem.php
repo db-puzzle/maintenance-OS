@@ -2,13 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\AssetType;
-use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\Forms\Form;
-use App\Models\Forms\FormVersion;
 use App\Models\Maintenance\Routine;
 use App\Models\User;
 use App\Models\WorkOrders\WorkOrder;
@@ -47,14 +46,14 @@ class TestWorkOrderSystem extends Command
 
             // Create test data
             $this->info('Creating test data...');
-            
+
             // Create a test user
             $user = User::factory()->create([
                 'name' => 'Test User',
                 'email' => 'test@workorder.com',
             ]);
             $this->info('✓ Created test user: ' . $user->email);
-            
+
             // Login the user to avoid audit log issues
             auth()->login($user);
 
@@ -62,10 +61,10 @@ class TestWorkOrderSystem extends Command
             $plant = Plant::factory()->create(['name' => 'Test Plant']);
             $area = Area::factory()->create(['name' => 'Test Area', 'plant_id' => $plant->id]);
             $sector = Sector::factory()->create(['name' => 'Test Sector', 'area_id' => $area->id]);
-            
+
             // Create asset type
             $assetType = AssetType::factory()->create(['name' => 'Pump']);
-            
+
             // Create an asset
             $asset = Asset::factory()->create([
                 'tag' => 'PUMP-001',
@@ -79,8 +78,9 @@ class TestWorkOrderSystem extends Command
 
             // Get work order type
             $workOrderType = WorkOrderType::where('category', 'corrective')->first();
-            if (!$workOrderType) {
+            if (! $workOrderType) {
                 $this->error('No corrective work order type found. Please run seeders first.');
+
                 return 1;
             }
 
@@ -129,7 +129,7 @@ class TestWorkOrderSystem extends Command
 
             // Test 3: Create routine and test automatic work order generation
             $this->info('Test 3: Testing routine-based work order generation...');
-            
+
             // Create a work order type for preventive maintenance
             $preventiveWorkOrderType = WorkOrderType::create([
                 'name' => 'Test Preventive Maintenance',
@@ -144,15 +144,10 @@ class TestWorkOrderSystem extends Command
                 'sla_hours' => 48,
                 'is_active' => true,
             ]);
-            
+
             // Create a form for the routine
             $form = Form::factory()->create(['name' => 'Test Maintenance Form']);
-            $formVersion = FormVersion::factory()->create([
-                'form_id' => $form->id,
-                'version_number' => 1,
-                'is_active' => true,
-            ]);
-            
+
             $routine = Routine::factory()->create([
                 'asset_id' => $asset->id,
                 'name' => 'Test Routine - 100h',
@@ -163,7 +158,6 @@ class TestWorkOrderSystem extends Command
                 'default_priority' => 'normal',
                 'last_execution_runtime_hours' => 80, // 80 hours ago
                 'form_id' => $form->id,
-                'active_form_version_id' => $formVersion->id,
             ]);
 
             // Update asset runtime to trigger generation
@@ -175,14 +169,14 @@ class TestWorkOrderSystem extends Command
             ]);
 
             $generatedWorkOrders = $generationService->generateDueWorkOrders();
-            
+
             if ($generatedWorkOrders->isNotEmpty()) {
                 $routineWorkOrder = $generatedWorkOrders->first();
-                
+
                 $this->info("✓ Generated work order from routine: {$routineWorkOrder->work_order_number}");
                 $this->info("  - Source: Routine (ID: {$routine->id})");
-                $this->info("  - Auto-approved: " . ($routineWorkOrder->status === 'approved' ? 'Yes' : 'No'));
-                $this->info("  - Form attached: " . ($routineWorkOrder->form_id ? 'Yes' : 'No'));
+                $this->info('  - Auto-approved: ' . ($routineWorkOrder->status === 'approved' ? 'Yes' : 'No'));
+                $this->info('  - Form attached: ' . ($routineWorkOrder->form_id ? 'Yes' : 'No'));
             } else {
                 $this->warn('⚠ No work orders generated from routine');
             }
@@ -191,7 +185,7 @@ class TestWorkOrderSystem extends Command
             // Test 4: Test status transitions
             $this->info('Test 4: Testing status transitions...');
             $testWorkOrder = $manualWorkOrder;
-            
+
             // Try valid transition
             $result = $testWorkOrder->transitionTo(WorkOrder::STATUS_APPROVED, $user);
             if ($result) {
@@ -202,7 +196,7 @@ class TestWorkOrderSystem extends Command
 
             // Try invalid transition
             $result = $testWorkOrder->transitionTo(WorkOrder::STATUS_CLOSED, $user);
-            if (!$result) {
+            if (! $result) {
                 $this->info('✓ Correctly rejected invalid transition (approved → closed)');
             } else {
                 $this->error('✗ Allowed invalid transition');
@@ -246,14 +240,14 @@ class TestWorkOrderSystem extends Command
             DB::rollback();
             $this->newLine();
             $this->info('All tests completed! (Changes rolled back)');
-            
-            return 0;
 
+            return 0;
         } catch (\Exception $e) {
             DB::rollback();
             $this->error('Test failed with error: ' . $e->getMessage());
             $this->error($e->getTraceAsString());
+
             return 1;
         }
     }
-} 
+}

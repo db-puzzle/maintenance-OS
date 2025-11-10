@@ -27,7 +27,7 @@ class ShiftFactory extends Factory
     public function definition(): array
     {
         $timezones = ['America/Sao_Paulo', 'America/New_York', 'Europe/London', 'Asia/Tokyo', 'Australia/Sydney'];
-        
+
         return [
             'name' => 'Shift ' . $this->faker->unique()->numberBetween(1, 9999),
             'timezone' => $this->faker->randomElement($timezones),
@@ -42,13 +42,13 @@ class ShiftFactory extends Factory
         return $this->afterCreating(function (Shift $shift) {
             // Create shift schedules for weekdays only by default
             $weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-            
+
             foreach ($weekdays as $weekday) {
                 $schedule = ShiftSchedule::factory()->create([
                     'shift_id' => $shift->id,
                     'weekday' => $weekday,
                 ]);
-                
+
                 // Create a shift time for each schedule
                 ShiftTime::factory()->create([
                     'shift_schedule_id' => $schedule->id,
@@ -65,13 +65,13 @@ class ShiftFactory extends Factory
         return $this->afterCreating(function (Shift $shift) {
             // Add weekend schedules
             $weekends = ['Saturday', 'Sunday'];
-            
+
             foreach ($weekends as $weekend) {
                 $schedule = ShiftSchedule::factory()->create([
                     'shift_id' => $shift->id,
                     'weekday' => $weekend,
                 ]);
-                
+
                 ShiftTime::factory()->create([
                     'shift_schedule_id' => $schedule->id,
                 ]);
@@ -88,4 +88,4 @@ class ShiftFactory extends Factory
             'timezone' => 'America/Sao_Paulo',
         ]);
     }
-} 
+}

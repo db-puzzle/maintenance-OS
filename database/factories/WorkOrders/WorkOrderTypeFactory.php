@@ -28,8 +28,8 @@ class WorkOrderTypeFactory extends Factory
         $category = \App\Models\WorkOrders\WorkOrderCategory::maintenance()
             ->inRandomOrder()
             ->first();
-            
-        if (!$category) {
+
+        if (! $category) {
             // Fallback - create a basic category if none exist
             $category = \App\Models\WorkOrders\WorkOrderCategory::firstOrCreate(
                 ['code' => 'corrective', 'discipline' => 'maintenance'],
@@ -39,7 +39,7 @@ class WorkOrderTypeFactory extends Factory
                 ]
             );
         }
-        
+
         return [
             'name' => $this->faker->words(3, true),
             'code' => strtoupper($this->faker->unique()->lexify('??_???')),
@@ -63,7 +63,7 @@ class WorkOrderTypeFactory extends Factory
         $category = \App\Models\WorkOrders\WorkOrderCategory::where('code', 'corrective')
             ->where('discipline', 'maintenance')
             ->first();
-            
+
         return $this->state(fn (array $attributes) => [
             'work_order_category_id' => $category?->id,
             'requires_approval' => true,
@@ -79,7 +79,7 @@ class WorkOrderTypeFactory extends Factory
         $category = \App\Models\WorkOrders\WorkOrderCategory::where('code', 'preventive')
             ->where('discipline', 'maintenance')
             ->first();
-            
+
         return $this->state(fn (array $attributes) => [
             'work_order_category_id' => $category?->id,
             'requires_approval' => false,
@@ -106,4 +106,4 @@ class WorkOrderTypeFactory extends Factory
             'is_active' => false,
         ]);
     }
-} 
+}

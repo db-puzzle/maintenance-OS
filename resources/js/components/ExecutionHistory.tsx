@@ -35,11 +35,6 @@ interface ExecutionData {
         name: string;
     } | null;
     executor_name?: string;
-    form_version?: {
-        id: number;
-        version_number: string;
-        published_at: string;
-    } | null;
     status: string;
     started_at: string | null;
     completed_at: string | null;
@@ -137,11 +132,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                     ? Math.floor((new Date(workOrder.execution.completed_at).getTime() - new Date(workOrder.execution.started_at).getTime()) / 60000)
                     : null,
                 progress: workOrder.execution?.status === 'completed' ? 100 : 50,
-                form_version: workOrder.form_version_id ? {
-                    id: workOrder.form_version_id,
-                    version_number: 'v1.0',
-                    published_at: workOrder.created_at
-                } : null,
             })) : [];
             // Use pagination info if available, otherwise use defaults
             const finalPaginationData = paginationInfo || {
@@ -362,19 +352,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
             sortable: true,
             width: 'w-[180px]',
             render: (value: unknown) => formatDate(value as string | null),
-        },
-        {
-            key: 'form_version',
-            label: 'Versão',
-            sortable: false,
-            width: 'w-[120px]',
-            render: (value: unknown, row: unknown) => {
-                const execution = row as ExecutionData;
-                if (!execution.form_version) {
-                    return <span className="text-muted-foreground text-sm">N/A</span>;
-                }
-                return <span className="font-mono text-sm">{execution.form_version.version_number}</span>;
-            },
         },
     ];
     if (!assetId) {

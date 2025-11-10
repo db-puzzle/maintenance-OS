@@ -3,7 +3,6 @@
 namespace App\Models\Production;
 
 use App\Models\Forms\Form;
-use App\Models\Forms\FormVersion;
 use App\Services\Production\TimeFormatter;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -87,7 +86,6 @@ class ManufacturingStep extends Model
         'work_cell_id',
         'status',
         'form_id',
-        'form_version_id',
         'setup_time_seconds',
         'cycle_time_seconds',
         'use_workcell_throughput',
@@ -214,14 +212,6 @@ class ManufacturingStep extends Model
     public function form(): BelongsTo
     {
         return $this->belongsTo(Form::class);
-    }
-
-    /**
-     * Get the form version.
-     */
-    public function formVersion(): BelongsTo
-    {
-        return $this->belongsTo(FormVersion::class);
     }
 
     /**

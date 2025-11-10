@@ -11,13 +11,13 @@ use Inertia\Inertia;
 class WorkOrderExecutionController extends Controller
 {
     /**
-     * Start the execution of a work order
+     * Start the execution of a work order.
      */
     public function start(Request $request, WorkOrder $workOrder)
     {
         $this->authorize('start', $workOrder);
 
-        if (!$workOrder->canBeStarted()) {
+        if (! $workOrder->canBeStarted()) {
             return back()->with('error', 'Esta ordem de serviço não pode ser iniciada.');
         }
 
@@ -37,7 +37,7 @@ class WorkOrderExecutionController extends Controller
     }
 
     /**
-     * Show the execution interface
+     * Show the execution interface.
      */
     public function execute(WorkOrder $workOrder)
     {
@@ -58,18 +58,18 @@ class WorkOrderExecutionController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
-     * Pause the execution
+     * Pause the execution.
      */
     public function pause(Request $request, WorkOrder $workOrder)
     {
         $this->authorize('execute', $workOrder);
 
-        if (!$workOrder->execution || !$workOrder->execution->started_at) {
+        if (! $workOrder->execution || ! $workOrder->execution->started_at) {
             return back()->with('error', 'Execução não encontrada.');
         }
 
@@ -79,13 +79,13 @@ class WorkOrderExecutionController extends Controller
     }
 
     /**
-     * Resume the execution
+     * Resume the execution.
      */
     public function resume(Request $request, WorkOrder $workOrder)
     {
         $this->authorize('execute', $workOrder);
 
-        if (!$workOrder->execution || !$workOrder->execution->isPaused()) {
+        if (! $workOrder->execution || ! $workOrder->execution->isPaused()) {
             return back()->with('error', 'Execução não está pausada.');
         }
 
@@ -95,7 +95,7 @@ class WorkOrderExecutionController extends Controller
     }
 
     /**
-     * Complete the execution
+     * Complete the execution.
      */
     public function complete(Request $request, WorkOrder $workOrder)
     {
@@ -114,12 +114,12 @@ class WorkOrderExecutionController extends Controller
             'actual_cost' => 'nullable|numeric|min:0',
         ]);
 
-        if (!$workOrder->execution) {
+        if (! $workOrder->execution) {
             return back()->with('error', 'Execução não encontrada.');
         }
 
         // Check if all required tasks are completed
-        if ($workOrder->form_id && !$this->areAllRequiredTasksCompleted($workOrder)) {
+        if ($workOrder->form_id && ! $this->areAllRequiredTasksCompleted($workOrder)) {
             return back()->with('error', 'Todas as tarefas obrigatórias devem ser concluídas.');
         }
 
@@ -152,7 +152,7 @@ class WorkOrderExecutionController extends Controller
     }
 
     /**
-     * Cancel the execution
+     * Cancel the execution.
      */
     public function cancel(Request $request, WorkOrder $workOrder)
     {
@@ -162,7 +162,7 @@ class WorkOrderExecutionController extends Controller
             'cancellation_reason' => 'required|string',
         ]);
 
-        if (!$workOrder->execution) {
+        if (! $workOrder->execution) {
             return back()->with('error', 'Execução não encontrada.');
         }
 
@@ -182,20 +182,15 @@ class WorkOrderExecutionController extends Controller
     }
 
     /**
-     * Check if all required tasks are completed
+     * Check if all required tasks are completed.
      */
     private function areAllRequiredTasksCompleted(WorkOrder $workOrder): bool
     {
-        if (!$workOrder->form || !$workOrder->execution) {
+        if (! $workOrder->form || ! $workOrder->execution) {
             return true;
         }
 
-        $formVersion = $workOrder->form->getFormVersionForExecution();
-        if (!$formVersion) {
-            return true;
-        }
-
-        $requiredTasks = $formVersion->tasks()
+        $requiredTasks = $workOrder->form->tasks()
             ->where('is_required', true)
             ->pluck('id');
 

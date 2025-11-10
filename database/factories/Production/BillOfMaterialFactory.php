@@ -24,7 +24,7 @@ class BillOfMaterialFactory extends Factory
         $year = now()->format('y'); // 2-digit year
         $month = now()->format('m'); // 2-digit month
         $sequence = fake()->numberBetween(1, 99999);
-        
+
         return [
             'bom_number' => sprintf('BOM-%05d-%s%s', $sequence, $year, $month),
             'name' => fake()->words(fake()->numberBetween(2, 4), true),
@@ -72,4 +72,4 @@ class BillOfMaterialFactory extends Factory
             ]);
         });
     }
-} 
+}

@@ -54,4 +54,4 @@ class AreaFactory extends Factory
             'shift_id' => $shift->id,
         ]);
     }
-} 
+}

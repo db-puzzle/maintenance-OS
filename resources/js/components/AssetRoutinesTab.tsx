@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Search, Upload, FileText, Edit2, History, Info, Clock, Plus, Eye, AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Search, FileText, Edit2, Info, Clock, Plus, AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,8 +11,6 @@ import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { ColumnConfig } from '@/types/shared';
-import FormStatusBadge, { getFormState } from '@/components/form-lifecycle/FormStatusBadge';
-import { FormVersionHistory } from '@/components/form-lifecycle';
 import CreateRoutineButton from '@/components/CreateRoutineButton';
 import EditRoutineSheet from '@/components/EditRoutineSheet';
 import InlineRoutineFormEditor from '@/components/InlineRoutineFormEditor';
@@ -24,7 +22,6 @@ import { Form } from '@/types/work-order';
 import { TaskType } from '@/types/task';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import type { FormData as FormStatusData } from '@/components/form-lifecycle/FormStatusBadge';
 
 interface ExtendedForm extends Omit<Form, 'current_version'> {
     has_draft_changes?: boolean;
@@ -101,10 +98,6 @@ export default function AssetRoutinesTab({
 
     // Estado para controlar o carregamento do formulário
     const [loadingFormEditor, setLoadingFormEditor] = useState(false);
-
-    // Estado para controlar o modal de histórico de versões
-    const [showVersionHistory, setShowVersionHistory] = useState(false);
-    const [selectedRoutineForHistory, setSelectedRoutineForHistory] = useState<number | null>(null);
 
     // Estado para controlar o modal de aviso de nova versão
     const [showNewVersionDialog, setShowNewVersionDialog] = useState(false);
@@ -293,11 +286,6 @@ export default function AssetRoutinesTab({
                         <div className="text-sm">
                             {displayDate}
                         </div>
-                        {row.last_execution_form_version_id && row.last_execution_form_version && (
-                            <div className="text-xs text-muted-foreground">
-                                Versão: v{row.last_execution_form_version.version}
-                            </div>
-                        )}
                     </div>
                 );
             },
@@ -442,16 +430,6 @@ export default function AssetRoutinesTab({
                     return <div className="text-center"><span className="text-sm text-muted-foreground">-</span></div>;
                 }
 
-                if (form.current_version) {
-                    return (
-                        <div className="text-center">
-                            <span className="text-sm font-medium">
-                                v{form.current_version.version}
-                            </span>
-                        </div>
-                    );
-                }
-
                 return <div className="text-center"><span className="text-sm text-muted-foreground">-</span></div>;
             },
         },
@@ -474,19 +452,9 @@ export default function AssetRoutinesTab({
 
                 return (
                     <div className="text-center">
-                        <FormStatusBadge
-                            form={{
-                                id: form.id || 0,
-                                current_version_id: form.current_version_id ?? null,
-                                has_draft_changes: form.has_draft_changes,
-                                current_version: form.current_version ? {
-                                    version_number: form.current_version.version_number || '',
-                                    id: form.current_version.id,
-                                    published_at: (form.current_version as { published_at?: string }).published_at
-                                } : undefined
-                            }}
-                            size="sm"
-                        />
+                        <span className="text-sm text-muted-foreground">
+                            {form.tasks && form.tasks.length > 0 ? `${form.tasks.length} tarefas` : 'Sem tarefas'}
+                        </span>
                     </div>
                 );
             },
@@ -577,49 +545,13 @@ export default function AssetRoutinesTab({
         }
     };
 
-    const handleShowVersionHistory = (routineId: number) => {
-        setSelectedRoutineForHistory(routineId);
-        setShowVersionHistory(true);
-    };
-
-    const handlePublishForm = async (routineId: number) => {
-        router.post(
-            route('maintenance.routines.forms.publish', {
-                routine: routineId,
-            }),
-            {},
-            {
-                onSuccess: () => {
-                    toast.success('Formulário publicado com sucesso!');
-                    // Reload routines to reflect the change
-                    router.reload();
-                },
-                onError: () => {
-                    toast.error('Erro ao publicar formulário');
-                },
-            }
-        );
-    };
-
-    const hasFormTasks = (form: Form | ExtendedForm | undefined): boolean => {
+    const hasFormTasks = (form: Form | undefined): boolean => {
         return !!(form?.tasks && form.tasks.length > 0);
     };
 
     const handleEditFormClick = (routine: Routine) => {
-        const formState = routine.form ? getFormState({
-            ...routine.form,
-            current_version_id: routine.form.current_version_id ?? null
-        } as FormStatusData) : null;
-
-        // Check if form is published (not unpublished and not already in draft)
-        if (formState === 'published') {
-            // Show warning dialog for published forms
-            setRoutineToEdit(routine.id);
-            setShowNewVersionDialog(true);
-        } else {
-            // For unpublished or draft forms, edit directly
-            handleEditRoutineForm(routine.id);
-        }
+        // Directly edit the form
+        handleEditRoutineForm(routine.id);
     };
 
     const confirmEditForm = () => {
@@ -777,29 +709,21 @@ export default function AssetRoutinesTab({
                 routine={{
                     id: routine.id,
                     name: routine.name,
-                    form: routine.form ? {
-                        id: routine.form.id,
-                        tasks: (routine.form.tasks || []).map(task => ({
-                            id: String(task.id),
-                            type: task.type as TaskType,
-                            description: task.description || '',
-                            isRequired: task.required || false,
-                            instructionImages: [],
-                            instructions: []
-                        })),
-                        isDraft: false,
-                        currentVersionId: routine.form.current_version_id ?? null,
-                        has_draft_changes: false,
-                        current_version: routine.form.current_version ? {
-                            id: routine.form.current_version.id,
-                            version_number: String(routine.form.current_version.version || '1.0'),
-                            published_at: undefined
+                        form: routine.form ? {
+                            id: routine.form.id,
+                            tasks: (routine.form.tasks || []).map(task => ({
+                                id: String(task.id),
+                                type: task.type as TaskType,
+                                description: task.description || '',
+                                isRequired: task.required || false,
+                                instructionImages: [],
+                                instructions: []
+                            }))
                         } : undefined
-                    } : undefined
                 }}
                 assetId={assetId}
                 onClose={handleCloseFormEditor}
-                onSuccess={handleFormSaved}
+                onSuccess={() => handleFormSaved({})}
             />
         );
     }
@@ -851,26 +775,8 @@ export default function AssetRoutinesTab({
                                     onEdit={undefined}
                                     onDelete={() => handleDeleteClick(routine)}
                                     additionalActions={[
-                                        // Publicar - Primary action for unpublished routines with tasks
-                                        ...(hasFormTasks(routine.form) && getFormState({ ...routine.form, current_version_id: routine.form?.current_version_id ?? null } as FormStatusData) === 'unpublished' ? [{
-                                            label: 'Publicar',
-                                            icon: (
-                                                <div className="relative">
-                                                    <Upload className="h-4 w-4 text-primary" />
-                                                    <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
-                                                </div>
-                                            ),
-                                            onClick: () => handlePublishForm(routine.id),
-                                            className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
-                                        }] : []),
-                                        // Separator after Publicar (if shown)
-                                        ...(hasFormTasks(routine.form) && getFormState({ ...routine.form, current_version_id: routine.form?.current_version_id ?? null } as FormStatusData) === 'unpublished' ? [{
-                                            label: 'separator',
-                                            icon: null,
-                                            onClick: () => { },
-                                        }] : []),
-                                        // Create Work Order - Primary action at the top with emphasis
-                                        ...(hasFormTasks(routine.form) && getFormState({ ...routine.form, current_version_id: routine.form?.current_version_id ?? null } as FormStatusData) !== 'unpublished' ? [{
+                                        // Create Work Order - Primary action if form has tasks
+                                        ...(hasFormTasks(routine.form) ? [{
                                             label: 'Criar Ordem de Serviço',
                                             icon: (
                                                 <div className="relative">
@@ -882,16 +788,14 @@ export default function AssetRoutinesTab({
                                             className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                         }] : []),
                                         // Separator after Create Work Order
-                                        ...(hasFormTasks(routine.form) && getFormState({ ...routine.form, current_version_id: routine.form?.current_version_id ?? null } as FormStatusData) !== 'unpublished' ? [{
+                                        ...(hasFormTasks(routine.form) ? [{
                                             label: 'separator',
                                             icon: null,
                                             onClick: () => { },
                                         }] : []),
                                         // Add/Edit Tasks - Second primary action with prominence
                                         {
-                                            label: (routine.form as ExtendedForm)?.has_draft_changes ? 'Editar Tarefas' :
-                                                hasFormTasks(routine.form) ? 'Editar Tarefas' :
-                                                    'Adicionar Tarefas',
+                                            label: hasFormTasks(routine.form) ? 'Editar Tarefas' : 'Adicionar Tarefas',
                                             icon: (
                                                 <div className="relative">
                                                     <FileText className="h-4 w-4 text-primary" />
@@ -926,16 +830,6 @@ export default function AssetRoutinesTab({
                                             icon: <Edit2 className="h-4 w-4" />,
                                             onClick: () => handleEditRoutine(routine),
                                         },
-                                        ...((routine.form as ExtendedForm)?.has_draft_changes && (routine.form as ExtendedForm)?.current_version_id ? [{
-                                            label: `Ver Versão Publicada (v${(routine.form as ExtendedForm)?.current_version?.version_number || '1.0'})`,
-                                            icon: <Eye className="h-4 w-4" />,
-                                            onClick: () => router.visit(route('maintenance.routines.view-published-version', { routine: routine.id })),
-                                        }] : []),
-                                        ...((routine.form as ExtendedForm)?.current_version_id ? [{
-                                            label: 'Ver Histórico de Versões',
-                                            icon: <History className="h-4 w-4" />,
-                                            onClick: () => handleShowVersionHistory(routine.id),
-                                        }] : []),
                                     ]}
                                 />
                             </div>
@@ -1005,17 +899,6 @@ export default function AssetRoutinesTab({
                 </DialogContent>
             </Dialog>
 
-            {/* Modal de Histórico de Versões */}
-            {showVersionHistory && selectedRoutineForHistory && (
-                <FormVersionHistory
-                    routineId={selectedRoutineForHistory}
-                    isOpen={showVersionHistory}
-                    onClose={() => {
-                        setShowVersionHistory(false);
-                        setSelectedRoutineForHistory(null);
-                    }}
-                />
-            )}
 
             {/* Modal de aviso de nova versão */}
             <Dialog open={showNewVersionDialog} onOpenChange={setShowNewVersionDialog}>

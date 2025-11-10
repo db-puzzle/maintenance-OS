@@ -23,8 +23,6 @@ export interface WorkOrder {
     // Form/Task configuration
     form_id?: number;
     form?: Form;
-    form_version_id?: number;
-    form_version?: FormVersion;
     custom_tasks?: CustomTask[];
 
     // Planning fields
@@ -365,15 +363,6 @@ export interface Form {
     id: number;
     name: string;
     description?: string;
-    tasks?: FormTask[];
-    current_version?: FormVersion;
-    current_version_id?: number;
-}
-
-export interface FormVersion {
-    id: number;
-    form_id: number;
-    version: number;
     tasks?: FormTask[];
 }
 

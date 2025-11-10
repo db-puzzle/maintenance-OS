@@ -2,9 +2,9 @@
 
 namespace Database\Factories\AssetHierarchy;
 
+use App\Models\AssetHierarchy\ShiftBreak;
 use App\Models\AssetHierarchy\ShiftSchedule;
 use App\Models\AssetHierarchy\ShiftTime;
-use App\Models\AssetHierarchy\ShiftBreak;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -101,4 +101,4 @@ class ShiftTimeFactory extends Factory
             $shiftTime->breaks()->delete();
         });
     }
-} 
+}

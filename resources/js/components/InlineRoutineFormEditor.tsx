@@ -1,6 +1,5 @@
 import { TaskBaseCard, TaskContent } from '@/components/tasks';
 import AddTaskButton from '@/components/tasks/AddTaskButton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -22,31 +21,23 @@ import {
 import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { router } from '@inertiajs/react';
-import { AlertCircle, ClipboardCheck, Save, Upload } from 'lucide-react';
+import { ClipboardCheck, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { FormStatusBadge } from '@/components/form-lifecycle';
+
 interface RoutineData {
     id: number;
     name: string;
     form?: {
         id: number;
         tasks: Task[];
-        isDraft?: boolean;
-        currentVersionId?: number | null;
-        has_draft_changes?: boolean;
-        current_version?: {
-            id?: number;
-            version_number: string;
-            published_at?: string;
-        };
     };
 }
 interface Props {
     routine: RoutineData;
     assetId: number;
     onClose?: () => void;
-    onSuccess?: (formData: { published: boolean }) => void;
+    onSuccess?: () => void;
 }
 export default function InlineRoutineFormEditor({ routine, onClose, onSuccess }: Props) {
     const [tasks, setTasks] = useState<Task[]>(
@@ -63,16 +54,12 @@ export default function InlineRoutineFormEditor({ routine, onClose, onSuccess }:
     );
     const [activeId, setActiveId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
-    const [publishing, setPublishing] = useState(false);
     const [taskIcons, setTaskIcons] = useState<Record<string, React.ReactNode>>({});
-    const [hasDraftChanges, setHasDraftChanges] = useState(routine.form?.has_draft_changes || false);
     const [showExitDialog, setShowExitDialog] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     // Estados para última categoria e unidade selecionada
     const [lastMeasurementCategory, setLastMeasurementCategory] = useState<UnitCategory>('Comprimento');
     const [lastMeasurementUnit, setLastMeasurementUnit] = useState<string>('m');
-    // Check if form has a published version
-    const hasPublishedVersion = routine.form?.currentVersionId !== null && routine.form?.currentVersionId !== undefined;
     // Track unsaved changes
     useEffect(() => {
         const tasksChanged = JSON.stringify(tasks) !== JSON.stringify(originalTasks);
@@ -206,11 +193,13 @@ export default function InlineRoutineFormEditor({ routine, onClose, onSuccess }:
             },
             {
                 onSuccess: () => {
-                    toast.success('Rascunho salvo com sucesso!');
-                    setHasDraftChanges(true);
+                    toast.success('Formulário salvo com sucesso!');
                     setSaving(false);
                     setHasUnsavedChanges(false);
-                    // Reload the page to show the saved draft tasks
+                    if (onSuccess) {
+                        onSuccess();
+                    }
+                    // Reload the page to show the saved tasks
                     router.reload();
                 },
                 onError: () => {
@@ -218,55 +207,6 @@ export default function InlineRoutineFormEditor({ routine, onClose, onSuccess }:
                         description: 'Verifique os campos e tente novamente.',
                     });
                     setSaving(false);
-                },
-            },
-        );
-    };
-    const handleSaveAndPublish = async () => {
-        setSaving(true);
-        setPublishing(true);
-        const tasksToSave = tasks.map((task) => ({
-            ...task,
-            measurement: task.measurement
-                ? {
-                    ...task.measurement,
-                    name: task.measurement.name,
-                    min: task.measurement.min,
-                    target: task.measurement.target,
-                    max: task.measurement.max,
-                    unit: task.measurement.unit,
-                    category: task.measurement.category,
-                }
-                : undefined,
-            options: task.options?.map((option) => option) || [],
-            instructionImages: task.instructionImages || [],
-        }));
-        router.post(
-            route('maintenance.routines.forms.save-and-publish', {
-                routine: routine.id,
-            }),
-            {
-                tasks: JSON.stringify(tasksToSave),
-            },
-            {
-                onSuccess: () => {
-                    toast.success('Formulário salvo e publicado com sucesso!');
-                    setHasDraftChanges(false);
-                    setSaving(false);
-                    setPublishing(false);
-                    setHasUnsavedChanges(false);
-                    if (onSuccess) {
-                        onSuccess({ published: true });
-                    }
-                    // Reload the page to refresh the data
-                    router.reload();
-                },
-                onError: () => {
-                    toast.error('Erro ao salvar e publicar formulário', {
-                        description: 'Verifique os campos e tente novamente.',
-                    });
-                    setSaving(false);
-                    setPublishing(false);
                 },
             },
         );
@@ -330,29 +270,12 @@ export default function InlineRoutineFormEditor({ routine, onClose, onSuccess }:
                         <p className="mt-1 ml-2 truncate text-sm text-gray-500">Tarefas de</p>
                         <h3 className="mt-2 ml-2 text-base font-semibold text-gray-900">{routine.name}</h3>
                     </div>
-                    {routine.form && (
-                        <FormStatusBadge
-                            form={{
-                                id: routine.form.id,
-                                current_version_id: routine.form.currentVersionId ?? null,
-                                has_draft_changes: routine.form.has_draft_changes ?? routine.form.isDraft,
-                                current_version: routine.form.current_version,
-                                tasks: (routine.form.tasks || []).map(task => ({
-                                    ...task,
-                                    id: parseInt(task.id),
-                                    name: task.description || '',
-                                    type: task.type
-                                })),
-                            }}
-                            size="sm"
-                        />
-                    )}
                 </div>
                 <div className="flex gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={handleClose}>
                         Voltar
                     </Button>
-                    <Button type="button" size="sm" disabled={saving || tasks.length === 0} onClick={handleSave}>
+                    <Button type="button" size="sm" variant="action" disabled={saving || tasks.length === 0} onClick={handleSave}>
                         {saving ? (
                             <>
                                 <Save className="mr-2 h-4 w-4 animate-pulse" />
@@ -361,36 +284,12 @@ export default function InlineRoutineFormEditor({ routine, onClose, onSuccess }:
                         ) : (
                             <>
                                 <Save className="mr-2 h-4 w-4" />
-                                Salvar Rascunho
+                                Salvar
                             </>
                         )}
                     </Button>
-                    {(hasDraftChanges || hasUnsavedChanges) && (
-                        <Button type="button" size="sm" variant="action" disabled={publishing || saving || tasks.length === 0} onClick={handleSaveAndPublish}>
-                            {publishing || saving ? (
-                                <>
-                                    <Upload className="mr-2 h-4 w-4 animate-pulse" />
-                                    {saving ? 'Salvando...' : 'Publicando...'}
-                                </>
-                            ) : (
-                                <>
-                                    <Upload className="mr-2 h-4 w-4" />
-                                    Salvar e Publicar
-                                </>
-                            )}
-                        </Button>
-                    )}
                 </div>
             </div>
-            {/* Alert for unpublished changes */}
-            {hasDraftChanges && hasPublishedVersion && (
-                <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                        Existem alterações não publicadas. Publique para tornar as mudanças disponíveis para execução.
-                    </AlertDescription>
-                </Alert>
-            )}
             <div className="mt-4 grid gap-6">
                 <DndContext
                     sensors={sensors}

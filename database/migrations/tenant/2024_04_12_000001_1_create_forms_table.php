@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->unsignedBigInteger('current_version_id')->nullable();
             $table->boolean('is_active')->default(true);
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->timestamps();
@@ -23,7 +22,6 @@ return new class extends Migration
 
             $table->index('is_active');
             $table->index('created_by');
-            $table->index('current_version_id');
         });
     }
 

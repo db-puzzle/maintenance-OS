@@ -26,7 +26,7 @@ class PlantFactory extends Factory
     public function definition(): array
     {
         $states = ['SP', 'RJ', 'MG', 'ES', 'PR', 'SC', 'RS', 'BA', 'PE', 'CE'];
-        
+
         return [
             'name' => $this->faker->company() . ' Plant',
             'street' => $this->faker->streetName(),
@@ -60,4 +60,4 @@ class PlantFactory extends Factory
             'zip_code' => '01000-000',
         ]);
     }
-} 
+}

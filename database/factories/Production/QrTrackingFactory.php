@@ -22,9 +22,9 @@ class QrTrackingFactory extends Factory
     {
         $eventTypes = [
             'scan', 'print', 'query', 'start_production', 'complete_production',
-            'quality_check', 'move_location', 'pack', 'ship', 'receive'
+            'quality_check', 'move_location', 'pack', 'ship', 'receive',
         ];
-        
+
         $trackableTypes = [
             'App\Models\Production\BomItem',
             'App\Models\Production\ManufacturingOrder',
@@ -35,7 +35,7 @@ class QrTrackingFactory extends Factory
         $locations = [
             'Warehouse A', 'Warehouse B', 'Production Floor',
             'Quality Lab', 'Shipping Dock', 'Receiving Bay',
-            'Assembly Line 1', 'Assembly Line 2', 'Packaging Station'
+            'Assembly Line 1', 'Assembly Line 2', 'Packaging Station',
         ];
 
         return [
@@ -128,4 +128,4 @@ class QrTrackingFactory extends Factory
             ]),
         ]);
     }
-} 
+}

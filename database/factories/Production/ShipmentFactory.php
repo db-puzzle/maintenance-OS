@@ -14,7 +14,7 @@ class ShipmentFactory extends Factory
     {
         $shipDate = $this->faker->dateTimeBetween('-30 days', '+30 days');
         $deliveryDate = (clone $shipDate)->modify('+' . $this->faker->numberBetween(1, 7) . ' days');
-        
+
         // Determine manifest generation date based on ship date
         $manifestDate = null;
         if ($this->faker->boolean(50)) {
@@ -26,7 +26,7 @@ class ShipmentFactory extends Factory
                 $manifestDate = null;
             }
         }
-        
+
         return [
             'shipment_number' => 'SH-' . date('Ym') . '-' . str_pad($this->faker->unique()->numberBetween(1, 9999), 4, '0', STR_PAD_LEFT),
             'shipment_type' => $this->faker->randomElement(['customer', 'internal_transfer', 'vendor_return']),
@@ -132,7 +132,7 @@ class ShipmentFactory extends Factory
             }
         });
     }
-    
+
     /**
      * Add package photos after creating the shipment.
      */
@@ -145,7 +145,7 @@ class ShipmentFactory extends Factory
                 ->create();
         });
     }
-    
+
     /**
      * Add loading photos after creating the shipment.
      */
@@ -158,4 +158,4 @@ class ShipmentFactory extends Factory
                 ->create();
         });
     }
-} 
+}

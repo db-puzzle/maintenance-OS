@@ -4,7 +4,6 @@ namespace App\Models\WorkOrders;
 
 use App\Models\AssetHierarchy\Asset;
 use App\Models\Forms\Form;
-use App\Models\Forms\FormVersion;
 use App\Models\Maintenance\Routine;
 use App\Models\User;
 use App\Traits\HasMediaTrait;
@@ -23,7 +22,7 @@ class WorkOrder extends Model implements HasMedia
     protected $fillable = [
         'work_order_number', 'discipline', 'title', 'description', 'work_order_type_id',
         'work_order_category_id', 'priority_score', 'status',
-        'asset_id', 'instrument_id', 'form_id', 'form_version_id', 'custom_tasks',
+        'asset_id', 'instrument_id', 'form_id', 'custom_tasks',
         'estimated_hours', 'estimated_parts_cost', 'estimated_labor_cost',
         'estimated_total_cost', 'downtime_required', 'other_requirements', 'number_of_people',
         'requested_due_date', 'scheduled_start_date', 'scheduled_end_date',
@@ -160,11 +159,6 @@ class WorkOrder extends Model implements HasMedia
     public function form(): BelongsTo
     {
         return $this->belongsTo(Form::class);
-    }
-
-    public function formVersion(): BelongsTo
-    {
-        return $this->belongsTo(FormVersion::class);
     }
 
     public function execution(): HasOne
@@ -409,8 +403,8 @@ class WorkOrder extends Model implements HasMedia
 
     public function getTasks(): array
     {
-        if ($this->form_version_id) {
-            return $this->formVersion->tasks->toArray();
+        if ($this->form_id) {
+            return $this->form->tasks->toArray();
         }
 
         return $this->custom_tasks ?? [];

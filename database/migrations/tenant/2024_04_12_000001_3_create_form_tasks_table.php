@@ -13,8 +13,7 @@ return new class extends Migration
     {
         Schema::create('form_tasks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('form_version_id')->nullable()->constrained()->cascadeOnDelete();
-            $table->foreignId('form_id')->nullable()->constrained()->cascadeOnDelete()->comment('Temporary reference for draft tasks');
+            $table->foreignId('form_id')->constrained()->cascadeOnDelete();
             $table->integer('position');
             $table->string('type')->comment('question, multiple_choice, multiple_select, measurement, photo, code_reader, file_upload');
             $table->text('description');
@@ -22,10 +21,9 @@ return new class extends Migration
             $table->json('configuration')->nullable()->comment('Type-specific configuration');
             $table->timestamps();
 
-            $table->index(['form_version_id', 'position']);
             $table->index(['form_id', 'position']);
             $table->index('type');
-            $table->index(['form_version_id', 'is_required'], 'form_tasks_version_required_idx');
+            $table->index(['form_id', 'is_required'], 'form_tasks_required_idx');
         });
     }
 

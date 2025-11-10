@@ -26,7 +26,7 @@ class ShiftScheduleFactory extends Factory
     public function definition(): array
     {
         $weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        
+
         return [
             'shift_id' => Shift::factory(),
             'weekday' => $this->faker->randomElement($weekdays),
@@ -42,4 +42,4 @@ class ShiftScheduleFactory extends Factory
             'weekday' => $weekday,
         ]);
     }
-} 
+}

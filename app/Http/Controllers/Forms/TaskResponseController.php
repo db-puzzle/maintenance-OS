@@ -25,7 +25,7 @@ class TaskResponseController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -44,9 +44,9 @@ class TaskResponseController extends Controller
             'response' => 'required|array',
         ]);
 
-        // Verify the task belongs to this form version
+        // Verify the task belongs to this form
         $task = FormTask::where('id', $validated['task_id'])
-            ->where('form_version_id', $formExecution->form_version_id)
+            ->where('form_id', $formExecution->form_id)
             ->first();
 
         if (! $task) {
@@ -98,7 +98,7 @@ class TaskResponseController extends Controller
             DB::rollback();
 
             return redirect()->back()
-                ->with('error', 'Erro ao salvar resposta: '.$e->getMessage());
+                ->with('error', 'Erro ao salvar resposta: ' . $e->getMessage());
         }
     }
 
@@ -117,7 +117,7 @@ class TaskResponseController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 

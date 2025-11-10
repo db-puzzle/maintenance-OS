@@ -20,13 +20,6 @@ interface RoutineData {
 interface ExecutionData {
     id: number;
     status: string;
-    form_execution?: {
-        id: number;
-        form_version?: {
-            id: number;
-            tasks: Task[];
-        };
-    };
 }
 interface TaskResponseData {
     id: number;
@@ -62,11 +55,10 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                 }),
             );
             const executionData = response.data.execution;
-            const formExecution = response.data.form_execution;
             const existingResponses = response.data.task_responses || [];
             setExecution(executionData);
-            // Use form version tasks if available, otherwise use routine form tasks
-            const tasksToUse = formExecution?.form_version?.tasks || routine.form?.tasks || [];
+            // Use routine form tasks
+            const tasksToUse = routine.form?.tasks || [];
             setTasks(
                 tasksToUse.map((task: Task) => ({
                     ...task,

@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 class MediaFactory extends Factory
 {
     protected $model = Media::class;
-    
+
     /**
      * Define the model's default state.
      *
@@ -22,25 +22,25 @@ class MediaFactory extends Factory
     public function definition(): array
     {
         $isImage = $this->faker->boolean(70); // 70% chance of being an image
-        
+
         if ($isImage) {
             $mimeType = $this->faker->randomElement(['image/jpeg', 'image/png', 'image/webp']);
-            $extension = match($mimeType) {
+            $extension = match ($mimeType) {
                 'image/jpeg' => 'jpg',
                 'image/png' => 'png',
                 'image/webp' => 'webp',
             };
         } else {
             $mimeType = $this->faker->randomElement(['application/pdf', 'text/csv', 'application/vnd.ms-excel']);
-            $extension = match($mimeType) {
+            $extension = match ($mimeType) {
                 'application/pdf' => 'pdf',
                 'text/csv' => 'csv',
                 'application/vnd.ms-excel' => 'xls',
             };
         }
-        
+
         $fileName = $this->faker->slug() . '.' . $extension;
-        
+
         return [
             'model_type' => Item::class,
             'model_id' => Item::factory(),
@@ -66,7 +66,7 @@ class MediaFactory extends Factory
             'order_column' => $this->faker->numberBetween(1, 10),
         ];
     }
-    
+
     /**
      * Indicate that the media is an image.
      */
@@ -74,12 +74,12 @@ class MediaFactory extends Factory
     {
         return $this->state(function (array $attributes) {
             $mimeType = $this->faker->randomElement(['image/jpeg', 'image/png', 'image/webp']);
-            $extension = match($mimeType) {
+            $extension = match ($mimeType) {
                 'image/jpeg' => 'jpg',
                 'image/png' => 'png',
                 'image/webp' => 'webp',
             };
-            
+
             return [
                 'collection_name' => 'images',
                 'mime_type' => $mimeType,
@@ -97,7 +97,7 @@ class MediaFactory extends Factory
             ];
         });
     }
-    
+
     /**
      * Indicate that the media is a document.
      */
@@ -105,11 +105,11 @@ class MediaFactory extends Factory
     {
         return $this->state(function (array $attributes) {
             $mimeType = $this->faker->randomElement(['application/pdf', 'text/csv']);
-            $extension = match($mimeType) {
+            $extension = match ($mimeType) {
                 'application/pdf' => 'pdf',
                 'text/csv' => 'csv',
             };
-            
+
             return [
                 'collection_name' => 'documents',
                 'mime_type' => $mimeType,
@@ -118,7 +118,7 @@ class MediaFactory extends Factory
             ];
         });
     }
-    
+
     /**
      * Indicate that the media is primary.
      */

@@ -40,11 +40,11 @@ class ManufacturerFactory extends Factory
     public function wellKnown(): static
     {
         $companies = ['Siemens', 'ABB', 'Schneider Electric', 'General Electric', 'Emerson', 'Honeywell'];
-        
+
         return $this->state(fn (array $attributes) => [
             'name' => $this->faker->randomElement($companies),
             'website' => 'https://www.' . strtolower(str_replace(' ', '', $attributes['name'] ?? $this->faker->randomElement($companies))) . '.com',
             'country' => $this->faker->randomElement(['Germany', 'Switzerland', 'France', 'USA']),
         ]);
     }
-} 
+}

@@ -64,4 +64,4 @@ class ShiftBreakFactory extends Factory
             'end_time' => '15:15:00',
         ]);
     }
-} 
+}

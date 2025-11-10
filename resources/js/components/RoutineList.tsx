@@ -1,6 +1,4 @@
 import EditRoutineSheet from '@/components/EditRoutineSheet';
-import { FormExecutionGuard, FormStatusBadge, FormVersionHistory } from '@/components/form-lifecycle';
-import { getFormState } from '@/components/form-lifecycle/FormStatusBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -22,38 +20,18 @@ import {
     Edit2,
     Eye,
     FileText,
-    History,
     Info,
     MoreVertical,
     Plus,
     Trash2,
-    Upload,
 } from 'lucide-react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 // Extended interfaces for this component
-interface ExtendedForm {
-    id: number;
-    name: string;
-    tasks: Array<{
-        id: string | number;
-        description: string;
-        type: string;
-        [key: string]: string | number | boolean | null | undefined;
-    }>;
-    has_draft_changes?: boolean;
-    is_draft?: boolean;
-    current_version_id?: number | null;
-    current_version?: {
-        id?: number;
-        version_number: string;
-        published_at?: string;
-    };
-}
+import { Form } from '@/types/work-order';
 
-interface ExtendedRoutine extends Omit<BaseRoutine, 'form'> {
-    form?: ExtendedForm;
+interface ExtendedRoutine extends BaseRoutine {
     status?: 'Active' | 'Inactive';
 }
 
@@ -140,8 +118,6 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
         // Estado para armazenar dados completos da rotina com formulário
         const [routineWithForm, setRoutineWithForm] = useState<Routine | null>(null);
         const [loadingForm, setLoadingForm] = useState(false);
-        // Estado para controlar o modal de histórico de versões
-        const [showVersionHistory, setShowVersionHistory] = useState(false);
         // Estado para controlar o modal de aviso de nova versão
         const [showNewVersionDialog, setShowNewVersionDialog] = useState(false);
         // Dados da rotina ou dados vazios para nova rotina
@@ -164,19 +140,8 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             } as Routine;
-        // Get form state for conditional rendering
-        const formState: 'unpublished' | 'draft' | 'published' | null = routineData.form
-            ? getFormState({
-                ...routineData.form,
-                current_version_id: routineData.form.current_version_id ?? null,
-                tasks: routineData.form.tasks.map(task => ({
-                    ...task,
-                    id: parseInt(task.id.toString()),
-                    name: task.description,
-                    type: task.type as string
-                }))
-            })
-            : null;
+        // Check if form has tasks
+        const hasFormTasks = routineData.form && routineData.form.tasks && routineData.form.tasks.length > 0;
         const fetchRoutineFormData = useCallback(async () => {
             if (!routine?.id) return;
             setLoadingForm(true);
@@ -260,38 +225,13 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
             setConfirmationText('');
         };
         const isConfirmationValid = confirmationText === 'EXCLUIR';
-        const handlePublishForm = async () => {
-            router.post(
-                route('maintenance.assets.routines.forms.publish', {
-                    asset: assetId,
-                    routine: routine?.id,
-                }),
-                {},
-                {
-                    onSuccess: () => {
-                        toast.success('Formulário publicado com sucesso!');
-                        // Refresh form data
-                        fetchRoutineFormData();
-                    },
-                    onError: () => {
-                        toast.error('Erro ao publicar formulário');
-                    },
-                }
-            );
-        };
         const handleEditFormClick = () => {
             // Close the dropdown menu first to avoid aria-hidden focus issues
             setDropdownOpen(false);
             // Small delay to ensure dropdown is closed before opening dialog
             setTimeout(() => {
-                // Check if form is published (not unpublished and not already in draft)
-                if (formState === 'published') {
-                    // Show warning dialog for published forms
-                    setShowNewVersionDialog(true);
-                } else {
-                    // For unpublished or draft forms, edit directly
-                    if (onEditForm) onEditForm();
-                }
+                // Edit the form directly
+                if (onEditForm) onEditForm();
             }, 100);
         };
         const confirmEditForm = () => {
@@ -333,8 +273,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                             triggerText="Trigger Oculto"
                             triggerVariant="outline"
                             triggerRef={editSheetTriggerRef}
-                            // @ts-expect-error - ExtendedRoutine is compatible with Routine for our use case
-                            routine={routineData.id && routineData.trigger_type ? routineData as unknown as Routine : undefined}
+                            routine={routineData.id && routineData.trigger_type ? routineData : undefined}
                             isNew={true}
                             assetId={assetId}
                             onSuccess={(routine) => handleSheetSuccess(routine as unknown as Routine)}
@@ -364,30 +303,14 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                             >
                                 {routineData.name}
                             </p>
-                            {routineData.form ? (
-                                <FormStatusBadge
-                                    form={{
-                                        ...routineData.form,
-                                        current_version_id: routineData.form.current_version_id ?? null,
-                                        tasks: routineData.form.tasks.map(task => ({
-                                            ...task,
-                                            id: parseInt(task.id.toString()) || 0,
-                                            name: task.description,
-                                            type: task.type
-                                        }))
-                                    }}
-                                    size="sm"
-                                />
-                            ) : (
-                                <p
-                                    className={`mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset ${routineData.status === 'Active'
-                                        ? 'bg-green-50 text-green-700 ring-green-600/20'
-                                        : 'bg-gray-50 text-gray-600 ring-gray-500/10'
-                                        }`}
-                                >
-                                    {routineData.status === 'Active' ? 'Ativo' : 'Inativo'}
-                                </p>
-                            )}
+                            <p
+                                className={`mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset ${routineData.status === 'Active'
+                                    ? 'bg-green-50 text-green-700 ring-green-600/20'
+                                    : 'bg-gray-50 text-gray-600 ring-gray-500/10'
+                                    }`}
+                            >
+                                {routineData.status === 'Active' ? 'Ativo' : 'Inativo'}
+                            </p>
                         </div>
                         <div className="mt-1 flex items-center gap-x-2 text-xs text-gray-500">
                             <p className="flex items-center gap-1 whitespace-nowrap">
@@ -414,14 +337,6 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                         <FileText className="h-3 w-3" />
                                         {loadingForm ? '...' : routineData.form.tasks?.length || 0} tarefas
                                     </p>
-                                    {routineData.form.current_version && (
-                                        <>
-                                            <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
-                                                <circle r={1} cx={1} cy={1} />
-                                            </svg>
-                                            <p className="whitespace-nowrap">v{routineData.form.current_version.version_number}</p>
-                                        </>
-                                    )}
                                 </>
                             )}
                         </div>
@@ -441,63 +356,10 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                 <FileText className="mr-1 h-4 w-4 animate-pulse" />
                                 Carregando...
                             </Button>
-                        ) : routineData.form && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
-                            formState === 'unpublished' ? (
-                                // Show Publish button for unpublished forms
-                                <Button size="sm" variant="action" onClick={handlePublishForm}>
-                                    <Upload className="mr-1 h-4 w-4" />
-                                    Publicar
-                                </Button>
-                            ) : (
-                                // Show FormExecutionGuard for published/draft forms
-                                <FormExecutionGuard
-                                    form={{
-                                        ...routineData.form,
-                                        current_version_id: routineData.form.current_version_id ?? null,
-                                        tasks: routineData.form.tasks.map(task => ({
-                                            ...task,
-                                            id: parseInt(task.id.toString()) || 0,
-                                            name: task.description,
-                                            type: task.type
-                                        }))
-                                    }}
-                                    onExecute={() => {
-                                        if (onFillForm) onFillForm();
-                                    }}
-                                    onPublishAndExecute={() => {
-                                        // Publish the form first
-                                        router.post(
-                                            route('maintenance.assets.routines.forms.publish', {
-                                                asset: assetId,
-                                                routine: routine?.id,
-                                            }),
-                                            {},
-                                            {
-                                                onSuccess: () => {
-                                                    toast.success('Formulário publicado com sucesso!');
-                                                    // Refresh form data
-                                                    fetchRoutineFormData();
-                                                    // Then execute
-                                                    if (onFillForm) onFillForm();
-                                                },
-                                                onError: () => {
-                                                    toast.error('Erro ao publicar formulário');
-                                                },
-                                            }
-                                        );
-                                    }}
-                                    onEditForm={onEditForm}
-                                >
-                                    <Button size="sm" variant="action">
-                                        <ClipboardCheck className="mr-1 h-4 w-4" />
-                                        Preencher
-                                    </Button>
-                                </FormExecutionGuard>
-                            )
-                        ) : routineData.form && routineData.form.has_draft_changes ? (
-                            <Button size="sm" variant="outline" onClick={handleEditFormClick}>
-                                <FileText className="mr-1 h-4 w-4" />
-                                Editar Tarefas
+                        ) : hasFormTasks ? (
+                            <Button size="sm" variant="action" onClick={onFillForm}>
+                                <ClipboardCheck className="mr-1 h-4 w-4" />
+                                Preencher
                             </Button>
                         ) : (
                             <Button size="sm" variant="outline" onClick={handleEditFormClick} ref={addTasksButtonRef}>
@@ -514,105 +376,46 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
-                                    {!loadingForm && routineData.form && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
-                                        formState === 'unpublished' ? (
-                                            // Show Publish option for unpublished forms
-                                            <>
-                                                <DropdownMenuItem onClick={handlePublishForm} className="flex items-center">
-                                                    <Upload className="mr-2 h-4 w-4" />
-                                                    Publicar
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem
-                                                    asChild={!onEditForm}
-                                                    className={onEditForm ? 'flex items-center' : 'flex items-center'}
-                                                    onClick={onEditForm ? handleEditFormClick : undefined}
-                                                >
+                                    {!loadingForm && hasFormTasks && (
+                                        <>
+                                            <DropdownMenuItem
+                                                asChild={!onFillForm}
+                                                className={onFillForm ? 'flex items-center' : 'flex items-center'}
+                                                onClick={onFillForm ? onFillForm : undefined}
+                                            >
+                                                {onFillForm ? (
                                                     <>
-                                                        <FileText className="mr-2 h-4 w-4" />
-                                                        Editar Tarefas
+                                                        <ClipboardCheck className="mr-2 h-4 w-4" />
+                                                        Preencher
                                                     </>
-                                                </DropdownMenuItem>
-                                                {/* Show "View Published Version" option when there are draft changes */}
-                                                {(formState as string) === 'draft' && routineData.form?.current_version_id && (
-                                                    <DropdownMenuItem
-                                                        onClick={() => router.visit(route('maintenance.routines.view-published-version', { routine: routineData.id }))}
+                                                ) : (
+                                                    <Link
+                                                        href={route('maintenance.assets.routines.form', {
+                                                            asset: assetId,
+                                                            routine: routineData.id,
+                                                            mode: 'fill',
+                                                        })}
                                                         className="flex items-center"
                                                     >
-                                                        <Eye className="mr-2 h-4 w-4" />
-                                                        Ver Versão Publicada (v{routineData.form.current_version?.version_number})
-                                                    </DropdownMenuItem>
+                                                        <ClipboardCheck className="mr-2 h-4 w-4" />
+                                                        Preencher
+                                                    </Link>
                                                 )}
-                                            </>
-                                        ) : (
-                                            // Show Fill option for published/draft forms
-                                            <>
-                                                <DropdownMenuItem
-                                                    asChild={!onFillForm}
-                                                    className={onFillForm ? 'flex items-center' : 'flex items-center'}
-                                                    onClick={onFillForm ? onFillForm : undefined}
-                                                >
-                                                    {onFillForm ? (
-                                                        <>
-                                                            <ClipboardCheck className="mr-2 h-4 w-4" />
-                                                            Preencher
-                                                        </>
-                                                    ) : (
-                                                        <Link
-                                                            href={route('maintenance.assets.routines.form', {
-                                                                asset: assetId,
-                                                                routine: routineData.id,
-                                                                mode: 'fill',
-                                                            })}
-                                                            className="flex items-center"
-                                                        >
-                                                            <ClipboardCheck className="mr-2 h-4 w-4" />
-                                                            Preencher
-                                                        </Link>
-                                                    )}
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem
-                                                    asChild={!onEditForm}
-                                                    className={onEditForm ? 'flex items-center' : 'flex items-center'}
-                                                    onClick={onEditForm ? handleEditFormClick : undefined}
-                                                >
-                                                    <>
-                                                        <FileText className="mr-2 h-4 w-4" />
-                                                        Editar Tarefas
-                                                    </>
-                                                </DropdownMenuItem>
-                                            </>
-                                        )
-                                    ) : routineData.form && routineData.form.has_draft_changes ? (
-                                        <>
-                                            <DropdownMenuItem
-                                                asChild={!onEditForm}
-                                                className={onEditForm ? 'flex items-center' : 'flex items-center'}
-                                                onClick={onEditForm ? handleEditFormClick : undefined}
-                                            >
-                                                <>
-                                                    <FileText className="mr-2 h-4 w-4" />
-                                                    Editar Tarefas
-                                                </>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                        </>
-                                    ) : (
-                                        <>
-                                            <DropdownMenuItem
-                                                asChild={!onEditForm}
-                                                className={onEditForm ? 'sm:hidden' : 'flex items-center sm:hidden'}
-                                                onClick={onEditForm ? handleEditFormClick : undefined}
-                                            >
-                                                <>
-                                                    <FileText className="mr-2 h-4 w-4" />
-                                                    Adicionar Tarefas
-                                                </>
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                         </>
                                     )}
+                                    <DropdownMenuItem
+                                        asChild={!onEditForm}
+                                        className={onEditForm ? 'flex items-center' : 'flex items-center'}
+                                        onClick={onEditForm ? handleEditFormClick : undefined}
+                                    >
+                                        <>
+                                            <FileText className="mr-2 h-4 w-4" />
+                                            {hasFormTasks ? 'Editar Tarefas' : 'Adicionar Tarefas'}
+                                        </>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                         onClick={() => routineData.id && router.visit(`/maintenance/work-orders?source_type=routine&source_id=${routineData.id}&asset_id=${assetId}`)}
                                         className="flex items-center cursor-pointer"
@@ -624,15 +427,6 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                         <Edit2 className="mr-2 h-4 w-4" />
                                         Editar Rotina
                                     </DropdownMenuItem>
-                                    {routineData.form && routineData.form.current_version_id && (
-                                        <>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => setShowVersionHistory(true)} className="flex items-center">
-                                                <History className="mr-2 h-4 w-4" />
-                                                Ver Histórico de Versões
-                                            </DropdownMenuItem>
-                                        </>
-                                    )}
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={handleDelete} className="text-destructive">
                                         <Trash2 className="mr-2 h-4 w-4" />
@@ -680,8 +474,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         triggerText="Trigger Oculto"
                         triggerVariant="outline"
                         triggerRef={editSheetTriggerRef}
-                        // @ts-expect-error - ExtendedRoutine is compatible with Routine for our use case
-                        routine={routineData.id ? routineData as unknown as Routine : undefined}
+                        routine={routineData.id ? routineData : undefined}
                         isNew={false}
                         assetId={assetId}
                         onSuccess={(routine) => handleSheetSuccess(routine as unknown as Routine)}
@@ -690,14 +483,6 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         userPermissions={userPermissions}
                     />
                 </div>
-                {/* Modal de Histórico de Versões */}
-                {routineData.form && (
-                    <FormVersionHistory
-                        routineId={routineData.id || 0}
-                        isOpen={showVersionHistory}
-                        onClose={() => setShowVersionHistory(false)}
-                    />
-                )}
                 {/* Modal de Aviso de Nova Versão */}
                 <Dialog open={showNewVersionDialog} onOpenChange={setShowNewVersionDialog}>
                     <DialogContent>
@@ -707,9 +492,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                 Nova versão será criada
                             </DialogTitle>
                             <DialogDescription>
-                                Este formulário está publicado na versão{' '}
-                                <strong>v{routineData.form?.current_version?.version_number || '1.0'}</strong>. Ao editar as tarefas, uma cópia de
-                                rascunho será criada. As alterações não afetarão a versão atual até que você publique uma nova versão.
+                                Ao editar as tarefas do formulário, as alterações serão salvas imediatamente.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3">

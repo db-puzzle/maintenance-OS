@@ -24,7 +24,7 @@ class StoreWorkOrderRequest extends FormRequest
     {
         // Determine discipline from route prefix
         $discipline = str_contains($this->route()->getPrefix(), 'quality') ? 'quality' : 'maintenance';
-        
+
         $rules = [
             'source_type' => ['required', 'string'],
             'source_id' => 'nullable|integer',
@@ -34,7 +34,6 @@ class StoreWorkOrderRequest extends FormRequest
             'description' => 'nullable|string',
             'priority_score' => 'required|integer|min:0|max:100',
             'form_id' => 'nullable|exists:forms,id',
-            'form_version_id' => 'nullable|exists:form_versions,id',
             'custom_tasks' => 'nullable|array',
             'requested_due_date' => 'nullable|date',
             'scheduled_start_date' => 'nullable|date',
@@ -54,37 +53,37 @@ class StoreWorkOrderRequest extends FormRequest
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:50',
         ];
-        
+
         // Discipline-specific validation
         if ($discipline === 'maintenance') {
             $rules['asset_id'] = 'required|exists:assets,id';
-            
+
             $rules['work_order_category_id'] = ['required', Rule::exists('work_order_categories', 'id')->where('discipline', 'maintenance')];
-            
+
             $rules['source_type'] = ['required', Rule::in(['manual', 'routine', 'sensor', 'inspection'])];
-            
+
             if ($this->input('source_type') === 'routine') {
                 $rules['source_id'] = 'required|exists:routines,id';
             }
         } elseif ($discipline === 'quality') {
             $rules['work_order_category_id'] = ['required', Rule::exists('work_order_categories', 'id')->where('discipline', 'quality')];
-            
+
             $rules['source_type'] = ['required', Rule::in(['manual', 'calibration_schedule', 'quality_alert', 'audit', 'complaint'])];
-            
+
             // Check if it's a calibration category
             $categoryId = $this->input('work_order_category_id');
-            
+
             if ($categoryId && \App\Models\WorkOrders\WorkOrderCategory::find($categoryId)?->code === 'calibration') {
                 $rules['instrument_id'] = 'required|exists:instruments,id';
                 $rules['calibration_due_date'] = 'required|date';
             }
-            
+
             // Quality-specific fields
             $rules['certificate_number'] = 'nullable|string|max:100';
             $rules['compliance_standard'] = 'nullable|string|max:100';
             $rules['tolerance_specs'] = 'nullable|array';
         }
-        
+
         return $rules;
     }
 
@@ -138,7 +137,7 @@ class StoreWorkOrderRequest extends FormRequest
             'source_id.required' => 'A origem é obrigatória quando o tipo de origem é :source_type.',
         ];
     }
-    
+
     /**
      * Prepare the data for validation.
      */
@@ -146,10 +145,10 @@ class StoreWorkOrderRequest extends FormRequest
     {
         // Determine discipline from route prefix
         $discipline = str_contains($this->route()->getPrefix(), 'quality') ? 'quality' : 'maintenance';
-        
+
         $this->merge([
             'discipline' => $discipline,
             'requested_by' => $this->user()->id,
         ]);
     }
-} 
+}
