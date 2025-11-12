@@ -68,15 +68,6 @@ class RoleSeeder extends Seeder
                 'production.orders.resume',
                 'production.orders.cancel',
                 'production.routes.create',
-                // Parts permissions
-                'parts.viewAny',
-                'parts.view',
-                'parts.create',
-                'parts.update',
-                'parts.delete',
-                'parts.manage-stock',
-                'parts.import',
-                'parts.export',
                 // Skills permissions
                 'skills.viewAny',
                 'skills.view',
@@ -193,14 +184,6 @@ class RoleSeeder extends Seeder
                 'work-orders.execute',
                 'work-orders.complete',
                 'work-orders.validate',
-                // Parts permissions
-                'parts.viewAny',
-                'parts.view',
-                'parts.create',
-                'parts.update',
-                'parts.delete',
-                'parts.manage-stock',
-                'parts.export',
                 // Skills permissions
                 'skills.viewAny',
                 'skills.view',
@@ -265,14 +248,6 @@ class RoleSeeder extends Seeder
                 'work-orders.create',
                 'work-orders.update',
                 'work-orders.plan',
-                // Parts permissions
-                'parts.viewAny',
-                'parts.view',
-                'parts.create',
-                'parts.update',
-                'parts.delete',
-                'parts.manage-stock',
-                'parts.export',
                 // Production category permissions
                 'production.categories.viewAny',
                 'production.categories.view',
@@ -319,9 +294,6 @@ class RoleSeeder extends Seeder
                 'work-orders.view', // Can view assigned work orders
                 'work-orders.execute', // Can execute assigned work orders
                 'work-orders.complete', // Can complete assigned work orders
-                // Parts permissions
-                'parts.viewAny',
-                'parts.view',
                 // Skills permissions (view only)
                 'skills.viewAny',
                 'skills.view',
@@ -373,9 +345,6 @@ class RoleSeeder extends Seeder
                 'users.update.owned',
                 // Work Order permissions
                 'work-orders.view', // Read-only access
-                // Parts permissions
-                'parts.viewAny',
-                'parts.view',
                 // Skills permissions (view only)
                 'skills.viewAny',
                 'skills.view',

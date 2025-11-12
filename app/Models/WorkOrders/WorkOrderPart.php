@@ -2,7 +2,7 @@
 
 namespace App\Models\WorkOrders;
 
-use App\Models\Part;
+use App\Models\Production\Item;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,17 +10,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WorkOrderPart extends Model
 {
     // Status constants
-    const STATUS_PLANNED = 'planned';
-    const STATUS_RESERVED = 'reserved';
-    const STATUS_ISSUED = 'issued';
-    const STATUS_USED = 'used';
-    const STATUS_RETURNED = 'returned';
+    public const STATUS_PLANNED = 'planned';
+    public const STATUS_RESERVED = 'reserved';
+    public const STATUS_ISSUED = 'issued';
+    public const STATUS_USED = 'used';
+    public const STATUS_RETURNED = 'returned';
 
     protected $fillable = [
         'work_order_id',
-        'part_id',
-        'part_number',
-        'part_name',
+        'item_id',
+        'item_number',
+        'item_name',
         'estimated_quantity',
         'reserved_quantity',
         'used_quantity',
@@ -53,9 +53,9 @@ class WorkOrderPart extends Model
         return $this->belongsTo(WorkOrder::class);
     }
 
-    public function part(): BelongsTo
+    public function item(): BelongsTo
     {
-        return $this->belongsTo(Part::class);
+        return $this->belongsTo(Item::class);
     }
 
     public function reservedBy(): BelongsTo

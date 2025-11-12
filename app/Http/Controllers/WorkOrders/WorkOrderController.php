@@ -3,42 +3,41 @@
 namespace App\Http\Controllers\WorkOrders;
 
 use App\Http\Controllers\BaseSearchController;
+use App\Http\Requests\WorkOrders\ApproveWorkOrderRequest;
+use App\Http\Requests\WorkOrders\PlanWorkOrderRequest;
+use App\Http\Requests\WorkOrders\RejectWorkOrderRequest;
+use App\Http\Requests\WorkOrders\StoreWorkOrderRequest;
+use App\Http\Requests\WorkOrders\UpdateWorkOrderRequest;
 use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
+use App\Models\Certification;
 use App\Models\Forms\Form;
+use App\Models\Production\Item;
+use App\Models\Skill;
+use App\Models\Team;
 use App\Models\User;
 use App\Models\WorkOrders\WorkOrder;
-use App\Models\WorkOrders\WorkOrderType;
 use App\Models\WorkOrders\WorkOrderCategory;
+use App\Models\WorkOrders\WorkOrderPart;
+use App\Models\WorkOrders\WorkOrderType;
 use App\Services\WorkOrders\MaintenanceWorkOrderService;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
-use App\Models\WorkOrders\WorkOrderPart;
-use App\Models\Team;
-use App\Models\Part; 
-use App\Models\Skill;
-use App\Models\Certification;
-use App\Http\Requests\WorkOrders\StoreWorkOrderRequest;
-use App\Http\Requests\WorkOrders\UpdateWorkOrderRequest;
-use App\Http\Requests\WorkOrders\ApproveWorkOrderRequest;
-use App\Http\Requests\WorkOrders\RejectWorkOrderRequest;
-use App\Http\Requests\WorkOrders\PlanWorkOrderRequest;
-use Carbon\Carbon;
+use Inertia\Inertia;
 
 class WorkOrderController extends BaseSearchController
 {
     protected MaintenanceWorkOrderService $maintenanceService;
-    
+
     public function __construct(MaintenanceWorkOrderService $maintenanceService)
     {
         $this->maintenanceService = $maintenanceService;
     }
-    
+
     /**
-     * Display a listing of work orders
+     * Display a listing of work orders.
      */
     public function index(Request $request)
     {
@@ -70,14 +69,14 @@ class WorkOrderController extends BaseSearchController
             // Define search configuration with relationships
             $searchConfig = [
                 'work_order_number',
-                'title', 
+                'title',
                 'description',
                 [
                     'relation' => 'asset',
-                    'columns' => ['tag']
-                ]
+                    'columns' => ['tag'],
+                ],
             ];
-            
+
             $query = $this->applySearchFilter($query, $search, $searchConfig);
         }
 
@@ -101,8 +100,6 @@ class WorkOrderController extends BaseSearchController
             }
         }
 
-
-
         // Apply sorting
         if ($sort === 'asset') {
             $query->leftJoin('assets', 'work_orders.asset_id', '=', 'assets.id')
@@ -117,7 +114,7 @@ class WorkOrderController extends BaseSearchController
         }
 
         $workOrdersPaginated = $query->paginate($perPage)->withQueryString();
-        
+
         // Transform paginated data to match React component expectations
         $workOrders = [
             'data' => $workOrdersPaginated->items(),
@@ -144,7 +141,7 @@ class WorkOrderController extends BaseSearchController
     }
 
     /**
-     * Show the form for creating a new work order
+     * Show the form for creating a new work order.
      */
     public function create(Request $request)
     {
@@ -154,7 +151,7 @@ class WorkOrderController extends BaseSearchController
         $discipline = str_contains($request->route()->getPrefix(), 'quality') ? 'quality' : 'maintenance';
         $source = $request->input('source', 'manual');
         $sourceId = $request->input('source_id');
-        
+
         // Get data based on discipline
         if ($discipline === 'maintenance') {
             $plants = Plant::orderBy('name')->get();
@@ -168,7 +165,7 @@ class WorkOrderController extends BaseSearchController
             $assets = [];
             // For quality discipline, we would load instruments instead
         }
-        
+
         $categories = WorkOrderCategory::forDiscipline($discipline)
             ->active()
             ->ordered()
@@ -188,60 +185,60 @@ class WorkOrderController extends BaseSearchController
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
-     * Open the work order creation page
+     * Open the work order creation page.
      */
     public function createNew(Request $request)
     {
         $this->authorize('create', WorkOrder::class);
-        
+
         // Determine discipline from route prefix
         $discipline = str_contains($request->route()->getPrefix(), 'quality') ? 'quality' : 'maintenance';
-        
+
         // Redirect to the show page with the "new" parameter
         return redirect()->route("{$discipline}.work-orders.show", ['workOrder' => 'new']);
     }
 
     /**
-     * Store a newly created work order
+     * Store a newly created work order.
      */
     public function store(StoreWorkOrderRequest $request)
     {
         // Determine discipline from route prefix
         $discipline = str_contains($request->route()->getPrefix(), 'quality') ? 'quality' : 'maintenance';
-        
-        $service = match($discipline) {
+
+        $service = match ($discipline) {
             'maintenance' => $this->maintenanceService,
             // 'quality' => $this->qualityService, // Future implementation
             default => throw new \InvalidArgumentException('Invalid discipline')
         };
-        
+
         $workOrder = $service->create($request->validated());
-        
+
         return redirect()->route("{$discipline}.work-orders.show", $workOrder)
             ->with('success', 'Ordem de serviço criada com sucesso.');
     }
 
     /**
-     * Display the specified work order
+     * Display the specified work order.
      */
     public function show($workOrder)
     {
         // Determine discipline from route prefix
         $discipline = str_contains(request()->route()->getPrefix(), 'quality') ? 'quality' : 'maintenance';
-        
+
         // Check if we're creating a new work order
         if ($workOrder === 'new') {
             $this->authorize('create', WorkOrder::class);
-            
+
             // Get the pre-selected asset if provided
             $preselectedAssetId = request()->query('asset_id');
             $preselectedAsset = null;
-            
+
             // Get data based on discipline
             if ($discipline === 'maintenance') {
                 $plants = Plant::orderBy('name')->get();
@@ -260,10 +257,10 @@ class WorkOrderController extends BaseSearchController
                             'sector_id' => $asset->sector_id,
                         ];
                     });
-                    
+
                 // If we have a preselected asset, find it
                 if ($preselectedAssetId) {
-                    $preselectedAsset = $assets->firstWhere('id', (int)$preselectedAssetId);
+                    $preselectedAsset = $assets->firstWhere('id', (int) $preselectedAssetId);
                 }
             } else {
                 $plants = [];
@@ -272,7 +269,7 @@ class WorkOrderController extends BaseSearchController
                 $assets = [];
                 // For quality discipline, we would load instruments instead
             }
-            
+
             $categories = WorkOrderCategory::forDiscipline($discipline)
                 ->active()
                 ->ordered()
@@ -282,7 +279,7 @@ class WorkOrderController extends BaseSearchController
                 ->orderBy('name')
                 ->get();
             $forms = Form::where('is_active', true)->orderBy('name')->get();
-            
+
             return Inertia::render('work-orders/show', [
                 'workOrder' => null,
                 'categories' => $categories,
@@ -306,7 +303,7 @@ class WorkOrderController extends BaseSearchController
                 'preselectedAsset' => $preselectedAsset,
             ]);
         }
-        
+
         // Otherwise, it's an existing work order
         $workOrder = WorkOrder::findOrFail($workOrder);
         $this->authorize('view', $workOrder);
@@ -339,10 +336,20 @@ class WorkOrderController extends BaseSearchController
 
         $teams = Team::where('is_active', true)->orderBy('name')->get();
 
-        $parts = Part::select('id', 'part_number', 'name', 'unit_cost', 'available_quantity')
-            ->where('active', true)
-            ->orderBy('part_number')
-            ->get();
+        $parts = Item::select('id', 'item_number', 'name', 'list_price as unit_cost', 'min_stock_level as available_quantity')
+            ->where('is_active', true)
+            ->where('can_be_purchased', true)
+            ->orderBy('item_number')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'item_number' => $item->item_number,
+                    'name' => $item->name,
+                    'unit_cost' => $item->unit_cost,
+                    'available_quantity' => $item->available_quantity,
+                ];
+            });
 
         $skills = Skill::orderBy('name')->get(['id', 'name', 'category', 'description']);
         $certifications = Certification::where('active', true)->orderBy('name')->get(['id', 'name', 'issuing_organization', 'validity_period_days', 'description', 'active']);
@@ -414,7 +421,7 @@ class WorkOrderController extends BaseSearchController
     }
 
     /**
-     * Show the form for editing the work order
+     * Show the form for editing the work order.
      */
     public function edit(WorkOrder $workOrder)
     {
@@ -443,12 +450,12 @@ class WorkOrderController extends BaseSearchController
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
-     * Update the specified work order
+     * Update the specified work order.
      */
     public function update(UpdateWorkOrderRequest $request, WorkOrder $workOrder)
     {
@@ -463,7 +470,7 @@ class WorkOrderController extends BaseSearchController
     }
 
     /**
-     * Remove the specified work order
+     * Remove the specified work order.
      */
     public function destroy(WorkOrder $workOrder)
     {
@@ -477,7 +484,7 @@ class WorkOrderController extends BaseSearchController
     }
 
     /**
-     * Approve the work order
+     * Approve the work order.
      */
     public function approve(ApproveWorkOrderRequest $request, WorkOrder $workOrder)
     {
@@ -488,7 +495,7 @@ class WorkOrderController extends BaseSearchController
 
         $success = $workOrder->transitionTo(WorkOrder::STATUS_APPROVED, auth()->user(), $reason);
 
-        if (!$success) {
+        if (! $success) {
             return back()->with('error', 'Não foi possível aprovar a ordem de serviço. Status inválido.');
         }
 
@@ -496,7 +503,7 @@ class WorkOrderController extends BaseSearchController
     }
 
     /**
-     * Reject the work order
+     * Reject the work order.
      */
     public function reject(RejectWorkOrderRequest $request, WorkOrder $workOrder)
     {
@@ -504,14 +511,14 @@ class WorkOrderController extends BaseSearchController
 
         // Use reason field if provided, otherwise fall back to rejection_reason or notes for backward compatibility
         $reason = $validated['reason'] ?? $validated['rejection_reason'] ?? $validated['notes'] ?? null;
-        
-        if (!$reason) {
+
+        if (! $reason) {
             return back()->with('error', 'A razão da rejeição é obrigatória.');
         }
 
         $success = $workOrder->transitionTo(WorkOrder::STATUS_REJECTED, auth()->user(), $reason);
 
-        if (!$success) {
+        if (! $success) {
             return back()->with('error', 'Não foi possível rejeitar a ordem de serviço. Status inválido.');
         }
 
@@ -519,7 +526,7 @@ class WorkOrderController extends BaseSearchController
     }
 
     /**
-     * Cancel the work order
+     * Cancel the work order.
      */
     public function cancel(Request $request, WorkOrder $workOrder)
     {
@@ -531,7 +538,7 @@ class WorkOrderController extends BaseSearchController
 
         $success = $workOrder->transitionTo(WorkOrder::STATUS_CANCELLED, auth()->user(), $validated['notes'] ?? null);
 
-        if (!$success) {
+        if (! $success) {
             return back()->with('error', 'Não foi possível cancelar a ordem de serviço. Status inválido.');
         }
 
@@ -539,7 +546,7 @@ class WorkOrderController extends BaseSearchController
     }
 
     /**
-     * Show the approval form for the work order
+     * Show the approval form for the work order.
      */
     public function showApproval(WorkOrder $workOrder)
     {
@@ -557,24 +564,24 @@ class WorkOrderController extends BaseSearchController
         $user = auth()->user();
         $approvalThreshold = [
             'maxCost' => $this->getUserApprovalCostLimit($user),
-                            'maxPriorityScore' => $this->getUserApprovalPriorityLimit($user),
+            'maxPriorityScore' => $this->getUserApprovalPriorityLimit($user),
         ];
 
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
-     * Show the planning form for the work order
+     * Show the planning form for the work order.
      */
     public function showPlanning(WorkOrder $workOrder)
     {
         $this->authorize('plan', $workOrder);
 
-        if (!in_array($workOrder->status, [WorkOrder::STATUS_APPROVED, WorkOrder::STATUS_PLANNED])) {
+        if (! in_array($workOrder->status, [WorkOrder::STATUS_APPROVED, WorkOrder::STATUS_PLANNED])) {
             return redirect()->route("{$workOrder->discipline}.work-orders.show", $workOrder)
                 ->with('error', 'Esta ordem de serviço não está em status apropriado para planejamento.');
         }
@@ -597,10 +604,20 @@ class WorkOrderController extends BaseSearchController
         // Get teams
         $teams = Team::active()->get();
 
-        // Get available parts
-        $parts = Part::select('id', 'part_number', 'name', 'unit_cost', 'available_quantity')
-            ->where('active', true)
-            ->get();
+        // Get available parts (items that can be purchased)
+        $parts = Item::select('id', 'item_number', 'name', 'list_price as unit_cost', 'min_stock_level as available_quantity')
+            ->where('is_active', true)
+            ->where('can_be_purchased', true)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'item_number' => $item->item_number,
+                    'name' => $item->name,
+                    'unit_cost' => $item->unit_cost,
+                    'available_quantity' => $item->available_quantity,
+                ];
+            });
 
         // Get skills and certifications lists
         $skills = Skill::pluck('name')->toArray();
@@ -609,12 +626,12 @@ class WorkOrderController extends BaseSearchController
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
-     * Save planning data for the work order
+     * Save planning data for the work order.
      */
     public function savePlanning(PlanWorkOrderRequest $request, WorkOrder $workOrder)
     {
@@ -640,17 +657,17 @@ class WorkOrderController extends BaseSearchController
                 'planned_at' => now(),
             ]);
 
-            // Update or create parts
+            // Update or create parts (items)
             if (isset($validated['parts'])) {
                 // Remove existing parts
                 $workOrder->parts()->delete();
 
-                // Add new parts
+                // Add new parts (items)
                 foreach ($validated['parts'] as $part) {
                     $workOrder->parts()->create([
-                        'part_id' => $part['part_id'] ?? null,
-                        'part_number' => $part['part_number'] ?? null,
-                        'part_name' => $part['part_name'],
+                        'item_id' => $part['item_id'] ?? $part['part_id'] ?? null,
+                        'item_number' => $part['item_number'] ?? $part['part_number'] ?? null,
+                        'item_name' => $part['item_name'] ?? $part['part_name'],
                         'estimated_quantity' => $part['estimated_quantity'],
                         'unit_cost' => $part['unit_cost'],
                         'total_cost' => $part['estimated_quantity'] * $part['unit_cost'],
@@ -670,20 +687,20 @@ class WorkOrderController extends BaseSearchController
     }
 
     /**
-     * Complete planning and transition to ready to schedule
+     * Complete planning and transition to ready to schedule.
      */
     public function completePlanning(Request $request, WorkOrder $workOrder)
     {
         $this->authorize('plan', $workOrder);
 
         // Validate that all required planning fields are filled
-        if (!$workOrder->estimated_hours || !$workOrder->scheduled_start_date || !$workOrder->scheduled_end_date) {
+        if (! $workOrder->estimated_hours || ! $workOrder->scheduled_start_date || ! $workOrder->scheduled_end_date) {
             return back()->with('error', 'Por favor, preencha todos os campos obrigatórios do planejamento.');
         }
 
         $success = $workOrder->transitionTo(WorkOrder::STATUS_SCHEDULED, auth()->user());
 
-        if (!$success) {
+        if (! $success) {
             return back()->with('error', 'Não foi possível concluir o planejamento. Status inválido.');
         }
 
@@ -692,7 +709,7 @@ class WorkOrderController extends BaseSearchController
     }
 
     /**
-     * Get user's approval cost limit based on role
+     * Get user's approval cost limit based on role.
      */
     private function getUserApprovalCostLimit($user)
     {
@@ -703,11 +720,12 @@ class WorkOrderController extends BaseSearchController
         } elseif ($user->hasRole('Maintenance Supervisor')) {
             return 5000;
         }
+
         return 0;
     }
 
     /**
-     * Get user's approval priority score limit based on role
+     * Get user's approval priority score limit based on role.
      */
     private function getUserApprovalPriorityLimit($user)
     {
@@ -718,11 +736,12 @@ class WorkOrderController extends BaseSearchController
         } elseif ($user->hasRole('Maintenance Supervisor')) {
             return 60; // Normal priority and below
         }
+
         return 40; // Low priority only
     }
 
     /**
-     * Calculate total cost of parts
+     * Calculate total cost of parts.
      */
     private function calculatePartsCost($parts)
     {
@@ -730,6 +749,4 @@ class WorkOrderController extends BaseSearchController
             return ($part['estimated_quantity'] ?? 0) * ($part['unit_cost'] ?? 0);
         });
     }
-
-
 }

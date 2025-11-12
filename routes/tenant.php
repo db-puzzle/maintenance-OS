@@ -18,7 +18,6 @@ require __DIR__ . '/users.php';
 require __DIR__ . '/asset-hierarchy.php';
 require __DIR__ . '/work-orders.php';
 require __DIR__ . '/maintenance.php';
-require __DIR__ . '/parts.php';
 require __DIR__ . '/planning.php';
 require __DIR__ . '/production.php';
 require __DIR__ . '/scheduler.php';

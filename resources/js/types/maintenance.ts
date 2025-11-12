@@ -224,33 +224,17 @@ export interface ExecutionIndexPageProps {
     };
 }
 
-export interface Part {
-    id: number;
-    part_number: string;
-    name: string;
-    description: string | null;
-    unit_cost: number;
-    available_quantity: number;
-    minimum_quantity: number;
-    maximum_quantity: number | null;
-    location: string | null;
-    manufacturer_id: number | null;
-    manufacturer?: {
-        id: number;
-        name: string;
-    } | null;
-    active: boolean;
-    created_at: string;
-    updated_at: string;
-    work_order_parts?: WorkOrderPart[];
-}
-
 export interface WorkOrderPart {
     id: number;
     work_order_id: number;
-    part_id: number;
-    part?: Part;
-    quantity_planned: number;
-    quantity_used: number | null;
+    item_id: number;
+    item_number?: string;
+    item_name: string;
+    estimated_quantity: number;
+    reserved_quantity: number | null;
+    used_quantity: number | null;
+    unit_cost: number;
+    total_cost: number;
+    status: string;
     notes?: string;
 }

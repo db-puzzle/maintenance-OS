@@ -22,7 +22,10 @@ import CertificationSheet from '@/components/certifications/CertificationSheet';
 import { ColumnConfig } from '@/types/shared';
 import { WorkOrder, Team, WorkOrderPart } from '@/types/work-order';
 import { User } from '@/types';
-import { Part } from '@/types/maintenance';
+import { Item } from '@/types/production';
+
+// Type alias for compatibility - Parts are now Items
+type Part = Item;
 import {
     Plus,
     Trash2,
@@ -372,11 +375,11 @@ export function WorkOrderPlanningTab({
     };
 
     const handleAddPart = (part: Part) => {
-        const unitCost = Number(part.unit_cost) || 0;
+        const unitCost = Number(part.list_price) || 0;
         const newPart: PlanningPart = {
             id: `new-${Date.now()}`,
             part_id: part.id,
-            part_number: part.part_number,
+            part_number: part.item_number,
             part_name: part.name,
             estimated_quantity: 1,
             unit_cost: unitCost,

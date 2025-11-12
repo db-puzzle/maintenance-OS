@@ -5,7 +5,7 @@ namespace App\Http\Controllers\WorkOrders;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\WorkOrders\PlanWorkOrderRequest;
 use App\Models\Certification;
-use App\Models\Part;
+use App\Models\Production\Item;
 use App\Models\Skill;
 use App\Models\Team;
 use App\Models\User;
@@ -18,13 +18,13 @@ use Inertia\Inertia;
 class WorkOrderPlanningController extends Controller
 {
     /**
-     * Show the planning form for the work order
+     * Show the planning form for the work order.
      */
     public function show(WorkOrder $workOrder)
     {
         $this->authorize('plan', $workOrder);
 
-        if (!in_array($workOrder->status, [WorkOrder::STATUS_APPROVED, WorkOrder::STATUS_PLANNED])) {
+        if (! in_array($workOrder->status, [WorkOrder::STATUS_APPROVED, WorkOrder::STATUS_PLANNED])) {
             return redirect()->route("{$workOrder->discipline}.work-orders.show", $workOrder)
                 ->with('error', 'Esta ordem de serviço não está em status apropriado para planejamento.');
         }
@@ -47,11 +47,21 @@ class WorkOrderPlanningController extends Controller
         // Get teams
         $teams = Team::where('is_active', true)->orderBy('name')->get();
 
-        // Get available parts
-        $parts = Part::select('id', 'part_number', 'name', 'unit_cost', 'available_quantity')
-            ->where('active', true)
-            ->orderBy('part_number')
-            ->get();
+        // Get available parts (items that can be purchased)
+        $parts = Item::select('id', 'item_number', 'name', 'list_price as unit_cost', 'min_stock_level as available_quantity')
+            ->where('is_active', true)
+            ->where('can_be_purchased', true)
+            ->orderBy('item_number')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'item_number' => $item->item_number,
+                    'name' => $item->name,
+                    'unit_cost' => $item->unit_cost,
+                    'available_quantity' => $item->available_quantity,
+                ];
+            });
 
         // Get skills and certifications lists
         $skills = Skill::orderBy('name')->pluck('name')->toArray();
@@ -60,12 +70,12 @@ class WorkOrderPlanningController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
-     * Store planning data for the work order (initial save)
+     * Store planning data for the work order (initial save).
      */
     public function store(PlanWorkOrderRequest $request, WorkOrder $workOrder)
     {
@@ -73,7 +83,7 @@ class WorkOrderPlanningController extends Controller
     }
 
     /**
-     * Update planning data for the work order
+     * Update planning data for the work order.
      */
     public function update(PlanWorkOrderRequest $request, WorkOrder $workOrder)
     {
@@ -81,7 +91,7 @@ class WorkOrderPlanningController extends Controller
     }
 
     /**
-     * Save planning data (used by both store and update)
+     * Save planning data (used by both store and update).
      */
     private function savePlanning(PlanWorkOrderRequest $request, WorkOrder $workOrder)
     {
@@ -133,25 +143,25 @@ class WorkOrderPlanningController extends Controller
     }
 
     /**
-     * Complete planning and transition to ready to schedule
+     * Complete planning and transition to ready to schedule.
      */
     public function complete(Request $request, WorkOrder $workOrder)
     {
         $this->authorize('plan', $workOrder);
 
         // Validate that all required planning fields are filled
-        if (!$workOrder->estimated_hours || !$workOrder->scheduled_start_date || !$workOrder->scheduled_end_date) {
+        if (! $workOrder->estimated_hours || ! $workOrder->scheduled_start_date || ! $workOrder->scheduled_end_date) {
             return back()->with('error', 'Por favor, preencha todos os campos obrigatórios do planejamento.');
         }
 
         // Validate that at least one technician or team is assigned
-        if (!$workOrder->assigned_technician_id && !$workOrder->assigned_team_id) {
+        if (! $workOrder->assigned_technician_id && ! $workOrder->assigned_team_id) {
             return back()->with('error', 'Por favor, atribua um técnico ou equipe para executar o trabalho.');
         }
 
         $success = $workOrder->transitionTo(WorkOrder::STATUS_SCHEDULED, auth()->user(), 'Planejamento concluído');
 
-        if (!$success) {
+        if (! $success) {
             return back()->with('error', 'Não foi possível concluir o planejamento. Status inválido.');
         }
 
@@ -160,21 +170,21 @@ class WorkOrderPlanningController extends Controller
     }
 
     /**
-     * Update parts for the work order
+     * Update parts for the work order.
      */
     private function updateParts(WorkOrder $workOrder, array $partsData)
     {
         $existingIds = [];
 
         foreach ($partsData as $partData) {
-            if (isset($partData['id']) && !str_starts_with($partData['id'], 'new-')) {
+            if (isset($partData['id']) && ! str_starts_with($partData['id'], 'new-')) {
                 // Update existing part
                 $part = WorkOrderPart::find($partData['id']);
                 if ($part && $part->work_order_id === $workOrder->id) {
                     $part->update([
-                        'part_id' => $partData['part_id'] ?? null,
-                        'part_number' => $partData['part_number'] ?? null,
-                        'part_name' => $partData['part_name'],
+                        'item_id' => $partData['item_id'] ?? $partData['part_id'] ?? null,
+                        'item_number' => $partData['item_number'] ?? $partData['part_number'] ?? null,
+                        'item_name' => $partData['item_name'] ?? $partData['part_name'],
                         'estimated_quantity' => $partData['estimated_quantity'],
                         'unit_cost' => $partData['unit_cost'],
                         'total_cost' => $partData['estimated_quantity'] * $partData['unit_cost'],
@@ -182,12 +192,12 @@ class WorkOrderPlanningController extends Controller
                     $existingIds[] = $part->id;
                 }
             } else {
-                // Create new part
+                // Create new part (item)
                 $part = WorkOrderPart::create([
                     'work_order_id' => $workOrder->id,
-                    'part_id' => $partData['part_id'] ?? null,
-                    'part_number' => $partData['part_number'] ?? null,
-                    'part_name' => $partData['part_name'],
+                    'item_id' => $partData['item_id'] ?? $partData['part_id'] ?? null,
+                    'item_number' => $partData['item_number'] ?? $partData['part_number'] ?? null,
+                    'item_name' => $partData['item_name'] ?? $partData['part_name'],
                     'estimated_quantity' => $partData['estimated_quantity'],
                     'unit_cost' => $partData['unit_cost'],
                     'total_cost' => $partData['estimated_quantity'] * $partData['unit_cost'],
@@ -205,7 +215,7 @@ class WorkOrderPlanningController extends Controller
     }
 
     /**
-     * Calculate total cost of parts
+     * Calculate total cost of parts.
      */
     private function calculatePartsCost($parts)
     {

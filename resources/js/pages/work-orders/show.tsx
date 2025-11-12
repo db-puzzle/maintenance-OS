@@ -8,7 +8,10 @@ import { Asset } from '@/types/asset-hierarchy';
 import { Plant } from '@/types/entities/plant';
 import { Area } from '@/types/entities/area';
 import { Sector } from '@/types/entities/sector';
-import { Part } from '@/types/maintenance';
+import { Item } from '@/types/production';
+
+// Type alias for compatibility - Parts are now Items
+type Part = Item;
 import { Skill, Certification } from '@/types/entities/skill';
 import {
     WorkOrderStatusProgress

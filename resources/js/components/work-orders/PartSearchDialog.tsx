@@ -12,7 +12,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Search, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Part } from '@/types/maintenance';
+import { Item } from '@/types/production';
+
+// Using Item instead of deprecated Part
+type Part = Item;
 
 interface PartSearchDialogProps {
     open: boolean;
@@ -38,10 +41,9 @@ export function PartSearchDialog({
         const query = searchQuery.toLowerCase();
         return parts.filter(part => {
             return (
-                (part.part_number?.toLowerCase() || '').includes(query) ||
+                (part.item_number?.toLowerCase() || '').includes(query) ||
                 (part.name?.toLowerCase() || '').includes(query) ||
-                (part.description?.toLowerCase() || '').includes(query) ||
-                (part.manufacturer?.name?.toLowerCase() || '').includes(query)
+                (part.description?.toLowerCase() || '').includes(query)
             );
         });
     }, [parts, searchQuery]);
@@ -136,7 +138,7 @@ export function PartSearchDialog({
                                                     <div className="flex items-start justify-between">
                                                         <div>
                                                             <div className="flex items-center gap-2">
-                                                                <span className="font-medium">{part.part_number}</span>
+                                                                <span className="font-medium">{part.item_number}</span>
                                                                 {isAlreadyAdded && (
                                                                     <Badge variant="secondary" className="text-xs">
                                                                         Já adicionada
@@ -146,16 +148,16 @@ export function PartSearchDialog({
                                                             <p className="text-sm text-muted-foreground">{part.name}</p>
                                                         </div>
                                                         <div className="text-right">
-                                                            <p className="text-sm font-medium">{formatCurrency(part.unit_cost)}</p>
-                                                            <p className={cn("text-xs", getAvailabilityColor(part.available_quantity))}>
-                                                                {getAvailabilityText(part.available_quantity)}
+                                                            <p className="text-sm font-medium">{formatCurrency(part.list_price || 0)}</p>
+                                                            <p className={cn("text-xs", getAvailabilityColor(0))}>
+                                                                {getAvailabilityText(0)}
                                                             </p>
                                                         </div>
                                                     </div>
                                                     {/* Additional info */}
                                                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                                        {part.manufacturer && (
-                                                            <span>Fabricante: {part.manufacturer.name}</span>
+                                                        {part.preferred_vendor && (
+                                                            <span>Fornecedor: {part.preferred_vendor}</span>
                                                         )}
                                                     </div>
                                                     {part.description && (

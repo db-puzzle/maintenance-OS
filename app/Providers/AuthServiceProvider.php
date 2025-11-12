@@ -9,7 +9,6 @@ use App\Models\AssetHierarchy\Sector;
 use App\Models\AssetHierarchy\System;
 use App\Models\Certification;
 use App\Models\Media;
-use App\Models\Part;
 use App\Models\Production\BillOfMaterial;
 use App\Models\Production\Item;
 use App\Models\Production\ItemCategory;
@@ -31,7 +30,6 @@ use App\Policies\AreaPolicy;
 use App\Policies\AssetPolicy;
 use App\Policies\CertificationPolicy;
 use App\Policies\MediaPolicy;
-use App\Policies\PartPolicy;
 use App\Policies\PlantPolicy;
 use App\Policies\Production\BillOfMaterialPolicy;
 use App\Policies\Production\ItemCategoryPolicy;
@@ -77,9 +75,6 @@ class AuthServiceProvider extends ServiceProvider
 
         // Work Orders
         WorkOrder::class => WorkOrderPolicy::class,
-
-        // Parts
-        Part::class => PartPolicy::class,
 
         // Skills & Certifications
         Skill::class => SkillPolicy::class,

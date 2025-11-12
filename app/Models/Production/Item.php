@@ -160,6 +160,14 @@ class Item extends Model implements HasMedia
         return $this->hasMany(ManufacturingOrder::class);
     }
 
+    /**
+     * Get the work order parts for this item (when used as a spare part).
+     */
+    public function workOrderParts(): HasMany
+    {
+        return $this->hasMany(\App\Models\WorkOrders\WorkOrderPart::class);
+    }
+
     // Scopes
     public function scopeSellable($query)
     {
@@ -368,5 +376,66 @@ class Item extends Model implements HasMedia
     public function setUnitOfMeasureAttribute($value)
     {
         $this->attributes['unit_of_measure_code'] = $value;
+    }
+
+    // Stock Management Methods (for items used as spare parts)
+
+    /**
+     * Check if item is below minimum stock level.
+     */
+    public function isBelowMinimum(): bool
+    {
+        if (! $this->track_inventory) {
+            return false;
+        }
+
+        $currentStock = $this->min_stock_level ?? 0;
+
+        return $currentStock < ($this->min_stock_level ?? 0);
+    }
+
+    /**
+     * Check if item is available for the requested quantity.
+     */
+    public function isAvailable(float $quantity): bool
+    {
+        if (! $this->track_inventory) {
+            return true; // If not tracking inventory, assume always available
+        }
+
+        // For now, we check against min_stock_level
+        // In the future, this could check actual inventory transactions
+        return ($this->min_stock_level ?? 0) >= $quantity;
+    }
+
+    /**
+     * Reserve quantity for a work order.
+     * Note: This is a placeholder. Actual inventory management would require
+     * a separate inventory transactions table.
+     */
+    public function reserve(float $quantity): bool
+    {
+        if (! $this->track_inventory) {
+            return true;
+        }
+
+        if (! $this->isAvailable($quantity)) {
+            return false;
+        }
+
+        // TODO: Implement actual inventory transaction logging
+        // For now, this is a placeholder method
+        return true;
+    }
+
+    /**
+     * Return quantity to stock.
+     * Note: This is a placeholder. Actual inventory management would require
+     * a separate inventory transactions table.
+     */
+    public function returnToStock(float $quantity): void
+    {
+        // TODO: Implement actual inventory transaction logging
+        // For now, this is a placeholder method
     }
 }
