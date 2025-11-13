@@ -721,7 +721,6 @@ class PlanningController extends Controller
                 'id',
                 'name',
                 'description',
-                'cell_type',
                 'has_finite_capacity',
                 'default_setup_time_seconds',
                 'default_cycle_time_seconds',
@@ -733,7 +732,6 @@ class PlanningController extends Controller
                 'plant_id',
                 'area_id',
                 'sector_id',
-                'manufacturer_id',
                 'is_active'
             )
             ->orderBy('name')
@@ -743,7 +741,6 @@ class PlanningController extends Controller
                     'id' => $workCell->id,
                     'name' => $workCell->name,
                     'description' => $workCell->description,
-                    'cell_type' => $workCell->cell_type,
                     'has_finite_capacity' => $workCell->has_finite_capacity,
                     'default_setup_time_seconds' => $workCell->default_setup_time_seconds,
                     'default_cycle_time_seconds' => $workCell->default_cycle_time_seconds,
@@ -755,16 +752,11 @@ class PlanningController extends Controller
                     'plant_id' => $workCell->plant_id,
                     'area_id' => $workCell->area_id,
                     'sector_id' => $workCell->sector_id,
-                    'manufacturer_id' => $workCell->manufacturer_id,
                     'is_active' => $workCell->is_active,
                     // Keep these legacy fields for backward compatibility during transition
                     'default_production_rate_per_hour' => $workCell->default_cycle_time_seconds ? (3600 / $workCell->default_cycle_time_seconds) : null,
                     'default_unit_of_measure' => $workCell->default_unit_of_measure_code,
                     'default_setup_time_minutes' => round($workCell->default_setup_time_seconds / 60, 1),
-                    'code' => null,
-                    'type' => $workCell->cell_type,
-                    'capacity' => $workCell->default_cycle_time_seconds ? (3600 / $workCell->default_cycle_time_seconds) : 0,
-                    'utilization' => rand(40, 95), // TODO: Calculate real utilization
                 ];
             });
     }

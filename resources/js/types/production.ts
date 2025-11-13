@@ -163,7 +163,6 @@ export interface WorkCell {
     id: number;
     name: string;
     description?: string;
-    cell_type: 'internal' | 'external';
     has_finite_capacity: boolean;
     default_production_rate_per_hour?: number;
     default_unit_of_measure: string;
@@ -177,8 +176,6 @@ export interface WorkCell {
     area?: Area;
     sector_id?: number;
     sector?: Sector;
-    manufacturer_id?: number;
-    manufacturer?: Manufacturer;
     is_active: boolean;
     routing_steps_count?: number;
     item_rates?: WorkCellItemRate[];

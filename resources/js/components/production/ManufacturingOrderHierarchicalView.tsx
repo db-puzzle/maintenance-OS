@@ -64,7 +64,7 @@ interface ManufacturingOrderHierarchicalViewProps {
     orders: ManufacturingOrderTreeNode[];
     showActions?: boolean;
     onOrderClick?: (order: ManufacturingOrderTreeNode) => void;
-    onOrderSelect?: (orderId: number, multiSelect: boolean) => void;
+    onOrderSelect?: (orderId: number, multiSelect: boolean, shiftSelect: boolean) => void;
     selectedOrders?: Set<number>;
     routeTemplates?: RouteTemplate[];
     showThumbnails?: boolean;
@@ -333,7 +333,9 @@ export default function ManufacturingOrderHierarchicalView({
                 onClick={(e) => {
                     if (onOrderSelect && enhancedMode === 'planning') {
                         e.stopPropagation();
-                        onOrderSelect(node.id, e.ctrlKey || e.metaKey);
+                        const multiSelect = e.ctrlKey || e.metaKey;
+                        const shiftSelect = e.shiftKey;
+                        onOrderSelect(node.id, multiSelect, shiftSelect);
                     } else if (onOrderClick) {
                         onOrderClick(node);
                     }

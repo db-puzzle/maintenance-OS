@@ -17,7 +17,6 @@ interface Column {
 interface WorkCell {
     id: number;
     name: string;
-    cell_type: string;
     has_finite_capacity: boolean;
     current_utilization?: number;
     scheduled_steps?: unknown[];
@@ -90,16 +89,6 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = ({ workCells }) => {
         return 'text-green-600';
     };
 
-    const getCellTypeLabel = (type: string): string => {
-        switch (type) {
-            case 'internal':
-                return 'Internal';
-            case 'external':
-                return 'External';
-            default:
-                return type;
-        }
-    };
 
     return (
         <div ref={containerRef} className="h-full flex flex-col bg-background border-r">
@@ -148,9 +137,6 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = ({ workCells }) => {
                                         <span className="font-medium truncate">
                                             {workCell.name}
                                         </span>
-                                        <Badge variant="outline" className="text-xs">
-                                            {getCellTypeLabel(workCell.cell_type)}
-                                        </Badge>
                                         {!workCell.has_finite_capacity && (
                                             <Badge variant="secondary" className="text-xs">
                                                 ∞

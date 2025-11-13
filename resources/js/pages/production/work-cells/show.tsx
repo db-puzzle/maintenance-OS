@@ -35,19 +35,18 @@ import { useForm } from '@inertiajs/react';
 import { createFormAdapter } from '@/utils/form-adapters';
 import StateButton from '@/components/StateButton';
 import { toast } from 'sonner';
+import { useFeature, FEATURES } from '@/utils/features';
 interface Props {
     workCell: WorkCell & {
         plant?: { id: number; name: string };
         area?: { id: number; name: string };
         sector?: { id: number; name: string };
         shift?: { id: number; name: string };
-        manufacturer?: { id: number; name: string };
     };
     plants: { id: number; name: string }[];
     areas: { id: number; name: string }[];
     sectors: { id: number; name: string }[];
     shifts: { id: number; name: string }[];
-    manufacturers: { id: number; name: string }[];
     unitsOfMeasure?: {
         id: number;
         code: string;
@@ -82,13 +81,15 @@ export default function Show({
     areas: _areas,
     sectors: _sectors,
     shifts: _shifts,
-    manufacturers: _manufacturers,
     unitsOfMeasure: _unitsOfMeasure = [],
     productionSchedules,
 
     activeTab,
     filters
 }: Props) {
+    // Check if scheduler feature is enabled
+    const hasScheduler = useFeature(FEATURES.PRODUCTION_SCHEDULER);
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Home',
@@ -116,7 +117,6 @@ export default function Show({
     const { data, setData, put, processing, errors, clearErrors, reset } = useForm({
         name: workCell.name || '',
         description: workCell.description || '',
-        cell_type: workCell.cell_type || 'internal',
         has_finite_capacity: workCell.has_finite_capacity ?? true,
         default_production_rate_per_hour: formatNumber(workCell.default_production_rate_per_hour),
         default_unit_of_measure: workCell.default_unit_of_measure || 'PC',
@@ -126,7 +126,6 @@ export default function Show({
         plant_id: workCell.plant_id?.toString() || '',
         area_id: workCell.area_id?.toString() || '',
         sector_id: workCell.sector_id?.toString() || '',
-        manufacturer_id: workCell.manufacturer_id?.toString() || '',
         is_active: workCell.is_active ?? true,
     });
 
@@ -229,16 +228,9 @@ export default function Show({
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
-                <Factory className="h-4 w-4" />
-                <span>{workCell.cell_type === 'internal' ? 'Interna' : 'Externa'}</span>
-            </span>
-            <span className="text-muted-foreground">•</span>
-            <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
                 <span>{workCell.has_finite_capacity ? 'Capacidade Finita' : 'Capacidade Infinita'}</span>
             </span>
-
-
         </span>
     );
     const tabs = [
@@ -270,51 +262,8 @@ export default function Show({
                         </div>
                     </div>
 
-                    {/* Cell Type Configuration */}
+                    {/* Location Information */}
                     <div className="space-y-4">
-                        <div>
-                            <h3 className="text-lg font-semibold mb-2">Tipo de Célula</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <StateButton
-                                    icon={Building2}
-                                    title="Célula Interna"
-                                    description="Célula de trabalho operada internamente pela empresa"
-                                    selected={isViewMode ? workCell.cell_type === 'internal' : data.cell_type === 'internal'}
-                                    onClick={() => {
-                                        if (!isViewMode) {
-                                            setData('cell_type', 'internal');
-                                            // Clear manufacturer when switching to internal
-                                            setData('manufacturer_id', '');
-                                        }
-                                    }}
-                                    disabled={isViewMode || processing}
-                                    greyOutWhenDisabled={!isViewMode}
-                                />
-                                <StateButton
-                                    icon={Factory}
-                                    title="Célula Externa"
-                                    description="Célula de trabalho operada por um fornecedor externo"
-                                    selected={isViewMode ? workCell.cell_type === 'external' : data.cell_type === 'external'}
-                                    onClick={() => {
-                                        if (!isViewMode) {
-                                            setData('cell_type', 'external');
-                                            // Clear location fields when switching to external
-                                            setData('plant_id', '');
-                                            setData('area_id', '');
-                                            setData('sector_id', '');
-                                        }
-                                    }}
-                                    disabled={isViewMode || processing}
-                                    greyOutWhenDisabled={!isViewMode}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Location Information (for internal cells) */}
-                    {(isViewMode ? workCell.cell_type === 'internal' : data.cell_type === 'internal') && (
-                        <>
-                            <div className="space-y-4">
                                 {isViewMode ? (
                                     <div className="grid grid-cols-3 gap-4">
                                         <div className="grid gap-2">
@@ -385,42 +334,9 @@ export default function Show({
                                     </div>
                                 )}
                             </div>
-                        </>
-                    )}
 
-                    {/* Manufacturer Information (for external cells) */}
-                    {(isViewMode ? workCell.cell_type === 'external' : data.cell_type === 'external') && (
-                        <>
-                            <div className="space-y-4">
-                                {isViewMode ? (
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="grid gap-2">
-                                            <label className="text-sm font-medium">Nome do Fabricante</label>
-                                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
-                                                {workCell.manufacturer ? (
-                                                    <span className="font-medium">{workCell.manufacturer.name}</span>
-                                                ) : '—'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <ItemSelect
-                                            label="Fabricante"
-                                            items={_manufacturers}
-                                            value={data.manufacturer_id}
-                                            onValueChange={(value) => setData('manufacturer_id', value)}
-                                            placeholder="Selecione um fabricante"
-                                            error={errors.manufacturer_id}
-                                            required
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </>
-                    )}
-
-                    {/* Capacity Configuration */}
+                    {/* Capacity Configuration - Only show if scheduler feature is enabled */}
+                    {hasScheduler && (
                     <div className="mt-6 space-y-4">
                         <div>
                             <h3 className="text-lg font-semibold mb-2">Configuração de Capacidade</h3>
@@ -603,6 +519,7 @@ export default function Show({
                             </>
                         )}
                     </div>
+                    )}
 
                     {/* Status Configuration */}
                     <div className="space-y-4">

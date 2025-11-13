@@ -16,7 +16,6 @@ interface Props {
 const WORK_CELL_FIELDS = [
     { key: 'name', label: 'Nome', required: true },
     { key: 'description', label: 'Descrição', required: false },
-    { key: 'cell_type', label: 'Tipo de Célula', required: true },
     { key: 'plant', label: 'Planta', required: false },
     { key: 'area', label: 'Área', required: false },
     { key: 'sector', label: 'Setor', required: false },

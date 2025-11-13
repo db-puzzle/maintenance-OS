@@ -25,6 +25,7 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="pgsql"/>
         <env name="DB_DATABASE" value="maintenance_os_test"/>
+        <env name="DB_CENTRAL_DATABASE" value="maintenance_os_central_test"/>
         <env name="DB_USERNAME" value="danilobibancos"/>
         <env name="DB_PASSWORD" value=""/>
         <env name="MAIL_MAILER" value="array"/>
@@ -35,5 +36,6 @@
         <env name="VITE_PLUGIN_VERSION" value="1"/>
         <env name="ASSET_URL" value="http://localhost"/>
         <env name="CENTRAL_DOMAINS" value="localhost,127.0.0.1,maintenance-os.test"/>
+        <env name="TENANCY_DB_TEMPLATE_CONNECTION" value="pgsql"/>
     </php>
 </phpunit>

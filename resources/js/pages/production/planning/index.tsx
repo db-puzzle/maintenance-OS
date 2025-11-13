@@ -200,6 +200,7 @@ export default function PlanningPage({
     const [searchQuery, setSearchQuery] = useState('');
     const [showThumbnails] = useState(true);
     const [isCompressed, setIsCompressed] = useState(false);
+    const [lastClickedMO, setLastClickedMO] = useState<number | null>(null);
 
     // Sorting state - lifted from ManufacturingOrderHierarchicalView
     const [sortField, setSortField] = useState<string>(preservedSorting?.sortField || initialSortField);
@@ -293,13 +294,85 @@ export default function PlanningPage({
         onOpenMOSelection: () => setShowMOSelectionModal(true),
     });
 
+    // Helper function to get all children IDs recursively
+    const getAllChildrenIds = useCallback((order: ManufacturingOrder): number[] => {
+        const childIds: number[] = [];
+        
+        if (order.children && order.children.length > 0) {
+            for (const child of order.children) {
+                childIds.push(child.id);
+                // Recursively get children of children
+                childIds.push(...getAllChildrenIds(child));
+            }
+        }
+        
+        return childIds;
+    }, []);
+
+    // Helper function to flatten MO tree in display order
+    const flattenMOTree = useCallback((orders: ManufacturingOrder[]): ManufacturingOrder[] => {
+        const flattened: ManufacturingOrder[] = [];
+        
+        const traverse = (order: ManufacturingOrder) => {
+            flattened.push(order);
+            if (order.children && order.children.length > 0) {
+                for (const child of order.children) {
+                    traverse(child);
+                }
+            }
+        };
+        
+        for (const order of orders) {
+            traverse(order);
+        }
+        
+        return flattened;
+    }, []);
+
+    // Helper function to get all MOs between two selections including their children
+    const getMOsBetweenSelections = useCallback((startId: number, endId: number): number[] => {
+        const flatMOs = flattenMOTree(currentManufacturingOrders);
+        const startIndex = flatMOs.findIndex(mo => mo.id === startId);
+        const endIndex = flatMOs.findIndex(mo => mo.id === endId);
+        
+        if (startIndex === -1 || endIndex === -1) {
+            return [];
+        }
+        
+        const [minIndex, maxIndex] = startIndex < endIndex 
+            ? [startIndex, endIndex] 
+            : [endIndex, startIndex];
+        
+        const selectedIds = new Set<number>();
+        
+        // Get all MOs in the range
+        for (let i = minIndex; i <= maxIndex; i++) {
+            const mo = flatMOs[i];
+            selectedIds.add(mo.id);
+            // Add all children of this MO
+            const childrenIds = getAllChildrenIds(mo);
+            childrenIds.forEach(id => selectedIds.add(id));
+        }
+        
+        return Array.from(selectedIds);
+    }, [currentManufacturingOrders, flattenMOTree, getAllChildrenIds]);
+
     // Handle MO selection
-    const handleMOSelect = useCallback((moId: number, multiSelect: boolean = false) => {
+    const handleMOSelect = useCallback((moId: number, multiSelect: boolean = false, shiftSelect: boolean = false) => {
         // No longer show dialog when switching MOs - we track changes across multiple MOs
         let newSelection: Set<number>;
         let newActiveMO: number | null;
 
-        if (multiSelect) {
+        if (shiftSelect && lastClickedMO !== null) {
+            // Shift+click: select all MOs between last clicked and current, including all their children
+            const idsInRange = getMOsBetweenSelections(lastClickedMO, moId);
+            newSelection = new Set([...selectedMOs, ...idsInRange]);
+            newActiveMO = moId;
+            setSelectedMOs(newSelection);
+            setActiveMO(moId);
+            setLastClickedMO(moId);
+        } else if (multiSelect) {
+            // Cmd/Ctrl+click: toggle individual MO
             newSelection = new Set(selectedMOs);
             if (newSelection.has(moId)) {
                 newSelection.delete(moId);
@@ -308,12 +381,15 @@ export default function PlanningPage({
             }
             setSelectedMOs(newSelection);
             newActiveMO = activeMO;
+            setLastClickedMO(moId);
         } else {
+            // Regular click: select only this MO
             newSelection = new Set([moId]);
             newActiveMO = moId;
             setSelectedMOs(newSelection);
             setActiveMO(moId);
             setDetailViewMode('route');
+            setLastClickedMO(moId);
         }
 
         // Update URL with new selection and preserve sorting parameters
@@ -343,7 +419,7 @@ export default function PlanningPage({
         // Update URL without page reload
         const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
         window.history.replaceState({}, '', newUrl);
-    }, [selectedMOs, activeMO, sortField, sortDirection]);
+    }, [selectedMOs, activeMO, sortField, sortDirection, lastClickedMO, getMOsBetweenSelections]);
 
 
 
@@ -548,13 +624,14 @@ export default function PlanningPage({
                 targetState: targetState,
                 includeChildren: includeChildren,
             },
-            {
-                onSuccess: () => {
-                    const orderCount = includeChildren && targetState === 'planned'
-                        ? orderIds.length + countChildrenForOrders(orderIds)
-                        : orderIds.length;
+        {
+            onSuccess: () => {
+                // Calculate total order count including children if requested
+                const orderCount = includeChildren
+                    ? orderIds.length + countChildrenForOrders(orderIds)
+                    : orderIds.length;
 
-                    toast.success(`${orderCount} ordem${orderCount > 1 ? 's de fabricação foram' : ' de fabricação foi'} ${actionText}.`);
+                toast.success(`${orderCount} ordem${orderCount > 1 ? 's de fabricação foram' : ' de fabricação foi'} ${actionText}.`);
 
                     // Trigger a reload of the data while preserving state
                     PlanningService.reloadData({

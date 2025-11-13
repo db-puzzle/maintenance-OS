@@ -12,7 +12,6 @@ interface WorkCell {
     has_finite_capacity?: boolean;
     scheduled_steps?: Allocation[];
     default_production_rate_per_hour?: number;
-    cell_type?: string;
 }
 
 interface Allocation {

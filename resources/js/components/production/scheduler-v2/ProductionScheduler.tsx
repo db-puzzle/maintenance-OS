@@ -99,7 +99,6 @@ export const ProductionScheduler: React.FC<Props> = ({
         return workCells.map(cell => ({
             id: cell.id,
             name: cell.name,
-            cell_type: cell.cell_type || 'internal',
             has_finite_capacity: cell.has_finite_capacity ?? false,
             // Note: current_utilization is not part of the WorkCell type from production,
             // so it's omitted here. If needed, it would need to be added to the WorkCell type.

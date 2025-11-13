@@ -46,6 +46,9 @@ abstract class CentralTestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // SAFETY CHECK: Ensure we're not using production databases
+        $this->verifyTestDatabaseConfiguration();
+
         // Ensure the APP_KEY is set in the config
         if ($appKey = env('APP_KEY')) {
             config(['app.key' => $appKey]);
@@ -100,5 +103,27 @@ abstract class CentralTestCase extends BaseTestCase
         }
 
         $this->beginDatabaseTransaction();
+    }
+
+    /**
+     * Verify that tests are configured to use test databases, not production databases.
+     *
+     * This safety check prevents accidentally running tests against production data.
+     *
+     * @throws \Exception if production database is detected
+     */
+    protected function verifyTestDatabaseConfiguration(): void
+    {
+        // Check central database
+        $centralDatabase = config('database.connections.central.database');
+
+        if (! str_contains($centralDatabase, 'test')) {
+            throw new \Exception(
+                "DANGER: Central tests are configured to use a production database!\n" .
+                "Central Database: {$centralDatabase}\n" .
+                "Expected database name to contain 'test'.\n" .
+                'Please check your phpunit.xml configuration for DB_CENTRAL_DATABASE.'
+            );
+        }
     }
 }

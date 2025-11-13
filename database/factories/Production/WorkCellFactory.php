@@ -3,7 +3,6 @@
 namespace Database\Factories\Production;
 
 use App\Models\AssetHierarchy\Area;
-use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\AssetHierarchy\Shift;
@@ -24,16 +23,13 @@ class WorkCellFactory extends Factory
      */
     public function definition(): array
     {
-        $cellTypes = ['internal', 'external'];
         $departments = ['Machining', 'Assembly', 'Welding', 'Painting', 'Quality', 'Packaging'];
 
         $number = fake()->numberBetween(1, 99);
-        $cellType = fake()->randomElement($cellTypes);
 
         return [
             'name' => fake()->randomElement($departments) . ' Cell ' . $number,
             'description' => fake()->optional(0.7)->sentence(),
-            'cell_type' => $cellType,
             'has_finite_capacity' => fake()->boolean(90),
             'default_setup_time_seconds' => fake()->numberBetween(300, 3600), // 5-60 minutes
             'default_cycle_time_seconds' => fake()->randomFloat(2, 36, 360), // 0.01-0.1 hours per unit
@@ -45,31 +41,8 @@ class WorkCellFactory extends Factory
             'plant_id' => null, // Will be set if Plant exists
             'area_id' => null, // Will be set if Area exists
             'sector_id' => null, // Will be set if Sector exists
-            'manufacturer_id' => $cellType === 'external' ? null : null, // Don't auto-create manufacturer
             'is_active' => fake()->boolean(90),
         ];
-    }
-
-    /**
-     * Indicate that the work cell is external.
-     */
-    public function external(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'cell_type' => 'external',
-            'manufacturer_id' => Manufacturer::factory(),
-        ]);
-    }
-
-    /**
-     * Indicate that the work cell is internal.
-     */
-    public function internal(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'cell_type' => 'internal',
-            'manufacturer_id' => null,
-        ]);
     }
 
     /**

@@ -3,7 +3,6 @@
 namespace App\Models\Production;
 
 use App\Models\AssetHierarchy\Area;
-use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\AssetHierarchy\Shift;
@@ -21,7 +20,6 @@ class WorkCell extends Model
     protected $fillable = [
         'name',
         'description',
-        'cell_type',
         'has_finite_capacity',
         'default_setup_time_seconds',
         'default_cycle_time_seconds',
@@ -33,7 +31,6 @@ class WorkCell extends Model
         'plant_id',
         'area_id',
         'sector_id',
-        'manufacturer_id',
         'is_active',
     ];
 
@@ -77,14 +74,6 @@ class WorkCell extends Model
     public function sector(): BelongsTo
     {
         return $this->belongsTo(Sector::class);
-    }
-
-    /**
-     * Get the manufacturer for external work cells.
-     */
-    public function manufacturer(): BelongsTo
-    {
-        return $this->belongsTo(Manufacturer::class);
     }
 
     /**
@@ -168,22 +157,6 @@ class WorkCell extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
-    }
-
-    /**
-     * Scope for internal work cells.
-     */
-    public function scopeInternal($query)
-    {
-        return $query->where('cell_type', 'internal');
-    }
-
-    /**
-     * Scope for external work cells.
-     */
-    public function scopeExternal($query)
-    {
-        return $query->where('cell_type', 'external');
     }
 
     /**
@@ -405,16 +378,6 @@ class WorkCell extends Model
         }
 
         return null;
-    }
-
-    /**
-     * Get display name with type indicator.
-     */
-    public function getDisplayNameAttribute()
-    {
-        $typeIndicator = $this->cell_type === 'external' ? ' (Ext)' : '';
-
-        return "{$this->name}{$typeIndicator}";
     }
 
     /**

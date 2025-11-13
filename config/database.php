@@ -111,7 +111,7 @@ return [
             'driver' => 'pgsql',
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
-            'database' => 'maintenance_os_central',
+            'database' => env('DB_CENTRAL_DATABASE', 'maintenance_os_central'),
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', ''),
             'charset' => 'utf8',

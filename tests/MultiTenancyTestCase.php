@@ -94,6 +94,9 @@ abstract class MultiTenancyTestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // SAFETY CHECK: Ensure we're not using production databases
+        $this->verifyTestDatabaseConfiguration();
+
         // Ensure the APP_KEY is set in the config
         if ($appKey = env('APP_KEY')) {
             config(['app.key' => $appKey]);
@@ -122,7 +125,7 @@ abstract class MultiTenancyTestCase extends BaseTestCase
                 'driver' => 'pgsql',
                 'host' => env('DB_HOST', '127.0.0.1'),
                 'port' => env('DB_PORT', '5432'),
-                'database' => 'maintenance_os_central_test',
+                'database' => env('DB_CENTRAL_DATABASE', 'maintenance_os_central_test'),
                 'username' => env('DB_USERNAME', 'root'),
                 'password' => env('DB_PASSWORD', ''),
                 'charset' => 'utf8',
@@ -256,5 +259,42 @@ abstract class MultiTenancyTestCase extends BaseTestCase
             return $bootstrapper !== \Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper::class;
         });
         config(['tenancy.bootstrappers' => array_values($bootstrappers)]);
+    }
+
+    /**
+     * Verify that tests are configured to use test databases, not production databases.
+     *
+     * This safety check prevents accidentally running tests against production data.
+     * For multi-tenancy tests, we check both the central database and the default connection.
+     *
+     * @throws \Exception if production database is detected
+     */
+    protected function verifyTestDatabaseConfiguration(): void
+    {
+        // Check default connection
+        $connection = config('database.default');
+        $database = config("database.connections.{$connection}.database");
+
+        if (! str_contains($database, 'test')) {
+            throw new \Exception(
+                "DANGER: Multi-tenancy tests are configured to use a production database!\n" .
+                "Connection: {$connection}\n" .
+                "Database: {$database}\n" .
+                "Expected database name to contain 'test'.\n" .
+                'Please check your phpunit.xml configuration for DB_DATABASE.'
+            );
+        }
+
+        // Check central connection
+        $centralDatabase = env('DB_CENTRAL_DATABASE', config('database.connections.central.database'));
+
+        if (! str_contains($centralDatabase, 'test')) {
+            throw new \Exception(
+                "DANGER: Multi-tenancy tests are configured to use a production central database!\n" .
+                "Central Database: {$centralDatabase}\n" .
+                "Expected database name to contain 'test'.\n" .
+                'Please check your phpunit.xml configuration for DB_CENTRAL_DATABASE.'
+            );
+        }
     }
 }

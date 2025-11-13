@@ -39,6 +39,9 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // SAFETY CHECK: Ensure we're not using production databases
+        $this->verifyTestDatabaseConfiguration();
+
         // Ensure the APP_KEY is set in the config
         if ($appKey = env('APP_KEY')) {
             config(['app.key' => $appKey]);
@@ -93,6 +96,30 @@ abstract class TestCase extends BaseTestCase
 
                 throw new \Exception('Critical: First user is not an administrator!');
             }
+        }
+    }
+
+    /**
+     * Verify that tests are configured to use test databases, not production databases.
+     *
+     * This safety check prevents accidentally running tests against production data.
+     *
+     * @throws \Exception if production database is detected
+     */
+    protected function verifyTestDatabaseConfiguration(): void
+    {
+        $connection = config('database.default');
+        $database = config("database.connections.{$connection}.database");
+
+        // Check if database name contains 'test'
+        if (! str_contains($database, 'test')) {
+            throw new \Exception(
+                "DANGER: Tests are configured to use a production database!\n" .
+                "Connection: {$connection}\n" .
+                "Database: {$database}\n" .
+                "Expected database name to contain 'test'.\n" .
+                'Please check your phpunit.xml configuration.'
+            );
         }
     }
 }

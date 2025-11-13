@@ -18,13 +18,11 @@ interface WorkCellFormComponentProps {
         area?: { id: number; name: string };
         sector?: { id: number; name: string };
         shift?: { id: number; name: string };
-        manufacturer?: { id: number; name: string };
     };
     plants: { id: number; name: string }[];
     areas: { id: number; name: string }[];
     sectors: { id: number; name: string }[];
     shifts: { id: number; name: string }[];
-    manufacturers: { id: number; name: string }[];
     initialMode?: 'view' | 'edit';
     onSuccess?: () => void;
 }
@@ -34,7 +32,6 @@ export default function WorkCellFormComponent({
     areas: initialAreas = [],
     sectors: initialSectors = [],
     shifts = [],
-    manufacturers = [],
     initialMode = 'view',
     onSuccess
 }: WorkCellFormComponentProps) {
@@ -44,7 +41,6 @@ export default function WorkCellFormComponent({
     const { data, setData, put, processing, errors, reset } = useForm({
         name: workCell.name || '',
         description: workCell.description || '',
-        cell_type: workCell.cell_type || 'internal',
         has_finite_capacity: workCell.has_finite_capacity ?? true,
         default_production_rate_per_hour: workCell.default_production_rate_per_hour?.toString() || '',
         default_unit_of_measure: workCell.default_unit_of_measure || 'PC',
@@ -52,7 +48,6 @@ export default function WorkCellFormComponent({
         plant_id: workCell.plant_id?.toString() || '',
         area_id: workCell.area_id?.toString() || '',
         sector_id: workCell.sector_id?.toString() || '',
-        manufacturer_id: workCell.manufacturer_id?.toString() || '',
         is_active: workCell.is_active ?? true,
     });
 
@@ -112,17 +107,9 @@ export default function WorkCellFormComponent({
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {/* Basic Info */}
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <Label className="text-muted-foreground text-sm">Nome</Label>
-                            <p className="font-medium">{workCell.name}</p>
-                        </div>
-                        <div>
-                            <Label className="text-muted-foreground text-sm">Tipo</Label>
-                            <Badge variant={workCell.cell_type === 'internal' ? 'default' : 'secondary'}>
-                                {workCell.cell_type === 'internal' ? 'Interna' : 'Externa'}
-                            </Badge>
-                        </div>
+                    <div>
+                        <Label className="text-muted-foreground text-sm">Nome</Label>
+                        <p className="font-medium">{workCell.name}</p>
                     </div>
                     {workCell.description && (
                         <div>
@@ -155,11 +142,11 @@ export default function WorkCellFormComponent({
                             )}
                         </div>
                     </div>
-                    {/* Location/Assignment */}
+                    {/* Location */}
                     <div className="rounded-lg border p-4">
                         <h4 className="mb-3 font-medium flex items-center gap-2">
-                            {workCell.cell_type === 'internal' ? <MapPin className="h-4 w-4" /> : <Factory className="h-4 w-4" />}
-                            {workCell.cell_type === 'internal' ? 'Localização' : 'Fornecedor'}
+                            <MapPin className="h-4 w-4" />
+                            Localização
                         </h4>
                         <div className="grid gap-4 sm:grid-cols-2">
                             {workCell.shift && (
@@ -168,36 +155,23 @@ export default function WorkCellFormComponent({
                                     <p className="font-medium">{workCell.shift.name}</p>
                                 </div>
                             )}
-                            {workCell.cell_type === 'internal' ? (
-                                <>
-                                    {workCell.plant && (
-                                        <div>
-                                            <Label className="text-muted-foreground text-sm">Planta</Label>
-                                            <p className="font-medium">{workCell.plant.name}</p>
-                                        </div>
-                                    )}
-                                    {workCell.area && (
-                                        <div>
-                                            <Label className="text-muted-foreground text-sm">Área</Label>
-                                            <p className="font-medium">{workCell.area.name}</p>
-                                        </div>
-                                    )}
-                                    {workCell.sector && (
-                                        <div>
-                                            <Label className="text-muted-foreground text-sm">Setor</Label>
-                                            <p className="font-medium">{workCell.sector.name}</p>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <>
-                                    {workCell.manufacturer && (
-                                        <div>
-                                            <Label className="text-muted-foreground text-sm">Fabricante</Label>
-                                            <p className="font-medium">{workCell.manufacturer.name}</p>
-                                        </div>
-                                    )}
-                                </>
+                            {workCell.plant && (
+                                <div>
+                                    <Label className="text-muted-foreground text-sm">Planta</Label>
+                                    <p className="font-medium">{workCell.plant.name}</p>
+                                </div>
+                            )}
+                            {workCell.area && (
+                                <div>
+                                    <Label className="text-muted-foreground text-sm">Área</Label>
+                                    <p className="font-medium">{workCell.area.name}</p>
+                                </div>
+                            )}
+                            {workCell.sector && (
+                                <div>
+                                    <Label className="text-muted-foreground text-sm">Setor</Label>
+                                    <p className="font-medium">{workCell.sector.name}</p>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -228,35 +202,6 @@ export default function WorkCellFormComponent({
                             placeholder="Nome da célula"
                             required
                         />
-                        <div className="grid gap-2">
-                            <Label>Tipo de Célula <span className="text-destructive">*</span></Label>
-                            <RadioGroup
-                                value={data.cell_type}
-                                onValueChange={(value) => {
-                                    setData('cell_type', value as 'internal' | 'external');
-                                    // Clear location fields when switching to external
-                                    if (value === 'external') {
-                                        setData('plant_id', '');
-                                        setData('area_id', '');
-                                        setData('sector_id', '');
-                                    }
-                                    // Clear manufacturer when switching to internal
-                                    if (value === 'internal') {
-                                        setData('manufacturer_id', '');
-                                    }
-                                }}
-                            >
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="internal" id="internal" />
-                                    <Label htmlFor="internal">Interna</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="external" id="external" />
-                                    <Label htmlFor="external">Externa</Label>
-                                </div>
-                            </RadioGroup>
-                            {errors.cell_type && <span className="text-destructive text-sm">{errors.cell_type}</span>}
-                        </div>
                     </div>
                     <TextInput
                         form={formAdapter}
@@ -291,10 +236,8 @@ export default function WorkCellFormComponent({
                         error={errors.shift_id}
                         canClear
                     />
-                    {/* Location - Only for internal cells */}
-                    {data.cell_type === 'internal' && (
-                        <>
-                            <ItemSelect
+                    {/* Location */}
+                    <ItemSelect
                                 label="Planta"
                                 items={plants}
                                 value={data.plant_id}
@@ -334,20 +277,6 @@ export default function WorkCellFormComponent({
                                     canClear
                                 />
                             )}
-                        </>
-                    )}
-                    {/* Manufacturer - Only for external cells */}
-                    {data.cell_type === 'external' && (
-                        <ItemSelect
-                            label="Fabricante"
-                            items={manufacturers}
-                            value={data.manufacturer_id}
-                            onValueChange={(value) => setData('manufacturer_id', value)}
-                            placeholder="Selecione um fabricante"
-                            error={errors.manufacturer_id}
-                            required
-                        />
-                    )}
                     {/* Status */}
                     <div className="flex items-center justify-between">
                         <Label htmlFor="is_active">Ativa</Label>

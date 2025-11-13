@@ -28,7 +28,7 @@ interface OrderCardCompactProps {
     enhancedMode: 'standard' | 'planning';
     showThumbnails?: boolean;
     onOrderClick?: (order: ManufacturingOrderTreeNode) => void;
-    onOrderSelect?: (orderId: number, multiSelect: boolean) => void;
+    onOrderSelect?: (orderId: number, multiSelect: boolean, shiftSelect: boolean) => void;
     permissions: {
         canRelease: boolean;
         canCancel: boolean;
@@ -62,7 +62,9 @@ export function OrderCardCompact({
     const handleClick = (e: React.MouseEvent) => {
         if (onOrderSelect && enhancedMode === 'planning') {
             e.stopPropagation();
-            onOrderSelect(order.id, e.ctrlKey || e.metaKey);
+            const multiSelect = e.ctrlKey || e.metaKey;
+            const shiftSelect = e.shiftKey;
+            onOrderSelect(order.id, multiSelect, shiftSelect);
         } else if (onOrderClick) {
             onOrderClick(order);
         }

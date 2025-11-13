@@ -648,7 +648,6 @@ export default function StepPropertiesPanel({
                 onSuccess={(newWorkCell) => handleWorkCellCreated(newWorkCell)}
                 plants={plants}
                 shifts={shifts}
-                manufacturers={manufacturers}
                 unitsOfMeasure={unitsOfMeasure}
             />
         </div>

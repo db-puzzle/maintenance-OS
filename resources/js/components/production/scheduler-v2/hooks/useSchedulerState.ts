@@ -36,7 +36,6 @@ export interface Allocation {
 export interface WorkCellState {
     id: number;
     name: string;
-    cell_type: string;
     has_finite_capacity: boolean;
     current_utilization?: number;
     scheduled_steps?: Allocation[];

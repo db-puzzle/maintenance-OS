@@ -49,12 +49,10 @@ export interface WorkCellPreview {
     row: number;
     name: string;
     description?: string;
-    cell_type: 'internal' | 'external';
     plant_name?: string;
     area_name?: string;
     sector_name?: string;
     shift_name?: string;
-    manufacturer_name?: string;
     has_finite_capacity: boolean;
     default_production_rate_per_hour?: number;
     default_unit_of_measure?: string;

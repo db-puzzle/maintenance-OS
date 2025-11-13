@@ -46,7 +46,6 @@ interface Props {
         sort: string;
         direction: 'asc' | 'desc';
         per_page: number;
-        cell_type?: string;
         is_active?: string;
     };
     plants: {
@@ -54,10 +53,6 @@ interface Props {
         name: string;
     }[];
     shifts: {
-        id: number;
-        name: string;
-    }[];
-    manufacturers: {
         id: number;
         name: string;
     }[];
@@ -74,7 +69,7 @@ interface Props {
         export?: boolean;
     };
 }
-export default function WorkCells({ workCells: initialWorkCells, filters, plants, shifts, manufacturers, unitsOfMeasure, can }: Props) {
+export default function WorkCells({ workCells: initialWorkCells, filters, plants, shifts, unitsOfMeasure, can }: Props) {
     const entityOps = useEntityOperations<WorkCell>({
         entityName: 'work-cell',
         entityLabel: 'Célula de Trabalho',
@@ -96,7 +91,6 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
         additionalParams: {
             search,
             per_page: filters.per_page,
-            ...(filters.cell_type && { cell_type: filters.cell_type }),
             ...(filters.is_active && { is_active: filters.is_active }),
         },
     });
@@ -109,7 +103,6 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
         }
         return {
             name: true,
-            cell_type: true,
             location: true,
             shift: true,
             capacity: true,
@@ -144,24 +137,12 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
             },
         },
         {
-            key: 'cell_type',
-            label: 'Tipo',
-            sortable: true,
-            width: 'w-[100px]',
-            render: (value) => {
-                return value === 'internal' ? 'Interna' : 'Externa';
-            },
-        },
-        {
             key: 'location',
             label: 'Localização',
             sortable: false,
             width: 'w-[200px]',
             render: (value, row) => {
                 const workCell = row as unknown as WorkCell;
-                if (workCell.cell_type === 'external' && workCell.manufacturer) {
-                    return <span className="text-muted-foreground">{workCell.manufacturer.name} (Externo)</span>;
-                }
                 const parts = [];
                 if (workCell.plant) parts.push(workCell.plant.name);
                 if (workCell.area) parts.push(workCell.area.name);
@@ -230,7 +211,6 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
                 sort,
                 direction,
                 per_page: filters.per_page,
-                cell_type: filters.cell_type,
                 is_active: filters.is_active,
             },
             { preserveState: true, preserveScroll: true },
@@ -367,7 +347,6 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
                 isNew={!editingWorkCell}
                 plants={plants}
                 shifts={shifts}
-                manufacturers={manufacturers}
                 unitsOfMeasure={unitsOfMeasure}
             />
             <EntityDeleteDialog

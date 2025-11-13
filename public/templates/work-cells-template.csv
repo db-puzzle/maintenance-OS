@@ -1,5 +1,4 @@
-Name,Description,Cell Type,Plant,Area,Sector,Shift,Manufacturer,Has Finite Capacity,Default Production Rate,Default Unit of Measure,Is Active
-"Usinagem CNC 01","Célula de usinagem CNC para peças de precisão","internal","Planta Principal","Produção","Usinagem","Turno A","","Yes","50","units","Yes"
-"Montagem Manual 01","Estação de montagem manual","internal","Planta Principal","Produção","Montagem","Turno A","","No","","units","Yes"
-"Pintura Eletrostática","Cabine de pintura eletrostática","internal","Planta Principal","Acabamento","Pintura","Turno B","","Yes","30","units","Yes"
-"Fornecedor Externo 01","Serviço de galvanização terceirizado","external","","","","","ABC Galvanização Ltda","Yes","100","kg","Yes"
+Name,Description,Plant,Area,Sector,Shift,Has Finite Capacity,Default Production Rate,Default Unit of Measure,Is Active
+"Usinagem CNC 01","Célula de usinagem CNC para peças de precisão","Planta Principal","Produção","Usinagem","Turno A","Yes","50","units","Yes"
+"Montagem Manual 01","Estação de montagem manual","Planta Principal","Produção","Montagem","Turno A","No","","units","Yes"
+"Pintura Eletrostática","Cabine de pintura eletrostática","Planta Principal","Acabamento","Pintura","Turno B","Yes","30","units","Yes"

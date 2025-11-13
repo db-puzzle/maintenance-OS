@@ -45,7 +45,6 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
                     const workCell: WorkCellPreview = {
                         row: index + 2,
                         name: '',
-                        cell_type: 'internal',
                         has_finite_capacity: true,
                         is_active: true
                     };
@@ -96,10 +95,6 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
                 // Required field validation
                 if (!workCell.name) {
                     errors.push({ row, field: 'name', message: 'Nome é obrigatório' });
-                }
-
-                if (!workCell.cell_type || !['internal', 'external'].includes(workCell.cell_type)) {
-                    errors.push({ row, field: 'cell_type', message: 'Tipo de célula deve ser "internal" ou "external"' });
                 }
 
                 // Warnings
@@ -255,9 +250,6 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
                                                             Nome
                                                         </th>
                                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                            Tipo
-                                                        </th>
-                                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                                             Planta
                                                         </th>
                                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
@@ -276,9 +268,6 @@ export function ValidationStep({ files, mapping, options, onNext, onBack }: Prop
                                                                         Existente
                                                                     </Badge>
                                                                 )}
-                                                            </td>
-                                                            <td className="px-4 py-2 text-sm">
-                                                                {workCell.cell_type === 'internal' ? 'Interna' : 'Externa'}
                                                             </td>
                                                             <td className="px-4 py-2 text-sm">{workCell.plant_name || '-'}</td>
                                                             <td className="px-4 py-2 text-sm">

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\BaseSearchController;
 use App\Models\AssetHierarchy\Area;
-use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\AssetHierarchy\Shift;
@@ -24,7 +23,7 @@ class WorkCellController extends BaseSearchController
     {
         $this->authorize('viewAny', WorkCell::class);
 
-        $query = WorkCell::with(['plant', 'area', 'sector', 'shift', 'manufacturer']);
+        $query = WorkCell::with(['plant', 'area', 'sector', 'shift']);
 
         // Apply search filter
         if ($search = $request->input('search')) {
@@ -45,11 +44,6 @@ class WorkCellController extends BaseSearchController
                 ],
             ];
             $query = $this->applySearchFilter($query, $search, $searchConfig);
-        }
-
-        // Apply cell type filter
-        if ($cellType = $request->input('cell_type')) {
-            $query->where('cell_type', $cellType);
         }
 
         // Apply active filter
@@ -83,10 +77,9 @@ class WorkCellController extends BaseSearchController
 
         $workCells = $query->paginate($request->input('per_page', 10));
 
-        // Get all plants, shifts, and manufacturers for creation
+        // Get all plants, shifts for creation
         $plants = Plant::orderBy('name')->get(['id', 'name']);
         $shifts = Shift::orderBy('name')->get(['id', 'name']);
-        $manufacturers = Manufacturer::orderBy('name')->get(['id', 'name']);
         $unitsOfMeasure = UnitOfMeasure::where('is_active', true)
             ->orderBy('uom_type')
             ->orderBy('name')
@@ -99,12 +92,10 @@ class WorkCellController extends BaseSearchController
                 'sort' => $sort,
                 'direction' => $direction,
                 'per_page' => $request->input('per_page', 10),
-                'cell_type' => $request->input('cell_type', ''),
                 'is_active' => $request->input('is_active', ''),
             ],
             'plants' => $plants,
             'shifts' => $shifts,
-            'manufacturers' => $manufacturers,
             'unitsOfMeasure' => $unitsOfMeasure,
             'can' => [
                 'create' => auth()->user()->can('create', WorkCell::class),
@@ -121,7 +112,7 @@ class WorkCellController extends BaseSearchController
     {
         $this->authorize('view', $workCell);
 
-        $workCell->load(['plant', 'area', 'sector', 'shift', 'manufacturer']);
+        $workCell->load(['plant', 'area', 'sector', 'shift']);
 
         // Get routing steps with pagination
         $routingStepsQuery = $workCell->routingSteps()
@@ -169,7 +160,6 @@ class WorkCellController extends BaseSearchController
         // Get all plants for editing
         $plants = Plant::orderBy('name')->get(['id', 'name']);
         $shifts = Shift::orderBy('name')->get(['id', 'name']);
-        $manufacturers = Manufacturer::orderBy('name')->get(['id', 'name']);
         $unitsOfMeasure = UnitOfMeasure::where('is_active', true)
             ->orderBy('uom_type')
             ->orderBy('name')
@@ -193,7 +183,6 @@ class WorkCellController extends BaseSearchController
             'areas' => $areas,
             'sectors' => $sectors,
             'shifts' => $shifts,
-            'manufacturers' => $manufacturers,
             'unitsOfMeasure' => $unitsOfMeasure,
             'activeTab' => $request->input('tab', 'informacoes'),
             'filters' => [
@@ -219,7 +208,6 @@ class WorkCellController extends BaseSearchController
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'cell_type' => 'required|in:internal,external',
             'has_finite_capacity' => 'boolean',
             'default_setup_time' => 'nullable|array',
             'default_setup_time.value' => 'nullable|numeric|min:0',
@@ -234,7 +222,6 @@ class WorkCellController extends BaseSearchController
             'plant_id' => 'nullable|exists:plants,id',
             'area_id' => 'nullable|exists:areas,id',
             'sector_id' => 'nullable|exists:sectors,id',
-            'manufacturer_id' => 'nullable|required_if:cell_type,external|exists:manufacturers,id',
             'is_active' => 'boolean',
             'time_preferences' => 'nullable|array',
             'time_preferences.display_mode' => 'nullable|string|in:cycle_time,throughput',
@@ -283,7 +270,7 @@ class WorkCellController extends BaseSearchController
         // If request has 'stay' parameter (indicates Sheet/Modal)
         if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
             // Load relationships that might be needed
-            $workCell->load(['plant', 'area', 'sector', 'shift', 'manufacturer']);
+            $workCell->load(['plant', 'area', 'sector', 'shift']);
 
             return back()->with([
                 'success' => "Célula de trabalho {$workCell->name} criada com sucesso.",
@@ -305,7 +292,6 @@ class WorkCellController extends BaseSearchController
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'cell_type' => 'required|in:internal,external',
             'has_finite_capacity' => 'boolean',
             'default_production_rate_per_hour' => 'nullable|numeric|min:0.001',
             'default_unit_of_measure' => 'nullable|string|max:50',
@@ -315,7 +301,6 @@ class WorkCellController extends BaseSearchController
             'plant_id' => 'nullable|exists:plants,id',
             'area_id' => 'nullable|exists:areas,id',
             'sector_id' => 'nullable|exists:sectors,id',
-            'manufacturer_id' => 'nullable|required_if:cell_type,external|exists:manufacturers,id',
             'is_active' => 'boolean',
         ]);
 
@@ -573,12 +558,10 @@ class WorkCellController extends BaseSearchController
         $headers = [
             'Name',
             'Description',
-            'Cell Type',
             'Plant',
             'Area',
             'Sector',
             'Shift',
-            'Manufacturer',
             'Has Finite Capacity',
             'Default Production Rate',
             'Default Unit of Measure',
@@ -592,12 +575,10 @@ class WorkCellController extends BaseSearchController
             fputcsv($csv, [
                 $workCell->name,
                 $workCell->description,
-                $workCell->cell_type,
                 $workCell->plant?->name,
                 $workCell->area?->name,
                 $workCell->sector?->name,
                 $workCell->shift?->name,
-                $workCell->manufacturer?->name,
                 $workCell->has_finite_capacity ? 'Yes' : 'No',
                 $workCell->default_production_rate_per_hour,
                 $workCell->default_unit_of_measure,
@@ -636,7 +617,7 @@ class WorkCellController extends BaseSearchController
         $names = $request->input('names', []);
 
         $existingWorkCells = WorkCell::whereIn('name', $names)
-            ->get(['id', 'name', 'cell_type', 'description'])
+            ->get(['id', 'name', 'description'])
             ->keyBy('name');
 
         return response()->json([
@@ -728,12 +709,10 @@ class WorkCellController extends BaseSearchController
             $workCells[] = [
                 'name' => $workCell['name'] ?? '',
                 'description' => $workCell['description'] ?? '',
-                'cell_type' => $workCell['cell_type'] ?? 'internal',
                 'plant_name' => $workCell['plant'] ?? null,
                 'area_name' => $workCell['area'] ?? null,
                 'sector_name' => $workCell['sector'] ?? null,
                 'shift_name' => $workCell['shift'] ?? null,
-                'manufacturer_name' => $workCell['manufacturer'] ?? null,
                 'has_finite_capacity' => in_array(strtolower($workCell['has_finite_capacity'] ?? ''), ['yes', 'true', '1']),
                 'default_production_rate_per_hour' => is_numeric($workCell['default_production_rate'] ?? '') ? floatval($workCell['default_production_rate']) : null,
                 'default_unit_of_measure' => $workCell['default_unit_of_measure'] ?? null,
@@ -786,7 +765,6 @@ class WorkCellController extends BaseSearchController
                     $areaId = null;
                     $sectorId = null;
                     $shiftId = null;
-                    $manufacturerId = null;
 
                     if (! empty($workCellData['plant_name'])) {
                         $plant = Plant::where('name', $workCellData['plant_name'])->first();
@@ -820,22 +798,13 @@ class WorkCellController extends BaseSearchController
                         }
                     }
 
-                    if (! empty($workCellData['manufacturer_name'])) {
-                        $manufacturer = Manufacturer::where('name', $workCellData['manufacturer_name'])->first();
-                        if ($manufacturer) {
-                            $manufacturerId = $manufacturer->id;
-                        }
-                    }
-
                     $attributes = [
                         'name' => $workCellData['name'],
                         'description' => $workCellData['description'] ?? null,
-                        'cell_type' => $workCellData['cell_type'] ?? 'internal',
                         'plant_id' => $plantId,
                         'area_id' => $areaId,
                         'sector_id' => $sectorId,
                         'shift_id' => $shiftId,
-                        'manufacturer_id' => $manufacturerId,
                         'has_finite_capacity' => $workCellData['has_finite_capacity'] ?? true,
                         'default_production_rate_per_hour' => $workCellData['default_production_rate_per_hour'] ?? null,
                         'default_unit_of_measure' => $workCellData['default_unit_of_measure'] ?? null,

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building2, Factory, Infinity as InfinityIcon, Save, X, CheckCircle2, XCircle } from 'lucide-react';
+import { Building2, Infinity as InfinityIcon, Save, X, CheckCircle2, XCircle } from 'lucide-react';
 import StateButton from '@/components/StateButton';
 import { ItemSelect } from '@/components/ItemSelect';
 import { TextInput } from '@/components/TextInput';
@@ -18,7 +18,6 @@ interface WorkCellForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
     description: string;
-    cell_type: 'internal' | 'external';
     has_finite_capacity: boolean;
     default_production_rate_per_hour: string;
     default_unit_of_measure: string;
@@ -28,7 +27,6 @@ interface WorkCellForm {
     plant_id: string;
     area_id: string;
     sector_id: string;
-    manufacturer_id: string;
     is_active: boolean;
 }
 
@@ -47,7 +45,6 @@ interface CreateWorkCellSheetProps {
     // Available options
     plants?: { id: number; name: string }[];
     shifts?: { id: number; name: string }[];
-    manufacturers?: { id: number; name: string }[];
     unitsOfMeasure?: {
         id: number;
         code: string;
@@ -70,7 +67,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
     triggerIcon,
     plants = [],
     shifts = [],
-    manufacturers = [],
     unitsOfMeasure = [],
 }) => {
     // Check if scheduler feature is enabled
@@ -79,7 +75,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
     const { data, setData, processing } = useForm<WorkCellForm>({
         name: workCell?.name || '',
         description: workCell?.description || '',
-        cell_type: workCell?.cell_type || 'internal',
         has_finite_capacity: workCell?.has_finite_capacity ?? false,
         default_production_rate_per_hour: workCell?.default_production_rate_per_hour?.toString() || '',
         default_unit_of_measure: workCell?.default_unit_of_measure || 'PC',
@@ -89,7 +84,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
         plant_id: workCell?.plant_id?.toString() || '',
         area_id: workCell?.area_id?.toString() || '',
         sector_id: workCell?.sector_id?.toString() || '',
-        manufacturer_id: workCell?.manufacturer_id?.toString() || '',
         is_active: workCell?.is_active ?? true,
     });
     const [internalSheetOpen, setInternalSheetOpen] = useState(false);
@@ -156,7 +150,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             setData({
                 name: workCell.name || '',
                 description: workCell.description || '',
-                cell_type: workCell.cell_type || 'internal',
                 has_finite_capacity: workCell.has_finite_capacity ?? false,
                 default_production_rate_per_hour: workCell.default_production_rate_per_hour?.toString() || '',
                 default_unit_of_measure: workCell.default_unit_of_measure || 'PC',
@@ -166,7 +159,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                 plant_id: workCell.plant_id?.toString() || '',
                 area_id: workCell.area_id?.toString() || '',
                 sector_id: workCell.sector_id?.toString() || '',
-                manufacturer_id: workCell.manufacturer_id?.toString() || '',
                 is_active: workCell.is_active ?? true,
             });
         }
@@ -243,7 +235,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
 
         const validationErrors: Record<string, string> = {};
         if (!data.name) validationErrors.name = 'Nome é obrigatório';
-        if (!data.cell_type) validationErrors.cell_type = 'Tipo de célula é obrigatório';
 
         // Validate finite capacity requirements - shift is only required for cells with finite capacity
         if (data.has_finite_capacity && !data.shift_id) {
@@ -256,11 +247,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             if (!data.max_parallel_executions || isNaN(parallelExecutions) || parallelExecutions < 1) {
                 validationErrors.max_parallel_executions = 'Execuções paralelas deve ser pelo menos 1';
             }
-        }
-
-        // Validate external cell requirements
-        if (data.cell_type === 'external' && !data.manufacturer_id) {
-            validationErrors.manufacturer_id = 'Fabricante é obrigatório para células externas';
         }
 
         // Set validation errors if any exist
@@ -287,7 +273,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             plant_id: data.plant_id || null,
             area_id: data.area_id || null,
             sector_id: data.sector_id || null,
-            manufacturer_id: data.manufacturer_id || null,
         };
 
         router[method](url, payload, {
@@ -303,7 +288,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                     setData({
                         name: '',
                         description: '',
-                        cell_type: 'internal',
                         has_finite_capacity: false,
                         default_production_rate_per_hour: '',
                         default_unit_of_measure: 'PC',
@@ -313,7 +297,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                         plant_id: '',
                         area_id: '',
                         sector_id: '',
-                        manufacturer_id: '',
                         is_active: true,
                     });
                 }
@@ -347,7 +330,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             setData({
                 name: workCell.name || '',
                 description: workCell.description || '',
-                cell_type: workCell.cell_type || 'internal',
                 has_finite_capacity: workCell.has_finite_capacity ?? false,
                 default_production_rate_per_hour: workCell.default_production_rate_per_hour?.toString() || '',
                 default_unit_of_measure: workCell.default_unit_of_measure || 'PC',
@@ -357,14 +339,12 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                 plant_id: workCell.plant_id?.toString() || '',
                 area_id: workCell.area_id?.toString() || '',
                 sector_id: workCell.sector_id?.toString() || '',
-                manufacturer_id: workCell.manufacturer_id?.toString() || '',
                 is_active: workCell.is_active ?? true,
             });
         } else {
             setData({
                 name: '',
                 description: '',
-                cell_type: 'internal',
                 has_finite_capacity: false,
                 default_production_rate_per_hour: '',
                 default_unit_of_measure: 'PC',
@@ -374,7 +354,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                 plant_id: '',
                 area_id: '',
                 sector_id: '',
-                manufacturer_id: '',
                 is_active: true,
             });
         }
@@ -414,99 +393,51 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                             />
                         </div>
 
-                        {/* Tipo de Célula */}
+                        {/* Localização */}
                         <div className="space-y-4">
-                            <h3 className="text-lg font-medium">Tipo de Célula</h3>
-                            <div className="space-y-3">
-                                <StateButton
-                                    icon={Building2}
-                                    title="Célula Interna"
-                                    description="Célula de trabalho operada internamente pela empresa"
-                                    selected={data.cell_type === 'internal'}
-                                    onClick={() => {
-                                        updateData('cell_type', 'internal');
-                                        // Clear manufacturer when switching to internal
-                                        updateData('manufacturer_id', '');
-                                    }}
-                                    disabled={isSubmitting || processing}
-                                />
-                                {data.cell_type === 'internal' && (
-                                    <div className="border-l border-gray-200">
-                                        <div className="ml-6 space-y-4">
-                                            <ItemSelect
-                                                label="Planta"
-                                                items={plants}
-                                                value={data.plant_id}
-                                                onValueChange={(value) => {
-                                                    updateData('plant_id', value);
-                                                    // Clear dependent fields
-                                                    updateData('area_id', '');
-                                                    updateData('sector_id', '');
-                                                }}
-                                                placeholder="Selecione uma planta"
-                                                error={errors.plant_id}
-                                                canClear
-                                            />
-                                            {data.plant_id && (
-                                                <ItemSelect
-                                                    label="Área"
-                                                    items={areas}
-                                                    value={data.area_id}
-                                                    onValueChange={(value) => {
-                                                        updateData('area_id', value);
-                                                        // Clear dependent field
-                                                        updateData('sector_id', '');
-                                                    }}
-                                                    placeholder="Selecione uma área"
-                                                    error={errors.area_id}
-                                                    canClear
-                                                />
-                                            )}
-                                            {data.area_id && (
-                                                <ItemSelect
-                                                    label="Setor"
-                                                    items={sectors}
-                                                    value={data.sector_id}
-                                                    onValueChange={(value) => updateData('sector_id', value)}
-                                                    placeholder="Selecione um setor"
-                                                    error={errors.sector_id}
-                                                    canClear
-                                                />
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                                <StateButton
-                                    icon={Factory}
-                                    title="Célula Externa"
-                                    description="Célula de trabalho operada por um fornecedor externo"
-                                    selected={data.cell_type === 'external'}
-                                    onClick={() => {
-                                        updateData('cell_type', 'external');
-                                        // Clear location fields when switching to external
-                                        updateData('plant_id', '');
+                            <h3 className="text-lg font-medium">Localização</h3>
+                            <div className="space-y-4">
+                                <ItemSelect
+                                    label="Planta"
+                                    items={plants}
+                                    value={data.plant_id}
+                                    onValueChange={(value) => {
+                                        updateData('plant_id', value);
+                                        // Clear dependent fields
                                         updateData('area_id', '');
                                         updateData('sector_id', '');
                                     }}
-                                    disabled={isSubmitting || processing}
+                                    placeholder="Selecione uma planta"
+                                    error={errors.plant_id}
+                                    canClear
                                 />
-                                {data.cell_type === 'external' && (
-                                    <div className="border-l border-gray-200">
-                                        <div className="ml-6 space-y-4">
-                                            <ItemSelect
-                                                label="Fabricante"
-                                                items={manufacturers}
-                                                value={data.manufacturer_id}
-                                                onValueChange={(value) => updateData('manufacturer_id', value)}
-                                                placeholder="Selecione um fabricante"
-                                                error={errors.manufacturer_id}
-                                                required
-                                            />
-                                        </div>
-                                    </div>
+                                {data.plant_id && (
+                                    <ItemSelect
+                                        label="Área"
+                                        items={areas}
+                                        value={data.area_id}
+                                        onValueChange={(value) => {
+                                            updateData('area_id', value);
+                                            // Clear dependent field
+                                            updateData('sector_id', '');
+                                        }}
+                                        placeholder="Selecione uma área"
+                                        error={errors.area_id}
+                                        canClear
+                                    />
+                                )}
+                                {data.area_id && (
+                                    <ItemSelect
+                                        label="Setor"
+                                        items={sectors}
+                                        value={data.sector_id}
+                                        onValueChange={(value) => updateData('sector_id', value)}
+                                        placeholder="Selecione um setor"
+                                        error={errors.sector_id}
+                                        canClear
+                                    />
                                 )}
                             </div>
-
                         </div>
 
                         {/* Capacidade - Only show if scheduler feature is enabled */}

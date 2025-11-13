@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('name', 255);
             $table->text('description')->nullable();
-            $table->enum('cell_type', ['internal', 'external'])->default('internal');
 
             // Capacity
             $table->boolean('has_finite_capacity')->default(true);
@@ -29,7 +28,7 @@ return new class extends Migration
             $table->enum('time_display_preference', ['cycle_time', 'throughput'])->default('cycle_time');
             $table->enum('time_scale_preference', ['seconds', 'minutes', 'hours', 'auto'])->default('auto');
 
-            // Shift relationship (required for internal cells)
+            // Shift relationship
             $table->foreignId('shift_id')->nullable()->constrained('shifts');
 
             // Location (optional)
@@ -37,16 +36,12 @@ return new class extends Migration
             $table->foreignId('area_id')->nullable()->constrained('areas');
             $table->foreignId('sector_id')->nullable()->constrained('sectors');
 
-            // External vendor info (if cell_type = 'external')
-            $table->foreignId('manufacturer_id')->nullable()->constrained('manufacturers');
-
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
-            $table->index(['cell_type', 'is_active']);
+            $table->index(['is_active']);
             $table->index(['plant_id', 'area_id', 'sector_id']);
             $table->index('shift_id');
-            $table->index('manufacturer_id');
         });
     }
 

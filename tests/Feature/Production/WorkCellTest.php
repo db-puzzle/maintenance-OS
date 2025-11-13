@@ -3,7 +3,6 @@
 namespace Tests\Feature\Production;
 
 use App\Models\AssetHierarchy\Area;
-use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Shift;
 use App\Models\Production\WorkCell;
@@ -20,7 +19,6 @@ class WorkCellTest extends TestCase
     protected Plant $plant;
     protected Area $area;
     protected Shift $shift;
-    protected Manufacturer $manufacturer;
 
     protected function setUp(): void
     {
@@ -56,7 +54,6 @@ class WorkCellTest extends TestCase
                     ->has('filters')
                     ->has('plants')
                     ->has('shifts')
-                    ->has('manufacturers')
             );
     }
 
@@ -82,31 +79,6 @@ class WorkCellTest extends TestCase
             'name' => 'Test Work Cell',
             'cell_type' => 'internal',
             'plant_id' => $this->plant->id,
-        ]);
-    }
-
-    public function test_can_create_external_work_cell()
-    {
-        $data = [
-            'name' => 'External Work Cell',
-            'description' => 'External cell description',
-            'cell_type' => 'external',
-            'available_hours_per_day' => '10',
-            'efficiency_percentage' => '90',
-            'shift_id' => $this->shift->id,
-            'manufacturer_id' => $this->manufacturer->id,
-            'is_active' => true,
-        ];
-
-        $this->actingAs($this->admin)
-            ->post(route('production.work-cells.store'), $data)
-            ->assertRedirect();
-
-        $this->assertDatabaseHas('work_cells', [
-            'name' => 'External Work Cell',
-            'cell_type' => 'external',
-            'manufacturer_id' => $this->manufacturer->id,
-            'plant_id' => null,
         ]);
     }
 
@@ -219,23 +191,6 @@ class WorkCellTest extends TestCase
             ->post(route('production.work-cells.store'), $data)
             ->assertRedirect()
             ->assertSessionHasErrors(['area_id']);
-    }
-
-    public function test_requires_manufacturer_for_external_cells()
-    {
-        $data = [
-            'name' => 'External Cell',
-            'cell_type' => 'external',
-            'available_hours_per_day' => '8',
-            'efficiency_percentage' => '85',
-            'is_active' => true,
-            // Missing manufacturer_id
-        ];
-
-        $this->actingAs($this->admin)
-            ->post(route('production.work-cells.store'), $data)
-            ->assertRedirect()
-            ->assertSessionHasErrors(['manufacturer_id']);
     }
 
     public function test_user_without_permission_cannot_access_work_cells()
