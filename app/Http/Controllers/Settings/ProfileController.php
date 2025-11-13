@@ -66,7 +66,7 @@ class ProfileController extends Controller
     public function permissions(Request $request): Response
     {
         $user = $request->user()->load(['roles.permissions']);
-        
+
         // Get all effective permissions (direct + through roles)
         $allPermissions = $user->getAllEffectivePermissions()
             ->map(function ($permission) {
@@ -88,10 +88,10 @@ class ProfileController extends Controller
 
         // Apply filters
         if ($request->filled('search')) {
-            $query->where(function($q) use ($request) {
+            $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('display_name', 'like', "%{$request->search}%")
-                  ->orWhere('description', 'like', "%{$request->search}%");
+                    ->orWhere('display_name', 'like', "%{$request->search}%")
+                    ->orWhere('description', 'like', "%{$request->search}%");
             });
         }
 
@@ -100,33 +100,33 @@ class ProfileController extends Controller
         }
 
         if ($request->filled('action')) {
-            $query->where(function($q) use ($request) {
+            $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%.{$request->action}.%")
-                  ->orWhere('name', 'like', "%.{$request->action}");
+                    ->orWhere('name', 'like', "%.{$request->action}");
             });
         }
 
         if ($request->filled('scope')) {
             if ($request->scope === 'global') {
-                $query->where(function($q) {
+                $query->where(function ($q) {
                     $q->where('name', 'not like', '%.%.%.%')
-                      ->whereRaw("name !~ '^(areas|plants|sectors|assets)\\.[^.]+\\.[0-9]+$'")
-                      ->orWhere('name', 'like', 'system.%');
+                        ->whereRaw("name !~ '^(areas|plants|sectors|assets)\\.[^.]+\\.[0-9]+$'")
+                        ->orWhere('name', 'like', 'system.%');
                 });
             } else {
-                $query->where(function($q) use ($request) {
+                $query->where(function ($q) use ($request) {
                     $q->where('name', 'like', "%.{$request->scope}.%")
-                      ->orWhere(function($subQ) use ($request) {
-                          if ($request->scope === 'area') {
-                              $subQ->whereRaw("name ~ '^areas\\.[^.]+\\.[0-9]+$'");
-                          } elseif ($request->scope === 'plant') {
-                              $subQ->whereRaw("name ~ '^plants\\.[^.]+\\.[0-9]+$'");
-                          } elseif ($request->scope === 'sector') {
-                              $subQ->whereRaw("name ~ '^sectors\\.[^.]+\\.[0-9]+$'");
-                          } elseif ($request->scope === 'asset') {
-                              $subQ->whereRaw("name ~ '^assets\\.[^.]+\\.[0-9]+$'");
-                          }
-                      });
+                        ->orWhere(function ($subQ) use ($request) {
+                            if ($request->scope === 'area') {
+                                $subQ->whereRaw("name ~ '^areas\\.[^.]+\\.[0-9]+$'");
+                            } elseif ($request->scope === 'plant') {
+                                $subQ->whereRaw("name ~ '^plants\\.[^.]+\\.[0-9]+$'");
+                            } elseif ($request->scope === 'sector') {
+                                $subQ->whereRaw("name ~ '^sectors\\.[^.]+\\.[0-9]+$'");
+                            } elseif ($request->scope === 'asset') {
+                                $subQ->whereRaw("name ~ '^assets\\.[^.]+\\.[0-9]+$'");
+                            }
+                        });
                 });
             }
         }
@@ -145,31 +145,31 @@ class ProfileController extends Controller
             'sector' => [],
             'asset' => [],
         ];
-        
+
         foreach ($permissions as $permission) {
             $parsed = $permission->parsePermission();
             $parts = explode('.', $permission->name);
-            
+
             if ($parsed['scope'] && $parsed['scope_id'] && isset($entityIds[$parsed['scope']])) {
                 $entityIds[$parsed['scope']][] = $parsed['scope_id'];
             }
-            
+
             if (count($parts) === 3 && is_numeric($parts[2])) {
                 $resource = $parsed['resource'];
-                $entityType = match($resource) {
+                $entityType = match ($resource) {
                     'plants' => 'plant',
                     'areas' => 'area',
                     'sectors' => 'sector',
                     'assets' => 'asset',
                     default => null
                 };
-                
+
                 if ($entityType && isset($entityIds[$entityType])) {
                     $entityIds[$entityType][] = $parts[2];
                 }
             }
         }
-        
+
         // Preload all entities
         $entities = [
             'plant' => \App\Models\AssetHierarchy\Plant::whereIn('id', array_unique($entityIds['plant']))->pluck('name', 'id'),
@@ -177,26 +177,26 @@ class ProfileController extends Controller
             'sector' => \App\Models\AssetHierarchy\Sector::whereIn('id', array_unique($entityIds['sector']))->pluck('name', 'id'),
             'asset' => \App\Models\AssetHierarchy\Asset::whereIn('id', array_unique($entityIds['asset']))->pluck('tag', 'id'),
         ];
-        
+
         // Add computed attributes
         $permissions->getCollection()->transform(function ($permission) use ($entities) {
             $permission->append(['resource', 'action', 'scope_type']);
-            
+
             $parsed = $permission->parsePermission();
             $parts = explode('.', $permission->name);
-            
+
             if (count($parts) === 3 && is_numeric($parts[2])) {
                 $entityId = $parts[2];
                 $resource = $parsed['resource'];
-                
-                $entityType = match($resource) {
+
+                $entityType = match ($resource) {
                     'plants' => 'plant',
                     'areas' => 'area',
                     'sectors' => 'sector',
                     'assets' => 'asset',
                     default => null
                 };
-                
+
                 if ($entityType && isset($entities[$entityType][$entityId])) {
                     $permission->scope_entity_name = $entities[$entityType][$entityId];
                     $permission->scope_type = $entityType;
@@ -204,7 +204,7 @@ class ProfileController extends Controller
                 }
             } elseif ($parsed['scope'] && $parsed['scope_id']) {
                 $entityName = null;
-                
+
                 switch ($parsed['scope']) {
                     case 'plant':
                         $entityName = $entities['plant'][$parsed['scope_id']] ?? "Plant #{$parsed['scope_id']}";
@@ -219,17 +219,17 @@ class ProfileController extends Controller
                         $entityName = $entities['asset'][$parsed['scope_id']] ?? "Asset #{$parsed['scope_id']}";
                         break;
                 }
-                
+
                 $permission->scope_entity_name = $entityName;
             }
-            
+
             return $permission;
         });
 
         // Get filter options
         $allPermissions = \App\Models\Permission::all();
-        $resources = $allPermissions->map(fn($p) => $p->resource)->filter()->unique()->sort()->values();
-        $actions = $allPermissions->map(fn($p) => $p->action)->filter()->unique()->sort()->values();
+        $resources = $allPermissions->map(fn ($p) => $p->resource)->filter()->unique()->sort()->values();
+        $actions = $allPermissions->map(fn ($p) => $p->action)->filter()->unique()->sort()->values();
         $scopeTypes = ['global', 'plant', 'area', 'sector', 'asset'];
 
         return Inertia::render('settings/permissions', [
@@ -264,8 +264,8 @@ class ProfileController extends Controller
         // Check if this is the last administrator
         $adminProtectionService = app(\App\Services\AdministratorProtectionService::class);
         $protectionCheck = $adminProtectionService->canPerformOperation($user, 'delete');
-        
-        if (!$protectionCheck['allowed']) {
+
+        if (! $protectionCheck['allowed']) {
             return back()->with('error', $protectionCheck['message']);
         }
 

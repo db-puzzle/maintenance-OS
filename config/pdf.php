@@ -14,22 +14,22 @@ return [
         'options' => [
             // Enable remote content (for loading images via URLs)
             'isRemoteEnabled' => true,
-            
+
             // Enable HTML5 parser for better modern HTML/CSS support
             'isHtml5ParserEnabled' => true,
-            
+
             // Enable inline PHP execution (use with caution)
             'isPhpEnabled' => false,
-            
+
             // Default paper size
             'defaultPaperSize' => 'a4',
-            
+
             // Default font
             'defaultFont' => 'sans-serif',
-            
+
             // DPI setting
             'dpi' => 96,
-            
+
             // Enable inline JavaScript (use with caution)
             'isJavascriptEnabled' => false,
         ],

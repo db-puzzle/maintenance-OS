@@ -228,7 +228,7 @@ class ManufacturingOrderService
     public function planOrder(ManufacturingOrder $order): void
     {
         if (! $order->canBePlanned()) {
-            throw new \Exception('Order cannot be planned. Ensure it has a route with all steps assigned to work cells.');
+            throw new \Exception('Order cannot be planned. Ensure it has a route with all internal steps assigned to work cells and all external steps assigned to manufacturers.');
         }
 
         DB::transaction(function () use ($order) {

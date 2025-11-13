@@ -27,6 +27,9 @@ class CentralDatabaseSeeder extends Seeder
 
             // Create subscription plans
             CentralPlansSeeder::class,
+
+            // Create feature flags
+            FeaturesSeeder::class,
         ]);
     }
 }

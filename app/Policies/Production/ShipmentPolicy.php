@@ -37,7 +37,7 @@ class ShipmentPolicy
     public function update(User $user, Shipment $shipment): bool
     {
         // Can only update draft or ready shipments
-        if (!in_array($shipment->status, ['draft', 'ready'])) {
+        if (! in_array($shipment->status, ['draft', 'ready'])) {
             return false;
         }
 
@@ -50,7 +50,7 @@ class ShipmentPolicy
     public function delete(User $user, Shipment $shipment): bool
     {
         // Can only delete draft or cancelled shipments
-        if (!in_array($shipment->status, ['draft', 'cancelled'])) {
+        if (! in_array($shipment->status, ['draft', 'cancelled'])) {
             return false;
         }
 
@@ -103,4 +103,4 @@ class ShipmentPolicy
     {
         return $user->hasPermissionTo('production.shipments.uploadPhotos');
     }
-} 
+}

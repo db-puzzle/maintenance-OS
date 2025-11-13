@@ -95,13 +95,22 @@ class RouteBuilderService
             $errors[] = 'Route has no steps configured.';
         }
 
-        // Check if all required steps have work cells
-        $requiredStepsWithoutWorkCell = $route->steps
-            ->filter(fn ($step) => $step->is_required && ! $step->work_cell_id)
+        // Check if all required internal steps have work cells
+        $requiredInternalStepsWithoutWorkCell = $route->steps
+            ->filter(fn ($step) => $step->is_required && $step->execution_location === 'internal' && ! $step->work_cell_id)
             ->count();
 
-        if ($requiredStepsWithoutWorkCell > 0) {
-            $errors[] = "{$requiredStepsWithoutWorkCell} required step(s) do not have work cells assigned.";
+        if ($requiredInternalStepsWithoutWorkCell > 0) {
+            $errors[] = "{$requiredInternalStepsWithoutWorkCell} required internal step(s) do not have work cells assigned.";
+        }
+
+        // Check if all required external steps have manufacturers
+        $requiredExternalStepsWithoutManufacturer = $route->steps
+            ->filter(fn ($step) => $step->is_required && $step->execution_location === 'external' && ! $step->manufacturer_id)
+            ->count();
+
+        if ($requiredExternalStepsWithoutManufacturer > 0) {
+            $errors[] = "{$requiredExternalStepsWithoutManufacturer} required external step(s) do not have manufacturers assigned.";
         }
 
         // Check for duplicate sequences

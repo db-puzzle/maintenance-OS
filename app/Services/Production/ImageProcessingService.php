@@ -4,8 +4,8 @@ namespace App\Services\Production;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class ImageProcessingService
 {
@@ -16,30 +16,30 @@ class ImageProcessingService
         'medium' => ['width' => 800, 'height' => 800],
         'large' => ['width' => 1200, 'height' => 1200],
     ];
-    
+
     public function __construct()
     {
-        $this->imageManager = new ImageManager(new Driver());
+        $this->imageManager = new ImageManager(new Driver);
     }
-    
+
     public function processItemImage(UploadedFile $file, string $itemId): array
     {
         $image = $this->imageManager->read($file);
-        
+
         // Auto-orient based on EXIF data
         $image->orient();
-        
+
         // Get original dimensions
         $originalWidth = $image->width();
         $originalHeight = $image->height();
-        
+
         // Check if image needs to be optimized (> 500KB)
         $needsOptimization = $file->getSize() > 500 * 1024;
-        
+
         // Generate unique filename
         $filename = $this->generateFilename($file);
         $basePath = "items/{$itemId}/images";
-        
+
         // Process and store original (or optimized version)
         if ($needsOptimization) {
             $optimized = $this->optimizeImage($image, 500 * 1024);
@@ -54,7 +54,7 @@ class ImageProcessingService
             $width = $originalWidth;
             $height = $originalHeight;
         }
-        
+
         return [
             'filename' => $file->getClientOriginalName(),
             'storage_path' => $path,
@@ -65,30 +65,30 @@ class ImageProcessingService
             'was_optimized' => $needsOptimization,
         ];
     }
-    
+
     public function generateVariants(string $itemImageId, string $originalPath): array
     {
         $variants = [];
         $image = $this->imageManager->read(Storage::get($originalPath));
-        
+
         foreach ($this->variantSizes as $type => $dimensions) {
             $variant = clone $image;
-            
+
             // Resize to fit within dimensions while maintaining aspect ratio
             $variant->scaleDown($dimensions['width'], $dimensions['height']);
-            
+
             // Convert to WebP for web variants
             $variant->toWebp(85);
-            
+
             $filename = pathinfo($originalPath, PATHINFO_FILENAME) . '.webp';
             $variantPath = str_replace(
                 '/original/',
                 "/variants/{$type}/",
                 dirname($originalPath)
             ) . '/' . $filename;
-            
+
             Storage::put($variantPath, $variant->encode());
-            
+
             $variants[] = [
                 'item_image_id' => $itemImageId,
                 'variant_type' => $type,
@@ -98,28 +98,28 @@ class ImageProcessingService
                 'file_size' => strlen($variant->encode()),
             ];
         }
-        
+
         return $variants;
     }
-    
+
     private function optimizeImage($image, int $targetSize): array
     {
         $quality = 85;
         $scale = 1.0;
         $encoded = null;
-        
+
         // Try progressive reduction until under target size
         while ($quality >= 60 && $scale >= 0.5) {
             $testImage = clone $image;
-            
+
             if ($scale < 1.0) {
-                $newWidth = (int)($image->width() * $scale);
-                $newHeight = (int)($image->height() * $scale);
+                $newWidth = (int) ($image->width() * $scale);
+                $newHeight = (int) ($image->height() * $scale);
                 $testImage->scale($newWidth, $newHeight);
             }
-            
+
             $encoded = $testImage->toJpeg($quality)->encode();
-            
+
             if (strlen($encoded) <= $targetSize) {
                 return [
                     'encoded' => $encoded,
@@ -129,7 +129,7 @@ class ImageProcessingService
                     'scale' => $scale,
                 ];
             }
-            
+
             // Reduce quality first, then scale
             if ($quality > 60) {
                 $quality -= 5;
@@ -138,11 +138,11 @@ class ImageProcessingService
                 $quality = 85; // Reset quality for new scale
             }
         }
-        
+
         // If still too large, use minimum settings
         $finalImage = clone $image;
-        $finalImage->scale((int)($image->width() * 0.5), (int)($image->height() * 0.5));
-        
+        $finalImage->scale((int) ($image->width() * 0.5), (int) ($image->height() * 0.5));
+
         return [
             'encoded' => $finalImage->toJpeg(60)->encode(),
             'width' => $finalImage->width(),
@@ -151,13 +151,14 @@ class ImageProcessingService
             'scale' => 0.5,
         ];
     }
-    
+
     private function generateFilename(UploadedFile $file): string
     {
         $extension = $file->getClientOriginalExtension();
+
         return uniqid() . '_' . time() . '.' . $extension;
     }
-    
+
     public function deleteImage(string $path): void
     {
         Storage::delete($path);

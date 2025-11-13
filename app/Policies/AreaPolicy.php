@@ -22,7 +22,7 @@ class AreaPolicy
 
         // Check if user has any area-related view permissions
         $permissions = $user->getAllPermissions()->pluck('name')->toArray();
-        
+
         foreach ($permissions as $permission) {
             // Check for direct area view permissions
             if (preg_match('/^areas\.view\.\d+$/', $permission)) {
@@ -75,11 +75,11 @@ class AreaPolicy
 
         // Check if user has permissions for any sector within this area
         $areaSectors = $area->sectors()->pluck('id')->toArray();
-        if (!empty($areaSectors)) {
+        if (! empty($areaSectors)) {
             foreach ($userPermissions as $permission) {
                 // Check sector permissions (format: sectors.view.123, sectors.update.123, etc.)
                 if (preg_match('/^sectors\.\w+\.(\d+)$/', $permission, $matches)) {
-                    if (in_array((int)$matches[1], $areaSectors)) {
+                    if (in_array((int) $matches[1], $areaSectors)) {
                         return true;
                     }
                 }
@@ -103,7 +103,7 @@ class AreaPolicy
         // We need to check if user has update permission on any plant
         // The specific plant permission will be checked when validating the plant_id
         $permissions = $user->getAllPermissions()->pluck('name')->toArray();
-        
+
         foreach ($permissions as $permission) {
             // Check if user has update permission on any plant
             if (preg_match('/^plants\.update\.\d+$/', $permission)) {
@@ -159,4 +159,4 @@ class AreaPolicy
 
         return false;
     }
-} 
+}

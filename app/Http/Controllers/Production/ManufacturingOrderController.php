@@ -324,7 +324,9 @@ class ManufacturingOrderController extends BaseSearchController
                     ];
                 }),
             ]),
-            'canPlan' => $order->canBePlanned() && auth()->user()->can('update', $order),
+            // canPlan = Can open planning page (not the same as canBePlanned which is for marking as planned)
+            'canPlan' => $order->status === 'draft' && auth()->user()->can('update', $order),
+            'canBePlanned' => $order->canBePlanned() && auth()->user()->can('update', $order),
             'canSchedule' => $order->canBeScheduled() && auth()->user()->can('update', $order),
             'canRelease' => $order->canBeReleased() && auth()->user()->can('production.orders.release'),
             'canStart' => $order->canStartProduction() && auth()->user()->can('production.orders.release'),

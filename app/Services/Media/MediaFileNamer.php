@@ -22,11 +22,9 @@ class MediaFileNamer extends FileNamer
         $baseName = pathinfo($fileName, PATHINFO_FILENAME);
         $extension = pathinfo($fileName, PATHINFO_EXTENSION);
 
-
         // Check if filename already has our unique suffix pattern (e.g., filename_a1b2c3.ext)
         // This prevents double processing
         if (preg_match('/^(.+)_[a-f0-9]{6}$/', $baseName, $matches)) {
-
             // Return the filename as-is if it already has our suffix
             return ! empty($extension) ? "{$baseName}.{$extension}" : $baseName;
         }
@@ -40,7 +38,6 @@ class MediaFileNamer extends FileNamer
         // Always return just the basename without extension
         // Spatie Media Library will add the extension automatically
         $finalFileName = "{$baseName}_{$uniqueSuffix}";
-
 
         return $finalFileName;
     }
@@ -56,7 +53,6 @@ class MediaFileNamer extends FileNamer
         $conversionName = $conversion->getName();
         // Return just the basename with conversion name, Spatie will add the extension
         $finalFileName = "{$baseName}_{$conversionName}";
-
 
         return $finalFileName;
     }

@@ -17,12 +17,12 @@ class ManufacturingOrderFlow extends Model
         'quantity_transferred',
         'transferred_at',
         'notes',
-        'created_by'
+        'created_by',
     ];
 
     protected $casts = [
         'quantity_transferred' => 'decimal:2',
-        'transferred_at' => 'datetime'
+        'transferred_at' => 'datetime',
     ];
 
     /**
@@ -56,7 +56,7 @@ class ManufacturingOrderFlow extends Model
     {
         return $query->where(function ($q) use ($orderId) {
             $q->where('source_order_id', $orderId)
-              ->orWhere('destination_order_id', $orderId);
+                ->orWhere('destination_order_id', $orderId);
         });
     }
 

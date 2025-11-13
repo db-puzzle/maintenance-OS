@@ -380,9 +380,9 @@ export default function PlanningPage({
                 work_cell_id: step.work_cell_id ?? null,
                 setup_time_minutes: step.setup_time_minutes || 0,
                 cycle_time_minutes: step.cycle_time_minutes || 0,
-                use_workcell_throughput: step.use_workcell_throughput ?? false, // Match RouteBuilder's conversion
+                use_workcell_throughput: step.use_workcell_throughput ?? false,
                 step_type: step.step_type || 'standard',
-                is_required: true, // Default to true as ManufacturingStep doesn't have this field
+                is_required: true,
                 quality_check_mode: step.quality_check_mode,
                 sampling_size: step.sampling_size,
                 form_id: step.form_id,
@@ -392,7 +392,11 @@ export default function PlanningPage({
                         ? 'none'
                         : (step.child_order_dependency_type || 'all_children_completed') as 'none' | 'all_children_completed' | 'children_quantity',
                     minimum_quantity: step.child_order_minimum_quantity || 0
-                }
+                },
+                // External execution fields
+                execution_location: step.execution_location || 'internal',
+                manufacturer_id: step.manufacturer_id || null,
+                expected_lead_time_days: step.expected_lead_time_days || null,
             }));
 
             routeChangesStore.trackChange(activeMO, steps, originalSteps);
@@ -1034,6 +1038,11 @@ export default function PlanningPage({
                     itemName={selectedMOs.size === 1 ? activeMODetails?.item?.name : undefined}
                     routeTemplates={routeTemplates}
                     onTemplateApplied={() => {
+                        // Clear route changes for the affected MOs since the template was saved on the backend
+                        Array.from(selectedMOs).forEach(moId => {
+                            routeChangesStore.clearChanges(moId);
+                        });
+                        
                         // Small delay to ensure backend has completed processing
                         PlanningService.reloadData({
                             delay: 100,

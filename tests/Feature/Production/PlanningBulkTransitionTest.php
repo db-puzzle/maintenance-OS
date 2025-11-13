@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Production;
 
+use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\Production\Item;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingRoute;
@@ -387,5 +388,259 @@ class PlanningBulkTransitionTest extends TestCase
             'work_cell_id' => $workCell->id,
         ]);
         $this->assertFalse($order5->canBePlanned());
+    }
+
+    #[Test]
+    public function it_prevents_transition_when_external_steps_lack_manufacturers()
+    {
+        // Create an order with an external step but no manufacturer assigned
+        $item = Item::factory()->create();
+
+        $order = ManufacturingOrder::factory()->create([
+            'item_id' => $item->id,
+            'status' => 'draft',
+        ]);
+
+        $route = ManufacturingRoute::factory()->create([
+            'manufacturing_order_id' => $order->id,
+            'is_active' => true,
+        ]);
+
+        // Create external step WITHOUT manufacturer
+        ManufacturingStep::factory()->create([
+            'manufacturing_route_id' => $route->id,
+            'execution_location' => 'external',
+            'work_cell_id' => null,
+            'manufacturer_id' => null,
+        ]);
+
+        // Attempt to transition to planned
+        $response = $this->post(route('production.planning.orders.bulk-transition'), [
+            'orderIds' => [$order->id],
+            'targetState' => 'planned',
+            'includeChildren' => false,
+        ]);
+
+        // Should redirect back with error
+        $response->assertStatus(302);
+        $response->assertSessionHas('error');
+
+        // Order should still be draft
+        $this->assertEquals('draft', $order->fresh()->status);
+
+        // Verify canBePlanned returns false
+        $this->assertFalse($order->fresh()->canBePlanned());
+    }
+
+    #[Test]
+    public function it_allows_transition_with_valid_external_step()
+    {
+        // Create an order with a valid external step (has manufacturer, no work cell needed)
+        $item = Item::factory()->create();
+        $manufacturer = Manufacturer::factory()->create();
+
+        $order = ManufacturingOrder::factory()->create([
+            'item_id' => $item->id,
+            'status' => 'draft',
+        ]);
+
+        $route = ManufacturingRoute::factory()->create([
+            'manufacturing_order_id' => $order->id,
+            'is_active' => true,
+        ]);
+
+        // Create external step WITH manufacturer (no work cell needed)
+        ManufacturingStep::factory()->create([
+            'manufacturing_route_id' => $route->id,
+            'execution_location' => 'external',
+            'manufacturer_id' => $manufacturer->id,
+            'work_cell_id' => null,
+            'expected_lead_time_days' => 5,
+        ]);
+
+        // Verify canBePlanned returns true
+        $this->assertTrue($order->fresh()->canBePlanned());
+
+        // Attempt to transition to planned
+        $response = $this->post(route('production.planning.orders.bulk-transition'), [
+            'orderIds' => [$order->id],
+            'targetState' => 'planned',
+            'includeChildren' => false,
+        ]);
+
+        // Should succeed
+        $response->assertStatus(302);
+
+        // Order should be planned
+        $this->assertEquals('planned', $order->fresh()->status);
+    }
+
+    #[Test]
+    public function it_allows_transition_with_mixed_internal_and_external_steps()
+    {
+        // Create an order with both internal steps (with work cells) and external steps (with manufacturers)
+        $item = Item::factory()->create();
+        $workCell = WorkCell::factory()->create();
+        $manufacturer = Manufacturer::factory()->create();
+
+        $order = ManufacturingOrder::factory()->create([
+            'item_id' => $item->id,
+            'status' => 'draft',
+        ]);
+
+        $route = ManufacturingRoute::factory()->create([
+            'manufacturing_order_id' => $order->id,
+            'is_active' => true,
+        ]);
+
+        // Create internal step with work cell
+        ManufacturingStep::factory()->create([
+            'manufacturing_route_id' => $route->id,
+            'sequence' => 1,
+            'execution_location' => 'internal',
+            'work_cell_id' => $workCell->id,
+            'manufacturer_id' => null,
+        ]);
+
+        // Create external step with manufacturer
+        ManufacturingStep::factory()->create([
+            'manufacturing_route_id' => $route->id,
+            'sequence' => 2,
+            'execution_location' => 'external',
+            'manufacturer_id' => $manufacturer->id,
+            'work_cell_id' => null,
+            'expected_lead_time_days' => 7,
+        ]);
+
+        // Create another internal step with work cell
+        ManufacturingStep::factory()->create([
+            'manufacturing_route_id' => $route->id,
+            'sequence' => 3,
+            'execution_location' => 'internal',
+            'work_cell_id' => $workCell->id,
+            'manufacturer_id' => null,
+        ]);
+
+        // Verify canBePlanned returns true
+        $this->assertTrue($order->fresh()->canBePlanned());
+
+        // Attempt to transition to planned
+        $response = $this->post(route('production.planning.orders.bulk-transition'), [
+            'orderIds' => [$order->id],
+            'targetState' => 'planned',
+            'includeChildren' => false,
+        ]);
+
+        // Should succeed
+        $response->assertStatus(302);
+
+        // Order should be planned
+        $this->assertEquals('planned', $order->fresh()->status);
+    }
+
+    #[Test]
+    public function it_prevents_transition_with_mixed_steps_when_internal_lacks_work_cell()
+    {
+        // Create an order with both internal and external steps, but internal step missing work cell
+        $item = Item::factory()->create();
+        $manufacturer = Manufacturer::factory()->create();
+
+        $order = ManufacturingOrder::factory()->create([
+            'item_id' => $item->id,
+            'status' => 'draft',
+        ]);
+
+        $route = ManufacturingRoute::factory()->create([
+            'manufacturing_order_id' => $order->id,
+            'is_active' => true,
+        ]);
+
+        // Create internal step WITHOUT work cell - should fail validation
+        ManufacturingStep::factory()->create([
+            'manufacturing_route_id' => $route->id,
+            'sequence' => 1,
+            'execution_location' => 'internal',
+            'work_cell_id' => null,
+            'manufacturer_id' => null,
+        ]);
+
+        // Create valid external step with manufacturer
+        ManufacturingStep::factory()->create([
+            'manufacturing_route_id' => $route->id,
+            'sequence' => 2,
+            'execution_location' => 'external',
+            'manufacturer_id' => $manufacturer->id,
+            'work_cell_id' => null,
+        ]);
+
+        // Verify canBePlanned returns false
+        $this->assertFalse($order->fresh()->canBePlanned());
+
+        // Attempt to transition to planned
+        $response = $this->post(route('production.planning.orders.bulk-transition'), [
+            'orderIds' => [$order->id],
+            'targetState' => 'planned',
+            'includeChildren' => false,
+        ]);
+
+        // Should redirect back with error
+        $response->assertStatus(302);
+        $response->assertSessionHas('error');
+
+        // Order should still be draft
+        $this->assertEquals('draft', $order->fresh()->status);
+    }
+
+    #[Test]
+    public function it_prevents_transition_with_mixed_steps_when_external_lacks_manufacturer()
+    {
+        // Create an order with both internal and external steps, but external step missing manufacturer
+        $item = Item::factory()->create();
+        $workCell = WorkCell::factory()->create();
+
+        $order = ManufacturingOrder::factory()->create([
+            'item_id' => $item->id,
+            'status' => 'draft',
+        ]);
+
+        $route = ManufacturingRoute::factory()->create([
+            'manufacturing_order_id' => $order->id,
+            'is_active' => true,
+        ]);
+
+        // Create valid internal step with work cell
+        ManufacturingStep::factory()->create([
+            'manufacturing_route_id' => $route->id,
+            'sequence' => 1,
+            'execution_location' => 'internal',
+            'work_cell_id' => $workCell->id,
+            'manufacturer_id' => null,
+        ]);
+
+        // Create external step WITHOUT manufacturer - should fail validation
+        ManufacturingStep::factory()->create([
+            'manufacturing_route_id' => $route->id,
+            'sequence' => 2,
+            'execution_location' => 'external',
+            'work_cell_id' => null,
+            'manufacturer_id' => null,
+        ]);
+
+        // Verify canBePlanned returns false
+        $this->assertFalse($order->fresh()->canBePlanned());
+
+        // Attempt to transition to planned
+        $response = $this->post(route('production.planning.orders.bulk-transition'), [
+            'orderIds' => [$order->id],
+            'targetState' => 'planned',
+            'includeChildren' => false,
+        ]);
+
+        // Should redirect back with error
+        $response->assertStatus(302);
+        $response->assertSessionHas('error');
+
+        // Order should still be draft
+        $this->assertEquals('draft', $order->fresh()->status);
     }
 }

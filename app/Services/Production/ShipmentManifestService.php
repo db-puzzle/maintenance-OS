@@ -6,7 +6,6 @@ use App\Models\Production\Shipment;
 use App\Services\PDFGeneratorService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
-use Illuminate\Support\Str;
 
 class ShipmentManifestService
 {
@@ -116,7 +115,7 @@ class ShipmentManifestService
      */
     protected function formatDimensions($dimensions): ?string
     {
-        if (!$dimensions || !is_array($dimensions)) {
+        if (! $dimensions || ! is_array($dimensions)) {
             return null;
         }
 
@@ -406,7 +405,7 @@ HTML;
      */
     public function downloadManifest(Shipment $shipment): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        if (!$shipment->manifest_path) {
+        if (! $shipment->manifest_path) {
             throw new \Exception('Manifest has not been generated for this shipment.');
         }
 
@@ -425,7 +424,7 @@ HTML;
      */
     public function emailManifest(Shipment $shipment, array $recipients): void
     {
-        if (!$shipment->manifest_path) {
+        if (! $shipment->manifest_path) {
             $this->generateManifest($shipment);
         }
 

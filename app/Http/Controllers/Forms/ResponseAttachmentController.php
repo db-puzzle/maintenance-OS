@@ -19,7 +19,7 @@ class ResponseAttachmentController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -30,7 +30,7 @@ class ResponseAttachmentController extends Controller
     {
         $request->validate([
             'file' => 'required|file|max:10240', // 10MB max
-            'type' => 'required|in:'.implode(',', [ResponseAttachment::TYPE_PHOTO, ResponseAttachment::TYPE_FILE]),
+            'type' => 'required|in:' . implode(',', [ResponseAttachment::TYPE_PHOTO, ResponseAttachment::TYPE_FILE]),
             'metadata' => 'nullable|array',
         ]);
 
@@ -59,7 +59,7 @@ class ResponseAttachmentController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 

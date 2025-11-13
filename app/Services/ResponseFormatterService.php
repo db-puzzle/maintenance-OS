@@ -8,7 +8,7 @@ use App\Models\Forms\TaskResponse;
 class ResponseFormatterService
 {
     /**
-     * Format a task response for display
+     * Format a task response for display.
      */
     public function formatResponse(TaskResponse $response): array
     {
@@ -31,7 +31,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Format measurement response
+     * Format measurement response.
      */
     private function formatMeasurementResponse(TaskResponse $response, FormTask $task): array
     {
@@ -74,7 +74,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Format multiple choice response
+     * Format multiple choice response.
      */
     private function formatMultipleChoiceResponse(TaskResponse $response, FormTask $task): array
     {
@@ -93,7 +93,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Format multiple select response
+     * Format multiple select response.
      */
     private function formatMultipleSelectResponse(TaskResponse $response, FormTask $task): array
     {
@@ -118,7 +118,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Format question response
+     * Format question response.
      */
     private function formatQuestionResponse(TaskResponse $response, FormTask $task): array
     {
@@ -135,7 +135,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Format photo response
+     * Format photo response.
      */
     private function formatPhotoResponse(TaskResponse $response, FormTask $task): array
     {
@@ -166,7 +166,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Format file upload response
+     * Format file upload response.
      */
     private function formatFileUploadResponse(TaskResponse $response, FormTask $task): array
     {
@@ -194,7 +194,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Format code reader response
+     * Format code reader response.
      */
     private function formatCodeReaderResponse(TaskResponse $response, FormTask $task): array
     {
@@ -211,7 +211,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Format generic response
+     * Format generic response.
      */
     private function formatGenericResponse(TaskResponse $response, FormTask $task): array
     {
@@ -226,7 +226,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Get empty response structure
+     * Get empty response structure.
      */
     private function getEmptyResponse(): array
     {
@@ -239,7 +239,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Format generic value for display
+     * Format generic value for display.
      */
     private function formatGenericValue($value): string
     {
@@ -255,7 +255,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Check if file is an image
+     * Check if file is an image.
      */
     private function isImageFile(string $filePath): bool
     {
@@ -265,7 +265,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Get attachment URL (placeholder)
+     * Get attachment URL (placeholder).
      */
     private function getAttachmentUrl($attachment): string
     {
@@ -274,7 +274,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Get thumbnail URL (placeholder)
+     * Get thumbnail URL (placeholder).
      */
     private function getThumbnailUrl($attachment): string
     {
@@ -283,7 +283,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Get task completion status
+     * Get task completion status.
      */
     public function getTaskCompletionStatus(TaskResponse $response): string
     {
@@ -297,7 +297,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Check if response is within acceptable parameters
+     * Check if response is within acceptable parameters.
      */
     public function isResponseAcceptable(TaskResponse $response): bool
     {
@@ -317,7 +317,7 @@ class ResponseFormatterService
     }
 
     /**
-     * Get summary statistics for multiple responses
+     * Get summary statistics for multiple responses.
      */
     public function getResponsesSummary(iterable $responses): array
     {

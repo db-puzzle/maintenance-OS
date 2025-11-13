@@ -610,7 +610,7 @@ class ManufacturingOrder extends Model
             ->whereHas('shipment', function ($query) {
                 $query->where('status', 'shipped');
             })
-            ->sum('quantity');
+            ->sum('quantity_shipped');
     }
 
     /**
@@ -723,7 +723,8 @@ class ManufacturingOrder extends Model
      * 1. Order must be in draft status
      * 2. Must have a manufacturing route
      * 3. Route must have at least one step
-     * 4. All steps must have work cells assigned
+     * 4. All internal steps must have work cells assigned
+     * 5. All external steps must have manufacturers assigned
      */
     public function canBePlanned(): bool
     {
@@ -743,12 +744,27 @@ class ManufacturingOrder extends Model
             return false;
         }
 
-        // All steps must have work cells assigned
-        $unassignedSteps = $this->manufacturingRoute->steps()
+        // All internal steps must have work cells assigned
+        $internalStepsWithoutWorkCell = $this->manufacturingRoute->steps()
+            ->where('execution_location', 'internal')
             ->whereNull('work_cell_id')
             ->count();
 
-        return $unassignedSteps === 0;
+        if ($internalStepsWithoutWorkCell > 0) {
+            return false;
+        }
+
+        // All external steps must have manufacturers assigned
+        $externalStepsWithoutManufacturer = $this->manufacturingRoute->steps()
+            ->where('execution_location', 'external')
+            ->whereNull('manufacturer_id')
+            ->count();
+
+        if ($externalStepsWithoutManufacturer > 0) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

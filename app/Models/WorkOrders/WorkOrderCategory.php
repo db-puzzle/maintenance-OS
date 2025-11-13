@@ -102,15 +102,15 @@ class WorkOrderCategory extends Model
     // Get all allowed source types for this category
     public function getAllowedSourceTypes(): array
     {
-        return match($this->discipline) {
-            'maintenance' => match($this->code) {
+        return match ($this->discipline) {
+            'maintenance' => match ($this->code) {
                 'preventive' => ['manual', 'routine'],
                 'corrective' => ['manual', 'sensor', 'inspection'],
                 'inspection' => ['manual', 'routine'],
                 'project' => ['manual'],
                 default => ['manual']
             },
-            'quality' => match($this->code) {
+            'quality' => match ($this->code) {
                 'calibration' => ['manual', 'calibration_schedule'],
                 'quality_control' => ['manual', 'quality_alert'],
                 'quality_audit' => ['manual', 'audit'],

@@ -102,7 +102,7 @@ abstract class BaseScheduler
                             'family_members' => $family['members']->pluck('order_number')->toArray(),
                             'family_steps' => $family['total_steps'],
                         ]);
-                        
+
                         $result->alerts[] = [
                             'type' => 'family_scheduling_failed',
                             'severity' => 'error',
@@ -122,7 +122,7 @@ abstract class BaseScheduler
                         'scheduled_steps_in_family' => count($familySchedule),
                         'total_scheduled_so_far' => count($scheduledSteps) + count($familySchedule),
                     ]);
-                    
+
                     $scheduledSteps = array_merge($scheduledSteps, $familySchedule);
                     $processedSteps += $family['total_steps'];
 
@@ -176,7 +176,7 @@ abstract class BaseScheduler
             Log::info('BaseScheduler::scheduleByFamilies - Completed scheduling', [
                 'total_scheduled_steps' => count($scheduledSteps),
                 'families_processed' => $families->count(),
-                'has_scheduled_steps' => !empty($scheduledSteps),
+                'has_scheduled_steps' => ! empty($scheduledSteps),
             ]);
 
             $result->success = ! empty($scheduledSteps);

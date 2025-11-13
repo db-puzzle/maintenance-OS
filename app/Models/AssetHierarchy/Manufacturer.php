@@ -42,6 +42,34 @@ class Manufacturer extends Model
     }
 
     /**
+     * Get all manufacturing steps assigned to this manufacturer.
+     */
+    public function manufacturingSteps(): HasMany
+    {
+        return $this->hasMany(\App\Models\Production\ManufacturingStep::class);
+    }
+
+    /**
+     * Get active steps at this manufacturer.
+     */
+    public function activeSteps()
+    {
+        return $this->manufacturingSteps()
+            ->whereIn('external_status', ['shipped', 'in_process'])
+            ->with(['manufacturingRoute.manufacturingOrder']);
+    }
+
+    /**
+     * Get steps awaiting shipment to this manufacturer.
+     */
+    public function stepsAwaitingShipment()
+    {
+        return $this->manufacturingSteps()
+            ->where('external_status', 'awaiting_shipment')
+            ->with(['manufacturingRoute.manufacturingOrder']);
+    }
+
+    /**
      * Get the asset count attribute.
      */
     public function getAssetCountAttribute(): int

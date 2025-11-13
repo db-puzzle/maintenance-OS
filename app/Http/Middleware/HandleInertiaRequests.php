@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\FeatureService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -39,10 +40,14 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
+        // Get enabled features for the current tenant
+        $features = $this->getEnabledFeatures();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
+            'features' => $features,
             'auth' => [
                 'user' => $request->user() ? [
                     'id' => $request->user()->id,
@@ -85,5 +90,29 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
         ];
+    }
+
+    /**
+     * Get enabled features for the current tenant.
+     *
+     * @return array<string, bool>
+     */
+    protected function getEnabledFeatures(): array
+    {
+        try {
+            $featureService = app(FeatureService::class);
+            $enabledFeatureKeys = $featureService->getEnabledFeatures();
+
+            // Convert array of keys to associative array with true values
+            $features = [];
+            foreach ($enabledFeatureKeys as $key) {
+                $features[$key] = true;
+            }
+
+            return $features;
+        } catch (\Exception $e) {
+            // If there's an error (e.g., tables don't exist yet), return empty array
+            return [];
+        }
     }
 }

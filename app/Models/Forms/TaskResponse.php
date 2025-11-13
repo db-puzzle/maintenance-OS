@@ -25,7 +25,7 @@ class TaskResponse extends Model
     ];
 
     /**
-     * Get the work order execution that owns this task response
+     * Get the work order execution that owns this task response.
      */
     public function workOrderExecution(): BelongsTo
     {
@@ -33,7 +33,7 @@ class TaskResponse extends Model
     }
 
     /**
-     * Get the form task this response is for
+     * Get the form task this response is for.
      */
     public function task(): BelongsTo
     {
@@ -41,7 +41,7 @@ class TaskResponse extends Model
     }
 
     /**
-     * Get the user who provided this response
+     * Get the user who provided this response.
      */
     public function user(): BelongsTo
     {
@@ -49,7 +49,7 @@ class TaskResponse extends Model
     }
 
     /**
-     * Get the attachments for this task response
+     * Get the attachments for this task response.
      */
     public function attachments(): HasMany
     {
@@ -57,7 +57,7 @@ class TaskResponse extends Model
     }
 
     /**
-     * Get the task type from the related task
+     * Get the task type from the related task.
      */
     public function getTaskType(): string
     {
@@ -65,7 +65,7 @@ class TaskResponse extends Model
     }
 
     /**
-     * Get the task description from the related task
+     * Get the task description from the related task.
      */
     public function getTaskDescription(): string
     {
@@ -73,7 +73,7 @@ class TaskResponse extends Model
     }
 
     /**
-     * Get the task configuration from the related task
+     * Get the task configuration from the related task.
      */
     public function getTaskConfiguration(): array
     {
@@ -81,7 +81,7 @@ class TaskResponse extends Model
     }
 
     /**
-     * Check if this task is required
+     * Check if this task is required.
      */
     public function isRequired(): bool
     {
@@ -89,7 +89,7 @@ class TaskResponse extends Model
     }
 
     /**
-     * Check if this is a photo task
+     * Check if this is a photo task.
      */
     public function isPhotoTask(): bool
     {
@@ -97,7 +97,7 @@ class TaskResponse extends Model
     }
 
     /**
-     * Check if this is a file upload task
+     * Check if this is a file upload task.
      */
     public function isFileUploadTask(): bool
     {
@@ -105,7 +105,7 @@ class TaskResponse extends Model
     }
 
     /**
-     * Check if response is provided
+     * Check if response is provided.
      */
     public function isCompleted(): bool
     {

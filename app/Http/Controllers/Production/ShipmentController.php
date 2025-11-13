@@ -3,14 +3,12 @@
 namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\BaseSearchController;
-use App\Models\Production\ManufacturingOrder;
+use App\Models\Production\Item;
 use App\Models\Production\Shipment;
 use App\Models\Production\ShipmentItem;
-use App\Models\Production\Item;
 use App\Services\Production\ShipmentManifestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,7 +34,7 @@ class ShipmentController extends BaseSearchController
                     'shipment_number',
                     'destination',
                     'customer_name',
-                    'tracking_number'
+                    'tracking_number',
                 ]);
             })
             ->when($request->filled('status'), function ($query) use ($request) {
@@ -121,20 +119,20 @@ class ShipmentController extends BaseSearchController
 
         // Parse and validate items
         $items = json_decode($validated['items'], true);
-        if (!is_array($items) || empty($items)) {
+        if (! is_array($items) || empty($items)) {
             return back()->withErrors(['items' => 'Invalid items data']);
         }
 
         // Validate each item
         foreach ($items as $index => $item) {
-            if (!isset($item['item_id']) || !isset($item['quantity']) || !isset($item['unit_of_measure'])) {
+            if (! isset($item['item_id']) || ! isset($item['quantity']) || ! isset($item['unit_of_measure'])) {
                 return back()->withErrors(['items' => "Item at index {$index} is missing required fields"]);
             }
-            
-            if (!Item::where('id', $item['item_id'])->exists()) {
+
+            if (! Item::where('id', $item['item_id'])->exists()) {
                 return back()->withErrors(['items' => "Item ID {$item['item_id']} does not exist"]);
             }
-            
+
             if ($item['quantity'] <= 0) {
                 return back()->withErrors(['items' => "Item at index {$index} has invalid quantity"]);
             }
@@ -143,7 +141,7 @@ class ShipmentController extends BaseSearchController
         $shipment = DB::transaction(function () use ($validated, $items) {
             // Generate shipment number
             $shipmentNumber = Shipment::generateShipmentNumber();
-            
+
             // Create destination details array
             $destinationDetails = [
                 'name' => $validated['destination_name'],
@@ -168,7 +166,7 @@ class ShipmentController extends BaseSearchController
             // Create shipment items
             foreach ($items as $itemData) {
                 $item = Item::find($itemData['item_id']);
-                
+
                 ShipmentItem::create([
                     'shipment_id' => $shipment->id,
                     'item_number' => $item->item_number,
@@ -220,7 +218,7 @@ class ShipmentController extends BaseSearchController
     {
         $this->authorize('update', $shipment);
 
-        if (!in_array($shipment->status, ['draft', 'ready'])) {
+        if (! in_array($shipment->status, ['draft', 'ready'])) {
             return redirect()->route('production.shipments.show', $shipment)
                 ->with('error', 'Cannot edit shipment in current status.');
         }
@@ -239,7 +237,7 @@ class ShipmentController extends BaseSearchController
     {
         $this->authorize('update', $shipment);
 
-        if (!in_array($shipment->status, ['draft', 'ready'])) {
+        if (! in_array($shipment->status, ['draft', 'ready'])) {
             return back()->with('error', 'Cannot update shipment in current status.');
         }
 
@@ -266,7 +264,7 @@ class ShipmentController extends BaseSearchController
     {
         $this->authorize('delete', $shipment);
 
-        if (!in_array($shipment->status, ['draft', 'cancelled'])) {
+        if (! in_array($shipment->status, ['draft', 'cancelled'])) {
             return back()->with('error', 'Cannot delete shipment in current status.');
         }
 
@@ -286,6 +284,7 @@ class ShipmentController extends BaseSearchController
 
         try {
             $shipment->markAsReady();
+
             return back()->with('success', 'Shipment marked as ready.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
@@ -364,7 +363,7 @@ class ShipmentController extends BaseSearchController
         try {
             $shipment->cancel();
             $shipment->update(['cancellation_reason' => $validated['cancellation_reason']]);
-            
+
             return back()->with('success', 'Shipment cancelled successfully.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
@@ -391,7 +390,7 @@ class ShipmentController extends BaseSearchController
             foreach ($request->file('photos') as $photo) {
                 // Extract GPS data if available
                 $gpsData = $this->extractGpsData($photo);
-                
+
                 // Use Spatie Media Library to handle the upload
                 $media = $shipment->addShipmentPhoto($photo, array_merge(
                     $gpsData,
@@ -401,7 +400,7 @@ class ShipmentController extends BaseSearchController
                         'uploaded_by' => auth()->id(),
                     ]
                 ));
-                
+
                 $uploadedPhotos[] = $media;
             }
         });
@@ -421,8 +420,8 @@ class ShipmentController extends BaseSearchController
         $this->authorize('uploadPhotos', $shipment);
 
         $media = $shipment->getMedia('photos')->find($mediaId);
-        
-        if (!$media) {
+
+        if (! $media) {
             abort(404);
         }
 
@@ -519,13 +518,13 @@ class ShipmentController extends BaseSearchController
     {
         $data = substr($signatureData, strpos($signatureData, ',') + 1);
         $data = base64_decode($data);
-        
+
         $fileName = 'signature-' . $shipment->id . '.png';
-        
+
         // Create a temporary file
         $tempPath = tempnam(sys_get_temp_dir(), 'signature');
         file_put_contents($tempPath, $data);
-        
+
         // Add to media library
         $shipment->addMedia($tempPath)
             ->usingFileName($fileName)
@@ -544,11 +543,11 @@ class ShipmentController extends BaseSearchController
     {
         try {
             $exif = exif_read_data($photo->getRealPath());
-            
+
             if (isset($exif['GPSLatitude']) && isset($exif['GPSLongitude'])) {
                 $lat = $this->getGps($exif['GPSLatitude'], $exif['GPSLatitudeRef']);
                 $lon = $this->getGps($exif['GPSLongitude'], $exif['GPSLongitudeRef']);
-                
+
                 return [
                     'latitude' => $lat,
                     'longitude' => $lon,
@@ -557,7 +556,7 @@ class ShipmentController extends BaseSearchController
         } catch (\Exception $e) {
             // Silently fail if EXIF data cannot be read
         }
-        
+
         return null;
     }
 
@@ -592,4 +591,4 @@ class ShipmentController extends BaseSearchController
 
         return floatval($parts[0]) / floatval($parts[1]);
     }
-} 
+}

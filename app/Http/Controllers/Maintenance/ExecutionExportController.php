@@ -19,7 +19,7 @@ class ExecutionExportController extends Controller
     ) {}
 
     /**
-     * Export a single execution
+     * Export a single execution.
      */
     public function exportSingle(Request $request, WorkOrderExecution $execution)
     {
@@ -53,7 +53,7 @@ class ExecutionExportController extends Controller
     }
 
     /**
-     * Get export status
+     * Get export status.
      */
     public function exportStatus(Request $request, ExecutionExport $export)
     {
@@ -86,7 +86,7 @@ class ExecutionExportController extends Controller
     }
 
     /**
-     * Download exported file
+     * Download exported file.
      */
     public function download(Request $request, ExecutionExport $export)
     {
@@ -108,31 +108,31 @@ class ExecutionExportController extends Controller
         // Always use the specified filename format
         try {
             $execution = WorkOrderExecution::with(['workOrder', 'workOrder.asset'])->find($export->execution_ids[0]);
-            
+
             if ($execution && $execution->workOrder) {
                 // Get asset tag
                 $assetTag = $execution->workOrder->asset->tag ?? 'NoAsset';
-                
+
                 // Get work order title
                 $workOrderTitle = $execution->workOrder->title;
-                
+
                 // Sanitize filename components - use Laravel's Str::slug for better handling of special characters
                 // This will convert accented characters to their ASCII equivalents
                 $assetTag = Str::slug($assetTag, '_');
                 $workOrderTitle = Str::slug($workOrderTitle, '_');
-                
+
                 // Convert to uppercase
                 $assetTag = strtoupper($assetTag);
                 $workOrderTitle = strtoupper($workOrderTitle);
-                
+
                 // Get execution ID
                 $executionId = $execution->id;
-                
+
                 // Get execution date/time
-                $executionDateTime = $execution->started_at 
+                $executionDateTime = $execution->started_at
                     ? \Carbon\Carbon::parse($execution->started_at)->format('Y-m-d_His')
                     : $export->created_at->format('Y-m-d_His');
-                
+
                 // Build filename: AssetTag_WorkOrderTitle_ExecutionID_ExecutionDateTime.pdf
                 $fileName = "{$assetTag}_{$workOrderTitle}_ID{$executionId}_{$executionDateTime}.pdf";
             } else {
@@ -156,7 +156,7 @@ class ExecutionExportController extends Controller
 
         return response()->download($filePath, $fileName, [
             'Content-Type' => $mimeType,
-            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
             'Pragma' => 'no-cache',
             'Expires' => '0',
@@ -164,7 +164,7 @@ class ExecutionExportController extends Controller
     }
 
     /**
-     * Get user's export history
+     * Get user's export history.
      */
     public function userExports(Request $request)
     {
@@ -190,7 +190,7 @@ class ExecutionExportController extends Controller
     }
 
     /**
-     * Cancel a pending export
+     * Cancel a pending export.
      */
     public function cancel(Request $request, ExecutionExport $export)
     {
@@ -208,7 +208,7 @@ class ExecutionExportController extends Controller
     }
 
     /**
-     * Validate export request
+     * Validate export request.
      */
     private function validateExportRequest(Request $request, string $type): array
     {
@@ -227,7 +227,7 @@ class ExecutionExportController extends Controller
     }
 
     /**
-     * Determine if export should be processed immediately
+     * Determine if export should be processed immediately.
      */
     private function shouldProcessImmediately(string $format, int $executionCount): bool
     {
@@ -242,7 +242,7 @@ class ExecutionExportController extends Controller
     }
 
     /**
-     * Process export immediately and return response
+     * Process export immediately and return response.
      */
     private function processExportImmediately(ExecutionExport $export)
     {
@@ -260,7 +260,7 @@ class ExecutionExportController extends Controller
             $export->markAsFailed();
 
             return response()->json([
-                'error' => 'Export failed: '.$e->getMessage(),
+                'error' => 'Export failed: ' . $e->getMessage(),
             ], 500);
         }
     }

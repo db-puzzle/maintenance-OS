@@ -43,4 +43,4 @@ class RejectWorkOrderRequest extends FormRequest
             'notes.max' => 'A razão da rejeição não pode ter mais de 1000 caracteres.',
         ];
     }
-} 
+}

@@ -5,14 +5,12 @@ namespace App\Services\Production;
 use App\Models\Production\Item;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
 
 class ItemImageBulkImportService
 {
-    public function __construct()
-    {
-    }
+    public function __construct() {}
 
     /**
      * Import item images from a manifest and uploaded files.
@@ -44,7 +42,7 @@ class ItemImageBulkImportService
             $itemId = $entry['item_id'] ?? null;
             $images = $entry['images'] ?? [];
 
-            if (!$identifier && !$itemId) {
+            if (! $identifier && ! $itemId) {
                 $summary['errors'][] = 'Entry missing identifier and item_id.';
                 $summary['imagesSkipped'] += count($images);
                 continue;
@@ -58,7 +56,7 @@ class ItemImageBulkImportService
                 $item = Item::whereRaw('LOWER(item_number) = ?', [strtolower($identifier)])->first();
             }
 
-            if (!$item) {
+            if (! $item) {
                 $summary['errors'][] = "Item not found for identifier '{$identifier}'.";
                 $summary['imagesSkipped'] += count($images);
                 continue;
@@ -100,7 +98,7 @@ class ItemImageBulkImportService
                         continue;
                     }
                     $clientName = $imageEntry['client_name'] ?? null;
-                    if (!$clientName || !isset($fileMap[$clientName])) {
+                    if (! $clientName || ! isset($fileMap[$clientName])) {
                         $summary['errors'][] = "File '{$clientName}' not found in upload for item '{$item->item_number}'.";
                         $summary['imagesSkipped']++;
                         continue;
@@ -120,7 +118,7 @@ class ItemImageBulkImportService
                     $media = $item->addMedia($file)
                         ->withCustomProperties([
                             'uploaded_by' => auth()->id(),
-                            'is_primary' => !$hadPrimary && $importedForItem === 0 && ($imageEntry['is_primary'] ?? false),
+                            'is_primary' => ! $hadPrimary && $importedForItem === 0 && ($imageEntry['is_primary'] ?? false),
                             'display_order' => $item->media()->count() + 1,
                         ])
                         ->toMediaCollection('images');
@@ -130,7 +128,7 @@ class ItemImageBulkImportService
                     $summary['imagesImported']++;
                 }
 
-                if (!$item->getMedia('images')->where('custom_properties->is_primary', true)->exists()) {
+                if (! $item->getMedia('images')->where('custom_properties->is_primary', true)->exists()) {
                     $first = $item->getMedia('images')->sortBy('custom_properties.display_order')->first();
                     if ($first) {
                         $first->setCustomProperty('is_primary', true);
@@ -147,5 +145,3 @@ class ItemImageBulkImportService
         return $summary;
     }
 }
-
-

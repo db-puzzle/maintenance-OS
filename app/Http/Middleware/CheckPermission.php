@@ -11,9 +11,9 @@ class CheckPermission
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response) $next
      */
-    public function handle(Request $request, Closure $next, string $permission, string $guard = null): Response
+    public function handle(Request $request, Closure $next, string $permission, ?string $guard = null): Response
     {
         if (auth()->guest()) {
             abort(403, 'Unauthenticated.');

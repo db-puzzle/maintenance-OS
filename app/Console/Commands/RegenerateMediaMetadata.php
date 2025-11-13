@@ -58,6 +58,7 @@ class RegenerateMediaMetadata extends Command
 
         if ($count === 0) {
             $this->info('No media found to process.');
+
             return self::SUCCESS;
         }
 

@@ -18,7 +18,7 @@ class AssetTypeController extends Controller
         $assetTypes = AssetType::query()
             ->withCount('asset')
             ->when($request->search, function ($query, $search) {
-                $query->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($search).'%']);
+                $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($search) . '%']);
             })
             ->when($sort, function ($query) use ($sort, $direction) {
                 switch ($sort) {
@@ -50,8 +50,6 @@ class AssetTypeController extends Controller
             ],
         ]);
     }
-
-
 
     public function show(AssetType $assetType)
     {
@@ -119,12 +117,10 @@ class AssetTypeController extends Controller
             ->with('success', "Tipo de ativo {$assetType->name} criado com sucesso.");
     }
 
-
-
     public function update(Request $request, AssetType $assetType)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:asset_types,name,'.$assetType->id,
+            'name' => 'required|string|max:255|unique:asset_types,name,' . $assetType->id,
             'description' => 'nullable|string',
         ]);
 

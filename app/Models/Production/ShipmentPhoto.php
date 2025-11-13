@@ -44,7 +44,7 @@ class ShipmentPhoto extends Model
             if ($model->file_path && Storage::exists($model->file_path)) {
                 Storage::delete($model->file_path);
             }
-            
+
             if ($model->thumbnail_path && Storage::exists($model->thumbnail_path)) {
                 Storage::delete($model->thumbnail_path);
             }
@@ -96,8 +96,8 @@ class ShipmentPhoto extends Model
      */
     public function getFileSizeAttribute()
     {
-        return $this->file_path && Storage::exists($this->file_path) 
-            ? Storage::size($this->file_path) 
+        return $this->file_path && Storage::exists($this->file_path)
+            ? Storage::size($this->file_path)
             : null;
     }
 
@@ -107,14 +107,14 @@ class ShipmentPhoto extends Model
     public function getHumanFileSizeAttribute()
     {
         $size = $this->file_size;
-        
-        if (!$size) {
+
+        if (! $size) {
             return null;
         }
 
         $units = ['B', 'KB', 'MB', 'GB'];
         $i = 0;
-        
+
         while ($size >= 1024 && $i < count($units) - 1) {
             $size /= 1024;
             $i++;
@@ -143,18 +143,18 @@ class ShipmentPhoto extends Model
      */
     public function getGpsCoordinatesAttribute()
     {
-        if (!$this->metadata || !isset($this->metadata['GPS'])) {
+        if (! $this->metadata || ! isset($this->metadata['GPS'])) {
             return null;
         }
 
         $gps = $this->metadata['GPS'];
-        
+
         if (isset($gps['GPSLatitude']) && isset($gps['GPSLongitude'])) {
             $lat = $this->convertGpsToDecimal(
                 $gps['GPSLatitude'],
                 $gps['GPSLatitudeRef'] ?? 'N'
             );
-            
+
             $lng = $this->convertGpsToDecimal(
                 $gps['GPSLongitude'],
                 $gps['GPSLongitudeRef'] ?? 'E'

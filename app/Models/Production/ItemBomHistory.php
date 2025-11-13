@@ -60,7 +60,8 @@ class ItemBomHistory extends Model
     public function isEffective(): bool
     {
         $now = now();
-        return $this->effective_from <= $now && 
+
+        return $this->effective_from <= $now &&
                ($this->effective_to === null || $this->effective_to > $now);
     }
-} 
+}

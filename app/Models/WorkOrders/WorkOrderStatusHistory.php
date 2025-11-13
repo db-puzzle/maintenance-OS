@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WorkOrderStatusHistory extends Model
 {
     protected $table = 'work_order_status_history';
-    
+
     protected $fillable = [
         'work_order_id',
         'from_status',
@@ -28,7 +28,7 @@ class WorkOrderStatusHistory extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($model) {
             $model->created_at = $model->created_at ?: now();
         });
@@ -48,7 +48,7 @@ class WorkOrderStatusHistory extends Model
     // Helper methods
     public function getDurationInPreviousStatusAttribute(): ?string
     {
-        if (!$this->from_status) {
+        if (! $this->from_status) {
             return null;
         }
 
@@ -59,7 +59,7 @@ class WorkOrderStatusHistory extends Model
             ->orderBy('created_at', 'desc')
             ->first();
 
-        if (!$previousChange) {
+        if (! $previousChange) {
             // Use work order creation time
             $startTime = $this->workOrder->created_at;
         } else {
@@ -67,7 +67,7 @@ class WorkOrderStatusHistory extends Model
         }
 
         $duration = $startTime->diff($this->created_at);
-        
+
         if ($duration->days > 0) {
             return $duration->format('%a days %h hours');
         } elseif ($duration->h > 0) {

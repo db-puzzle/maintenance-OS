@@ -282,13 +282,13 @@ class ProductionRoutingController extends Controller
 
         // Check if routing has any completed steps
         if ($routing->steps()->whereNotIn('status', ['pending', 'cancelled'])->exists()) {
-            return back()->with('error', 'Cannot delete routing with executed steps.');
+            return back()->with('error', 'Não é possível excluir roteiro com etapas executadas.');
         }
 
         $routing->delete();
 
         return redirect()->route('production.routing.index')
-            ->with('success', 'Routing deleted successfully.');
+            ->with('success', 'Modelo de roteiro excluído com sucesso.');
     }
 
     /**
@@ -936,16 +936,16 @@ class ProductionRoutingController extends Controller
                 $result = $this->importService->importFromCsv($file, $mapping, $updateExisting);
             }
 
-            $message = "Successfully imported {$result['count']} route templates.";
+            $message = "Todos os {$result['count']} templates foram importados com sucesso.";
 
             if (isset($result['skipped']) && $result['skipped'] > 0) {
-                $message .= " {$result['skipped']} templates were skipped (already exist).";
+                $message .= " {$result['skipped']} templates foram ignorados (já existem).";
             }
 
             // Add warning about created work cells
             if (! empty($result['created_work_cells'])) {
                 $workCellNames = implode(', ', $result['created_work_cells']);
-                $message .= " Warning: The following work cells were created with default settings and need configuration: {$workCellNames}";
+                $message .= " Células de trabalho criadas: {$workCellNames}. Por favor, configure-as.";
             }
 
             // Return JSON response for AJAX requests

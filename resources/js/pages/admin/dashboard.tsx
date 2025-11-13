@@ -7,6 +7,7 @@ import {
     Activity,
     Building2,
     Database,
+    Flag,
     RefreshCw,
     Settings,
     TrendingDown,
@@ -76,6 +77,12 @@ export default function AdminDashboard({ auth, stats, recentActivity, tenantHeal
             href: '/accounts',
             icon: Building2,
             count: stats.total,
+        },
+        {
+            title: 'Feature Flags',
+            description: 'Control global and plan-based features',
+            href: '/features',
+            icon: Flag,
         },
         {
             title: 'System Health',

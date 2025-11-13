@@ -15,7 +15,9 @@ use Spatie\MediaLibrary\HasMedia;
 
 class Asset extends Model implements HasMedia
 {
-    use HasFactory, AssetRuntimeCalculator, HasMediaTrait;
+    use AssetRuntimeCalculator;
+    use HasFactory;
+    use HasMediaTrait;
 
     protected $table = 'assets';
 
@@ -156,7 +158,7 @@ class Asset extends Model implements HasMedia
     }
 
     /**
-     * Get maintenance metrics for the asset
+     * Get maintenance metrics for the asset.
      */
     public function getMaintenanceMetrics(Carbon $startDate, Carbon $endDate)
     {
@@ -166,8 +168,12 @@ class Asset extends Model implements HasMedia
 
         return [
             'total_work_orders' => $workOrders->count(),
-            'preventive_count' => $workOrders->filter(function($wo) { return $wo->workOrderCategory?->code === 'preventive'; })->count(),
-            'corrective_count' => $workOrders->filter(function($wo) { return $wo->workOrderCategory?->code === 'corrective'; })->count(),
+            'preventive_count' => $workOrders->filter(function ($wo) {
+                return $wo->workOrderCategory?->code === 'preventive';
+            })->count(),
+            'corrective_count' => $workOrders->filter(function ($wo) {
+                return $wo->workOrderCategory?->code === 'corrective';
+            })->count(),
             'total_downtime_hours' => $workOrders->sum('actual_hours'),
             'total_cost' => $workOrders->sum('actual_total_cost'),
             'mtbf' => $this->calculateMTBF($startDate, $endDate),
@@ -176,7 +182,7 @@ class Asset extends Model implements HasMedia
     }
 
     /**
-     * Calculate Mean Time Between Failures
+     * Calculate Mean Time Between Failures.
      */
     private function calculateMTBF(Carbon $startDate, Carbon $endDate): float
     {
@@ -184,24 +190,24 @@ class Asset extends Model implements HasMedia
             ->corrective()
             ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
-            
+
         if ($failures === 0) {
             return 0;
         }
-        
+
         $totalHours = $startDate->diffInHours($endDate);
         $downtimeHours = $this->workOrders()
             ->corrective()
             ->whereBetween('created_at', [$startDate, $endDate])
             ->sum('actual_hours');
-            
+
         $uptimeHours = $totalHours - $downtimeHours;
-        
+
         return round($uptimeHours / $failures, 2);
     }
 
     /**
-     * Calculate Mean Time To Repair
+     * Calculate Mean Time To Repair.
      */
     private function calculateMTTR(Carbon $startDate, Carbon $endDate): float
     {
@@ -210,16 +216,16 @@ class Asset extends Model implements HasMedia
             ->whereBetween('created_at', [$startDate, $endDate])
             ->whereNotNull('actual_hours')
             ->get();
-            
+
         if ($correctiveWorkOrders->isEmpty()) {
             return 0;
         }
-        
+
         return round($correctiveWorkOrders->avg('actual_hours'), 2);
     }
-    
+
     /**
-     * Get average runtime hours per day based on recent measurements
+     * Get average runtime hours per day based on recent measurements.
      */
     public function getAverageRuntimePerDay(): float
     {
@@ -228,38 +234,38 @@ class Asset extends Model implements HasMedia
             ->where('created_at', '>=', now()->subDays(30))
             ->orderBy('created_at', 'asc')
             ->get();
-            
+
         if ($measurements->count() < 2) {
             // Not enough data, use default 8 hours per day
             return 8.0;
         }
-        
+
         $totalHours = 0;
         $totalDays = 0;
-        
+
         // Calculate runtime between consecutive measurements
         for ($i = 1; $i < $measurements->count(); $i++) {
             $previous = $measurements[$i - 1];
             $current = $measurements[$i];
-            
+
             $hoursDiff = $current->reported_hours - $previous->reported_hours;
             $daysDiff = $previous->created_at->diffInDays($current->created_at);
-            
+
             if ($daysDiff > 0 && $hoursDiff > 0) {
                 $totalHours += $hoursDiff;
                 $totalDays += $daysDiff;
             }
         }
-        
+
         if ($totalDays === 0) {
             return 8.0; // Default
         }
-        
+
         return round($totalHours / $totalDays, 2);
     }
-    
+
     /**
-     * Register media collections
+     * Register media collections.
      */
     public function registerMediaCollections(): void
     {

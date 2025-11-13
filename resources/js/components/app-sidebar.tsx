@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { ChartGantt, LayoutGrid, Factory, UsersRound, Building2, SquarePen } from 'lucide-react';
+import { ChartGantt, LayoutGrid, Factory, UsersRound, Building2, SquarePen, Truck } from 'lucide-react';
 import AppLogo from './app-logo';
 interface NavGroup {
     title: string;
@@ -79,21 +79,21 @@ const gerenciamentoNavItems: NavGroup = {
                 },
             ],
         },
-        /*{
-            title: 'Expedição',
+        {
+            title: 'Logística',
             href: '#',
             icon: Truck,
             items: [
                 {
                     title: 'Remessas',
-                    href: '/production/shipments',
+                    href: '/logistics/shipments',
                 },
                 {
-                    title: 'Rastreamento',
-                    href: '/production/tracking',
+                    title: 'Etapas Externas',
+                    href: '/production/external-steps',
                 },
             ],
-        },*/
+        },
         /*{
             title: 'Manutenção',
             href: '#',

@@ -67,4 +67,4 @@ class ItemCategory extends Model
     {
         return $this->routeTemplates()->where('is_active', true)->exists();
     }
-} 
+}

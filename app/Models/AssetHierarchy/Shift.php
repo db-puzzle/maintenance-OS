@@ -40,18 +40,18 @@ class Shift extends Model
     }
 
     /**
-     * Convert a local time to UTC for a specific date
+     * Convert a local time to UTC for a specific date.
      *
-     * @param  string  $time  The time in HH:MM format
-     * @param  string  $date  The date in Y-m-d format
+     * @param string $time The time in HH:MM format
+     * @param string $date The date in Y-m-d format
      */
     public function localTimeToUTC(string $time, string $date): Carbon
     {
-        return Carbon::parse($date.' '.$time, $this->timezone)->utc();
+        return Carbon::parse($date . ' ' . $time, $this->timezone)->utc();
     }
 
     /**
-     * Convert a UTC time to local time
+     * Convert a UTC time to local time.
      */
     public function utcToLocalTime(Carbon $utcTime): Carbon
     {
@@ -59,10 +59,10 @@ class Shift extends Model
     }
 
     /**
-     * Get shift times for a specific date in UTC
+     * Get shift times for a specific date in UTC.
      *
-     * @param  string  $date  The date in Y-m-d format
-     * @param  string  $weekday  The weekday name
+     * @param string $date The date in Y-m-d format
+     * @param string $weekday The weekday name
      */
     public function getShiftTimesForDateInUTC(string $date, string $weekday): array
     {

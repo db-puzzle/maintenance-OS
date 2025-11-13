@@ -18,11 +18,23 @@ class StepScheduleData
 
     public function __construct(array $data = [])
     {
-        if (isset($data['stepId'])) $this->stepId = $data['stepId'];
-        if (isset($data['workCellId'])) $this->workCellId = $data['workCellId'];
-        if (isset($data['scheduledStart'])) $this->scheduledStart = $data['scheduledStart'] instanceof DateTime ? $data['scheduledStart'] : new DateTime($data['scheduledStart']);
-        if (isset($data['scheduledEnd'])) $this->scheduledEnd = $data['scheduledEnd'] instanceof DateTime ? $data['scheduledEnd'] : new DateTime($data['scheduledEnd']);
-        if (isset($data['isLocked'])) $this->isLocked = $data['isLocked'];
-        if (isset($data['conflicts'])) $this->conflicts = $data['conflicts'];
+        if (isset($data['stepId'])) {
+            $this->stepId = $data['stepId'];
+        }
+        if (isset($data['workCellId'])) {
+            $this->workCellId = $data['workCellId'];
+        }
+        if (isset($data['scheduledStart'])) {
+            $this->scheduledStart = $data['scheduledStart'] instanceof DateTime ? $data['scheduledStart'] : new DateTime($data['scheduledStart']);
+        }
+        if (isset($data['scheduledEnd'])) {
+            $this->scheduledEnd = $data['scheduledEnd'] instanceof DateTime ? $data['scheduledEnd'] : new DateTime($data['scheduledEnd']);
+        }
+        if (isset($data['isLocked'])) {
+            $this->isLocked = $data['isLocked'];
+        }
+        if (isset($data['conflicts'])) {
+            $this->conflicts = $data['conflicts'];
+        }
     }
 }

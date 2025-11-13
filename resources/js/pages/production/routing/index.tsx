@@ -13,7 +13,6 @@ import { Download, Upload, FileText, Info } from 'lucide-react';
 
 import { ColumnConfig } from '@/types/shared';
 import { ManufacturingRoute as Routing } from '@/types/production';
-import { toast } from 'sonner';
 interface Props {
     routings: {
         data: Routing[];
@@ -71,15 +70,11 @@ export default function RoutingTemplatesIndex({
                 preserveScroll: true,
                 onSuccess: () => {
                     setDeleteRouting(null);
-                    toast.success('Modelo de roteiro excluído com sucesso');
+                    // Success message is handled by flash message from backend
                 },
-                onError: () => {
-                    toast.error('Erro ao excluir modelo de roteiro');
-                }
             });
         } catch (error) {
             console.error('Delete error:', error);
-            toast.error('Erro ao excluir modelo de roteiro');
         }
     };
 

@@ -427,12 +427,32 @@ export interface ManufacturingStep {
     // Scheduling fields
     scheduled_start?: string;
     scheduled_end?: string;
+    // External execution fields
+    execution_location?: 'internal' | 'external';
+    manufacturer_id?: number | null;
+    manufacturer?: Manufacturer;
+    expected_lead_time_days?: number | null;
+    external_status?: 'awaiting_shipment' | 'shipped' | 'in_process' | null;
+    shipped_date?: string | null;
+    received_date?: string | null;
+    quantity_shipped?: number;
+    quantity_received?: number;
+    // Computed attributes
+    remaining_quantity_to_ship?: number;
+    remaining_quantity_to_receive?: number;
     manufacturing_route?: ManufacturingRoute;
     next_step?: ManufacturingStep;
     // Runtime properties for UI
     can_start?: boolean;
     cannot_start_reason?: string;
 }
+
+export type ExecutionLocation = 'internal' | 'external';
+
+export type ExternalStatus =
+    | 'awaiting_shipment'
+    | 'shipped'
+    | 'in_process';
 
 export interface ManufacturingStepExecution {
     id: number;

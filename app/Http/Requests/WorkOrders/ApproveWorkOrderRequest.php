@@ -35,4 +35,4 @@ class ApproveWorkOrderRequest extends FormRequest
             'notes.max' => 'As notas não podem ter mais de 1000 caracteres.',
         ];
     }
-} 
+}

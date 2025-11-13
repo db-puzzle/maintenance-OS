@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Services\PermissionValidationService;
 use App\Services\AuditLogService;
+use App\Services\PermissionValidationService;
+use Illuminate\Console\Command;
 
 class PermissionCleanup extends Command
 {
@@ -30,14 +30,14 @@ class PermissionCleanup extends Command
     public function handle(PermissionValidationService $validationService): int
     {
         $this->info('Starting Permission System V2 validation...');
-        
+
         // Validate all permissions
         $results = $validationService->validateAllPermissions();
-        
+
         $this->info("Total permissions: {$results['total']}");
         $this->info("Valid permissions: {$results['valid']}");
         $this->warn("Invalid permissions: {$results['invalid']}");
-        
+
         if ($results['invalid'] > 0) {
             $this->table(
                 ['Permission ID', 'Permission Name', 'Errors'],
@@ -45,12 +45,12 @@ class PermissionCleanup extends Command
                     return [
                         $id,
                         $errors['permission'],
-                        implode("\n", $errors['errors'])
+                        implode("\n", $errors['errors']),
                     ];
                 })->toArray()
             );
         }
-        
+
         // Check for duplicates
         $duplicates = $validationService->findDuplicatePermissions();
         if (count($duplicates) > 0) {
@@ -62,7 +62,7 @@ class PermissionCleanup extends Command
                 })->toArray()
             );
         }
-        
+
         // Check hierarchy consistency
         $hierarchyIssues = $validationService->validateHierarchyConsistency();
         if (count($hierarchyIssues) > 0) {
@@ -71,16 +71,16 @@ class PermissionCleanup extends Command
                 $this->error("- $issue");
             }
         }
-        
+
         // Cleanup if not in validate-only mode
-        if (!$this->option('validate')) {
+        if (! $this->option('validate')) {
             if ($this->option('force') || $this->confirm('Do you want to cleanup orphaned permissions?')) {
                 $this->info('Cleaning up orphaned permissions...');
-                
+
                 $deleted = $validationService->cleanupOrphanedPermissions();
-                
+
                 $this->info("Deleted $deleted orphaned permissions.");
-                
+
                 // Log the cleanup
                 AuditLogService::log(
                     'permissions.cleanup',
@@ -93,14 +93,14 @@ class PermissionCleanup extends Command
                         'user' => auth()->user()?->name ?? 'system',
                         'invalid_permissions' => $results['invalid'],
                         'duplicates' => count($duplicates),
-                        'hierarchy_issues' => count($hierarchyIssues)
+                        'hierarchy_issues' => count($hierarchyIssues),
                     ]
                 );
             }
         }
-        
+
         $this->info('Permission validation complete.');
-        
+
         return Command::SUCCESS;
     }
 }

@@ -78,4 +78,4 @@ class ItemPolicy
     {
         return $user->hasPermissionTo('production.items.images.manage');
     }
-} 
+}

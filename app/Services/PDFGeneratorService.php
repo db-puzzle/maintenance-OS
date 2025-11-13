@@ -11,14 +11,14 @@ use Illuminate\Support\Str;
 class PDFGeneratorService
 {
     /**
-     * Generate PDF for a single work order execution
+     * Generate PDF for a single work order execution.
      */
     public function generateExecutionReport(
         WorkOrderExecution $execution,
         array $options = []
     ): string {
         $workOrder = $execution->workOrder;
-        
+
         // Get task responses
         $taskResponses = $execution->taskResponses()
             ->with(['task', 'attachments'])
@@ -51,7 +51,7 @@ class PDFGeneratorService
     }
 
     /**
-     * Generate HTML for execution report
+     * Generate HTML for execution report.
      */
     private function generateExecutionReportHtml(
         WorkOrder $workOrder,
@@ -210,7 +210,7 @@ class PDFGeneratorService
         </div>';
 
         // Task Responses
-        if (!empty($taskResponses)) {
+        if (! empty($taskResponses)) {
             $html .= '
             <div class="section">
                 <div class="section-title">Tarefas Executadas</div>';
@@ -284,7 +284,7 @@ class PDFGeneratorService
     }
 
     /**
-     * Generate batch report for multiple work orders
+     * Generate batch report for multiple work orders.
      */
     public function generateBatchReport(array $workOrderIds, array $options = []): string
     {
@@ -314,7 +314,7 @@ class PDFGeneratorService
     }
 
     /**
-     * Generate HTML for batch report
+     * Generate HTML for batch report.
      */
     private function generateBatchReportHtml($workOrders, array $options): string
     {
@@ -424,7 +424,7 @@ class PDFGeneratorService
     }
 
     /**
-     * Generate CSV export for work orders
+     * Generate CSV export for work orders.
      */
     public function generateCSVExport(array $workOrderIds): string
     {
@@ -464,11 +464,11 @@ class PDFGeneratorService
     }
 
     /**
-     * Format response based on type
+     * Format response based on type.
      */
     private function formatResponse($response): string
     {
-        if (!$response->response && !$response->response_data) {
+        if (! $response->response && ! $response->response_data) {
             return 'N/A';
         }
 
@@ -479,6 +479,7 @@ class PDFGeneratorService
                 $config = $response->getTaskConfiguration();
                 $value = $response->response ?? $response->response_data['value'] ?? '';
                 $unit = $config['unit'] ?? '';
+
                 return $value . ' ' . $unit;
 
             case 'multiple_choice':
@@ -486,6 +487,7 @@ class PDFGeneratorService
                 if (is_array($response->response_data)) {
                     return implode(', ', $response->response_data);
                 }
+
                 return $response->response ?? '';
 
             case 'photo':
@@ -497,7 +499,7 @@ class PDFGeneratorService
     }
 
     /**
-     * Generate filename
+     * Generate filename.
      */
     private function generateFilename(WorkOrder $workOrder, string $type): string
     {

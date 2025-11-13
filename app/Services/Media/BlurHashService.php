@@ -41,17 +41,17 @@ class BlurHashService
                 $row = [];
                 for ($x = 0; $x < $width; $x++) {
                     $color = $image->pickColor($x, $y);
-                    
+
                     // Extract RGB values and ensure they are integers
                     $r = $color->red()->value();
                     $g = $color->green()->value();
                     $b = $color->blue()->value();
-                    
+
                     // Ensure values are within valid range (0-255)
                     $r = max(0, min(255, (int) $r));
                     $g = max(0, min(255, (int) $g));
                     $b = max(0, min(255, (int) $b));
-                    
+
                     $row[] = [$r, $g, $b];
                 }
                 $pixels[] = $row;

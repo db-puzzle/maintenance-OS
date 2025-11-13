@@ -23,12 +23,12 @@ class ResponseAttachment extends Model
         'metadata' => 'array',
     ];
 
-    const TYPE_PHOTO = 'photo';
+    public const TYPE_PHOTO = 'photo';
 
-    const TYPE_FILE = 'file';
+    public const TYPE_FILE = 'file';
 
     /**
-     * Get the task response that owns this attachment
+     * Get the task response that owns this attachment.
      */
     public function taskResponse(): BelongsTo
     {
@@ -36,7 +36,7 @@ class ResponseAttachment extends Model
     }
 
     /**
-     * Get the URL for this attachment
+     * Get the URL for this attachment.
      */
     public function getUrl(): string
     {
@@ -44,7 +44,7 @@ class ResponseAttachment extends Model
     }
 
     /**
-     * Delete the file from storage
+     * Delete the file from storage.
      */
     public function deleteFile(): void
     {
@@ -52,7 +52,7 @@ class ResponseAttachment extends Model
     }
 
     /**
-     * Determine if this is a photo attachment
+     * Determine if this is a photo attachment.
      */
     public function isPhoto(): bool
     {
@@ -60,7 +60,7 @@ class ResponseAttachment extends Model
     }
 
     /**
-     * Determine if this is a file attachment
+     * Determine if this is a file attachment.
      */
     public function isFile(): bool
     {
@@ -68,7 +68,7 @@ class ResponseAttachment extends Model
     }
 
     /**
-     * Boot model events
+     * Boot model events.
      */
     protected static function booted()
     {

@@ -5,7 +5,6 @@ namespace App\Models\WorkOrders;
 use App\Models\Forms\TaskResponse;
 use App\Models\User;
 use App\Traits\HasMediaTrait;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,7 +19,7 @@ class WorkOrderExecution extends Model implements HasMedia
         'total_pause_duration', 'work_performed', 'observations',
         'recommendations', 'follow_up_required',
         'safety_checks_completed', 'quality_checks_completed',
-        'area_cleaned', 'tools_returned'
+        'area_cleaned', 'tools_returned',
     ];
 
     protected $casts = [
@@ -34,22 +33,22 @@ class WorkOrderExecution extends Model implements HasMedia
         'area_cleaned' => 'boolean',
         'tools_returned' => 'boolean',
     ];
-    
+
     /**
-     * Register media collections
+     * Register media collections.
      */
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('execution-photos')
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/heic']);
-            
+
         $this->addMediaCollection('execution-documents')
             ->acceptsMimeTypes([
                 'application/pdf',
                 'application/vnd.ms-excel',
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ]);
-            
+
         $this->addMediaCollection('signatures')
             ->acceptsMimeTypes(['image/png', 'image/svg+xml'])
             ->singleFile();
@@ -88,7 +87,7 @@ class WorkOrderExecution extends Model implements HasMedia
 
     public function pause(): void
     {
-        if ($this->status === 'in_progress' && !$this->paused_at) {
+        if ($this->status === 'in_progress' && ! $this->paused_at) {
             $this->update([
                 'status' => 'paused',
                 'paused_at' => now(),
@@ -100,7 +99,7 @@ class WorkOrderExecution extends Model implements HasMedia
     {
         if ($this->status === 'paused' && $this->paused_at) {
             $pauseDuration = $this->paused_at->diffInMinutes(now());
-            
+
             $this->update([
                 'status' => 'in_progress',
                 'resumed_at' => now(),
@@ -131,20 +130,20 @@ class WorkOrderExecution extends Model implements HasMedia
 
     public function getActualDurationAttribute(): ?float
     {
-        if (!$this->started_at) {
+        if (! $this->started_at) {
             return null;
         }
 
         $endTime = $this->completed_at ?? now();
         $totalMinutes = $this->started_at->diffInMinutes($endTime) - $this->total_pause_duration;
-        
+
         return round($totalMinutes / 60, 2); // Return hours
     }
 
     public function getCompletionPercentageAttribute(): int
     {
         $tasks = $this->workOrder->getTasks();
-        
+
         if (empty($tasks)) {
             return $this->status === 'completed' ? 100 : 0;
         }

@@ -60,7 +60,7 @@ return [
      * This model is only used in Media Library Pro (https://medialibrary.pro)
      */
     'temporary_upload_model' => Spatie\MediaLibraryPro\Models\TemporaryUpload::class,
-    
+
     /*
      * The disk where temporary files should be stored.
      */
@@ -293,7 +293,7 @@ return [
      * disabled lazy loading globally in the service provider.
      */
     'force_lazy_loading' => env('FORCE_MEDIA_LIBRARY_LAZY_LOADING', true),
-    
+
     /*
      * Temporary expiration time in minutes
      */

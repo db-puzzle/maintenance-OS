@@ -2,10 +2,9 @@
 
 namespace App\Services\Production;
 
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Models\Production\Item;
 use App\Models\Production\ManufacturingOrder;
-use Illuminate\Support\Facades\Storage;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class QrCodeService
 {
@@ -18,12 +17,13 @@ class QrCodeService
     public function generateOrderUrl(ManufacturingOrder $order): string
     {
         // If order has no route, find closest parent with route
-        if (!$order->has_route) {
+        if (! $order->has_route) {
             $parentWithRoute = $this->findClosestParentWithRoute($order);
             if ($parentWithRoute) {
                 return url(route('production.orders.qr', ['mo_number' => $parentWithRoute->order_number], false));
             }
         }
+
         // Absolute URL
         return url(route('production.orders.qr', ['mo_number' => $order->order_number], false));
     }
@@ -33,7 +33,7 @@ class QrCodeService
         $size = $options['size'] ?? 300;
         $margin = $options['margin'] ?? 2;
         $errorCorrection = $options['error_correction'] ?? 'M';
-        
+
         return QrCode::format('png')
             ->size($size)
             ->margin($margin)
@@ -44,14 +44,14 @@ class QrCodeService
     public function findClosestParentWithRoute(ManufacturingOrder $order): ?ManufacturingOrder
     {
         $current = $order;
-        
+
         while ($current->parent_id) {
             $current = $current->parent;
             if ($current->has_route) {
                 return $current;
             }
         }
-        
+
         return null;
     }
 }

@@ -13,25 +13,42 @@ class ShipmentItem extends Model
 
     protected $fillable = [
         'shipment_id',
-        'bom_item_id',
         'manufacturing_order_id',
+        'manufacturing_step_id',
+        'quantity_shipped',
+        'quantity_received',
+        'quantity_rejected',
+        'item_code',
+        'item_name',
+        'item_description',
+        'package_count',
+        'package_type',
+        'notes',
+        'rejection_reason',
+        // Legacy fields for backward compatibility
+        'bom_item_id',
         'item_number',
         'description',
         'quantity',
         'unit_of_measure_code',
         'package_number',
-        'package_type',
         'weight',
         'dimensions',
         'qr_codes',
     ];
 
     protected $casts = [
+        'quantity_shipped' => 'decimal:2',
+        'quantity_received' => 'decimal:2',
+        'quantity_rejected' => 'decimal:2',
+        // Legacy casts
         'quantity' => 'decimal:2',
         'weight' => 'decimal:2',
         'dimensions' => 'array',
         'qr_codes' => 'array',
     ];
+
+    protected $appends = ['is_fully_received', 'quantity_pending'];
 
     /**
      * Get the shipment that owns the item.
@@ -66,11 +83,91 @@ class ShipmentItem extends Model
     }
 
     /**
+     * Get the manufacturing step (for external processing shipments).
+     */
+    public function manufacturingStep(): BelongsTo
+    {
+        return $this->belongsTo(ManufacturingStep::class);
+    }
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($item) {
+            // Denormalize item details for history (logistics module)
+            if ($item->manufacturingOrder && ! $item->item_name) {
+                $productItem = $item->manufacturingOrder->item;
+                $item->item_code = $productItem->code ?? null;
+                $item->item_name = $productItem->name ?? null;
+                $item->item_description = $productItem->description ?? null;
+            }
+        });
+    }
+
+    /**
      * Scope for items in a specific package.
      */
     public function scopeInPackage($query, $packageNumber)
     {
         return $query->where('package_number', $packageNumber);
+    }
+
+    /**
+     * Check if fully received (logistics module).
+     */
+    public function getIsFullyReceivedAttribute(): bool
+    {
+        return $this->quantity_received >= $this->quantity_shipped;
+    }
+
+    /**
+     * Get quantity pending receipt (logistics module).
+     */
+    public function getQuantityPendingAttribute(): float
+    {
+        return max(0, ($this->quantity_shipped ?? 0) - ($this->quantity_received ?? 0));
+    }
+
+    /**
+     * Record quantity received (logistics module).
+     *
+     * @param float $quantity Quantity received
+     * @param float $rejectedQuantity Rejected quantity
+     * @param string|null $rejectionReason Reason for rejection
+     */
+    public function recordReceipt(
+        float $quantity,
+        float $rejectedQuantity = 0,
+        ?string $rejectionReason = null
+    ): void {
+        $this->increment('quantity_received', $quantity);
+
+        if ($rejectedQuantity > 0) {
+            $this->increment('quantity_rejected', $rejectedQuantity);
+            $this->update(['rejection_reason' => $rejectionReason]);
+        }
+
+        // Update related manufacturing step
+        if ($this->manufacturing_step_id) {
+            $step = $this->manufacturingStep;
+            if ($step) {
+                $step->recordQuantityReceived($quantity);
+            }
+        }
+
+        activity()
+            ->performedOn($this)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'quantity' => $quantity,
+                'rejected' => $rejectedQuantity,
+                'reason' => $rejectionReason,
+            ])
+            ->log('Shipment item receipt recorded');
     }
 
     /**

@@ -30,10 +30,9 @@ class MediaController extends Controller
             // Get the base path for the media using our custom path generator
             $pathGenerator = app(\App\Services\Media\MediaPathGenerator::class);
             $basePath = $pathGenerator->getPath($media);
-            
+
             // Build the full file path
             $filePath = $basePath . $media->file_name;
-            
 
             // Ensure path doesn't start with / for storage operations
             $filePath = ltrim($filePath, '/');
@@ -90,11 +89,10 @@ class MediaController extends Controller
             // Get the base path for the media using our custom path generator
             $pathGenerator = app(\App\Services\Media\MediaPathGenerator::class);
             $basePath = $pathGenerator->getPathForConversions($media);
-            
+
             // Build the conversion file path
             $conversionFileName = pathinfo($media->file_name, PATHINFO_FILENAME) . '_' . $conversion . '.' . pathinfo($media->file_name, PATHINFO_EXTENSION);
             $conversionPath = $basePath . $conversionFileName;
-
 
             // The path is relative to the disk root, no need to add prefixes
             $storagePath = ltrim($conversionPath, '/');

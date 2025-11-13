@@ -4,7 +4,6 @@ namespace App\Policies\Production;
 
 use App\Models\Production\ItemCategory;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class ItemCategoryPolicy
 {
@@ -46,7 +45,7 @@ class ItemCategoryPolicy
     public function delete(User $user, ItemCategory $itemCategory): bool
     {
         // Check if category can be deleted (no items linked)
-        if (!$itemCategory->canBeDeleted()) {
+        if (! $itemCategory->canBeDeleted()) {
             return false;
         }
 
@@ -68,4 +67,4 @@ class ItemCategoryPolicy
     {
         return false;
     }
-} 
+}

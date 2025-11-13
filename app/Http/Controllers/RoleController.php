@@ -84,6 +84,7 @@ class RoleController extends Controller
                 ->get()
                 ->map(function ($permission) {
                     $parsed = $permission->parsePermission();
+
                     return [
                         'id' => $permission->id,
                         'name' => $permission->name,
@@ -113,6 +114,7 @@ class RoleController extends Controller
                         'users_count' => $role->users_count,
                         'permissions' => $role->permissions->map(function ($permission) {
                             $parsed = $permission->parsePermission();
+
                             return [
                                 'id' => $permission->id,
                                 'name' => $permission->name,

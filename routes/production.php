@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Production\BillOfMaterialController;
+use App\Http\Controllers\Production\ExternalStepController;
 use App\Http\Controllers\Production\ItemCategoryController;
 use App\Http\Controllers\Production\ItemController;
 use App\Http\Controllers\Production\ItemImageController;
@@ -268,6 +269,23 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
             Route::delete('/{execution}/photo/{media}', [StepExecutionController::class, 'deletePhoto'])
                 ->name('delete-photo');
         });
+    });
+
+    // External Steps
+    Route::prefix('external-steps')->name('external-steps.')->group(function () {
+        Route::get('/', [ExternalStepController::class, 'index'])->name('index');
+
+        Route::post('/{step}/mark-as-shipped', [ExternalStepController::class, 'markAsShipped'])
+            ->name('mark-as-shipped');
+
+        Route::post('/{step}/mark-as-in-process', [ExternalStepController::class, 'markAsInProcess'])
+            ->name('mark-as-in-process');
+
+        Route::post('/{step}/record-quantity-received', [ExternalStepController::class, 'recordQuantityReceived'])
+            ->name('record-quantity-received');
+
+        Route::post('/{step}/convert-to-external', [ExternalStepController::class, 'convertToExternal'])
+            ->name('convert-to-external');
     });
 
     // Shipments

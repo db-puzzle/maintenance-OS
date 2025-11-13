@@ -6,8 +6,8 @@ use App\Traits\HasCaseInsensitiveSearch;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Base controller that provides case-insensitive search functionality
- * 
+ * Base controller that provides case-insensitive search functionality.
+ *
  * Controllers that need search functionality should extend this controller
  * to automatically get case-insensitive search capabilities.
  */
@@ -16,14 +16,13 @@ abstract class BaseSearchController extends Controller
     use HasCaseInsensitiveSearch;
 
     /**
-     * Apply search filter to a query builder
-     * 
+     * Apply search filter to a query builder.
+     *
      * This method can be overridden in child controllers for custom search logic
      *
      * @param Builder $query The query builder
      * @param string $search The search term
      * @param array $searchColumns Columns to search in
-     * @return Builder
      */
     protected function applySearchFilter(Builder $query, ?string $search, array $searchColumns): Builder
     {
@@ -41,10 +40,7 @@ abstract class BaseSearchController extends Controller
     }
 
     /**
-     * Check if the search columns array contains advanced configuration
-     *
-     * @param array $searchColumns
-     * @return bool
+     * Check if the search columns array contains advanced configuration.
      */
     private function hasAdvancedSearchConfig(array $searchColumns): bool
     {
@@ -53,6 +49,7 @@ abstract class BaseSearchController extends Controller
                 return true;
             }
         }
+
         return false;
     }
 }

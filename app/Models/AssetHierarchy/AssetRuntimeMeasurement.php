@@ -50,7 +50,7 @@ class AssetRuntimeMeasurement extends Model
      */
     public function getPreviousHoursAttribute(): float
     {
-        if (!$this->asset_id || !$this->created_at) {
+        if (! $this->asset_id || ! $this->created_at) {
             return 0.0;
         }
 

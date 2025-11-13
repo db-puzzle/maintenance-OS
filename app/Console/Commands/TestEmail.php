@@ -27,18 +27,18 @@ class TestEmail extends Command
     public function handle()
     {
         $email = $this->argument('email');
-        
+
         $this->info('Sending test email to: ' . $email);
-        
+
         try {
             Mail::raw('This is a test email from your Laravel maintenance management system. If you received this, your email configuration is working correctly!', function ($message) use ($email) {
                 $message->to($email)
-                        ->subject('Test Email - ' . config('app.name'));
+                    ->subject('Test Email - ' . config('app.name'));
             });
-            
+
             $this->info('✅ Test email sent successfully!');
             $this->info('Check your inbox (and spam folder) for the test email.');
-            
+
             // Display current mail configuration (without sensitive data)
             $this->newLine();
             $this->info('Current mail configuration:');
@@ -53,11 +53,10 @@ class TestEmail extends Command
                     ['From Name', config('mail.from.name')],
                 ]
             );
-            
         } catch (\Exception $e) {
             $this->error('❌ Failed to send test email!');
             $this->error('Error: ' . $e->getMessage());
-            
+
             $this->newLine();
             $this->warn('Common issues:');
             $this->warn('1. Check your .env mail configuration');
@@ -65,7 +64,7 @@ class TestEmail extends Command
             $this->warn('3. Verify firewall allows outbound SMTP connections');
             $this->warn('4. Run: php artisan config:clear');
         }
-        
+
         return 0;
     }
-} 
+}

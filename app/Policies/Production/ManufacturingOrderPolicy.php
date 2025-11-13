@@ -4,7 +4,6 @@ namespace App\Policies\Production;
 
 use App\Models\Production\ManufacturingOrder;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class ManufacturingOrderPolicy
 {
@@ -85,7 +84,7 @@ class ManufacturingOrderPolicy
     public function plan(User $user, ManufacturingOrder $manufacturingOrder): bool
     {
         // Can only plan draft orders
-        if (!in_array($manufacturingOrder->status, ['draft'])) {
+        if (! in_array($manufacturingOrder->status, ['draft'])) {
             return false;
         }
 
@@ -98,12 +97,12 @@ class ManufacturingOrderPolicy
     public function release(User $user, ManufacturingOrder $manufacturingOrder): bool
     {
         // Can only release draft or planned orders
-        if (!in_array($manufacturingOrder->status, ['draft', 'planned'])) {
+        if (! in_array($manufacturingOrder->status, ['draft', 'planned'])) {
             return false;
         }
 
         // Must have a route configured
-        if (!$manufacturingOrder->manufacturingRoute || $manufacturingOrder->manufacturingRoute->steps->count() === 0) {
+        if (! $manufacturingOrder->manufacturingRoute || $manufacturingOrder->manufacturingRoute->steps->count() === 0) {
             return false;
         }
 
@@ -142,7 +141,7 @@ class ManufacturingOrderPolicy
     public function applyTemplate(User $user, ManufacturingOrder $manufacturingOrder): bool
     {
         // Can only apply templates to draft or planned orders
-        if (!in_array($manufacturingOrder->status, ['draft', 'planned'])) {
+        if (! in_array($manufacturingOrder->status, ['draft', 'planned'])) {
             return false;
         }
 

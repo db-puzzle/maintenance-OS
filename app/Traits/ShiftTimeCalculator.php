@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 trait ShiftTimeCalculator
 {
     /**
-     * Converte um horário em minutos
+     * Converte um horário em minutos.
      */
     protected function timeToMinutes(string $time): int
     {
@@ -25,7 +25,7 @@ trait ShiftTimeCalculator
     }
 
     /**
-     * Calcula a duração entre dois horários em minutos
+     * Calcula a duração entre dois horários em minutos.
      */
     protected function calculateDuration(string $start, string $end): int
     {
@@ -58,7 +58,7 @@ trait ShiftTimeCalculator
     }
 
     /**
-     * Calcula os totais de horas trabalhadas e de intervalo
+     * Calcula os totais de horas trabalhadas e de intervalo.
      */
     protected function calculateShiftTotals(array $schedules): array
     {
@@ -95,7 +95,7 @@ trait ShiftTimeCalculator
                 $totalBreakMinutes += $shiftBreakMinutes;
 
                 Log::debug('Shift calculation', [
-                    'shift_time' => $shift['start_time'].' - '.$shift['end_time'],
+                    'shift_time' => $shift['start_time'] . ' - ' . $shift['end_time'],
                     'shift_duration' => $shiftDuration,
                     'break_minutes' => $shiftBreakMinutes,
                     'work_minutes' => $workMinutes,

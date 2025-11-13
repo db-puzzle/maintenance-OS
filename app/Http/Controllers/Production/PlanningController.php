@@ -396,7 +396,26 @@ class PlanningController extends Controller
                     } elseif ($order->manufacturingRoute->steps()->count() === 0) {
                         $skipReason = "Order {$order->order_number} cannot be planned - route has no steps";
                     } else {
-                        $skipReason = "Order {$order->order_number} cannot be planned - some steps are missing work cell assignments";
+                        // Check for specific missing assignments
+                        $internalStepsWithoutWorkCell = $order->manufacturingRoute->steps()
+                            ->where('execution_location', 'internal')
+                            ->whereNull('work_cell_id')
+                            ->count();
+
+                        $externalStepsWithoutManufacturer = $order->manufacturingRoute->steps()
+                            ->where('execution_location', 'external')
+                            ->whereNull('manufacturer_id')
+                            ->count();
+
+                        if ($internalStepsWithoutWorkCell > 0 && $externalStepsWithoutManufacturer > 0) {
+                            $skipReason = "Order {$order->order_number} cannot be planned - some internal steps are missing work cell assignments and some external steps are missing manufacturer assignments";
+                        } elseif ($internalStepsWithoutWorkCell > 0) {
+                            $skipReason = "Order {$order->order_number} cannot be planned - some internal steps are missing work cell assignments";
+                        } elseif ($externalStepsWithoutManufacturer > 0) {
+                            $skipReason = "Order {$order->order_number} cannot be planned - some external steps are missing manufacturer assignments";
+                        } else {
+                            $skipReason = "Order {$order->order_number} cannot be planned - invalid route configuration";
+                        }
                     }
                     $skippedCount++;
                 }

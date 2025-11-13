@@ -52,8 +52,8 @@ class AssetImportExportController extends Controller
         })->toArray();
 
         // Cria o arquivo CSV
-        $filename = 'ativos_'.date('Y-m-d_His').'.csv';
-        $filepath = storage_path('app/public/exports/'.$filename);
+        $filename = 'ativos_' . date('Y-m-d_His') . '.csv';
+        $filepath = storage_path('app/public/exports/' . $filename);
 
         // Cria o diretório se não existir
         if (! file_exists(storage_path('app/public/exports'))) {
@@ -68,7 +68,7 @@ class AssetImportExportController extends Controller
             $line = implode(',', array_map(function ($field) {
                 return str_replace(',', ' ', $field); // Substitui vírgulas por espaços
             }, $fields));
-            fwrite($file, $line."\n");
+            fwrite($file, $line . "\n");
         };
 
         // Escreve o cabeçalho
@@ -98,7 +98,7 @@ class AssetImportExportController extends Controller
 
     public function downloadExport($filename)
     {
-        $filepath = storage_path('app/public/exports/'.$filename);
+        $filepath = storage_path('app/public/exports/' . $filename);
 
         if (! file_exists($filepath)) {
             return back()->with('error', 'Arquivo não encontrado');
@@ -246,10 +246,9 @@ class AssetImportExportController extends Controller
                     'processedLines' => $currentLine,
                 ],
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
-                'error' => 'Erro ao processar o arquivo: '.$e->getMessage(),
+                'error' => 'Erro ao processar o arquivo: ' . $e->getMessage(),
             ], 422);
         }
     }
@@ -606,7 +605,6 @@ class AssetImportExportController extends Controller
                 'total_processed' => count($mappedData),
                 'total_errors' => count($errors),
             ]);
-
         } catch (\Exception $e) {
             \DB::rollBack();
 
@@ -618,7 +616,7 @@ class AssetImportExportController extends Controller
 
             return response()->json([
                 'success' => false,
-                'error' => 'Erro durante a importação: '.$e->getMessage(),
+                'error' => 'Erro durante a importação: ' . $e->getMessage(),
             ], 500);
         }
     }

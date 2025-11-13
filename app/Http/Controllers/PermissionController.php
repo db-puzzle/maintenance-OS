@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Permission;
 use App\Models\Role;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Services\AuditLogService;
 
 class PermissionController extends Controller
 {
@@ -17,26 +17,26 @@ class PermissionController extends Controller
     }
 
     /**
-     * Display permissions list
+     * Display permissions list.
      */
     public function index(Request $request)
     {
         // Get permissions based on the view type
         $query = Permission::query();
-        
+
         // Check if this is for the permission matrix (when roles are requested)
         $isMatrixView = $request->has('matrix') || $request->is('permissions');
-        
+
         if ($isMatrixView) {
             // For permission matrix, only show global permissions
             // Global permissions are those that don't have entity-specific scopes
-            $query->where(function($q) {
+            $query->where(function ($q) {
                 // Exclude permissions with entity IDs (e.g., areas.view.1, assets.create.plant.1)
                 $q->whereRaw("name !~ '\\.(plant|area|sector|asset)\\.[0-9]+$'")
-                  ->whereRaw("name !~ '^(areas|plants|sectors|assets)\\.[^.]+\\.[0-9]+$'");
+                    ->whereRaw("name !~ '^(areas|plants|sectors|assets)\\.[^.]+\\.[0-9]+$'");
             });
         }
-        
+
         $permissions = $query
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -49,33 +49,33 @@ class PermissionController extends Controller
             'sector' => [],
             'asset' => [],
         ];
-        
+
         foreach ($permissions as $permission) {
             $parsed = $permission->parsePermission();
             $parts = explode('.', $permission->name);
-            
+
             // Handle scoped permissions (e.g., areas.create.plant.1)
             if ($parsed['scope'] && $parsed['scope_id'] && isset($entityIds[$parsed['scope']])) {
                 $entityIds[$parsed['scope']][] = $parsed['scope_id'];
             }
-            
+
             // Handle direct entity permissions (e.g., areas.view.1)
             if (count($parts) === 3 && is_numeric($parts[2])) {
                 $resource = $parsed['resource'];
-                $entityType = match($resource) {
+                $entityType = match ($resource) {
                     'plants' => 'plant',
                     'areas' => 'area',
                     'sectors' => 'sector',
                     'assets' => 'asset',
                     default => null
                 };
-                
+
                 if ($entityType && isset($entityIds[$entityType])) {
                     $entityIds[$entityType][] = $parts[2];
                 }
             }
         }
-        
+
         // Preload all entities
         $entities = [
             'plant' => \App\Models\AssetHierarchy\Plant::whereIn('id', array_unique($entityIds['plant']))->pluck('name', 'id'),
@@ -83,30 +83,30 @@ class PermissionController extends Controller
             'sector' => \App\Models\AssetHierarchy\Sector::whereIn('id', array_unique($entityIds['sector']))->pluck('name', 'id'),
             'asset' => \App\Models\AssetHierarchy\Asset::whereIn('id', array_unique($entityIds['asset']))->pluck('tag', 'id'),
         ];
-        
+
         // Add computed attributes
         $permissions->transform(function ($permission) use ($entities) {
             $permission->append(['resource', 'action', 'scope_type']);
-            
+
             // Add scope entity name if it's a scoped permission
             $parsed = $permission->parsePermission();
             $parts = explode('.', $permission->name);
-            
+
             // Check if this is a direct entity permission (resource.action.entityId)
             if (count($parts) === 3 && is_numeric($parts[2])) {
                 // This is a direct entity permission like areas.view.1
                 $entityId = $parts[2];
                 $resource = $parsed['resource'];
-                
+
                 // Determine entity type from resource name
-                $entityType = match($resource) {
+                $entityType = match ($resource) {
                     'plants' => 'plant',
                     'areas' => 'area',
                     'sectors' => 'sector',
                     'assets' => 'asset',
                     default => null
                 };
-                
+
                 if ($entityType && isset($entities[$entityType][$entityId])) {
                     $permission->scope_entity_name = $entities[$entityType][$entityId];
                     // Override the scope_type to show the entity type
@@ -117,7 +117,7 @@ class PermissionController extends Controller
             } elseif ($parsed['scope'] && $parsed['scope_id']) {
                 // This is a scoped permission like areas.create.plant.1
                 $entityName = null;
-                
+
                 switch ($parsed['scope']) {
                     case 'plant':
                         $entityName = $entities['plant'][$parsed['scope_id']] ?? "Plant #{$parsed['scope_id']}";
@@ -132,10 +132,10 @@ class PermissionController extends Controller
                         $entityName = $entities['asset'][$parsed['scope_id']] ?? "Asset #{$parsed['scope_id']}";
                         break;
                 }
-                
+
                 $permission->scope_entity_name = $entityName;
             }
-            
+
             return $permission;
         });
 
@@ -147,14 +147,14 @@ class PermissionController extends Controller
             ->map(function ($role) {
                 // Transform the role to include permissions as an array of IDs
                 $permissionIds = $role->permissions->pluck('id')->toArray();
-                
+
                 return [
                     'id' => $role->id,
                     'name' => $role->name,
                     'is_system' => $role->is_system,
                     'permissions_count' => $role->permissions_count,
                     'users_count' => $role->users_count,
-                    'permissions' => $permissionIds
+                    'permissions' => $permissionIds,
                 ];
             });
 
@@ -179,24 +179,24 @@ class PermissionController extends Controller
     }
 
     /**
-     * Show permission creation form
+     * Show permission creation form.
      */
     public function create()
     {
         $allPermissions = Permission::all();
-        $resources = $allPermissions->map(fn($p) => $p->resource)->filter()->unique()->sort()->values();
-        $actions = $allPermissions->map(fn($p) => $p->action)->filter()->unique()->sort()->values();
+        $resources = $allPermissions->map(fn ($p) => $p->resource)->filter()->unique()->sort()->values();
+        $actions = $allPermissions->map(fn ($p) => $p->action)->filter()->unique()->sort()->values();
         $scopeTypes = ['global', 'plant', 'area', 'sector', 'asset', 'owned'];
 
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
-     * Store new permission
+     * Store new permission.
      */
     public function store(Request $request)
     {
@@ -221,7 +221,7 @@ class PermissionController extends Controller
     }
 
     /**
-     * Show permission details
+     * Show permission details.
      */
     public function show(Permission $permission)
     {
@@ -231,29 +231,29 @@ class PermissionController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
-     * Show permission edit form
+     * Show permission edit form.
      */
     public function edit(Permission $permission)
     {
         $allPermissions = Permission::all();
-        $resources = $allPermissions->map(fn($p) => $p->resource)->filter()->unique()->sort()->values();
-        $actions = $allPermissions->map(fn($p) => $p->action)->filter()->unique()->sort()->values();
+        $resources = $allPermissions->map(fn ($p) => $p->resource)->filter()->unique()->sort()->values();
+        $actions = $allPermissions->map(fn ($p) => $p->action)->filter()->unique()->sort()->values();
         $scopeTypes = ['global', 'plant', 'area', 'sector', 'asset', 'owned'];
 
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
     /**
-     * Update permission
+     * Update permission.
      */
     public function update(Request $request, Permission $permission)
     {
@@ -279,7 +279,7 @@ class PermissionController extends Controller
     }
 
     /**
-     * Delete permission
+     * Delete permission.
      */
     public function destroy(Permission $permission)
     {
@@ -304,7 +304,7 @@ class PermissionController extends Controller
     }
 
     /**
-     * Sync permission matrix (bulk assignment)
+     * Sync permission matrix (bulk assignment).
      */
     public function syncMatrix(Request $request)
     {
@@ -318,13 +318,13 @@ class PermissionController extends Controller
         foreach ($validated['changes'] as $change) {
             $role = Role::findOrFail($change['role_id']);
             $permissionIds = $change['permissions'];
-            
+
             // Get old permissions for audit
             $oldPermissions = $role->permissions->pluck('id')->toArray();
-            
+
             // Sync permissions
             $role->syncPermissions($permissionIds);
-            
+
             // Log the change
             AuditLogService::logRoleChange(
                 'permissions_synced',
@@ -339,14 +339,14 @@ class PermissionController extends Controller
     }
 
     /**
-     * Check permission API endpoint
+     * Check permission API endpoint.
      */
     public function check(Request $request)
     {
         $validated = $request->validate([
             'permission' => 'required|string',
             'resource_id' => 'sometimes|integer',
-            'resource_type' => 'sometimes|string'
+            'resource_type' => 'sometimes|string',
         ]);
 
         $user = $request->user();
@@ -363,12 +363,12 @@ class PermissionController extends Controller
             'allowed' => $allowed,
             'permission' => $validated['permission'],
             'user_id' => $user->id,
-            'is_administrator' => $user->isAdministrator()
+            'is_administrator' => $user->isAdministrator(),
         ]);
     }
 
     /**
-     * Bulk permission check API endpoint
+     * Bulk permission check API endpoint.
      */
     public function checkBulk(Request $request)
     {
@@ -387,7 +387,7 @@ class PermissionController extends Controller
         return response()->json([
             'results' => $results,
             'user_id' => $user->id,
-            'is_administrator' => $user->isAdministrator()
+            'is_administrator' => $user->isAdministrator(),
         ]);
     }
 }

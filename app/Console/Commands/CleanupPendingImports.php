@@ -32,8 +32,8 @@ class CleanupPendingImports extends Command
                     ]);
 
                     // Limpa os dados da importação da sessão
-                    Session::forget($sessionId.'.import_in_progress');
-                    Session::forget($sessionId.'.import_started_at');
+                    Session::forget($sessionId . '.import_in_progress');
+                    Session::forget($sessionId . '.import_started_at');
 
                     $cleaned++;
                 }

@@ -37,7 +37,6 @@ class ShiftController extends BaseSearchController
         if (($request->wantsJson() || $request->input('format') === 'json') &&
             ! $request->has('page') &&
             ! $request->has('per_page')) {
-
             $shifts = $query->get();
 
             $formattedShifts = $shifts->map(function ($shift) {
@@ -738,7 +737,7 @@ class ShiftController extends BaseSearchController
     }
 
     /**
-     * Verifica se há sobreposição entre dois intervalos de tempo
+     * Verifica se há sobreposição entre dois intervalos de tempo.
      */
     protected function hasOverlap(string $start1, string $end1, string $start2, string $end2): bool
     {
@@ -759,7 +758,7 @@ class ShiftController extends BaseSearchController
     }
 
     /**
-     * Convert time string to minutes
+     * Convert time string to minutes.
      */
     protected function timeToMinutes(string $time): int
     {
@@ -769,7 +768,7 @@ class ShiftController extends BaseSearchController
     }
 
     /**
-     * Calculate shift totals from schedules array
+     * Calculate shift totals from schedules array.
      */
     protected function calculateShiftTotals(array $schedules): array
     {
@@ -819,7 +818,7 @@ class ShiftController extends BaseSearchController
     }
 
     /**
-     * Get assets associated with a shift
+     * Get assets associated with a shift.
      */
     public function getAssets(Request $request, Shift $shift)
     {
@@ -856,7 +855,7 @@ class ShiftController extends BaseSearchController
     }
 
     /**
-     * Copy a shift with new data and update specific assets
+     * Copy a shift with new data and update specific assets.
      */
     public function copyAndUpdate(Request $request, Shift $shift)
     {
@@ -874,7 +873,7 @@ class ShiftController extends BaseSearchController
 
             // Ensure asset IDs are integers
             $assetIds = array_map('intval', $assetIds);
-            $assetIds = array_filter($assetIds, function($id) {
+            $assetIds = array_filter($assetIds, function ($id) {
                 return $id > 0;
             });
 
@@ -883,11 +882,11 @@ class ShiftController extends BaseSearchController
             // First check permissions before starting the transaction
             $affectedAssets = Asset::whereIn('id', $assetIds)
                 ->with([
-                    'latestRuntimeMeasurement', 
+                    'latestRuntimeMeasurement',
                     'shift.schedules.shiftTimes.breaks',
                     'plant',
                     'area',
-                    'sector'
+                    'sector',
                 ])
                 ->get();
 
@@ -902,12 +901,12 @@ class ShiftController extends BaseSearchController
             // Check if user has permission to update all selected assets
             $unauthorizedAssets = [];
             foreach ($affectedAssets as $asset) {
-                if (!$user->can('update', $asset)) {
+                if (! $user->can('update', $asset)) {
                     $unauthorizedAssets[] = $asset->tag;
                 }
             }
 
-            if (!empty($unauthorizedAssets)) {
+            if (! empty($unauthorizedAssets)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Você não tem permissão para atualizar os seguintes ativos: ' . implode(', ', $unauthorizedAssets),
@@ -916,13 +915,13 @@ class ShiftController extends BaseSearchController
 
             return DB::transaction(function () use ($shift, $validated, $assetIds, $user, $affectedAssets) {
                 // Create a new shift with the updated data
-                $newShiftName = $validated['name'].' (Cópia)';
+                $newShiftName = $validated['name'] . ' (Cópia)';
                 $counter = 1;
 
                 // Ensure unique name
                 while (Shift::where('name', $newShiftName)->exists()) {
                     $counter++;
-                    $newShiftName = $validated['name'].' (Cópia '.$counter.')';
+                    $newShiftName = $validated['name'] . ' (Cópia ' . $counter . ')';
                 }
 
                 $newShift = Shift::create([
@@ -1012,7 +1011,7 @@ class ShiftController extends BaseSearchController
                         'name' => $shift->name,
                         'asset_count' => $shift->assets()->count(),
                     ],
-                    'message' => "Novo turno '{$newShift->name}' criado e associado a ".count($assetIds).' ativo(s).',
+                    'message' => "Novo turno '{$newShift->name}' criado e associado a " . count($assetIds) . ' ativo(s).',
                 ]);
             });
         } catch (ValidationException $e) {
@@ -1023,7 +1022,7 @@ class ShiftController extends BaseSearchController
                 'trace' => $e->getTraceAsString(),
                 'assetIds' => $assetIds ?? [],
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Ocorreu um erro ao processar a solicitação: ' . $e->getMessage(),

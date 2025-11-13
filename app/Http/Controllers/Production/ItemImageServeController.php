@@ -20,19 +20,19 @@ class ItemImageServeController extends Controller
         if ($image->item_id !== $item->id) {
             abort(404);
         }
-        
+
         // Check permissions
         $this->authorize('view', $item);
-        
+
         // Check if file exists
-        if (!Storage::exists($image->storage_path)) {
+        if (! Storage::exists($image->storage_path)) {
             abort(404);
         }
-        
+
         // Get file content and mime type
         $file = Storage::get($image->storage_path);
         $mimeType = Storage::mimeType($image->storage_path) ?: $image->mime_type;
-        
+
         // Return streamed response
         return response()->stream(function () use ($file) {
             echo $file;
@@ -42,7 +42,7 @@ class ItemImageServeController extends Controller
             'Cache-Control' => 'private, max-age=3600',
         ]);
     }
-    
+
     /**
      * Serve a specific image variant.
      */
@@ -52,32 +52,32 @@ class ItemImageServeController extends Controller
         if ($image->item_id !== $item->id) {
             abort(404);
         }
-        
+
         // Check permissions
         $this->authorize('view', $item);
-        
+
         // Validate variant type
-        if (!in_array($variant, ['thumbnail', 'small', 'medium', 'large'])) {
+        if (! in_array($variant, ['thumbnail', 'small', 'medium', 'large'])) {
             abort(404);
         }
-        
+
         // Get the variant
         $variantModel = $image->variants()->where('variant_type', $variant)->first();
-        
-        if (!$variantModel) {
+
+        if (! $variantModel) {
             // If variant doesn't exist, serve the original
             return $this->serve($request, $item, $image);
         }
-        
+
         // Check if file exists
-        if (!Storage::exists($variantModel->storage_path)) {
+        if (! Storage::exists($variantModel->storage_path)) {
             abort(404);
         }
-        
+
         // Get file content
         $file = Storage::get($variantModel->storage_path);
         $mimeType = 'image/webp'; // All variants are WebP
-        
+
         // Return streamed response
         return response()->stream(function () use ($file) {
             echo $file;

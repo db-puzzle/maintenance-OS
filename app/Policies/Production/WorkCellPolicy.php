@@ -83,4 +83,4 @@ class WorkCellPolicy
     {
         return $user->hasPermissionTo('production.work-cells.exportData');
     }
-} 
+}

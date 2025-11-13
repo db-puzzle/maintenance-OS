@@ -12,22 +12,22 @@ class ChunkedUploadService
 {
     /**
      * Handle chunk upload - always stored locally during assembly
-     * Implements the chunked upload pattern from Advanced Media Features spec
+     * Implements the chunked upload pattern from Advanced Media Features spec.
      */
     public function storeChunk(string $uploadId, int $chunkIndex, UploadedFile $chunk): void
     {
         $chunkPath = "chunks/{$uploadId}/{$chunkIndex}";
         Storage::disk('temp')->put($chunkPath, $chunk->get());
     }
-    
+
     /**
-     * Assemble chunks and add to media library
+     * Assemble chunks and add to media library.
      */
     public function assembleAndStore(ChunkedUpload $upload, HasMedia $model, string $collection): Media
     {
         // Assemble chunks locally
         $tempPath = $this->assembleChunks($upload);
-        
+
         try {
             // Create UploadedFile from assembled file
             $file = new UploadedFile(
@@ -37,7 +37,7 @@ class ChunkedUploadService
                 null,
                 true
             );
-            
+
             // Add to media library (will upload to R2 if in production)
             $media = $model->addMedia($file)
                 ->withCustomProperties([
@@ -46,13 +46,12 @@ class ChunkedUploadService
                     'original_size' => $upload->total_size,
                 ])
                 ->toMediaCollection($collection);
-            
+
             // Clean up
             $this->cleanup($upload->id);
             unlink($tempPath);
-            
+
             return $media;
-            
         } catch (\Exception $e) {
             // Clean up on failure
             $this->cleanup($upload->id);
@@ -62,27 +61,28 @@ class ChunkedUploadService
             throw $e;
         }
     }
-    
+
     /**
-     * Assemble chunks into a single file
+     * Assemble chunks into a single file.
      */
     private function assembleChunks(ChunkedUpload $upload): string
     {
         $tempPath = tempnam(sys_get_temp_dir(), 'upload_');
         $handle = fopen($tempPath, 'wb');
-        
+
         for ($i = 0; $i < $upload->total_chunks; $i++) {
             $chunkPath = "chunks/{$upload->id}/{$i}";
             $chunkContent = Storage::disk('temp')->get($chunkPath);
             fwrite($handle, $chunkContent);
         }
-        
+
         fclose($handle);
+
         return $tempPath;
     }
-    
+
     /**
-     * Clean up chunk files
+     * Clean up chunk files.
      */
     private function cleanup(string $uploadId): void
     {

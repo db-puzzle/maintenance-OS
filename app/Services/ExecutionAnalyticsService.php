@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\WorkOrders\WorkOrder;
-use App\Models\WorkOrders\WorkOrderExecution;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -14,21 +13,21 @@ class ExecutionAnalyticsService
     {
         // Filter work orders that come from routines
         $query = WorkOrder::where('source_type', 'routine')
-            ->whereHas('workOrderCategory', function($q) {
+            ->whereHas('workOrderCategory', function ($q) {
                 $q->where('code', 'preventive');
             });
 
-        if (!empty($filters['plant_id'])) {
+        if (! empty($filters['plant_id'])) {
             $query->whereHas('asset', function ($q) use ($filters) {
                 $q->where('plant_id', $filters['plant_id']);
             });
         }
 
-        if (!empty($filters['date_from'])) {
+        if (! empty($filters['date_from'])) {
             $query->where('requested_at', '>=', $filters['date_from']);
         }
 
-        if (!empty($filters['date_to'])) {
+        if (! empty($filters['date_to'])) {
             $query->where('requested_at', '<=', $filters['date_to']);
         }
 
@@ -50,7 +49,7 @@ class ExecutionAnalyticsService
     {
         return WorkOrder::with(['asset', 'requestedBy', 'execution'])
             ->where('source_type', 'routine')
-            ->whereHas('workOrderCategory', function($q) {
+            ->whereHas('workOrderCategory', function ($q) {
                 $q->where('code', 'preventive');
             })
             ->orderBy('requested_at', 'desc')
@@ -66,7 +65,7 @@ class ExecutionAnalyticsService
                     'started_at' => $workOrder->actual_start_date,
                     'completed_at' => $workOrder->actual_end_date,
                     'status' => $workOrder->status,
-                    'duration_minutes' => $workOrder->execution ? 
+                    'duration_minutes' => $workOrder->execution ?
                         $workOrder->execution->started_at->diffInMinutes($workOrder->execution->completed_at) : 0,
                 ];
             });
@@ -78,7 +77,7 @@ class ExecutionAnalyticsService
         $startDate = now()->subDays($days)->startOfDay();
 
         $workOrders = WorkOrder::where('source_type', 'routine')
-            ->whereHas('workOrderCategory', function($q) {
+            ->whereHas('workOrderCategory', function ($q) {
                 $q->where('code', 'preventive');
             })
             ->whereBetween('requested_at', [$startDate, $endDate])
@@ -137,7 +136,7 @@ class ExecutionAnalyticsService
     public function getCompletionRateByAsset(): array
     {
         $completedWorkOrders = WorkOrder::where('source_type', 'routine')
-            ->whereHas('workOrderCategory', function($q) {
+            ->whereHas('workOrderCategory', function ($q) {
                 $q->where('code', 'preventive');
             })
             ->where('status', WorkOrder::STATUS_COMPLETED)
@@ -147,7 +146,7 @@ class ExecutionAnalyticsService
             ->pluck('completed_count', 'asset_id');
 
         $totalWorkOrders = WorkOrder::where('source_type', 'routine')
-            ->whereHas('workOrderCategory', function($q) {
+            ->whereHas('workOrderCategory', function ($q) {
                 $q->where('code', 'preventive');
             })
             ->whereBetween('requested_at', [now()->subDays(30), now()])
@@ -193,7 +192,7 @@ class ExecutionAnalyticsService
         $previousEnd = $this->getPeriodStart($period)->subSecond();
 
         $currentQuery = WorkOrder::where('source_type', 'routine')
-            ->whereHas('workOrderCategory', function($q) {
+            ->whereHas('workOrderCategory', function ($q) {
                 $q->where('code', 'preventive');
             });
         $currentCount = (clone $currentQuery)
@@ -205,13 +204,13 @@ class ExecutionAnalyticsService
             ->count();
 
         $previousCount = WorkOrder::where('source_type', 'routine')
-            ->whereHas('workOrderCategory', function($q) {
+            ->whereHas('workOrderCategory', function ($q) {
                 $q->where('code', 'preventive');
             })
             ->whereBetween('requested_at', [$previousStart, $previousEnd])
             ->count();
         $previousCompleted = WorkOrder::where('source_type', 'routine')
-            ->whereHas('workOrderCategory', function($q) {
+            ->whereHas('workOrderCategory', function ($q) {
                 $q->where('code', 'preventive');
             })
             ->whereBetween('requested_at', [$previousStart, $previousEnd])

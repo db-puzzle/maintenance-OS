@@ -161,7 +161,7 @@ class ScheduleVersion extends Model
      */
     public function canSchedule(): bool
     {
-        return $this->status === 'draft' && !$this->isScheduling();
+        return $this->status === 'draft' && ! $this->isScheduling();
     }
 
     /**

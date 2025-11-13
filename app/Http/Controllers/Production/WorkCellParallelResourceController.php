@@ -106,7 +106,7 @@ class WorkCellParallelResourceController extends Controller
 
             for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
                 // Skip if not in selected weekdays
-                if (!in_array($date->dayOfWeek, $weekdays)) {
+                if (! in_array($date->dayOfWeek, $weekdays)) {
                     continue;
                 }
 
@@ -184,11 +184,11 @@ class WorkCellParallelResourceController extends Controller
                 if ($shift) {
                     $weekday = strtolower($date->format('l'));
                     $shiftTimes = $shift->getShiftTimesForDateInUTC($date->format('Y-m-d'), $weekday);
-                    
-                    if (!empty($shiftTimes)) {
+
+                    if (! empty($shiftTimes)) {
                         $startTime = $shiftTimes[0]['start']->format('H:i:s');
                         $endTime = end($shiftTimes)['end']->format('H:i:s');
-                        
+
                         return $query->overlappingTime($startTime, $endTime);
                     }
                 }

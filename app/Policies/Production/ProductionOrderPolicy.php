@@ -23,7 +23,7 @@ class ProductionOrderPolicy
      */
     public function view(User $user, ManufacturingOrder $order): bool
     {
-        if (!$user->hasPermissionTo('production.orders.view')) {
+        if (! $user->hasPermissionTo('production.orders.view')) {
             return false;
         }
 
@@ -56,12 +56,12 @@ class ProductionOrderPolicy
      */
     public function update(User $user, ManufacturingOrder $order): bool
     {
-        if (!$user->hasPermissionTo('production.orders.update')) {
+        if (! $user->hasPermissionTo('production.orders.update')) {
             return false;
         }
 
         // Only draft and planned orders can be updated
-        if (!in_array($order->status, ['draft', 'planned'])) {
+        if (! in_array($order->status, ['draft', 'planned'])) {
             return false;
         }
 
@@ -86,7 +86,7 @@ class ProductionOrderPolicy
      */
     public function delete(User $user, ManufacturingOrder $order): bool
     {
-        if (!$user->hasPermissionTo('production.orders.delete')) {
+        if (! $user->hasPermissionTo('production.orders.delete')) {
             return false;
         }
 
@@ -108,7 +108,7 @@ class ProductionOrderPolicy
      */
     public function plan(User $user, ManufacturingOrder $order): bool
     {
-        if (!$user->hasPermissionTo('production.orders.plan')) {
+        if (! $user->hasPermissionTo('production.orders.plan')) {
             return false;
         }
 
@@ -125,17 +125,17 @@ class ProductionOrderPolicy
      */
     public function release(User $user, ManufacturingOrder $order): bool
     {
-        if (!$user->hasPermissionTo('production.orders.release')) {
+        if (! $user->hasPermissionTo('production.orders.release')) {
             return false;
         }
 
         // Only draft and planned orders can be released
-        if (!$order->canBeReleased()) {
+        if (! $order->canBeReleased()) {
             return false;
         }
 
         // Must have a manufacturing route
-        if (!$order->manufacturingRoute) {
+        if (! $order->manufacturingRoute) {
             return false;
         }
 
@@ -147,7 +147,7 @@ class ProductionOrderPolicy
      */
     public function cancel(User $user, ManufacturingOrder $order): bool
     {
-        if (!$user->hasPermissionTo('production.orders.cancel')) {
+        if (! $user->hasPermissionTo('production.orders.cancel')) {
             return false;
         }
 
@@ -159,12 +159,12 @@ class ProductionOrderPolicy
      */
     public function reportProduction(User $user, ManufacturingOrder $order): bool
     {
-        if (!$user->hasPermissionTo('production.orders.reportProduction')) {
+        if (! $user->hasPermissionTo('production.orders.reportProduction')) {
             return false;
         }
 
         // Check if order can receive production reports
-        if (!$order->canReportProduction()) {
+        if (! $order->canReportProduction()) {
             return false;
         }
 
@@ -190,7 +190,7 @@ class ProductionOrderPolicy
     public function configureDependencies(User $user, ManufacturingOrder $order): bool
     {
         // Order must be in a state where dependencies can be configured
-        if (!in_array($order->status, ['draft', 'planned', 'released'])) {
+        if (! in_array($order->status, ['draft', 'planned', 'released'])) {
             return false;
         }
 
@@ -201,4 +201,4 @@ class ProductionOrderPolicy
 
         return $user->hasPermissionTo('production.orders.configure_dependencies');
     }
-} 
+}

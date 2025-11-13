@@ -37,6 +37,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \Stancl\Tenancy\Middleware\ScopeSessions::class,
         ]);
 
+        // Register middleware aliases for feature flags
+        $middleware->alias([
+            'feature' => \App\Http\Middleware\CheckFeatureAccess::class,
+        ]);
+
         // Apply InitializeTenancyByDomain globally BEFORE web middleware for tenant domains
         $middleware->priority([
             \Stancl\Tenancy\Middleware\InitializeTenancyByDomain::class,

@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Api\AdvancedChunkedUploadController;
-use App\Http\Controllers\Api\ChunkedUploadController;
 use App\Http\Controllers\Api\MediaUploadController;
 use App\Http\Controllers\Api\PublicMediaController;
 use App\Http\Controllers\Api\SecureMediaController;
@@ -20,7 +19,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('api')->middleware('auth')->group(function () {
     // Media upload
     Route::post('media/upload', [MediaUploadController::class, 'store'])->name('api.media.upload');
-    
+
     // Chunked upload
     Route::prefix('media/upload')->group(function () {
         Route::post('initialize', [AdvancedChunkedUploadController::class, 'initializeUpload'])->name('api.media.upload.initialize');
@@ -29,7 +28,7 @@ Route::prefix('api')->middleware('auth')->group(function () {
         Route::post('resume/{uploadId}', [AdvancedChunkedUploadController::class, 'resumeUpload'])->name('api.media.upload.resume');
         Route::delete('cancel/{uploadId}', [AdvancedChunkedUploadController::class, 'cancelUpload'])->name('api.media.upload.cancel');
     });
-    
+
     // Media access (all require authentication)
     Route::prefix('media')->group(function () {
         Route::get('{media}', [\App\Http\Controllers\Api\MediaController::class, 'show'])->name('api.media.show');
@@ -37,7 +36,7 @@ Route::prefix('api')->middleware('auth')->group(function () {
         Route::get('{media}/download', [\App\Http\Controllers\Api\MediaController::class, 'download'])->name('api.media.download');
         Route::delete('{media}', [\App\Http\Controllers\Api\MediaController::class, 'destroy'])->name('api.media.destroy');
     });
-    
+
     // Secure media access (legacy routes for backward compatibility)
     Route::prefix('media/secure')->group(function () {
         Route::get('{media}', [SecureMediaController::class, 'show'])->name('api.media.secure.show');

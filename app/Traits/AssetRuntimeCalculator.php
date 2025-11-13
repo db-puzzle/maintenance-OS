@@ -11,7 +11,7 @@ trait AssetRuntimeCalculator
 
     /**
      * Calculate the current runtime hours for an asset
-     * This includes the last reported runtime plus accumulated shift hours
+     * This includes the last reported runtime plus accumulated shift hours.
      */
     public function calculateCurrentRuntime(): float
     {
@@ -41,7 +41,7 @@ trait AssetRuntimeCalculator
 
     /**
      * Calculate accumulated working hours based on shift schedule
-     * between two dates
+     * between two dates.
      */
     protected function calculateAccumulatedShiftHours(Carbon $startDate, Carbon $endDate): float
     {
@@ -117,7 +117,7 @@ trait AssetRuntimeCalculator
 
     /**
      * Calculate working minutes for a specific day from schedule model
-     * considering start and end date boundaries
+     * considering start and end date boundaries.
      */
     protected function calculateDayWorkingMinutesFromSchedule(
         $daySchedule,
@@ -133,7 +133,7 @@ trait AssetRuntimeCalculator
         $dayEnd = $currentDate->copy()->endOfDay();
 
         // Use the passed shift or try to get it from the schedule
-        if (!$shift) {
+        if (! $shift) {
             $shift = $daySchedule->shift;
         }
 
@@ -206,7 +206,7 @@ trait AssetRuntimeCalculator
     }
 
     /**
-     * Calculate working minutes for shifts that cross midnight from previous day into current day
+     * Calculate working minutes for shifts that cross midnight from previous day into current day.
      */
     protected function calculateMidnightCrossingMinutes(
         $previousDaySchedule,
@@ -223,7 +223,7 @@ trait AssetRuntimeCalculator
         $dayEnd = $currentDate->copy()->endOfDay();
 
         // Use the passed shift or try to get it from the schedule
-        if (!$shift) {
+        if (! $shift) {
             $shift = $previousDaySchedule->shift;
         }
 
@@ -284,7 +284,7 @@ trait AssetRuntimeCalculator
     }
 
     /**
-     * Calculate break minutes within a specific time range from break models
+     * Calculate break minutes within a specific time range from break models.
      */
     protected function calculateBreakMinutesFromModels(
         $breaks,
@@ -333,7 +333,7 @@ trait AssetRuntimeCalculator
     }
 
     /**
-     * Get runtime calculation details for debugging/display
+     * Get runtime calculation details for debugging/display.
      */
     public function getRuntimeCalculationDetails(): array
     {
@@ -375,7 +375,7 @@ trait AssetRuntimeCalculator
     }
 
     /**
-     * Get detailed runtime breakdown for debugging
+     * Get detailed runtime breakdown for debugging.
      */
     public function getDetailedRuntimeBreakdown(): array
     {

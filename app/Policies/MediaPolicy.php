@@ -17,29 +17,29 @@ class MediaPolicy
     {
         // Check if user has permission to view the parent model
         $model = $media->model;
-        
-        if (!$model) {
+
+        if (! $model) {
             return false;
         }
-        
+
         // Check model-specific permissions
         $modelClass = class_basename($model);
         $permission = strtolower($modelClass) . '.view';
-        
+
         if ($user->can($permission)) {
             return true;
         }
-        
+
         // Check if user owns the model (if applicable)
         if (method_exists($model, 'user') && $model->user_id === $user->id) {
             return true;
         }
-        
+
         // Check if user uploaded the media
         if ($media->getCustomProperty('uploaded_by') === $user->id) {
             return true;
         }
-        
+
         return false;
     }
 
@@ -64,14 +64,14 @@ class MediaPolicy
     {
         // Check if user can update the parent model
         $model = $media->model;
-        
-        if (!$model) {
+
+        if (! $model) {
             return false;
         }
-        
+
         $modelClass = class_basename($model);
         $permission = strtolower($modelClass) . '.update';
-        
+
         return $user->can($permission);
     }
 
@@ -82,24 +82,24 @@ class MediaPolicy
     {
         // Check if user can delete from the parent model
         $model = $media->model;
-        
-        if (!$model) {
+
+        if (! $model) {
             return false;
         }
-        
+
         $modelClass = class_basename($model);
         $permission = strtolower($modelClass) . '.delete';
-        
+
         if ($user->can($permission)) {
             return true;
         }
-        
+
         // Allow user to delete their own uploads within 24 hours
         if ($media->getCustomProperty('uploaded_by') === $user->id &&
             $media->created_at->greaterThan(now()->subHours(24))) {
             return true;
         }
-        
+
         return false;
     }
 

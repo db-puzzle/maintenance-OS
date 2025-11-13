@@ -24,32 +24,32 @@ trait SmartProgressCalculator
         try {
             $expectedUnits = $this->calculateExpectedWorkUnits();
             $completedUnits = $this->calculateCompletedWorkUnits();
-            
+
             if ($expectedUnits == 0) {
                 return $this->status === 'completed' ? 100.0 : 0.0;
             }
-            
+
             $progress = round(($completedUnits / $expectedUnits) * 100, 2);
-            
+
             // Ensure progress is within bounds
             $progress = max(0, min(100, $progress));
-            
+
             // Cache the result
             $this->cacheSmartProgress($progress);
-            
+
             return $progress;
         } catch (\Exception $e) {
             Log::error('Smart progress calculation failed', [
                 'order_id' => $this->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             // Fallback to simple progress
             return $this->getSimpleProgressPercentage();
         }
     }
-    
+
     /**
      * Calculate expected work units for this order and its hierarchy.
      *
@@ -58,36 +58,36 @@ trait SmartProgressCalculator
     protected function calculateExpectedWorkUnits(): int
     {
         $units = 0;
-        
+
         // This order's work units
         if ($this->has_route) {
             // Load steps count if not already loaded
-            if (!$this->relationLoaded('manufacturingRoute')) {
+            if (! $this->relationLoaded('manufacturingRoute')) {
                 $this->load('manufacturingRoute.steps');
             }
-            
+
             $stepCount = $this->manufacturingRoute->steps->count();
             $units += $this->quantity * $stepCount;
         } else {
             // Orders without routes count as single step
             $units += $this->quantity;
         }
-        
+
         // Child orders' work units (recursive)
         if ($this->child_orders_count > 0) {
             // Eager load children with their routes and steps
-            if (!$this->relationLoaded('children')) {
+            if (! $this->relationLoaded('children')) {
                 $this->load(['children.manufacturingRoute.steps']);
             }
-            
+
             foreach ($this->children as $child) {
                 $units += $child->calculateExpectedWorkUnits();
             }
         }
-        
+
         return $units;
     }
-    
+
     /**
      * Calculate completed work units for this order and its hierarchy.
      *
@@ -96,102 +96,91 @@ trait SmartProgressCalculator
     protected function calculateCompletedWorkUnits(): float
     {
         $units = 0;
-        
+
         // This order's completed units
         if ($this->has_route) {
             // Sum cumulative quantity completed across all steps
-            if (!$this->relationLoaded('manufacturingRoute.steps')) {
+            if (! $this->relationLoaded('manufacturingRoute.steps')) {
                 $this->load('manufacturingRoute.steps');
             }
-            
+
             $units += $this->manufacturingRoute->steps->sum('cumulative_quantity_completed');
         } else {
             // Orders without routes use quantity_completed
             $units += $this->quantity_completed;
         }
-        
+
         // Child orders' completed units (recursive)
         if ($this->child_orders_count > 0) {
-            if (!$this->relationLoaded('children')) {
+            if (! $this->relationLoaded('children')) {
                 $this->load(['children.manufacturingRoute.steps']);
             }
-            
+
             foreach ($this->children as $child) {
                 $units += $child->calculateCompletedWorkUnits();
             }
         }
-        
+
         return $units;
     }
-    
+
     /**
      * Check if cached progress is still fresh.
-     *
-     * @return bool
      */
     protected function isProgressCacheFresh(): bool
     {
-        if (!$this->progress_calculated_at) {
+        if (! $this->progress_calculated_at) {
             return false;
         }
-        
+
         // Consider cache fresh if calculated within last hour
         return $this->progress_calculated_at->gt(now()->subHour());
     }
-    
+
     /**
      * Cache the calculated smart progress.
-     *
-     * @param float $progress
-     * @return void
      */
     protected function cacheSmartProgress(float $progress): void
     {
         $this->smart_progress_percentage = $progress;
         $this->progress_calculated_at = now();
-        
+
         // Save without triggering events to avoid recursion
         $this->saveQuietly();
     }
-    
+
     /**
      * Get simple progress percentage (fallback).
-     *
-     * @return float
      */
     protected function getSimpleProgressPercentage(): float
     {
         if ($this->quantity == 0) {
             return 100.0;
         }
-        
+
         return round(($this->quantity_completed / $this->quantity) * 100, 2);
     }
-    
+
     /**
      * Invalidate smart progress cache for this order and ancestors.
-     *
-     * @return void
      */
     public function invalidateSmartProgress(): void
     {
         // Clear this order's cache
         $this->progress_calculated_at = null;
         $this->saveQuietly();
-        
+
         // Invalidate parent's cache
         if ($this->parent_id) {
             $this->parent->invalidateSmartProgress();
         }
-        
+
         // Clear any additional caches
         Cache::forget("mo_progress_{$this->id}");
     }
-    
+
     /**
      * Calculate smart progress using database query (more efficient for large hierarchies).
-     *
-     * @return float
      */
     public function calculateSmartProgressViaQuery(): float
     {
@@ -239,19 +228,17 @@ trait SmartProgressCalculator
                 END as progress
             FROM work_units
         ", [$this->id, $this->id]);
-        
+
         $progress = (float) $result->progress;
-        
+
         // Cache the result
         $this->cacheSmartProgress($progress);
-        
+
         return $progress;
     }
-    
+
     /**
      * Get detailed work units breakdown.
-     *
-     * @return array
      */
     public function getWorkUnitsBreakdown(): array
     {
@@ -260,9 +247,9 @@ trait SmartProgressCalculator
             'order_number' => $this->order_number,
             'expected_units' => 0,
             'completed_units' => 0,
-            'children' => []
+            'children' => [],
         ];
-        
+
         // This order's units
         if ($this->has_route) {
             $stepCount = $this->manufacturingRoute->steps->count();
@@ -274,7 +261,7 @@ trait SmartProgressCalculator
             $breakdown['completed_units'] = $this->quantity_completed;
             $breakdown['step_count'] = 1;
         }
-        
+
         // Children breakdown
         if ($this->child_orders_count > 0) {
             foreach ($this->children as $child) {
@@ -284,11 +271,11 @@ trait SmartProgressCalculator
                 $breakdown['completed_units'] += $childBreakdown['completed_units'];
             }
         }
-        
-        $breakdown['progress'] = $breakdown['expected_units'] > 0 
+
+        $breakdown['progress'] = $breakdown['expected_units'] > 0
             ? round(($breakdown['completed_units'] / $breakdown['expected_units']) * 100, 2)
             : 0;
-        
+
         return $breakdown;
     }
 }

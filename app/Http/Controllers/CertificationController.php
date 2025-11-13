@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Certification;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
 
 class CertificationController extends Controller
 {
@@ -155,7 +155,7 @@ class CertificationController extends Controller
         $this->authorize('delete', $certification);
 
         $dependencies = $certification->getDependencies();
-        $canDelete = collect($dependencies)->every(fn($dep) => ($dep['count'] ?? 0) === 0);
+        $canDelete = collect($dependencies)->every(fn ($dep) => ($dep['count'] ?? 0) === 0);
 
         return response()->json([
             'canDelete' => $canDelete,
@@ -172,6 +172,7 @@ class CertificationController extends Controller
 
         try {
             $certification->delete();
+
             return redirect()->route('certifications.index')->with('success', 'Certificação excluída com sucesso.');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', $e->getMessage());

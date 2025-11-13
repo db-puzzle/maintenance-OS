@@ -15,10 +15,20 @@ class SchedulingResult
 
     public function __construct(array $data = [])
     {
-        if (isset($data['success'])) $this->success = $data['success'];
-        if (isset($data['scheduledSteps'])) $this->scheduledSteps = $data['scheduledSteps'];
-        if (isset($data['alerts'])) $this->alerts = $data['alerts'];
-        if (isset($data['metrics'])) $this->metrics = $data['metrics'];
-        if (isset($data['executionTime'])) $this->executionTime = $data['executionTime'];
+        if (isset($data['success'])) {
+            $this->success = $data['success'];
+        }
+        if (isset($data['scheduledSteps'])) {
+            $this->scheduledSteps = $data['scheduledSteps'];
+        }
+        if (isset($data['alerts'])) {
+            $this->alerts = $data['alerts'];
+        }
+        if (isset($data['metrics'])) {
+            $this->metrics = $data['metrics'];
+        }
+        if (isset($data['executionTime'])) {
+            $this->executionTime = $data['executionTime'];
+        }
     }
 }

@@ -31,14 +31,14 @@ class MediaResource extends JsonResource
                     'original' => route('api.media.show', $this->id),
                     'download' => route('api.media.download', $this->id),
                 ];
-                
+
                 // Add conversion URLs
                 if ($this->generated_conversions) {
                     foreach (array_keys($this->generated_conversions) as $conversion) {
                         $urls[$conversion] = route('api.media.show-conversion', [$this->id, $conversion]);
                     }
                 }
-                
+
                 return $urls;
             }),
             'meta' => [

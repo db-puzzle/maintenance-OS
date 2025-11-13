@@ -17,27 +17,27 @@ class PlantObserver
         DB::transaction(function () use ($plant) {
             // Generate permissions for this plant
             $permissions = Permission::generateEntityPermissions('plant', $plant->id);
-            
+
             // Grant permissions to the creating user (if not administrator)
-            if (auth()->check() && !auth()->user()->isAdministrator()) {
+            if (auth()->check() && ! auth()->user()->isAdministrator()) {
                 $user = auth()->user();
-                
+
                 // Grant all plant management permissions
                 $managementPermissions = collect($permissions)->filter(function ($permission) {
                     return in_array($permission->action, ['view', 'update', 'delete', 'manage', 'manage-shifts']);
                 });
-                
+
                 foreach ($managementPermissions as $permission) {
                     $user->givePermissionTo($permission);
                 }
-                
+
                 // Also grant invitation permission
                 $invitePermission = collect($permissions)->firstWhere('name', "users.invite.plant.{$plant->id}");
                 if ($invitePermission) {
                     $user->givePermissionTo($invitePermission);
                 }
             }
-            
+
             // Log permission generation
             AuditLogService::log(
                 'permissions.generated',
@@ -49,7 +49,7 @@ class PlantObserver
                     'entity_type' => 'plant',
                     'entity_id' => $plant->id,
                     'entity_name' => $plant->name,
-                    'permissions_created' => collect($permissions)->pluck('name')->toArray()
+                    'permissions_created' => collect($permissions)->pluck('name')->toArray(),
                 ]
             );
         });
@@ -63,23 +63,23 @@ class PlantObserver
         DB::transaction(function () use ($plant) {
             // Get count of permissions to be deleted
             $permissionCount = Permission::forEntity('plant', $plant->id)->count();
-            
+
             // Delete all permissions for this plant
             Permission::deleteEntityPermissions('plant', $plant->id);
-            
+
             // Also delete permissions for child entities
             foreach ($plant->areas as $area) {
                 Permission::deleteEntityPermissions('area', $area->id);
-                
+
                 foreach ($area->sectors as $sector) {
                     Permission::deleteEntityPermissions('sector', $sector->id);
-                    
+
                     foreach ($sector->assets as $asset) {
                         Permission::deleteEntityPermissions('asset', $asset->id);
                     }
                 }
             }
-            
+
             // Log permission deletion
             AuditLogService::log(
                 'permissions.deleted',
@@ -91,7 +91,7 @@ class PlantObserver
                     'entity_type' => 'plant',
                     'entity_id' => $plant->id,
                     'entity_name' => $plant->name,
-                    'permissions_deleted' => $permissionCount
+                    'permissions_deleted' => $permissionCount,
                 ]
             );
         });

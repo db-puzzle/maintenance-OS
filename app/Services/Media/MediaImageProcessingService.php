@@ -2,14 +2,13 @@
 
 namespace App\Services\Media;
 
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\ImageManager;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class MediaImageProcessingService
 {
     /**
-     * Process images that need local file access
+     * Process images that need local file access.
      */
     public function processMediaImage(Media $media, callable $processor): Media
     {
@@ -18,15 +17,17 @@ class MediaImageProcessingService
             $path = $media->getPath();
             $result = $processor($path);
             $this->updateMediaWithResult($media, $result);
+
             return $media;
         }
-        
+
         // For cloud storage, download to temp first
         $tempPath = $this->downloadToTemp($media);
-        
+
         try {
             $result = $processor($tempPath);
             $this->updateMediaWithResult($media, $result);
+
             return $media;
         } finally {
             // Always clean up temp file
@@ -35,28 +36,29 @@ class MediaImageProcessingService
             }
         }
     }
-    
+
     /**
-     * Download media to temporary file
+     * Download media to temporary file.
      */
     private function downloadToTemp(Media $media): string
     {
         $tempPath = tempnam(sys_get_temp_dir(), 'media_');
         $stream = Storage::disk($media->disk)->readStream($media->getPath());
         file_put_contents($tempPath, $stream);
+
         return $tempPath;
     }
-    
+
     /**
-     * Check if disk is local
+     * Check if disk is local.
      */
     private function isLocalDisk(string $disk): bool
     {
         return in_array($disk, ['local', 'media-local', 'public']);
     }
-    
+
     /**
-     * Update media with processing result
+     * Update media with processing result.
      */
     private function updateMediaWithResult(Media $media, array $result): void
     {

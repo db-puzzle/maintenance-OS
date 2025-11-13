@@ -8,7 +8,7 @@ use Inertia\Inertia;
 class RouteEditorController extends Controller
 {
     /**
-     * Exibe a página do editor de rotas
+     * Exibe a página do editor de rotas.
      *
      * @return \Inertia\Response
      */

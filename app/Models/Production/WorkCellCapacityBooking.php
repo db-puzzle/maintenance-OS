@@ -126,7 +126,7 @@ class WorkCellCapacityBooking extends Model
         return $query->where(function ($q) use ($startTime, $endTime) {
             // Booking starts before end time AND ends after start time
             $q->where('start_time', '<', $endTime)
-              ->where('end_time', '>', $startTime);
+                ->where('end_time', '>', $startTime);
         });
     }
 

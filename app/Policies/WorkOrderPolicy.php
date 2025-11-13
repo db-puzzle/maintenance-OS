@@ -134,8 +134,8 @@ class WorkOrderPolicy
             // Check cost and priority limits
             $costLimit = 50000;
             $priorityLimit = ['emergency', 'urgent', 'high', 'normal', 'low'];
-            
-            if (($workOrder->estimated_total_cost ?? 0) <= $costLimit && 
+
+            if (($workOrder->estimated_total_cost ?? 0) <= $costLimit &&
                 in_array($workOrder->priority, $priorityLimit)) {
                 return true;
             }
@@ -145,8 +145,8 @@ class WorkOrderPolicy
             // Check cost and priority limits
             $costLimit = 5000;
             $priorityLimit = ['normal', 'low'];
-            
-            if (($workOrder->estimated_total_cost ?? 0) <= $costLimit && 
+
+            if (($workOrder->estimated_total_cost ?? 0) <= $costLimit &&
                 in_array($workOrder->priority, $priorityLimit)) {
                 return true;
             }
@@ -161,7 +161,7 @@ class WorkOrderPolicy
     public function plan(User $user, WorkOrder $workOrder): bool
     {
         // Can only plan approved or already planned work orders
-        if (!in_array($workOrder->status, ['approved', 'planned'])) {
+        if (! in_array($workOrder->status, ['approved', 'planned'])) {
             return false;
         }
 
@@ -216,7 +216,7 @@ class WorkOrderPolicy
     public function execute(User $user, WorkOrder $workOrder): bool
     {
         // Must be scheduled or in progress
-        if (!in_array($workOrder->status, ['scheduled', 'in_progress'])) {
+        if (! in_array($workOrder->status, ['scheduled', 'in_progress'])) {
             return false;
         }
 

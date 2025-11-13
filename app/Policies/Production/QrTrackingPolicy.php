@@ -38,4 +38,4 @@ class QrTrackingPolicy
     {
         return $user->hasPermissionTo('production.qr.print');
     }
-} 
+}

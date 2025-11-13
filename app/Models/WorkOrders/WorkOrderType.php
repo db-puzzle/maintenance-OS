@@ -2,15 +2,15 @@
 
 namespace App\Models\WorkOrders;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WorkOrderType extends Model
 {
     use HasFactory;
-    
+
     protected $fillable = [
         'name',
         'code',
@@ -55,16 +55,16 @@ class WorkOrderType extends Model
         if (is_numeric($category)) {
             return $query->where('work_order_category_id', $category);
         }
-        
+
         // For backwards compatibility, also check by category code
-        return $query->whereHas('workOrderCategory', function($q) use ($category) {
+        return $query->whereHas('workOrderCategory', function ($q) use ($category) {
             $q->where('code', $category);
         });
     }
 
     public function scopeForDiscipline($query, string $discipline)
     {
-        return $query->whereHas('workOrderCategory', function($q) use ($discipline) {
+        return $query->whereHas('workOrderCategory', function ($q) use ($discipline) {
             $q->where('discipline', $discipline);
         });
     }
@@ -105,7 +105,7 @@ class WorkOrderType extends Model
     // Static helpers
     public static function preventive()
     {
-        return static::whereHas('workOrderCategory', function($q) {
+        return static::whereHas('workOrderCategory', function ($q) {
             $q->where('code', 'preventive');
         })->first();
     }

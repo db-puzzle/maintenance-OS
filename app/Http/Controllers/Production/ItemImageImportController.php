@@ -370,18 +370,18 @@ class ItemImageImportController extends Controller
         if (in_array($sessionData['status'], ['processing', 'completed', 'uploads_completed'])) {
             // Get all media created by this import session
             $mediaItems = \App\Models\Media::where('custom_properties->import_session', $sessionId)
-                ->get(['id', 'uuid', 'file_name', 'custom_properties', 'file_hash', 'blurhash', 
-                       'width', 'height', 'dominant_color', 'aspect_ratio']);
+                ->get(['id', 'uuid', 'file_name', 'custom_properties', 'file_hash', 'blurhash',
+                    'width', 'height', 'dominant_color', 'aspect_ratio']);
 
             $metadataJobs = $mediaItems->map(function ($media) {
                 // Check if all metadata fields that GenerateMediaMetadata job populates are present
                 // The job sets: file_hash, blurhash, perceptual_hash, dominant_color, width, height, aspect_ratio
-                $hasAllMetadata = ! empty($media->file_hash) && 
-                                  ! empty($media->blurhash) && 
-                                  ! empty($media->width) && 
+                $hasAllMetadata = ! empty($media->file_hash) &&
+                                  ! empty($media->blurhash) &&
+                                  ! empty($media->width) &&
                                   ! empty($media->height) &&
                                   ! empty($media->dominant_color);
-                
+
                 return [
                     'media_id' => $media->id,
                     'filename' => $media->file_name,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -24,6 +24,8 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
     const [isProcessing, setIsProcessing] = useState(true);
     const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
     const [recentErrors, setRecentErrors] = useState<ImportError[]>([]);
+    // Track if import has been started to prevent duplicate runs
+    const importStartedRef = useRef(false);
 
     const file = files[0];
 
@@ -134,13 +136,8 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
                 setCurrentSession(completedSession);
                 setIsProcessing(false);
 
-                // Show success message
+                // Show success message (backend message includes work cell warning if any)
                 toast.success(result.message || 'Importação concluída com sucesso!');
-
-                // Show warning about created work cells if any
-                if (result.created_work_cells && result.created_work_cells.length > 0) {
-                    toast.warning(`Células de trabalho criadas: ${result.created_work_cells.join(', ')}. Por favor, configure-as.`);
-                }
 
                 // Complete after a short delay
                 setTimeout(() => onComplete(completedSession), 1000);
@@ -156,7 +153,14 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
         }
     }, [file, mapping, options, session.id, currentSession, onComplete, simulateProgress]);
 
+    // Run import only once when component mounts
     useEffect(() => {
+        // Prevent duplicate import runs
+        if (importStartedRef.current) {
+            return;
+        }
+        
+        importStartedRef.current = true;
         startImport();
 
         return () => {
@@ -164,7 +168,8 @@ export function ProcessingStep({ files, mapping, options, session, onComplete }:
                 clearInterval(pollingInterval);
             }
         };
-    }, [startImport, pollingInterval]); // Include all dependencies
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Empty dependency array - run only once on mount
 
     const generateDummyErrors = (count: number): ImportError[] => {
         const errors: ImportError[] = [];

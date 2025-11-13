@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Certification extends Model
 {
@@ -31,7 +31,7 @@ class Certification extends Model
     }
 
     /**
-     * Get users with this certification
+     * Get users with this certification.
      */
     public function users()
     {
@@ -41,7 +41,7 @@ class Certification extends Model
     }
 
     /**
-     * Get the dependencies for this certification
+     * Get the dependencies for this certification.
      */
     public function getDependencies(): array
     {
@@ -69,4 +69,4 @@ class Certification extends Model
             }
         });
     }
-} 
+}

@@ -24,7 +24,7 @@ class PermissionAuditLog extends Model
         'metadata',
         'ip_address',
         'user_agent',
-        'session_id'
+        'session_id',
     ];
 
     protected $casts = [
@@ -32,13 +32,13 @@ class PermissionAuditLog extends Model
         'new_values' => 'array',
         'metadata' => 'array',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     /**
-     * V2 Event types
+     * V2 Event types.
      */
-    const EVENT_TYPES = [
+    public const EVENT_TYPES = [
         // Permission events
         'permissions.generated' => 'Permissions Generated',
         'permissions.deleted' => 'Permissions Deleted',
@@ -49,14 +49,14 @@ class PermissionAuditLog extends Model
         'permissions.copied' => 'Permissions Copied',
         'permission.granted' => 'Permission Granted',
         'permission.revoked' => 'Permission Revoked',
-        
+
         // Role events
         'role.created' => 'Role Created',
         'role.updated' => 'Role Updated',
         'role.deleted' => 'Role Deleted',
         'role.assigned' => 'Role Assigned',
         'role.removed' => 'Role Removed',
-        
+
         // User events
         'user.created' => 'User Created',
         'user.updated' => 'User Updated',
@@ -64,7 +64,7 @@ class PermissionAuditLog extends Model
         'user.administrator.granted' => 'Administrator Role Granted',
         'user.administrator.revoked' => 'Administrator Role Revoked',
         'user.created_with_role' => 'User Created with Role',
-        
+
         // Entity events
         'plant.created' => 'Plant Created',
         'plant.updated' => 'Plant Updated',
@@ -78,7 +78,7 @@ class PermissionAuditLog extends Model
         'asset.created' => 'Asset Created',
         'asset.updated' => 'Asset Updated',
         'asset.deleted' => 'Asset Deleted',
-        
+
         // Invitation events
         'invitation.sent' => 'Invitation Sent',
         'invitation.accepted' => 'Invitation Accepted',
@@ -119,7 +119,7 @@ class PermissionAuditLog extends Model
     }
 
     /**
-     * Scope for event type
+     * Scope for event type.
      */
     public function scopeEventType($query, string $type)
     {
@@ -127,7 +127,7 @@ class PermissionAuditLog extends Model
     }
 
     /**
-     * Scope for event action
+     * Scope for event action.
      */
     public function scopeEventAction($query, string $action)
     {
@@ -135,7 +135,7 @@ class PermissionAuditLog extends Model
     }
 
     /**
-     * Scope for user
+     * Scope for user.
      */
     public function scopeForUser($query, $userId)
     {
@@ -143,41 +143,41 @@ class PermissionAuditLog extends Model
     }
 
     /**
-     * Scope for search
+     * Scope for search.
      */
     public function scopeSearch($query, string $search)
     {
-        return $query->where(function($q) use ($search) {
+        return $query->where(function ($q) use ($search) {
             $q->where('event_type', 'like', "%{$search}%")
-              ->orWhere('event_action', 'like', "%{$search}%")
-              ->orWhereJsonContains('metadata', $search)
-              ->orWhereHas('user', function($userQuery) use ($search) {
-                  $userQuery->where('name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%");
-              });
+                ->orWhere('event_action', 'like', "%{$search}%")
+                ->orWhereJsonContains('metadata', $search)
+                ->orWhereHas('user', function ($userQuery) use ($search) {
+                    $userQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
         });
     }
 
     /**
-     * Scope for date range
+     * Scope for date range.
      */
     public function scopeDateRange($query, $startDate, $endDate)
     {
         if ($startDate && $endDate) {
             // Include the full day for both start and end dates
             return $query->where('created_at', '>=', $startDate . ' 00:00:00')
-                         ->where('created_at', '<=', $endDate . ' 23:59:59');
+                ->where('created_at', '<=', $endDate . ' 23:59:59');
         } elseif ($startDate) {
             return $query->where('created_at', '>=', $startDate . ' 00:00:00');
         } elseif ($endDate) {
             return $query->where('created_at', '<=', $endDate . ' 23:59:59');
         }
-        
+
         return $query;
     }
 
     /**
-     * Get human-readable event description
+     * Get human-readable event description.
      */
     public function getEventDescriptionAttribute(): string
     {
@@ -185,7 +185,7 @@ class PermissionAuditLog extends Model
     }
 
     /**
-     * Get description attribute (alias for event_description)
+     * Get description attribute (alias for event_description).
      */
     public function getDescriptionAttribute(): string
     {
@@ -193,7 +193,7 @@ class PermissionAuditLog extends Model
     }
 
     /**
-     * Get action attribute (alias for event_type)
+     * Get action attribute (alias for event_type).
      */
     public function getActionAttribute(): string
     {
@@ -201,7 +201,7 @@ class PermissionAuditLog extends Model
     }
 
     /**
-     * Get details attribute (alias for metadata)
+     * Get details attribute (alias for metadata).
      */
     public function getDetailsAttribute()
     {
@@ -209,11 +209,11 @@ class PermissionAuditLog extends Model
     }
 
     /**
-     * Get changed fields from old and new values
+     * Get changed fields from old and new values.
      */
     public function getChangedFieldsAttribute(): array
     {
-        if (!$this->old_values || !$this->new_values) {
+        if (! $this->old_values || ! $this->new_values) {
             return [];
         }
 
@@ -223,7 +223,7 @@ class PermissionAuditLog extends Model
             if ($oldValue !== $newValue) {
                 $changed[$key] = [
                     'old' => $oldValue,
-                    'new' => $newValue
+                    'new' => $newValue,
                 ];
             }
         }
@@ -232,7 +232,7 @@ class PermissionAuditLog extends Model
     }
 
     /**
-     * Check if this is a permission-related event
+     * Check if this is a permission-related event.
      */
     public function isPermissionEvent(): bool
     {
@@ -240,7 +240,7 @@ class PermissionAuditLog extends Model
     }
 
     /**
-     * Check if this is an entity event
+     * Check if this is an entity event.
      */
     public function isEntityEvent(): bool
     {
@@ -248,16 +248,16 @@ class PermissionAuditLog extends Model
             'plant.created', 'plant.updated', 'plant.deleted',
             'area.created', 'area.updated', 'area.deleted',
             'sector.created', 'sector.updated', 'sector.deleted',
-            'asset.created', 'asset.updated', 'asset.deleted'
+            'asset.created', 'asset.updated', 'asset.deleted',
         ]);
     }
 
     /**
-     * Get entity information from metadata
+     * Get entity information from metadata.
      */
     public function getEntityInfoAttribute(): ?array
     {
-        if (!$this->isEntityEvent() && !$this->isPermissionEvent()) {
+        if (! $this->isEntityEvent() && ! $this->isPermissionEvent()) {
             return null;
         }
 
@@ -266,24 +266,24 @@ class PermissionAuditLog extends Model
             'id' => $this->metadata['entity_id'] ?? null,
             'name' => $this->metadata['entity_name'] ?? null,
             'parent_type' => $this->metadata['parent_type'] ?? null,
-            'parent_id' => $this->metadata['parent_id'] ?? null
+            'parent_id' => $this->metadata['parent_id'] ?? null,
         ];
     }
 
     /**
-     * Format log entry for display
+     * Format log entry for display.
      */
     public function format(): string
     {
         $user = $this->user ? $this->user->name : 'System';
         $action = $this->event_description;
-        
+
         if ($this->impersonator) {
             $user = "{$this->impersonator->name} (as {$user})";
         }
 
         $details = [];
-        
+
         // Add entity info
         if ($entityInfo = $this->entity_info) {
             if ($entityInfo['name']) {
@@ -300,8 +300,8 @@ class PermissionAuditLog extends Model
             $details[] = "{$count} permissions deleted";
         }
 
-        $detailString = !empty($details) ? ' (' . implode(', ', $details) . ')' : '';
-        
+        $detailString = ! empty($details) ? ' (' . implode(', ', $details) . ')' : '';
+
         return "[{$this->created_at->toDateTimeString()}] {$user}: {$action}{$detailString}";
     }
 }

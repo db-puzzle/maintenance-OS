@@ -33,12 +33,16 @@ export function usePlanningChanges(
     const [routeSaveStatus, setRouteSaveStatus] = useState<SaveStatus>('idle');
     const [moSaveStatus, setMOSaveStatus] = useState<SaveStatus>('idle');
 
-    // Route and MO changes stores
+    // Route and MO changes stores - subscribe to the changes map to trigger re-renders
+    const routeChanges = useRouteChangesStore(state => state.changes);
+    const moChanges = useMOChangesStore(state => state.changes);
     const routeChangesStore = useRouteChangesStore();
     const moChangesStore = useMOChangesStore();
 
-    // Check if there are unsaved changes
-    const hasUnsavedChanges = routeChangesStore.hasChanges() || moChangesStore.hasChanges();
+    // Check if there are unsaved changes - this will now reactively update
+    const hasRouteChanges = routeChanges.size > 0;
+    const hasMOChanges = moChanges.size > 0;
+    const hasUnsavedChanges = hasRouteChanges || hasMOChanges;
 
     // Helper function to find MO in nested structure
     const findMOInHierarchy = useCallback((orders: ManufacturingOrder[], targetId: number): ManufacturingOrder | null => {

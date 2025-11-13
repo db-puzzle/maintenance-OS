@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminDatabaseController;
 use App\Http\Controllers\Admin\BulkOperationsController;
+use App\Http\Controllers\Admin\FeatureController;
 use App\Http\Controllers\Admin\SystemHealthController;
 use Illuminate\Support\Facades\Route;
 
@@ -52,4 +53,13 @@ Route::middleware(['auth:admin'])->group(function () {
     // System Health
     Route::get('health', [SystemHealthController::class, 'index'])->name('admin.health');
     Route::get('health/{account}', [SystemHealthController::class, 'show'])->name('admin.health.show');
+
+    // Feature Flags Management
+    Route::prefix('features')->name('admin.features.')->group(function () {
+        Route::get('/', [FeatureController::class, 'index'])->name('index');
+        Route::post('{feature}/toggle-global', [FeatureController::class, 'toggleGlobal'])->name('toggle-global');
+        Route::post('{feature}/plan-assignments', [FeatureController::class, 'updatePlanAssignments'])->name('plan-assignments');
+        Route::put('{feature}', [FeatureController::class, 'update'])->name('update');
+        Route::post('clear-cache', [FeatureController::class, 'clearCache'])->name('clear-cache');
+    });
 });

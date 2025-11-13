@@ -25,26 +25,26 @@ class ExecutionExport extends Model
         'completed_at' => 'datetime',
     ];
 
-    const TYPE_SINGLE = 'single';
+    public const TYPE_SINGLE = 'single';
 
-    const TYPE_BATCH = 'batch';
+    public const TYPE_BATCH = 'batch';
 
-    const FORMAT_PDF = 'pdf';
+    public const FORMAT_PDF = 'pdf';
 
-    const FORMAT_CSV = 'csv';
+    public const FORMAT_CSV = 'csv';
 
-    const FORMAT_EXCEL = 'excel';
+    public const FORMAT_EXCEL = 'excel';
 
-    const STATUS_PENDING = 'pending';
+    public const STATUS_PENDING = 'pending';
 
-    const STATUS_PROCESSING = 'processing';
+    public const STATUS_PROCESSING = 'processing';
 
-    const STATUS_COMPLETED = 'completed';
+    public const STATUS_COMPLETED = 'completed';
 
-    const STATUS_FAILED = 'failed';
+    public const STATUS_FAILED = 'failed';
 
     /**
-     * Get the user who initiated the export
+     * Get the user who initiated the export.
      */
     public function user(): BelongsTo
     {
@@ -52,7 +52,7 @@ class ExecutionExport extends Model
     }
 
     /**
-     * Mark export as processing
+     * Mark export as processing.
      */
     public function markAsProcessing(): void
     {
@@ -60,7 +60,7 @@ class ExecutionExport extends Model
     }
 
     /**
-     * Mark export as completed
+     * Mark export as completed.
      */
     public function markAsCompleted(): void
     {
@@ -71,7 +71,7 @@ class ExecutionExport extends Model
     }
 
     /**
-     * Mark export as failed
+     * Mark export as failed.
      */
     public function markAsFailed(): void
     {
@@ -79,7 +79,7 @@ class ExecutionExport extends Model
     }
 
     /**
-     * Get the executions for this export
+     * Get the executions for this export.
      */
     public function getExecutions()
     {
@@ -87,7 +87,7 @@ class ExecutionExport extends Model
     }
 
     /**
-     * Check if export is completed
+     * Check if export is completed.
      */
     public function isCompleted(): bool
     {
@@ -95,7 +95,7 @@ class ExecutionExport extends Model
     }
 
     /**
-     * Check if export is processing
+     * Check if export is processing.
      */
     public function isProcessing(): bool
     {
@@ -103,7 +103,7 @@ class ExecutionExport extends Model
     }
 
     /**
-     * Check if export is pending
+     * Check if export is pending.
      */
     public function isPending(): bool
     {
@@ -111,7 +111,7 @@ class ExecutionExport extends Model
     }
 
     /**
-     * Check if export has failed
+     * Check if export has failed.
      */
     public function hasFailed(): bool
     {
@@ -119,7 +119,7 @@ class ExecutionExport extends Model
     }
 
     /**
-     * Get the estimated file size based on execution count
+     * Get the estimated file size based on execution count.
      */
     public function getEstimatedSizeKB(): int
     {

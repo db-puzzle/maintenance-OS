@@ -21,14 +21,14 @@ class TaskInstruction extends Model
         'position' => 'integer',
     ];
 
-    const TYPE_TEXT = 'text';
+    public const TYPE_TEXT = 'text';
 
-    const TYPE_IMAGE = 'image';
+    public const TYPE_IMAGE = 'image';
 
-    const TYPE_VIDEO = 'video';
+    public const TYPE_VIDEO = 'video';
 
     /**
-     * Get the task that owns this instruction
+     * Get the task that owns this instruction.
      */
     public function formTask(): BelongsTo
     {
@@ -36,7 +36,7 @@ class TaskInstruction extends Model
     }
 
     /**
-     * Get the full URL for media
+     * Get the full URL for media.
      */
     public function getMediaUrlFullAttribute(): ?string
     {
@@ -52,7 +52,7 @@ class TaskInstruction extends Model
     }
 
     /**
-     * Check if this is a text instruction
+     * Check if this is a text instruction.
      */
     public function isText(): bool
     {
@@ -60,7 +60,7 @@ class TaskInstruction extends Model
     }
 
     /**
-     * Check if this is an image instruction
+     * Check if this is an image instruction.
      */
     public function isImage(): bool
     {
@@ -68,7 +68,7 @@ class TaskInstruction extends Model
     }
 
     /**
-     * Check if this is a video instruction
+     * Check if this is a video instruction.
      */
     public function isVideo(): bool
     {

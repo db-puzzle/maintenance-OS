@@ -12,6 +12,7 @@ import { TextInput } from '@/components/TextInput';
 import { createFormAdapter } from '@/utils/form-adapters';
 import { WorkCell } from '@/types/production';
 import { PortalProvider } from '@/contexts/PortalContext';
+import { useFeature, FEATURES } from '@/utils/features';
 
 interface WorkCellForm {
     [key: string]: string | number | boolean | null | undefined;
@@ -72,6 +73,9 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
     manufacturers = [],
     unitsOfMeasure = [],
 }) => {
+    // Check if scheduler feature is enabled
+    const hasScheduler = useFeature(FEATURES.PRODUCTION_SCHEDULER);
+
     const { data, setData, processing } = useForm<WorkCellForm>({
         name: workCell?.name || '',
         description: workCell?.description || '',
@@ -505,135 +509,137 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
 
                         </div>
 
-                        {/* Capacidade */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-medium">Capacidade</h3>
-                            <div className="space-y-3">
-                                <StateButton
-                                    icon={InfinityIcon}
-                                    title="Capacidade Infinita"
-                                    description="A célula tem capacidade ilimitada (ex: operações terceirizadas)"
-                                    selected={!data.has_finite_capacity}
-                                    onClick={() => {
-                                        updateData('has_finite_capacity', false);
-                                        // Clear finite capacity related fields
-                                        updateData('shift_id', '');
-                                        updateData('default_production_rate_per_hour', '');
-                                        updateData('default_setup_time_minutes', '0');
-                                        updateData('max_parallel_executions', '1');
-                                    }}
-                                    disabled={isSubmitting || processing}
-                                />
-                                <StateButton
-                                    icon={Building2}
-                                    title="Capacidade Finita"
-                                    description="A célula tem limitações de capacidade baseadas em turnos e taxas de produção"
-                                    selected={data.has_finite_capacity}
-                                    onClick={() => updateData('has_finite_capacity', true)}
-                                    disabled={isSubmitting || processing}
-                                />
-                                {data.has_finite_capacity && (
-                                    <div className="border-l border-gray-200">
-                                        <div className="ml-6 space-y-4">
-                                            <ItemSelect
-                                                label="Turno"
-                                                items={shifts}
-                                                value={data.shift_id}
-                                                onValueChange={(value) => updateData('shift_id', value)}
-                                                placeholder="Selecione um turno"
-                                                error={errors.shift_id}
-                                                required
-                                                canClear
-                                            />
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="flex items-end gap-2">
-                                                    <div className="flex-1">
-                                                        <TextInput
-                                                            form={formAdapter}
-                                                            name="default_production_rate_per_hour"
-                                                            label="Taxa Padrão de Produção"
-                                                            placeholder="100"
-                                                            disabled={isSubmitting || processing}
-                                                        />
-                                                    </div>
-                                                    <span className="text-sm text-muted-foreground mb-2 whitespace-nowrap">por hora</span>
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="default_unit_of_measure">Unidade de Medida</Label>
-                                                    <Select
-                                                        value={data.default_unit_of_measure}
-                                                        onValueChange={(value) => updateData('default_unit_of_measure', value)}
-                                                        disabled={isSubmitting || processing}
-                                                    >
-                                                        <SelectTrigger className="w-full">
-                                                            <SelectValue placeholder="Selecione uma unidade" />
-                                                        </SelectTrigger>
-                                                        <SelectContent container={sheetContentEl}>
-                                                            {Object.entries(uomByType).map(([type, units]) => (
-                                                                <SelectGroup key={type}>
-                                                                    <SelectLabel>
-                                                                        {type === 'COUNT' ? 'Contagem' :
-                                                                            type === 'MASS' ? 'Massa' :
-                                                                                type === 'LENGTH' ? 'Comprimento' :
-                                                                                    type === 'AREA' ? 'Área' :
-                                                                                        type === 'VOLUME' ? 'Volume' :
-                                                                                            type === 'TIME' ? 'Tempo' : type}
-                                                                    </SelectLabel>
-                                                                    {units.map((uom) => (
-                                                                        <SelectItem key={uom.id} value={uom.code}>
-                                                                            {uom.code} - {uom.name}
-                                                                            {uom.symbol && ` (${uom.symbol})`}
-                                                                        </SelectItem>
-                                                                    ))}
-                                                                </SelectGroup>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    {errors.default_unit_of_measure && (
-                                                        <p className="text-sm text-red-600 mt-1">{errors.default_unit_of_measure}</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
+                        {/* Capacidade - Only show if scheduler feature is enabled */}
+                        {hasScheduler && (
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-medium">Capacidade</h3>
+                                <div className="space-y-3">
+                                    <StateButton
+                                        icon={InfinityIcon}
+                                        title="Capacidade Infinita"
+                                        description="A célula tem capacidade ilimitada (ex: operações terceirizadas)"
+                                        selected={!data.has_finite_capacity}
+                                        onClick={() => {
+                                            updateData('has_finite_capacity', false);
+                                            // Clear finite capacity related fields
+                                            updateData('shift_id', '');
+                                            updateData('default_production_rate_per_hour', '');
+                                            updateData('default_setup_time_minutes', '0');
+                                            updateData('max_parallel_executions', '1');
+                                        }}
+                                        disabled={isSubmitting || processing}
+                                    />
+                                    <StateButton
+                                        icon={Building2}
+                                        title="Capacidade Finita"
+                                        description="A célula tem limitações de capacidade baseadas em turnos e taxas de produção"
+                                        selected={data.has_finite_capacity}
+                                        onClick={() => updateData('has_finite_capacity', true)}
+                                        disabled={isSubmitting || processing}
+                                    />
+                                    {data.has_finite_capacity && (
+                                        <div className="border-l border-gray-200">
+                                            <div className="ml-6 space-y-4">
+                                                <ItemSelect
+                                                    label="Turno"
+                                                    items={shifts}
+                                                    value={data.shift_id}
+                                                    onValueChange={(value) => updateData('shift_id', value)}
+                                                    placeholder="Selecione um turno"
+                                                    error={errors.shift_id}
+                                                    required
+                                                    canClear
+                                                />
+                                                <div className="grid grid-cols-2 gap-4">
                                                     <div className="flex items-end gap-2">
                                                         <div className="flex-1">
                                                             <TextInput
                                                                 form={formAdapter}
-                                                                name="default_setup_time_minutes"
-                                                                label="Tempo Padrão de Setup"
-                                                                placeholder="30"
-                                                                type="number"
-                                                                min="0"
-                                                                max="9999"
+                                                                name="default_production_rate_per_hour"
+                                                                label="Taxa Padrão de Produção"
+                                                                placeholder="100"
                                                                 disabled={isSubmitting || processing}
                                                             />
                                                         </div>
-                                                        <span className="text-sm text-muted-foreground pb-1 whitespace-nowrap">minutos</span>
+                                                        <span className="text-sm text-muted-foreground mb-2 whitespace-nowrap">por hora</span>
                                                     </div>
-                                                    <p className="text-sm text-muted-foreground mt-1">Tempo padrão de preparação/setup em minutos</p>
+                                                    <div>
+                                                        <Label htmlFor="default_unit_of_measure">Unidade de Medida</Label>
+                                                        <Select
+                                                            value={data.default_unit_of_measure}
+                                                            onValueChange={(value) => updateData('default_unit_of_measure', value)}
+                                                            disabled={isSubmitting || processing}
+                                                        >
+                                                            <SelectTrigger className="w-full">
+                                                                <SelectValue placeholder="Selecione uma unidade" />
+                                                            </SelectTrigger>
+                                                            <SelectContent container={sheetContentEl}>
+                                                                {Object.entries(uomByType).map(([type, units]) => (
+                                                                    <SelectGroup key={type}>
+                                                                        <SelectLabel>
+                                                                            {type === 'COUNT' ? 'Contagem' :
+                                                                                type === 'MASS' ? 'Massa' :
+                                                                                    type === 'LENGTH' ? 'Comprimento' :
+                                                                                        type === 'AREA' ? 'Área' :
+                                                                                            type === 'VOLUME' ? 'Volume' :
+                                                                                                type === 'TIME' ? 'Tempo' : type}
+                                                                        </SelectLabel>
+                                                                        {units.map((uom) => (
+                                                                            <SelectItem key={uom.id} value={uom.code}>
+                                                                                {uom.code} - {uom.name}
+                                                                                {uom.symbol && ` (${uom.symbol})`}
+                                                                            </SelectItem>
+                                                                        ))}
+                                                                    </SelectGroup>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        {errors.default_unit_of_measure && (
+                                                            <p className="text-sm text-red-600 mt-1">{errors.default_unit_of_measure}</p>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <TextInput
-                                                        form={formAdapter}
-                                                        name="max_parallel_executions"
-                                                        label="Execuções Paralelas Máximas"
-                                                        placeholder="1"
-                                                        type="number"
-                                                        min="1"
-                                                        max="999"
-                                                        required
-                                                        disabled={isSubmitting || processing}
-                                                        validateInput={validateParallelExecutions}
-                                                        helperText="Máximo de operações em paralelo"
-                                                    />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <div className="flex items-end gap-2">
+                                                            <div className="flex-1">
+                                                                <TextInput
+                                                                    form={formAdapter}
+                                                                    name="default_setup_time_minutes"
+                                                                    label="Tempo Padrão de Setup"
+                                                                    placeholder="30"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="9999"
+                                                                    disabled={isSubmitting || processing}
+                                                                />
+                                                            </div>
+                                                            <span className="text-sm text-muted-foreground pb-1 whitespace-nowrap">minutos</span>
+                                                        </div>
+                                                        <p className="text-sm text-muted-foreground mt-1">Tempo padrão de preparação/setup em minutos</p>
+                                                    </div>
+                                                    <div>
+                                                        <TextInput
+                                                            form={formAdapter}
+                                                            name="max_parallel_executions"
+                                                            label="Execuções Paralelas Máximas"
+                                                            placeholder="1"
+                                                            type="number"
+                                                            min="1"
+                                                            max="999"
+                                                            required
+                                                            disabled={isSubmitting || processing}
+                                                            validateInput={validateParallelExecutions}
+                                                            helperText="Máximo de operações em paralelo"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Status */}
                         <div className="space-y-4">

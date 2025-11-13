@@ -2,8 +2,8 @@
 
 namespace App\Policies\Production;
 
-use App\Models\User;
 use App\Models\Production\ManufacturingOrderFlow;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class ManufacturingOrderFlowPolicy

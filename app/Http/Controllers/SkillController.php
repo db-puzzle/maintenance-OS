@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Skill;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
 
 class SkillController extends Controller
 {
@@ -137,7 +137,7 @@ class SkillController extends Controller
         $this->authorize('delete', $skill);
 
         $dependencies = $skill->getDependencies();
-        $canDelete = collect($dependencies)->every(fn($dep) => ($dep['count'] ?? 0) === 0);
+        $canDelete = collect($dependencies)->every(fn ($dep) => ($dep['count'] ?? 0) === 0);
 
         return response()->json([
             'canDelete' => $canDelete,
@@ -154,6 +154,7 @@ class SkillController extends Controller
 
         try {
             $skill->delete();
+
             return redirect()->route('skills.index')->with('success', 'Habilidade excluída com sucesso.');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', $e->getMessage());

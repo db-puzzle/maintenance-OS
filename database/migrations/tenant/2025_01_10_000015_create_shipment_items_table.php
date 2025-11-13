@@ -13,30 +13,41 @@ return new class extends Migration
     {
         Schema::create('shipment_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('shipment_id')->constrained('shipments')->cascadeOnDelete();
-            $table->foreignId('bom_item_id')->nullable()->constrained('bom_items');
-            $table->foreignId('manufacturing_order_id')->nullable()->constrained('manufacturing_orders');
 
-            // Item details
-            $table->string('item_number', 100);
-            $table->text('description')->nullable();
-            $table->decimal('quantity', 10, 2);
-            $table->string('unit_of_measure_code', 20)->default('PC');
-            $table->foreign('unit_of_measure_code')->references('code')->on('units_of_measure');
+            // Shipment reference
+            $table->foreignId('shipment_id')->constrained('shipments')->cascadeOnDelete();
+
+            // Manufacturing order reference
+            $table->foreignId('manufacturing_order_id')->constrained('manufacturing_orders')->cascadeOnDelete();
+
+            // Step reference (for external processing shipments)
+            $table->foreignId('manufacturing_step_id')->nullable()->constrained('manufacturing_steps')->nullOnDelete()->comment('Which step needs external processing');
+
+            // Quantities
+            $table->decimal('quantity_shipped', 10, 2);
+            $table->decimal('quantity_received', 10, 2)->default(0);
+            $table->decimal('quantity_rejected', 10, 2)->default(0)->comment('Failed QC on receipt');
+
+            // Item details (denormalized for history)
+            $table->string('item_code', 100)->nullable();
+            $table->string('item_name')->nullable();
+            $table->text('item_description')->nullable();
 
             // Packaging
-            $table->string('package_number', 50)->nullable();
-            $table->string('package_type', 50)->nullable();
-            $table->decimal('weight', 10, 2)->nullable();
-            $table->json('dimensions')->nullable();
+            $table->integer('package_count')->nullable()->comment('Number of boxes/pallets');
+            $table->enum('package_type', ['box', 'pallet', 'crate', 'bag', 'other'])->nullable();
 
-            // QR tracking
-            $table->json('qr_codes')->nullable(); // Array of QR codes included
+            // Notes
+            $table->text('notes')->nullable();
+            $table->text('rejection_reason')->nullable()->comment('Why items were rejected on receipt');
 
+            // Metadata
             $table->timestamps();
 
+            // Indexes
             $table->index('shipment_id');
-            $table->index('package_number');
+            $table->index('manufacturing_order_id');
+            $table->index('manufacturing_step_id');
         });
     }
 

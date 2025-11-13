@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\SuperAdminGrant;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -17,7 +17,7 @@ class SuperAdminController extends Controller
     }
 
     /**
-     * Grant super admin privileges to a user
+     * Grant super admin privileges to a user.
      */
     public function grant(Request $request, User $user)
     {
@@ -41,11 +41,11 @@ class SuperAdminController extends Controller
     }
 
     /**
-     * Revoke super admin privileges from a user
+     * Revoke super admin privileges from a user.
      */
     public function revoke(Request $request, User $user)
     {
-        if (!$user->isAdministrator()) {
+        if (! $user->isAdministrator()) {
             return back()->with('error', 'User is not an administrator.');
         }
 
@@ -65,7 +65,7 @@ class SuperAdminController extends Controller
     }
 
     /**
-     * Get super admin grants history
+     * Get super admin grants history.
      */
     public function grants()
     {
@@ -77,13 +77,13 @@ class SuperAdminController extends Controller
     }
 
     /**
-     * Get current super administrators
+     * Get current super administrators.
      */
     public function current()
     {
         $superAdmins = User::whereHas('roles', function ($query) {
-                $query->where('name', 'Administrator');
-            })
+            $query->where('name', 'Administrator');
+        })
             ->with('roles')
             ->get();
 

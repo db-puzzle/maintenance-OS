@@ -22,7 +22,7 @@ class SectorPolicy
 
         // Check if user has any sector-related view permissions
         $permissions = $user->getAllPermissions()->pluck('name')->toArray();
-        
+
         foreach ($permissions as $permission) {
             // Check for direct sector view permissions
             if (preg_match('/^sectors\.view\.\d+$/', $permission)) {
@@ -72,19 +72,19 @@ class SectorPolicy
             foreach ($userPermissions as $permission) {
                 // Check area permissions (format: areas.view.123, areas.update.123, etc.)
                 if (preg_match('/^areas\.\w+\.(\d+)$/', $permission, $matches)) {
-                    if ((int)$matches[1] === $sector->area_id) {
+                    if ((int) $matches[1] === $sector->area_id) {
                         return true;
                     }
                 }
             }
-            
+
             // Check if user has permissions for the plant containing this sector
             $area = $sector->area;
             if ($area && $area->plant_id) {
                 foreach ($userPermissions as $permission) {
                     // Check plant permissions (format: plants.view.123, plants.update.123, etc.)
                     if (preg_match('/^plants\.\w+\.(\d+)$/', $permission, $matches)) {
-                        if ((int)$matches[1] === $area->plant_id) {
+                        if ((int) $matches[1] === $area->plant_id) {
                             return true;
                         }
                     }
@@ -116,7 +116,7 @@ class SectorPolicy
 
         // Get all user permissions
         $permissions = $user->getAllPermissions()->pluck('name')->toArray();
-        
+
         // Check for area-scoped sector creation permissions
         foreach ($permissions as $permission) {
             // sectors.create.area.123 - can create sectors in specific area
@@ -208,4 +208,4 @@ class SectorPolicy
 
         return false;
     }
-} 
+}

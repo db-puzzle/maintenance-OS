@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\SkillController;
 use App\Http\Controllers\CertificationController;
+use App\Http\Controllers\SkillController;
 use Illuminate\Support\Facades\Route;
 
 // Skills routes

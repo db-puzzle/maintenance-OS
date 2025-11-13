@@ -13,21 +13,21 @@ use Inertia\Inertia;
 class WorkOrderSchedulingController extends Controller
 {
     private WorkOrderSchedulingService $schedulingService;
-    
+
     public function __construct(WorkOrderSchedulingService $schedulingService)
     {
         $this->schedulingService = $schedulingService;
     }
-    
+
     public function index(Request $request)
     {
         $startDate = Carbon::parse($request->get('start_date', now()->startOfWeek()));
         $endDate = Carbon::parse($request->get('end_date', now()->endOfWeek()));
-        
+
         $filters = $request->only(['technician_id', 'asset_id', 'status']);
-        
+
         $calendar = $this->schedulingService->getSchedulingCalendar($startDate, $endDate, $filters);
-        
+
         // Get unscheduled work orders
         $unscheduledWorkOrders = WorkOrder::with(['asset', 'type'])
             ->whereIn('status', [
@@ -38,19 +38,19 @@ class WorkOrderSchedulingController extends Controller
             ->whereNull('scheduled_start_date')
             ->orderBy('priority_score', 'desc')
             ->get();
-            
+
         // Get technicians for filter
         $technicians = User::whereHas('permissions', function ($query) {
             $query->where('name', 'execute_work_orders');
         })->get();
-        
+
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
-    
+
     public function schedule(Request $request, WorkOrder $workOrder)
     {
         $validated = $request->validate([
@@ -59,12 +59,12 @@ class WorkOrderSchedulingController extends Controller
             'assigned_technician_id' => 'nullable|exists:users,id',
             'assigned_team_id' => 'nullable|exists:teams,id',
         ]);
-        
+
         // Check if work order can be scheduled
-        if (!in_array($workOrder->status, [WorkOrder::STATUS_APPROVED, WorkOrder::STATUS_PLANNED, WorkOrder::STATUS_READY])) {
+        if (! in_array($workOrder->status, [WorkOrder::STATUS_APPROVED, WorkOrder::STATUS_PLANNED, WorkOrder::STATUS_READY])) {
             return back()->with('error', 'Work order cannot be scheduled in current status.');
         }
-        
+
         // Check technician availability if assigned
         if ($validated['assigned_technician_id']) {
             $availability = $this->schedulingService->checkTechnicianAvailability(
@@ -72,22 +72,22 @@ class WorkOrderSchedulingController extends Controller
                 Carbon::parse($validated['scheduled_start_date']),
                 Carbon::parse($validated['scheduled_end_date'])
             );
-            
-            if (!$availability['available']) {
+
+            if (! $availability['available']) {
                 return back()->with('error', 'Technician is not available during the selected time period.');
             }
         }
-        
+
         $workOrder->update($validated);
-        
+
         // Transition to scheduled status if ready
         if ($workOrder->status === WorkOrder::STATUS_READY) {
             $workOrder->transitionTo(WorkOrder::STATUS_SCHEDULED, auth()->user(), 'Scheduled');
         }
-        
+
         return back()->with('success', 'Work order scheduled successfully.');
     }
-    
+
     public function batchSchedule(Request $request)
     {
         $validated = $request->validate([
@@ -98,12 +98,12 @@ class WorkOrderSchedulingController extends Controller
             'schedules.*.technician_id' => 'nullable|exists:users,id',
             'schedules.*.team_id' => 'nullable|exists:teams,id',
         ]);
-        
+
         $scheduled = $this->schedulingService->scheduleBatch($validated['schedules'], auth()->user());
-        
+
         return back()->with('success', "Successfully scheduled {$scheduled->count()} work orders.");
     }
-    
+
     public function technicianWorkload(Request $request)
     {
         $validated = $request->validate([
@@ -111,16 +111,16 @@ class WorkOrderSchedulingController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
         ]);
-        
+
         $workload = $this->schedulingService->getTechnicianWorkload(
             $validated['technician_id'],
             Carbon::parse($validated['start_date']),
             Carbon::parse($validated['end_date'])
         );
-        
+
         return response()->json($workload);
     }
-    
+
     public function optimizeSchedule(Request $request)
     {
         $validated = $request->validate([
@@ -129,24 +129,24 @@ class WorkOrderSchedulingController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
         ]);
-        
+
         $workOrders = WorkOrder::whereIn('id', $validated['work_order_ids'])->get();
-        
+
         $technicians = User::whereHas('permissions', function ($query) {
             $query->where('name', 'execute_work_orders');
         })->get()->toArray();
-        
+
         $optimization = $this->schedulingService->optimizeSchedule(
             $workOrders,
             $technicians,
             Carbon::parse($validated['start_date']),
             Carbon::parse($validated['end_date'])
         );
-        
+
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 }

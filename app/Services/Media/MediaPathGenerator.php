@@ -39,7 +39,7 @@ class MediaPathGenerator implements PathGenerator
         // Use a structured path based on model type and date
         $modelType = strtolower(class_basename($media->model_type));
         $dateFolder = $media->created_at->format('Y/m');
-        
+
         return "{$modelType}/{$dateFolder}/{$media->id}";
     }
 }

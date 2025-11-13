@@ -37,7 +37,6 @@ class MediaService
         $mimeType = $file->getMimeType();
         $fileSize = $file->getSize();
 
-
         // Generate file hash
         $fileHash = hash_file('sha256', $file->getRealPath());
 
@@ -76,12 +75,10 @@ class MediaService
         // The MediaFileNamer will handle sanitization and unique suffix generation
         $originalFilename = $file->getClientOriginalName();
 
-
         $media = $model->addMedia($file)
             ->withCustomProperties($properties)
             ->usingFileName($originalFilename)
             ->toMediaCollection($collection, $disk);
-
 
         // Update media record with hash values
         $media->update([

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\WorkOrders\WorkOrderType;
 use App\Models\WorkOrders\WorkOrderCategory;
+use App\Models\WorkOrders\WorkOrderType;
 use Illuminate\Database\Seeder;
 
 class WorkOrderTypeSeeder extends Seeder
@@ -15,7 +15,7 @@ class WorkOrderTypeSeeder extends Seeder
     {
         // Get categories by code for easy reference
         $categories = WorkOrderCategory::all()->keyBy('code');
-        
+
         $types = [
             // Most Common - Daily/Weekly Operations
             [
@@ -56,7 +56,7 @@ class WorkOrderTypeSeeder extends Seeder
                 'sla_hours' => 168,
                 'is_active' => true,
             ],
-            
+
             // Common - Emergency and Scheduled Repairs
             [
                 'name' => 'Reparo Emergencial',
@@ -82,7 +82,7 @@ class WorkOrderTypeSeeder extends Seeder
                 'sla_hours' => 24,
                 'is_active' => true,
             ],
-            
+
             // Moderate - Condition-based and Component Work
             [
                 'name' => 'Manutenção Preventiva por Condição',
@@ -109,7 +109,7 @@ class WorkOrderTypeSeeder extends Seeder
                 'sla_hours' => 48,
                 'is_active' => true,
             ],
-            
+
             // Less Common - Specialized Inspections
             [
                 'name' => 'Inspeção Termográfica',
@@ -147,7 +147,7 @@ class WorkOrderTypeSeeder extends Seeder
                 'sla_hours' => 168,
                 'is_active' => true,
             ],
-            
+
             // Least Common - Project Work
             [
                 'name' => 'Instalação de Equipamento',

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Skill;
+use Illuminate\Database\Seeder;
 
 class SkillSeeder extends Seeder
 {
@@ -39,7 +39,7 @@ class SkillSeeder extends Seeder
                 'description' => 'Habilidade para manutenção de compressores de ar e gases',
                 'category' => 'Mecânica',
             ],
-            
+
             // Electrical Skills
             [
                 'name' => 'Manutenção de Motores Elétricos',
@@ -61,7 +61,7 @@ class SkillSeeder extends Seeder
                 'description' => 'Habilidade para realizar inspeções termográficas',
                 'category' => 'Elétrica',
             ],
-            
+
             // Instrumentation Skills
             [
                 'name' => 'Calibração de Instrumentos',
@@ -78,7 +78,7 @@ class SkillSeeder extends Seeder
                 'description' => 'Habilidade para programar e fazer manutenção em CLPs',
                 'category' => 'Automação',
             ],
-            
+
             // Welding Skills
             [
                 'name' => 'Soldagem TIG',
@@ -95,7 +95,7 @@ class SkillSeeder extends Seeder
                 'description' => 'Habilidade para realizar soldagem com eletrodo revestido',
                 'category' => 'Soldagem',
             ],
-            
+
             // General Skills
             [
                 'name' => 'Operação de Empilhadeira',

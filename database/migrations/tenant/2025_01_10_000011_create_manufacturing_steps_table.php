@@ -16,6 +16,17 @@ return new class extends Migration
             $table->foreignId('manufacturing_route_id')->constrained('manufacturing_routes')->cascadeOnDelete();
             $table->boolean('is_template')->default(false);
             $table->enum('step_type', ['standard', 'quality_check', 'rework'])->default('standard');
+
+            // External execution fields
+            $table->enum('execution_location', ['internal', 'external'])->default('internal')->comment('Where the step is executed');
+            $table->foreignId('manufacturer_id')->nullable()->constrained('manufacturers')->nullOnDelete()->comment('Third-party manufacturer (for external steps)');
+            $table->integer('expected_lead_time_days')->nullable()->comment('Expected turnaround time at manufacturer (days)');
+            $table->enum('external_status', ['awaiting_shipment', 'shipped', 'in_process'])->nullable()->comment('External processing status');
+            $table->timestamp('shipped_date')->nullable()->comment('When items were shipped to manufacturer');
+            $table->timestamp('received_date')->nullable()->comment('When items were received from manufacturer');
+            $table->decimal('quantity_shipped', 10, 2)->default(0)->comment('Total quantity shipped (sum of all shipments)');
+            $table->decimal('quantity_received', 10, 2)->default(0)->comment('Total quantity received (sum of all receipts)');
+
             $table->string('name', 255);
             $table->text('description')->nullable();
             $table->foreignId('work_cell_id')->nullable()->constrained('work_cells');
@@ -84,6 +95,9 @@ return new class extends Migration
             $table->index('step_type');
             $table->index('is_template');
             $table->index('child_order_dependency_type');
+            $table->index('execution_location');
+            $table->index('external_status');
+            $table->index('manufacturer_id');
 
             // Note: Constraint enforced at model level - template steps should not have status or execution data
         });

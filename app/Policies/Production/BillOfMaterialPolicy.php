@@ -67,4 +67,4 @@ class BillOfMaterialPolicy
     {
         return $user->hasPermissionTo('production.bom.manageItems');
     }
-} 
+}

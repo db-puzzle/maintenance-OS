@@ -3,32 +3,32 @@
 namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
-use App\Services\Production\QrTagPdfService;
+use App\Jobs\Production\GenerateQrBatchJob;
 use App\Models\Production\Item;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\QrTagTemplate;
-use App\Jobs\Production\GenerateQrBatchJob;
+use App\Services\Production\QrTagPdfService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class QrTagController extends Controller
 {
     private QrTagPdfService $pdfService;
-    
+
     public function __construct(QrTagPdfService $pdfService)
     {
         // Ensure user is authenticated for all methods
         $this->middleware(['auth', 'verified']);
-        
+
         $this->pdfService = $pdfService;
     }
 
     public function index()
     {
         $this->authorize('production.qr-tags.view');
-        
+
         return Inertia::render('production/qr/TagGenerator', [
-            'templates' => QrTagTemplate::where('is_active', true)->get()
+            'templates' => QrTagTemplate::where('is_active', true)->get(),
         ]);
     }
 
@@ -36,23 +36,23 @@ class QrTagController extends Controller
     {
         $this->authorize('view', $item);
         $this->authorize('production.qr-tags.generate');
-        
+
         $pdfUrl = $this->pdfService->generateItemTag($item);
-        
+
         // If this is an Inertia request, redirect back with success message
         if ($request->header('X-Inertia')) {
             return back()->with('qrTag', [
                 'success' => true,
                 'pdf_url' => $pdfUrl,
-                'preview_url' => route('production.qr-tags.preview', ['type' => 'item', 'id' => $item->id])
+                'preview_url' => route('production.qr-tags.preview', ['type' => 'item', 'id' => $item->id]),
             ]);
         }
-        
+
         // Fallback to JSON response for non-Inertia requests
         return response()->json([
             'success' => true,
             'pdf_url' => $pdfUrl,
-            'preview_url' => route('production.qr-tags.preview', ['type' => 'item', 'id' => $item->id])
+            'preview_url' => route('production.qr-tags.preview', ['type' => 'item', 'id' => $item->id]),
         ]);
     }
 
@@ -60,34 +60,34 @@ class QrTagController extends Controller
     {
         $this->authorize('view', $order);
         $this->authorize('production.qr-tags.generate');
-        
+
         $pdfUrl = $this->pdfService->generateOrderTag($order);
-        
+
         return response()->json([
             'success' => true,
             'pdf_url' => $pdfUrl,
-            'preview_url' => route('production.qr-tags.preview', ['type' => 'order', 'id' => $order->id])
+            'preview_url' => route('production.qr-tags.preview', ['type' => 'order', 'id' => $order->id]),
         ]);
     }
 
     public function generateBatch(Request $request)
     {
         $this->authorize('production.qr-tags.generate');
-        
+
         $validated = $request->validate([
             'type' => 'required|in:item,order',
             'ids' => 'required|array|min:1|max:100',
-            'ids.*' => 'required|integer'
+            'ids.*' => 'required|integer',
         ]);
-        
-        $items = match($validated['type']) {
+
+        $items = match ($validated['type']) {
             'item' => Item::whereIn('id', $validated['ids'])->get(),
             'order' => ManufacturingOrder::whereIn('id', $validated['ids'])->get()
         };
-        
+
         // Check permissions
-        $items->each(fn($item) => $this->authorize('view', $item));
-        
+        $items->each(fn ($item) => $this->authorize('view', $item));
+
         // Queue batch generation for large sets
         if (count($items) > 10) {
             dispatch(new GenerateQrBatchJob(
@@ -95,38 +95,38 @@ class QrTagController extends Controller
                 $items->pluck('id')->toArray(),
                 auth()->user()
             ));
-            
+
             return response()->json([
                 'success' => true,
                 'queued' => true,
-                'message' => 'Geração em lote iniciada. Você receberá uma notificação quando estiver pronta.'
+                'message' => 'Geração em lote iniciada. Você receberá uma notificação quando estiver pronta.',
             ]);
         }
-        
+
         $pdfUrl = $this->pdfService->generateBatchTags($items->all(), $validated['type']);
-        
+
         return response()->json([
             'success' => true,
-            'pdf_url' => $pdfUrl
+            'pdf_url' => $pdfUrl,
         ]);
     }
 
     public function preview(Request $request, string $type, int $id)
     {
         $this->authorize('production.qr-tags.view');
-        
-        $resource = match($type) {
+
+        $resource = match ($type) {
             'item' => Item::findOrFail($id),
             'order' => ManufacturingOrder::findOrFail($id),
             default => abort(404)
         };
-        
+
         $this->authorize('view', $resource);
-        
+
         return Inertia::render('production/qr/TagPreview', [
             'type' => $type,
             'resource' => $resource,
-            'template' => QrTagTemplate::where('type', $type)->where('is_default', true)->first()
+            'template' => QrTagTemplate::where('type', $type)->where('is_default', true)->first(),
         ]);
     }
 }

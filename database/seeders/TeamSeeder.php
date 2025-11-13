@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class TeamSeeder extends Seeder
 {
@@ -58,13 +58,13 @@ class TeamSeeder extends Seeder
 
         foreach ($teams as $teamData) {
             $team = Team::create($teamData);
-            
+
             // Optionally assign some users to teams if they exist
             // This is just an example - adjust based on your needs
             $technicians = User::whereHas('roles', function ($query) {
                 $query->where('name', 'Technician');
             })->take(3)->get();
-            
+
             if ($technicians->count() > 0) {
                 $team->users()->attach($technicians->pluck('id'));
             }

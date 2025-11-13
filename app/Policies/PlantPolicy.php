@@ -22,7 +22,7 @@ class PlantPolicy
 
         // Check if user has any plant-related view permissions
         $permissions = $user->getAllPermissions()->pluck('name')->toArray();
-        
+
         foreach ($permissions as $permission) {
             // Check for direct plant view permissions
             if (preg_match('/^plants\.view\.\d+$/', $permission)) {
@@ -65,23 +65,23 @@ class PlantPolicy
 
         // Check if user has permissions for any area within this plant
         $plantAreas = $plant->areas()->pluck('id')->toArray();
-        if (!empty($plantAreas)) {
+        if (! empty($plantAreas)) {
             foreach ($userPermissions as $permission) {
                 // Check area permissions (format: areas.view.123, areas.update.123, etc.)
                 if (preg_match('/^areas\.\w+\.(\d+)$/', $permission, $matches)) {
-                    if (in_array((int)$matches[1], $plantAreas)) {
+                    if (in_array((int) $matches[1], $plantAreas)) {
                         return true;
                     }
                 }
             }
-            
+
             // Check if user has permissions for any sector within this plant
             $plantSectors = \App\Models\AssetHierarchy\Sector::whereIn('area_id', $plantAreas)->pluck('id')->toArray();
-            if (!empty($plantSectors)) {
+            if (! empty($plantSectors)) {
                 foreach ($userPermissions as $permission) {
                     // Check sector permissions (format: sectors.view.123, sectors.update.123, etc.)
                     if (preg_match('/^sectors\.\w+\.(\d+)$/', $permission, $matches)) {
-                        if (in_array((int)$matches[1], $plantSectors)) {
+                        if (in_array((int) $matches[1], $plantSectors)) {
                             return true;
                         }
                     }
@@ -159,4 +159,4 @@ class PlantPolicy
 
         return false;
     }
-} 
+}

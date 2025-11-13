@@ -25,14 +25,14 @@ class PlantsController extends BaseSearchController
             }]);
 
         // Filter plants based on user permissions (unless administrator)
-        if (!$user->isAdministrator()) {
+        if (! $user->isAdministrator()) {
             $query->where(function ($q) use ($user) {
                 // Get all user permissions
                 $permissions = $user->getAllPermissions()->pluck('name')->toArray();
-                
+
                 // Extract plant IDs from permissions
                 $plantIds = [];
-                
+
                 foreach ($permissions as $permission) {
                     // Direct plant permissions (plants.view.123)
                     if (preg_match('/^plants\.view\.(\d+)$/', $permission, $matches)) {
@@ -57,10 +57,10 @@ class PlantsController extends BaseSearchController
                         }
                     }
                 }
-                
+
                 // Remove duplicates and filter query
                 $plantIds = array_unique($plantIds);
-                if (!empty($plantIds)) {
+                if (! empty($plantIds)) {
                     $q->whereIn('id', $plantIds);
                 } else {
                     // User has no plant permissions, show nothing
@@ -352,8 +352,10 @@ class PlantsController extends BaseSearchController
                 case 'type':
                     return strcmp($a['asset_type']['name'] ?? '', $b['asset_type']['name'] ?? '') * $direction;
                 case 'location':
-                    return strcmp($a['area_name'].($a['sector_name'] ? ' / '.$a['sector_name'] : ''),
-                        $b['area_name'].($b['sector_name'] ? ' / '.$b['sector_name'] : '')) * $direction;
+                    return strcmp(
+                        $a['area_name'] . ($a['sector_name'] ? ' / ' . $a['sector_name'] : ''),
+                        $b['area_name'] . ($b['sector_name'] ? ' / ' . $b['sector_name'] : '')
+                    ) * $direction;
                 case 'manufacturer':
                     return strcmp($a['manufacturer'] ?? '', $b['manufacturer'] ?? '') * $direction;
                 case 'year':

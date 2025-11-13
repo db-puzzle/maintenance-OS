@@ -7,9 +7,9 @@ use App\Models\Production\Item;
 use App\Services\MediaService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Bulk import service for item images using the new Media Library infrastructure.
@@ -19,8 +19,7 @@ class ItemImageBulkImportServiceV2
 {
     public function __construct(
         private MediaService $mediaService
-    ) {
-    }
+    ) {}
 
     /**
      * Import item images from a manifest and uploaded files using the new Media Library.
@@ -48,11 +47,11 @@ class ItemImageBulkImportServiceV2
         ];
 
         $items = $manifest['items'] ?? [];
-        
+
         // Process in batches to handle large imports
         $batchSize = 10; // Process 10 items at a time
         $itemChunks = array_chunk($items, $batchSize);
-        
+
         foreach ($itemChunks as $chunk) {
             $this->processItemBatch($chunk, $fileMap, $summary);
         }
@@ -70,7 +69,7 @@ class ItemImageBulkImportServiceV2
             $itemId = $entry['item_id'] ?? null;
             $images = $entry['images'] ?? [];
 
-            if (!$identifier && !$itemId) {
+            if (! $identifier && ! $itemId) {
                 $summary['errors'][] = 'Entry missing identifier and item_id.';
                 $summary['imagesSkipped'] += count($images);
                 continue;
@@ -85,7 +84,7 @@ class ItemImageBulkImportServiceV2
                 $item = Item::whereRaw('LOWER(item_number) = ?', [strtolower($identifier)])->first();
             }
 
-            if (!$item) {
+            if (! $item) {
                 $summary['errors'][] = "Item not found for identifier '{$identifier}'.";
                 $summary['imagesSkipped'] += count($images);
                 continue;
@@ -100,7 +99,7 @@ class ItemImageBulkImportServiceV2
 
             // Check if item already has an image
             $existingCount = $item->getMedia('images')->count();
-            
+
             if ($existingCount > 0) {
                 $summary['errors'][] = "Item '{$item->item_number}' already has an image. Image will be replaced.";
                 // Clear existing image
@@ -109,7 +108,7 @@ class ItemImageBulkImportServiceV2
 
             // Process only the first image
             $imageEntry = $images[0] ?? null;
-            if (!$imageEntry) {
+            if (! $imageEntry) {
                 $summary['imagesSkipped'] += count($images);
                 continue;
             }
@@ -123,9 +122,10 @@ class ItemImageBulkImportServiceV2
                 &$summary
             ) {
                 $clientName = $imageEntry['client_name'] ?? null;
-                if (!$clientName || !isset($fileMap[$clientName])) {
+                if (! $clientName || ! isset($fileMap[$clientName])) {
                     $summary['errors'][] = "File '{$clientName}' not found in upload for item '{$item->item_number}'.";
                     $summary['imagesSkipped']++;
+
                     return;
                 }
 
@@ -139,6 +139,7 @@ class ItemImageBulkImportServiceV2
                 if ($validator->fails()) {
                     $summary['errors'][] = "Invalid image '{$clientName}' for item '{$item->item_number}'.";
                     $summary['imagesSkipped']++;
+
                     return;
                 }
 
@@ -162,20 +163,19 @@ class ItemImageBulkImportServiceV2
 
                     $summary['imagesImported']++;
                     $summary['itemsAffected']++;
-                    
+
                     // Skip any additional images
                     if (count($images) > 1) {
                         $summary['imagesSkipped'] += (count($images) - 1);
-                        $summary['errors'][] = "Item '{$item->item_number}' had " . count($images) . " images in manifest. Only first image was imported.";
+                        $summary['errors'][] = "Item '{$item->item_number}' had " . count($images) . ' images in manifest. Only first image was imported.';
                     }
-                    
                 } catch (\Exception $e) {
                     Log::error('Failed to import image for item', [
                         'item_id' => $item->id,
                         'file' => $clientName,
                         'error' => $e->getMessage(),
                     ]);
-                    
+
                     $summary['errors'][] = "Failed to import '{$clientName}' for item '{$item->item_number}': " . $e->getMessage();
                     $summary['imagesSkipped']++;
                 }

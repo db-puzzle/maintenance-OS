@@ -1,9 +1,10 @@
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { ManufacturingStep } from '@/types/production';
-import { Clock, MapPin, CheckCircle, AlertCircle, Timer, Trash2 } from 'lucide-react';
+import { Clock, MapPin, CheckCircle, AlertCircle, Timer, Trash2, Truck } from 'lucide-react';
 import { StepStatusBadge } from './StepStatusBadge';
 import { StepTypeBadge } from './StepTypeBadge';
+import { ExternalStepBadge } from './external-step-badge';
 interface StepCardProps {
     step: ManufacturingStep;
     onClick?: () => void;
@@ -62,7 +63,12 @@ export function StepCard({
                 {/* Header */}
                 <div className="flex items-start justify-between gap-2">
                     <h4 className="font-medium text-sm flex-1">{step.name}</h4>
-                    {showStatus && <StepStatusBadge status={step.status} />}
+                    <div className="flex items-center gap-2">
+                        {showStatus && <StepStatusBadge status={step.status} />}
+                        {step.execution_location === 'external' && step.external_status && (
+                            <ExternalStepBadge status={step.external_status} />
+                        )}
+                    </div>
                 </div>
                 {/* Type Badge */}
                 {showType && step.step_type !== 'standard' && (
@@ -88,6 +94,28 @@ export function StepCard({
                                         <span className="text-xs">(+{step.setup_time_minutes} min setup)</span>
                                     )}
                                 </>
+                            )}
+                        </div>
+                    )}
+
+                    {/* External Step Information */}
+                    {step.execution_location === 'external' && (
+                        <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
+                            <div className="flex items-center gap-2 text-xs">
+                                <Truck className="h-3 w-3" />
+                                <span className="font-medium">
+                                    {step.manufacturer?.name || 'Fabricante não atribuído'}
+                                </span>
+                            </div>
+                            {step.expected_lead_time_days && (
+                                <div className="text-xs text-muted-foreground">
+                                    Lead time: {step.expected_lead_time_days} dias
+                                </div>
+                            )}
+                            {step.quantity_shipped !== undefined && step.quantity_shipped > 0 && (
+                                <div className="text-xs">
+                                    Enviado: {step.quantity_shipped} | Recebido: {step.quantity_received || 0}
+                                </div>
                             )}
                         </div>
                     )}

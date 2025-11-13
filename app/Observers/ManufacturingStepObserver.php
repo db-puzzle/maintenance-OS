@@ -16,33 +16,33 @@ class ManufacturingStepObserver
     {
         // When a new step is added, recalculate progress
         $order = $step->manufacturingRoute?->manufacturingOrder;
-        
+
         if ($order) {
             $order->invalidateSmartProgress();
-            
+
             UpdateSmartProgress::dispatch($order)
                 ->delay(now()->addSeconds(10))
                 ->onQueue('low');
-                
+
             // When a step is created on a released/in_progress order, check if it can be queued
             if (in_array($order->status, ['released', 'in_progress'])) {
                 if ($step->canStart()) {
                     DB::transaction(function () use ($step) {
                         $step->moveToQueued();
-                        
+
                         Log::info('Step observer queued step on creation', [
                             'step_id' => $step->id,
                             'step_name' => $step->name,
                             'order_id' => $step->manufacturingRoute->manufacturing_order_id,
                             'order_status' => $step->manufacturingRoute->manufacturingOrder->status,
-                            'trigger' => 'step_created'
+                            'trigger' => 'step_created',
                         ]);
                     });
                 }
             }
         }
     }
-    
+
     /**
      * Handle the ManufacturingStep "updated" event.
      */
@@ -52,28 +52,28 @@ class ManufacturingStepObserver
         if ($step->wasChanged(['cumulative_quantity_completed', 'cumulative_quantity_scrapped', 'status'])) {
             // Get the manufacturing order through the route
             $order = $step->manufacturingRoute->manufacturingOrder;
-            
+
             if ($order) {
                 // Invalidate and queue progress update
                 $order->invalidateSmartProgress();
-                
+
                 UpdateSmartProgress::dispatch($order)
                     ->delay(now()->addSeconds(5))
                     ->onQueue('low');
             }
         }
-        
+
         // Check if this update affects dependent steps
         if ($this->affectsDependencies($step)) {
             $this->checkDependentSteps($step);
         }
-        
+
         // Check if gate conditions changed and need re-evaluation
         if ($this->gateConditionsChanged($step)) {
             $this->recheckGateConditions($step);
         }
     }
-    
+
     /**
      * Check if the step update affects dependencies.
      */
@@ -86,10 +86,10 @@ class ManufacturingStepObserver
             'depends_on_step_id',
             'dependency_start_condition',
             'dependency_minimum_quantity',
-            'dependency_minimum_percentage'
+            'dependency_minimum_percentage',
         ]);
     }
-    
+
     /**
      * Check if gate conditions changed.
      */
@@ -98,20 +98,20 @@ class ManufacturingStepObserver
         return $step->wasChanged([
             'dependency_start_condition',
             'dependency_minimum_quantity',
-            'dependency_minimum_percentage'
+            'dependency_minimum_percentage',
         ]);
     }
-    
+
     /**
      * Check and potentially queue dependent steps.
      */
     protected function checkDependentSteps(ManufacturingStep $step): void
     {
         // Only check if the step is in a state that could allow dependencies to proceed
-        if (!in_array($step->status, ['in_progress', 'awaiting_quality', 'completed', 'skipped'])) {
+        if (! in_array($step->status, ['in_progress', 'awaiting_quality', 'completed', 'skipped'])) {
             return;
         }
-        
+
         // Check steps that depend on this one
         $step->dependentSteps()
             ->where('status', 'pending')
@@ -123,19 +123,19 @@ class ManufacturingStepObserver
                     if ($dependentStep->canStart()) {
                         DB::transaction(function () use ($dependentStep) {
                             $dependentStep->moveToQueued();
-                            
+
                             Log::info('Step observer queued dependent step', [
                                 'step_id' => $dependentStep->id,
                                 'step_name' => $dependentStep->name,
                                 'order_id' => $dependentStep->manufacturingRoute->manufacturing_order_id,
-                                'trigger' => 'dependency_update'
+                                'trigger' => 'dependency_update',
                             ]);
                         });
                     }
                 }
             });
     }
-    
+
     /**
      * Re-check gate conditions when they change.
      */
@@ -147,18 +147,17 @@ class ManufacturingStepObserver
             if (in_array($order->status, ['released', 'in_progress']) && $step->canStart()) {
                 DB::transaction(function () use ($step) {
                     $step->moveToQueued();
-                    
+
                     Log::info('Step observer queued step after gate condition change', [
                         'step_id' => $step->id,
                         'step_name' => $step->name,
                         'order_id' => $step->manufacturingRoute->manufacturing_order_id,
-                        'trigger' => 'gate_condition_change'
+                        'trigger' => 'gate_condition_change',
                     ]);
                 });
             }
         }
     }
-
 
     /**
      * Handle the ManufacturingStep "deleted" event.
@@ -167,10 +166,10 @@ class ManufacturingStepObserver
     {
         // When a step is deleted, recalculate progress
         $order = $step->manufacturingRoute->manufacturingOrder ?? null;
-        
+
         if ($order) {
             $order->invalidateSmartProgress();
-            
+
             UpdateSmartProgress::dispatch($order)
                 ->delay(now()->addSeconds(5))
                 ->onQueue('low');

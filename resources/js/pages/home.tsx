@@ -22,9 +22,11 @@ import {
     Building,
     MapPin,
     Clock,
-    QrCode
+    QrCode,
+    Truck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useFeature, FEATURES } from '@/utils/features';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
@@ -51,6 +53,9 @@ interface Section {
 }
 
 export default function Dashboard() {
+    // Check feature flags
+    const hasScheduler = useFeature(FEATURES.PRODUCTION_SCHEDULER);
+
     // Define sections based on non-commented items from app-sidebar
     const sections: Section[] = [
         {
@@ -101,12 +106,13 @@ export default function Dashboard() {
                     href: '/production/planning',
                     icon: Target,
                 },
-                {
+                // Only show scheduler if the feature is enabled
+                ...(hasScheduler ? [{
                     title: 'Programação',
                     description: 'Agende e visualize a produção',
                     href: '/production/scheduler',
                     icon: Calendar,
-                },
+                }] : []),
                 {
                     title: 'Templates de Rotas',
                     description: 'Defina rotas de produção padrão',
@@ -141,6 +147,25 @@ export default function Dashboard() {
             ],
         },
         {
+            title: 'Logística',
+            subtitle: 'Gerencie remessas e fabricação externa',
+            icon: Truck,
+            cards: [
+                {
+                    title: 'Remessas',
+                    description: 'Crie e gerencie remessas de materiais',
+                    href: '/logistics/shipments',
+                    icon: Package,
+                },
+                {
+                    title: 'Etapas Externas',
+                    description: 'Monitore trabalho em fabricantes terceirizados',
+                    href: '/production/external-steps',
+                    icon: Factory,
+                },
+            ],
+        },
+        {
             title: 'Organização',
             subtitle: 'Estruture sua empresa',
             icon: Building2,
@@ -169,12 +194,13 @@ export default function Dashboard() {
                     href: '/production/work-cells',
                     icon: Wrench,
                 },
-                {
+                // Only show shifts if scheduler feature is enabled
+                ...(hasScheduler ? [{
                     title: 'Turnos',
                     description: 'Configure turnos de trabalho',
                     href: '/asset-hierarchy/shifts',
                     icon: Clock,
-                },
+                }] : []),
             ],
         },
         {

@@ -25,13 +25,13 @@ class ProductionExecutionController extends Controller
                 $query->whereHas('productionSchedule.manufacturingOrder', function ($q) use ($search) {
                     $q->where('order_number', 'like', "%{$search}%");
                 })
-                ->orWhereHas('productionSchedule.routingStep.productionRouting.bomItem', function ($q) use ($search) {
-                    $q->where('item_number', 'like', "%{$search}%")
-                      ->orWhere('name', 'like', "%{$search}%");
-                })
-                ->orWhereHas('operator', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%");
-                });
+                    ->orWhereHas('productionSchedule.routingStep.productionRouting.bomItem', function ($q) use ($search) {
+                        $q->where('item_number', 'like', "%{$search}%")
+                            ->orWhere('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('operator', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    });
             })
             ->when($request->filled('status'), function ($query) use ($request) {
                 $status = $request->input('status');
@@ -69,7 +69,7 @@ class ProductionExecutionController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -99,7 +99,7 @@ class ProductionExecutionController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -119,7 +119,7 @@ class ProductionExecutionController extends Controller
 
         // Decode QR code to get item information
         $qrData = $this->decodeQrCode($validated['qr_code']);
-        if (!$qrData) {
+        if (! $qrData) {
             return back()->with('error', 'Invalid QR code.');
         }
 
@@ -174,7 +174,7 @@ class ProductionExecutionController extends Controller
         // Method temporarily disabled - page not implemented yet
         return Inertia::render('error/not-implemented', [
             'status' => 501,
-            'message' => 'This feature is not yet implemented'
+            'message' => 'This feature is not yet implemented',
         ]);
     }
 
@@ -297,7 +297,7 @@ class ProductionExecutionController extends Controller
     {
         // Find the BOM item and its current production status
         $bomItem = \App\Models\Production\BomItem::find($qrData['bom_item_id'] ?? null);
-        if (!$bomItem) {
+        if (! $bomItem) {
             return response()->json([
                 'success' => false,
                 'message' => 'Item not found.',
@@ -334,7 +334,7 @@ class ProductionExecutionController extends Controller
             ->where('manufacturing_order_id', $qrData['manufacturing_order_id'] ?? null)
             ->first();
 
-        if (!$schedule) {
+        if (! $schedule) {
             return response()->json([
                 'success' => false,
                 'message' => 'No scheduled production found for this item.',
@@ -344,7 +344,7 @@ class ProductionExecutionController extends Controller
         // Start the schedule and create execution
         DB::transaction(function () use ($schedule, $notes) {
             $schedule->start($notes);
-            
+
             ProductionExecution::create([
                 'production_schedule_id' => $schedule->id,
                 'routing_step_id' => $schedule->routing_step_id,
@@ -367,7 +367,7 @@ class ProductionExecutionController extends Controller
     protected function handleCompleteScan($executionId, $notes)
     {
         $execution = ProductionExecution::find($executionId);
-        if (!$execution || $execution->operator_id !== auth()->id()) {
+        if (! $execution || $execution->operator_id !== auth()->id()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid execution.',
@@ -439,4 +439,4 @@ class ProductionExecutionController extends Controller
             ->with('workCell:id,name')
             ->get();
     }
-} 
+}

@@ -54,7 +54,7 @@ class WorkOrderCategorySeeder extends Seeder
                 'display_order' => 4,
                 'is_active' => true,
             ],
-            
+
             // Quality Categories
             [
                 'discipline' => 'quality',

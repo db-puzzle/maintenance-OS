@@ -20,6 +20,7 @@ require __DIR__ . '/work-orders.php';
 require __DIR__ . '/maintenance.php';
 require __DIR__ . '/planning.php';
 require __DIR__ . '/production.php';
+require __DIR__ . '/logistics.php';
 require __DIR__ . '/scheduler.php';
 require __DIR__ . '/skills-certifications.php';
 require __DIR__ . '/settings.php';

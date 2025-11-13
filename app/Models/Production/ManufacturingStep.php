@@ -77,6 +77,17 @@ class ManufacturingStep extends Model
         'children_quantity' => 'Minimum quantity from child orders',
     ];
 
+    public const EXECUTION_LOCATIONS = [
+        'internal' => 'Internal',
+        'external' => 'External',
+    ];
+
+    public const EXTERNAL_STATUSES = [
+        'awaiting_shipment' => 'Awaiting Shipment',
+        'shipped' => 'Shipped',
+        'in_process' => 'In Process at Manufacturer',
+    ];
+
     protected $fillable = [
         'manufacturing_route_id',
         'is_template',
@@ -110,6 +121,15 @@ class ManufacturingStep extends Model
         // Scheduling fields
         'scheduled_start',
         'scheduled_end',
+        // External execution fields
+        'execution_location',
+        'manufacturer_id',
+        'expected_lead_time_days',
+        'external_status',
+        'shipped_date',
+        'received_date',
+        'quantity_shipped',
+        'quantity_received',
     ];
 
     protected $casts = [
@@ -135,6 +155,13 @@ class ManufacturingStep extends Model
         // Scheduling casts
         'scheduled_start' => 'datetime',
         'scheduled_end' => 'datetime',
+        // External execution casts
+        'execution_location' => 'string',
+        'external_status' => 'string',
+        'shipped_date' => 'datetime',
+        'received_date' => 'datetime',
+        'quantity_shipped' => 'decimal:2',
+        'quantity_received' => 'decimal:2',
     ];
 
     /**
@@ -187,6 +214,23 @@ class ManufacturingStep extends Model
             if ($step->depends_on_step_id && ! $step->can_start_when_dependency) {
                 $step->can_start_when_dependency = 'completed';
             }
+
+            // External step validation
+            if ($step->execution_location === 'external') {
+                // Initialize external status for new external steps
+                if (! $step->external_status && $step->status === 'pending') {
+                    $step->external_status = 'awaiting_shipment';
+                }
+            } else {
+                // Clear external fields for internal steps
+                $step->manufacturer_id = null;
+                $step->expected_lead_time_days = null;
+                $step->external_status = null;
+                $step->shipped_date = null;
+                $step->received_date = null;
+                $step->quantity_shipped = 0;
+                $step->quantity_received = 0;
+            }
         });
     }
 
@@ -231,6 +275,22 @@ class ManufacturingStep extends Model
     }
 
     /**
+     * Get the external manufacturer for this step.
+     */
+    public function manufacturer(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\AssetHierarchy\Manufacturer::class);
+    }
+
+    /**
+     * Get the shipments for this external step.
+     */
+    public function shipments(): HasMany
+    {
+        return $this->hasMany(Shipment::class, 'manufacturing_step_id');
+    }
+
+    /**
      * Get the executions for this step.
      */
     public function executions(): HasMany
@@ -262,6 +322,207 @@ class ManufacturingStep extends Model
         }
 
         return true;
+    }
+
+    /**
+     * Check if this is an external step.
+     */
+    public function isExternal(): bool
+    {
+        return $this->execution_location === 'external';
+    }
+
+    /**
+     * Check if this is an internal step.
+     */
+    public function isInternal(): bool
+    {
+        return $this->execution_location === 'internal';
+    }
+
+    /**
+     * Check if step can be shipped.
+     */
+    public function canShip(): bool
+    {
+        if (! $this->isExternal()) {
+            return false;
+        }
+
+        if (! $this->manufacturer_id) {
+            return false;
+        }
+
+        if ($this->external_status !== 'awaiting_shipment') {
+            return false;
+        }
+
+        // Check if previous step is complete or allows progressive flow
+        if (! $this->canStart()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if step can be marked as shipped.
+     */
+    public function canMarkAsShipped(): bool
+    {
+        return $this->isExternal()
+            && $this->external_status === 'awaiting_shipment'
+            && $this->manufacturer_id !== null;
+    }
+
+    /**
+     * Check if step can be marked as in process.
+     */
+    public function canMarkAsInProcess(): bool
+    {
+        return $this->isExternal()
+            && $this->external_status === 'shipped';
+    }
+
+    /**
+     * Check if step can be completed (all quantities received).
+     * For external steps, this is triggered by the Logistics Module.
+     */
+    public function canComplete(): bool
+    {
+        if ($this->isExternal()) {
+            // External steps complete when all shipped quantity is received
+            return $this->quantity_received >= $this->quantity_shipped;
+        }
+
+        // Internal steps use existing completion logic
+        return $this->status === 'in_progress';
+    }
+
+    /**
+     * Get the remaining quantity to ship.
+     */
+    public function getRemainingQuantityToShipAttribute(): float
+    {
+        $totalQuantity = $this->manufacturingRoute->manufacturingOrder->quantity;
+
+        return max(0, $totalQuantity - $this->quantity_shipped);
+    }
+
+    /**
+     * Get the remaining quantity to receive.
+     */
+    public function getRemainingQuantityToReceiveAttribute(): float
+    {
+        return max(0, $this->quantity_shipped - $this->quantity_received);
+    }
+
+    /**
+     * Mark step as shipped.
+     */
+    public function markAsShipped(float $quantity, ?string $notes = null): void
+    {
+        if (! $this->canMarkAsShipped()) {
+            throw new \Exception('Cannot mark step as shipped in current state');
+        }
+
+        $this->update([
+            'external_status' => 'shipped',
+            'shipped_date' => now(),
+            'status' => 'in_progress', // Update main status too
+            'actual_start_time' => $this->actual_start_time ?? now(),
+        ]);
+
+        $this->increment('quantity_shipped', $quantity);
+
+        // Log activity
+        activity()
+            ->performedOn($this)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'quantity' => $quantity,
+                'notes' => $notes,
+                'manufacturer_id' => $this->manufacturer_id,
+            ])
+            ->log('Step marked as shipped');
+    }
+
+    /**
+     * Mark step as in process at manufacturer.
+     */
+    public function markAsInProcess(?string $notes = null): void
+    {
+        if (! $this->canMarkAsInProcess()) {
+            throw new \Exception('Cannot mark step as in process in current state');
+        }
+
+        $this->update([
+            'external_status' => 'in_process',
+        ]);
+
+        // Log activity
+        activity()
+            ->performedOn($this)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'notes' => $notes,
+                'manufacturer_id' => $this->manufacturer_id,
+            ])
+            ->log('Step marked as in process at manufacturer');
+    }
+
+    /**
+     * Record quantity received from manufacturer.
+     * Called by Logistics Module when shipment is received.
+     *
+     * This increments quantity_received and marks step as completed when done.
+     */
+    public function recordQuantityReceived(float $quantity, ?string $notes = null): void
+    {
+        if (! $this->isExternal()) {
+            throw new \Exception('Cannot record received quantity for non-external step');
+        }
+
+        $this->increment('quantity_received', $quantity);
+
+        // Update received_date (timestamp of last receipt)
+        $this->update(['received_date' => now()]);
+
+        // If all shipped quantity is received, mark step as COMPLETED
+        if ($this->quantity_received >= $this->quantity_shipped) {
+            // Step is COMPLETE - same as internal steps
+            $this->update([
+                'status' => 'completed',
+                'actual_end_time' => now(),
+                // external_status stays 'in_process' (or we could clear it)
+            ]);
+
+            // Log completion
+            activity()
+                ->performedOn($this)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'quantity_received' => $quantity,
+                    'total_received' => $this->quantity_received,
+                    'notes' => $notes,
+                ])
+                ->log('External step completed - all quantities received');
+
+            // Check if next step can be activated
+            $this->checkNextStepActivation();
+        } else {
+            // Partial receipt - log but don't complete
+            activity()
+                ->performedOn($this)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'quantity_received' => $quantity,
+                    'total_received' => $this->quantity_received,
+                    'remaining' => $this->quantity_shipped - $this->quantity_received,
+                    'notes' => $notes,
+                ])
+                ->log('Partial receipt recorded for external step');
+        }
     }
 
     /**
@@ -482,10 +743,49 @@ class ManufacturingStep extends Model
     }
 
     /**
+     * Scope for external steps only.
+     */
+    public function scopeExternal($query)
+    {
+        return $query->where('execution_location', 'external');
+    }
+
+    /**
+     * Scope for internal steps only.
+     */
+    public function scopeInternal($query)
+    {
+        return $query->where('execution_location', 'internal');
+    }
+
+    /**
+     * Scope for steps awaiting shipment.
+     */
+    public function scopeAwaitingShipment($query)
+    {
+        return $query->where('execution_location', 'external')
+            ->where('external_status', 'awaiting_shipment');
+    }
+
+    /**
+     * Scope for steps at manufacturer.
+     */
+    public function scopeAtManufacturer($query)
+    {
+        return $query->where('execution_location', 'external')
+            ->whereIn('external_status', ['shipped', 'in_process']);
+    }
+
+    /**
      * Get estimated duration in seconds.
+     * Uses lead time instead of setup/cycle time for external steps.
      */
     public function getEstimatedDuration(): int
     {
+        if ($this->isExternal() && $this->expected_lead_time_days) {
+            return $this->expected_lead_time_days * 24 * 60 * 60; // Convert days to seconds
+        }
+
         return ($this->setup_time_seconds ?? 0) + ($this->cycle_time_seconds ?? 30);
     }
 

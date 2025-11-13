@@ -22,10 +22,10 @@ class UpdateWorkOrderRequest extends FormRequest
     public function rules(): array
     {
         $workOrder = $this->route('workOrder');
-        
+
         // Only allow certain fields to be updated based on status
         $rules = [];
-        
+
         if ($workOrder->status === 'requested') {
             $rules = [
                 'work_order_type_id' => 'sometimes|exists:work_order_types,id',
@@ -57,7 +57,7 @@ class UpdateWorkOrderRequest extends FormRequest
                 'estimated_hours' => 'nullable|numeric|min:0|max:9999',
             ];
         }
-        
+
         return $rules;
     }
 

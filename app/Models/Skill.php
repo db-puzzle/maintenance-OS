@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Skill extends Model
 {
@@ -19,7 +19,7 @@ class Skill extends Model
     ];
 
     /**
-     * Get users with this skill
+     * Get users with this skill.
      */
     public function users()
     {
@@ -29,7 +29,7 @@ class Skill extends Model
     }
 
     /**
-     * Get the dependencies for this skill
+     * Get the dependencies for this skill.
      */
     public function getDependencies(): array
     {
@@ -57,4 +57,4 @@ class Skill extends Model
             }
         });
     }
-} 
+}

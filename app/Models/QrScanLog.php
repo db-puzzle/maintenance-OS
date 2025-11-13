@@ -18,13 +18,13 @@ class QrScanLog extends Model
         'device_type',
         'in_app',
         'metadata',
-        'scanned_at'
+        'scanned_at',
     ];
 
     protected $casts = [
         'metadata' => 'array',
         'scanned_at' => 'datetime',
-        'in_app' => 'boolean'
+        'in_app' => 'boolean',
     ];
 
     public function user(): BelongsTo
@@ -34,7 +34,7 @@ class QrScanLog extends Model
 
     public function getResourceAttribute()
     {
-        return match($this->resource_type) {
+        return match ($this->resource_type) {
             'item' => Item::where('item_number', $this->resource_id)->first(),
             'order' => ManufacturingOrder::where('order_number', $this->resource_id)->first(),
             // 'shipment' => Shipment::where('shipment_number', $this->resource_id)->first(),

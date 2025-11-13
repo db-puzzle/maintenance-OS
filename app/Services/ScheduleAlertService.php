@@ -22,11 +22,11 @@ class ScheduleAlertService
                 'workCell',
             ]);
 
-        if (!empty($filters['type'])) {
+        if (! empty($filters['type'])) {
             $query->where('alert_type', $filters['type']);
         }
 
-        if (!empty($filters['severity'])) {
+        if (! empty($filters['severity'])) {
             $query->where('severity', $filters['severity']);
         }
 
@@ -35,8 +35,8 @@ class ScheduleAlertService
         }
 
         return $query->orderBy('severity', 'desc')
-                     ->orderBy('created_at', 'desc')
-                     ->get();
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -88,7 +88,7 @@ class ScheduleAlertService
         return $alerts->groupBy('manufacturing_order_id')
             ->map(function ($orderAlerts, $orderId) {
                 $order = $orderAlerts->first()->manufacturingOrder;
-                
+
                 return [
                     'order_id' => $orderId,
                     'order_number' => $order?->order_number,
@@ -108,7 +108,7 @@ class ScheduleAlertService
         return $alerts->groupBy('work_cell_id')
             ->map(function ($cellAlerts, $cellId) {
                 $workCell = $cellAlerts->first()->workCell;
-                
+
                 return [
                     'work_cell_id' => $cellId,
                     'work_cell_name' => $workCell?->name,
@@ -128,11 +128,11 @@ class ScheduleAlertService
         $warningCount = $alerts->where('severity', 'warning')->count();
 
         $summary = [];
-        
+
         if ($errorCount > 0) {
             $summary[] = "{$errorCount} error" . ($errorCount > 1 ? 's' : '');
         }
-        
+
         if ($warningCount > 0) {
             $summary[] = "{$warningCount} warning" . ($warningCount > 1 ? 's' : '');
         }

@@ -222,7 +222,8 @@ export default function ShowManufacturingOrder({
     const smartProgress = order.smart_progress_percentage ?? simpleProgress;
     const hasChildren = order.child_orders_count > 0;
     const hasRoute = order.has_route || order.manufacturing_route;
-    const shouldShowRelease = ['draft', 'planned', 'scheduled'].includes(order.status);
+    // Show release button for planned/scheduled orders (NOT draft - draft should show Plan button)
+    const shouldShowRelease = ['planned', 'scheduled'].includes(order.status);
 
     // Breadcrumbs
     const breadcrumbs: BreadcrumbItem[] = [
@@ -1059,7 +1060,7 @@ export default function ShowManufacturingOrder({
                     </Tooltip>
                 )}
 
-                {order.status === 'draft' && canPlan && hasRoute && (
+                {order.status === 'draft' && canPlan && (
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <span tabIndex={0}>
@@ -1067,12 +1068,12 @@ export default function ShowManufacturingOrder({
                                     onClick={handlePlan}
                                 >
                                     <StackIcon className="h-4 w-4 mr-2" />
-                                    Plan
+                                    {hasRoute ? 'Plan' : 'Create Route'}
                                 </Button>
                             </span>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Move to planned status (requires route with work cells)</p>
+                            <p>{hasRoute ? 'Configure route and move to planned status' : 'Go to planning page to create route'}</p>
                         </TooltipContent>
                     </Tooltip>
                 )}

@@ -24,16 +24,16 @@ class SectorController extends BaseSearchController
             ->withCount('asset');
 
         // Filter sectors based on user permissions (unless administrator)
-        if (!$user->isAdministrator()) {
+        if (! $user->isAdministrator()) {
             $query->where(function ($q) use ($user) {
                 // Get all user permissions
                 $permissions = $user->getAllPermissions()->pluck('name')->toArray();
-                
+
                 // Extract sector IDs from permissions
                 $sectorIds = [];
                 $areaIds = [];
                 $plantIds = [];
-                
+
                 foreach ($permissions as $permission) {
                     // Direct sector permissions (sectors.view.123)
                     if (preg_match('/^sectors\.view\.(\d+)$/', $permission, $matches)) {
@@ -56,27 +56,27 @@ class SectorController extends BaseSearchController
                         $plantIds[] = $matches[1];
                     }
                 }
-                
+
                 // Remove duplicates
                 $sectorIds = array_unique($sectorIds);
                 $areaIds = array_unique($areaIds);
                 $plantIds = array_unique($plantIds);
-                
+
                 // Build query conditions
                 $q->where(function ($query) use ($sectorIds, $areaIds, $plantIds) {
-                    if (!empty($sectorIds)) {
+                    if (! empty($sectorIds)) {
                         $query->orWhereIn('id', $sectorIds);
                     }
-                    if (!empty($areaIds)) {
+                    if (! empty($areaIds)) {
                         $query->orWhereIn('area_id', $areaIds);
                     }
-                    if (!empty($plantIds)) {
+                    if (! empty($plantIds)) {
                         $query->orWhereHas('area', function ($q) use ($plantIds) {
                             $q->whereIn('plant_id', $plantIds);
                         });
                     }
                 });
-                
+
                 // If user has no relevant permissions, show nothing
                 if (empty($sectorIds) && empty($areaIds) && empty($plantIds)) {
                     $q->whereRaw('1 = 0');
@@ -89,8 +89,8 @@ class SectorController extends BaseSearchController
                 'name',
                 [
                     'relation' => 'area.plant',
-                    'columns' => ['name']
-                ]
+                    'columns' => ['name'],
+                ],
             ];
             $query = $this->applySearchFilter($query, $search, $searchConfig);
         }
@@ -118,11 +118,11 @@ class SectorController extends BaseSearchController
 
         // Filter plants based on user permissions for the dropdown
         $plantsQuery = Plant::with('areas');
-        
-        if (!$user->isAdministrator()) {
+
+        if (! $user->isAdministrator()) {
             $permissions = $user->getAllPermissions()->pluck('name')->toArray();
             $allowedPlantIds = [];
-            
+
             foreach ($permissions as $permission) {
                 // Direct plant permissions
                 if (preg_match('/^plants\.\w+\.(\d+)$/', $permission, $matches)) {
@@ -140,15 +140,15 @@ class SectorController extends BaseSearchController
                     }
                 }
             }
-            
+
             $allowedPlantIds = array_unique($allowedPlantIds);
-            if (!empty($allowedPlantIds)) {
+            if (! empty($allowedPlantIds)) {
                 $plantsQuery->whereIn('id', $allowedPlantIds);
             } else {
                 $plantsQuery->whereRaw('1 = 0');
             }
         }
-        
+
         $plants = $plantsQuery->get();
 
         return Inertia::render('asset-hierarchy/sectors/index', [
@@ -163,12 +163,10 @@ class SectorController extends BaseSearchController
         ]);
     }
 
-
-
     public function store(Request $request)
     {
         $this->authorize('create', Sector::class);
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'area_id' => 'required|exists:areas,id',
@@ -176,12 +174,12 @@ class SectorController extends BaseSearchController
 
         // Additional check: user must have permission to create sectors in this specific area
         $user = auth()->user();
-        if (!$user->isAdministrator()) {
+        if (! $user->isAdministrator()) {
             $area = \App\Models\AssetHierarchy\Area::findOrFail($validated['area_id']);
             $hasAreaPermission = $user->can("sectors.create.area.{$area->id}");
             $hasPlantPermission = $user->can("sectors.create.plant.{$area->plant_id}");
-            
-            if (!$hasAreaPermission && !$hasPlantPermission && !$user->can('system.create-sectors')) {
+
+            if (! $hasAreaPermission && ! $hasPlantPermission && ! $user->can('system.create-sectors')) {
                 abort(403, 'You do not have permission to create sectors in this area.');
             }
         }
@@ -197,8 +195,6 @@ class SectorController extends BaseSearchController
         return redirect()->route('asset-hierarchy.sectors')
             ->with('success', "Setor {$sector->name} criado com sucesso.");
     }
-
-
 
     public function show(Sector $setor)
     {

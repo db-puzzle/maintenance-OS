@@ -20,11 +20,11 @@ class SchedulingRequest
         $this->manufacturingOrderIds = $data['manufacturingOrderIds'] ?? [];
         $this->algorithmType = $data['algorithmType'] ?? 'asap';
         $this->scheduleVersionId = $data['scheduleVersionId'];
-        $this->scheduleStartDate = isset($data['scheduleStartDate']) 
-            ? new DateTime($data['scheduleStartDate']) 
+        $this->scheduleStartDate = isset($data['scheduleStartDate'])
+            ? new DateTime($data['scheduleStartDate'])
             : null;
-        $this->scheduleEndDate = isset($data['scheduleEndDate']) 
-            ? new DateTime($data['scheduleEndDate']) 
+        $this->scheduleEndDate = isset($data['scheduleEndDate'])
+            ? new DateTime($data['scheduleEndDate'])
             : null;
     }
 }

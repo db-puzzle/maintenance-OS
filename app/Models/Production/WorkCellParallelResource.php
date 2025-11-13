@@ -74,7 +74,7 @@ class WorkCellParallelResource extends Model
             ->where('shift_id', $shiftId)
             ->first();
 
-        if (!$resource) {
+        if (! $resource) {
             $resource = static::create([
                 'work_cell_id' => $workCell->id,
                 'shift_id' => $shiftId,

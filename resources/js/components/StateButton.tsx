@@ -12,6 +12,7 @@ interface StateButtonProps {
     iconSize?: 'sm' | 'md';
     variant?: 'default' | 'green' | 'red';
     greyOutWhenDisabled?: boolean;
+    size?: 'default' | 'compact';
 }
 const StateButton: React.FC<StateButtonProps> = ({
     icon: Icon,
@@ -23,10 +24,35 @@ const StateButton: React.FC<StateButtonProps> = ({
     className,
     iconSize = 'sm',
     variant = 'default',
-    greyOutWhenDisabled = true
+    greyOutWhenDisabled = true,
+    size = 'default'
 }) => {
     const iconClasses = iconSize === 'sm' ? 'h-4 w-4 mt-1.5' : 'h-5 w-5 mt-0.5';
+    
+    // Adjust icon size for compact variant
+    const compactIconClasses = size === 'compact' 
+        ? (iconSize === 'sm' ? 'h-3.5 w-3.5 mt-1' : 'h-4 w-4 mt-0.5')
+        : iconClasses;
     const getVariantClasses = () => {
+        // Compact size uses more subtle styling
+        if (size === 'compact') {
+            switch (variant) {
+                case 'green':
+                    return selected
+                        ? 'border-green-500/40 dark:border-green-500/40 bg-green-50/50 dark:bg-green-950/30 text-green-800 dark:text-green-200'
+                        : 'border-border/50 hover:bg-green-100/30 dark:hover:bg-green-950/20 hover:border-green-400/50 dark:hover:border-green-600/50';
+                case 'red':
+                    return selected
+                        ? 'border-red-500/40 dark:border-red-500/40 bg-red-50/50 dark:bg-red-950/30 text-red-900 dark:text-red-200'
+                        : 'border-border/50 hover:bg-red-50/30 dark:hover:bg-red-950/20 hover:border-red-300/50 dark:hover:border-red-600/50';
+                default:
+                    return selected
+                        ? 'border-border dark:border-slate-600/50 bg-muted/50 dark:bg-slate-800/30'
+                        : 'border-border/50 hover:bg-muted/30 dark:hover:bg-slate-800/20';
+            }
+        }
+        
+        // Default size uses original prominent styling
         switch (variant) {
             case 'green':
                 return selected
@@ -43,14 +69,14 @@ const StateButton: React.FC<StateButtonProps> = ({
         }
     };
     const getIconClasses = () => {
-        if (!selected) return cn(iconClasses, 'flex-shrink-0 self-start text-muted-foreground');
+        if (!selected) return cn(compactIconClasses, 'flex-shrink-0 self-start text-muted-foreground');
         switch (variant) {
             case 'green':
-                return cn(iconClasses, 'flex-shrink-0 self-start text-green-700 dark:text-green-400');
+                return cn(compactIconClasses, 'flex-shrink-0 self-start text-green-700 dark:text-green-400');
             case 'red':
-                return cn(iconClasses, 'flex-shrink-0 self-start text-red-600 dark:text-red-400');
+                return cn(compactIconClasses, 'flex-shrink-0 self-start text-red-600 dark:text-red-400');
             default:
-                return cn(iconClasses, 'flex-shrink-0 self-start text-foreground');
+                return cn(compactIconClasses, 'flex-shrink-0 self-start text-foreground');
         }
     };
     return (
@@ -59,16 +85,17 @@ const StateButton: React.FC<StateButtonProps> = ({
             onClick={onClick}
             disabled={disabled}
             className={cn(
-                'grid h-auto w-full grid-cols-[auto_1fr] gap-3 rounded-md border px-3 py-3 text-left transition-[color,box-shadow,border-color,background-color] outline-none disabled:pointer-events-none disabled:cursor-not-allowed',
+                'grid h-auto w-full grid-cols-[auto_1fr] rounded-md border text-left transition-[color,box-shadow,border-color,background-color] outline-none disabled:pointer-events-none disabled:cursor-not-allowed',
+                size === 'compact' ? 'gap-2.5 px-2.5 py-2' : 'gap-3 px-3 py-3',
                 greyOutWhenDisabled && 'disabled:opacity-50',
                 getVariantClasses(),
                 className
             )}
         >
             <Icon className={getIconClasses()} />
-            <div className="space-y-1">
-                <div className="text-sm font-medium">{title}</div>
-                <div className="text-sm text-muted-foreground">
+            <div className={size === 'compact' ? 'space-y-0.5' : 'space-y-1'}>
+                <div className={size === 'compact' ? 'text-xs font-medium' : 'text-sm font-medium'}>{title}</div>
+                <div className={size === 'compact' ? 'text-xs text-muted-foreground' : 'text-sm text-muted-foreground'}>
                     {description}
                 </div>
             </div>

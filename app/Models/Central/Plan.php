@@ -4,6 +4,7 @@ namespace App\Models\Central;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -67,10 +68,67 @@ class Plan extends Model
     }
 
     /**
+     * Get the feature flags associated with this plan.
+     */
+    public function featureFlags(): BelongsToMany
+    {
+        return $this->belongsToMany(Feature::class, 'plan_features')
+            ->withPivot('is_enabled', 'configuration')
+            ->withTimestamps();
+    }
+
+    /**
      * Check if the plan has a specific feature.
+     *
+     * This method checks both the old array-based features and the new feature flags system.
      */
     public function hasFeature(string $feature): bool
     {
-        return in_array($feature, $this->features ?? []);
+        // Check old array-based features for backward compatibility
+        if (in_array($feature, $this->features ?? [])) {
+            return true;
+        }
+
+        // Check new feature flags system
+        $featureFlag = Feature::where('key', $feature)->first();
+
+        if (! $featureFlag) {
+            return false;
+        }
+
+        return $featureFlag->isEnabledForPlan($this);
+    }
+
+    /**
+     * Get enabled feature flags for this plan.
+     */
+    public function getEnabledFeatures(): array
+    {
+        $enabledFeatures = [];
+
+        // Add old array-based features
+        foreach ($this->features ?? [] as $feature) {
+            $enabledFeatures[$feature] = true;
+        }
+
+        // Add new feature flags
+        $featureFlags = $this->featureFlags()
+            ->wherePivot('is_enabled', true)
+            ->get();
+
+        foreach ($featureFlags as $flag) {
+            $enabledFeatures[$flag->key] = true;
+        }
+
+        // Check global features
+        $globalFeatures = Feature::global()
+            ->where('is_enabled_globally', true)
+            ->get();
+
+        foreach ($globalFeatures as $flag) {
+            $enabledFeatures[$flag->key] = true;
+        }
+
+        return array_keys($enabledFeatures);
     }
 }

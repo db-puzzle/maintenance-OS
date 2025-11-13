@@ -148,8 +148,7 @@ class AssetPolicy
 
     /**
      * Determine whether the user can create assets.
-     * 
-     * @param User $user
+     *
      * @param array $context Context containing sector_id, area_id, or plant_id
      */
     public function create(User $user, array $context = [])
@@ -215,4 +214,4 @@ class AssetPolicy
         // For now, delete uses the same logic as manage
         return $this->manage($user, $asset);
     }
-} 
+}

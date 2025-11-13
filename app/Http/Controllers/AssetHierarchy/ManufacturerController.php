@@ -126,7 +126,7 @@ class ManufacturerController extends Controller
     public function update(Request $request, Manufacturer $manufacturer)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:manufacturers,name,'.$manufacturer->id,
+            'name' => 'required|string|max:255|unique:manufacturers,name,' . $manufacturer->id,
             'website' => 'nullable|url|max:255',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
@@ -162,7 +162,7 @@ class ManufacturerController extends Controller
     }
 
     /**
-     * Check dependencies before deletion
+     * Check dependencies before deletion.
      */
     public function checkDependencies(Manufacturer $manufacturer)
     {
@@ -183,7 +183,7 @@ class ManufacturerController extends Controller
     }
 
     /**
-     * Get assets associated with a manufacturer
+     * Get assets associated with a manufacturer.
      */
     public function assets(Manufacturer $manufacturer)
     {
@@ -209,7 +209,7 @@ class ManufacturerController extends Controller
     }
 
     /**
-     * Get all manufacturers for select options
+     * Get all manufacturers for select options.
      */
     public function all(Request $request)
     {

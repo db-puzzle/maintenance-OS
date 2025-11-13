@@ -19,6 +19,10 @@ export interface RouteStep {
         dependency_type: 'none' | 'all_children_completed' | 'children_quantity';
         minimum_quantity?: number;
     };
+    // External execution fields
+    execution_location?: 'internal' | 'external';
+    manufacturer_id?: number | null;
+    expected_lead_time_days?: number | null;
 }
 
 export interface RouteChange {

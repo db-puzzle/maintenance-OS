@@ -28,6 +28,10 @@ export interface RouteStep {
     depends_on_step_id?: string | number;
     // Gate after this step
     gate_after?: GateConfiguration;
+    // External execution fields
+    execution_location?: 'internal' | 'external';
+    manufacturer_id?: number | null;
+    expected_lead_time_days?: number | null;
 }
 
 interface RouteBuilderProps {
@@ -95,6 +99,9 @@ export default function RouteBuilder({
         quality_check_mode?: string;
         sampling_size?: number;
         form_id?: string;
+        execution_location?: string;
+        manufacturer_id?: number | null;
+        expected_lead_time_days?: number | null;
     }>({
         name: '',
         description: '',
@@ -108,6 +115,9 @@ export default function RouteBuilder({
         quality_check_mode: 'every_part',
         sampling_size: 0,
         form_id: '',
+        execution_location: 'internal',
+        manufacturer_id: null,
+        expected_lead_time_days: null,
     });
 
     // Track selected step sequence for maintaining selection after updates
@@ -186,6 +196,10 @@ export default function RouteBuilder({
                         };
                         return gateConfig;
                     })(),
+                    // External execution fields
+                    execution_location: step.execution_location || 'internal',
+                    manufacturer_id: step.manufacturer_id || null,
+                    expected_lead_time_days: step.expected_lead_time_days || null,
                 }));
                 setSteps(routeSteps);
                 // Initialize originalStepsRef to track changes
@@ -283,6 +297,9 @@ export default function RouteBuilder({
                 quality_check_mode: selectedStep.quality_check_mode || 'every_part',
                 sampling_size: selectedStep.sampling_size || 0,
                 form_id: selectedStep.form_id?.toString() || '',
+                execution_location: selectedStep.execution_location || 'internal',
+                manufacturer_id: selectedStep.manufacturer_id || null,
+                expected_lead_time_days: selectedStep.expected_lead_time_days || null,
             });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps

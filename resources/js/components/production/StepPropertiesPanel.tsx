@@ -13,7 +13,8 @@ import { Form } from '@/types/work-order';
 import { cn } from '@/lib/utils';
 import { router } from '@inertiajs/react';
 import StateButton from '@/components/StateButton';
-import { Timer, Zap } from 'lucide-react';
+import { Timer, Zap, Building, Truck } from 'lucide-react';
+import { useFeature, FEATURES } from '@/utils/features';
 
 interface ExtendedManufacturingStep extends ManufacturingStep {
     isNew?: boolean;
@@ -35,6 +36,9 @@ interface Props {
         sampling_size?: number;
         form_id?: string;
         use_workcell_throughput?: boolean;
+        execution_location?: string;
+        manufacturer_id?: number | null;
+        expected_lead_time_days?: number | null;
     }>>;
     stepTypes: Record<string, string>;
     workCells: WorkCell[];
@@ -84,6 +88,11 @@ export default function StepPropertiesPanel({
     isOpen,
     viewMode = false
 }: Props) {
+    // Feature flags
+    const hasAdvancedStepTypes = useFeature(FEATURES.PRODUCTION_STEP_TYPES_ADVANCED);
+    const hasFormsEngine = useFeature(FEATURES.PRODUCTION_FORMS_ENGINE);
+    const hasScheduler = useFeature(FEATURES.PRODUCTION_SCHEDULER);
+
     const [isVisible, setIsVisible] = useState(false);
     const [shouldRender, setShouldRender] = useState(false);
     const [lastSelectedStep, setLastSelectedStep] = useState<ExtendedManufacturingStep | null>(null);
@@ -174,289 +183,419 @@ export default function StepPropertiesPanel({
                                             onLocalStepUpdate(displayStep.id, { step_type: value as ManufacturingStep['step_type'] });
                                         }
                                     }}
-                                    disabled={viewMode}
+                                    disabled={viewMode || !hasAdvancedStepTypes}
                                 >
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {Object.entries(stepTypes).map(([value, label]) => (
-                                            <SelectItem key={value} value={value}>
-                                                {label}
-                                            </SelectItem>
-                                        ))}
+                                        {Object.entries(stepTypes).map(([value, label]) => {
+                                            // If advanced step types are not enabled, only show 'standard'
+                                            if (!hasAdvancedStepTypes && value !== 'standard') {
+                                                return null;
+                                            }
+                                            return (
+                                                <SelectItem key={value} value={value}>
+                                                    {label}
+                                                </SelectItem>
+                                            );
+                                        })}
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
-
-
-
-                        <div className="space-y-2">
-                            <ItemSelect
-                                ref={workCellSelectRef}
-                                label="Célula de Trabalho"
-                                items={workCells.map(wc => ({
-                                    id: wc.id,
-                                    name: wc.name,
-                                }))}
-                                value={stepForm.data.work_cell_id}
-                                onValueChange={(value) => {
-                                    stepForm.setData('work_cell_id', value);
-                                    if (displayStep) {
-                                        const selectedWorkCell = value ? workCells.find(wc => wc.id === parseInt(value)) : undefined;
-                                        onLocalStepUpdate(displayStep.id, {
-                                            work_cell_id: value ? parseInt(value) : undefined,
-                                            work_cell: selectedWorkCell
-                                        });
-                                    }
-                                }}
-                                onCreateClick={handleCreateWorkCellClick}
-                                placeholder={viewMode && !stepForm.data.work_cell_id ? 'Célula não selecionada' : 'Selecione uma célula...'}
-                                disabled={viewMode}
-                                canClear={!viewMode}
-                                view={viewMode}
-                            />
-                        </div>
-
-                        {/* Quality Check Settings */}
-                        {stepForm.data.step_type === 'quality_check' && (
-                            <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Modo de Verificação</Label>
-                                        <Select
-                                            value={stepForm.data.quality_check_mode}
-                                            onValueChange={(value) => {
-                                                stepForm.setData('quality_check_mode', value);
-                                                if (displayStep) {
-                                                    onLocalStepUpdate(displayStep.id, {
-                                                        quality_check_mode: value as ManufacturingStep['quality_check_mode']
-                                                    });
-                                                }
-                                            }}
-                                            disabled={viewMode}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="every_part">Cada Peça</SelectItem>
-                                                <SelectItem value="entire_lot">Lote Inteiro</SelectItem>
-                                                <SelectItem value="sampling">Amostragem</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    {stepForm.data.quality_check_mode === 'sampling' && (
-                                        <div className="space-y-2">
-                                            <Label>Tamanho da Amostra</Label>
-                                            <Input
-                                                type="number"
-                                                value={stepForm.data.sampling_size}
-                                                onChange={(e) => {
-                                                    const value = parseInt(e.target.value) || 0;
-                                                    stepForm.setData('sampling_size', value);
-                                                    if (displayStep) {
-                                                        onLocalStepUpdate(displayStep.id, { sampling_size: value });
-                                                    }
-                                                }}
-                                                disabled={viewMode}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                                {stepForm.data.quality_check_mode === 'sampling' && (
-                                    <p className="text-xs text-muted-foreground">
-                                        Deixe 0 para usar ISO 2859
-                                    </p>
-                                )}
-                            </div>
-                        )}
                     </div>
 
-                    {/* Form Association */}
+                    {/* Execution Location */}
                     <div className="space-y-3">
-                        <div className="space-y-2">
-                            <Label>Formulário Associado</Label>
-                            <ItemSelect
-                                items={forms.map(f => ({
-                                    id: f.id,
-                                    name: f.name,
-                                    value: f.id.toString(),
-                                }))}
-                                value={stepForm.data.form_id || ''}
-                                onValueChange={(value) => {
-                                    stepForm.setData('form_id', value);
-                                    if (displayStep) {
-                                        onLocalStepUpdate(displayStep.id, {
-                                            form_id: value ? parseInt(value) : undefined
-                                        });
-                                    }
-                                }}
-                                placeholder="Nenhum formulário"
-                                disabled={viewMode}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Time Settings */}
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Definição de Tempo de Produção</h3>
+                        <Label>Local de Execução</Label>
                         <div className="space-y-3">
                             <StateButton
-                                icon={Timer}
-                                title="Tempo de Fabricação Específico"
-                                description="Definir tempo de setup e ciclo para esta etapa"
-                                selected={!stepForm.data.use_workcell_throughput}
+                                icon={Building}
+                                title="Execução Interna"
+                                description="Executado nas suas instalações"
+                                selected={stepForm.data.execution_location !== 'external'}
                                 onClick={() => {
-                                    stepForm.setData('use_workcell_throughput', false);
-
+                                    stepForm.setData('execution_location', 'internal');
+                                    stepForm.setData('manufacturer_id', null);
+                                    stepForm.setData('expected_lead_time_days', null);
                                     if (displayStep) {
-                                        // Always update use_workcell_throughput to trigger unsaved state
-                                        const updates: Partial<ExtendedManufacturingStep> = {
-                                            use_workcell_throughput: false
-                                        };
-
-                                        // When switching back to specific times, restore the original values if they were zero
-                                        if (stepForm.data.setup_time_minutes === 0 && stepForm.data.cycle_time_minutes === 0) {
-                                            // Restore original values from the selected step
-                                            const originalSetupTime = displayStep.setup_time_minutes || 0;
-                                            const originalCycleTime = displayStep.cycle_time_minutes || 0;
-                                            stepForm.setData('setup_time_minutes', originalSetupTime);
-                                            stepForm.setData('cycle_time_minutes', originalCycleTime);
-                                            updates.setup_time_minutes = originalSetupTime;
-                                            updates.cycle_time_minutes = originalCycleTime;
-                                        }
-
-                                        onLocalStepUpdate(displayStep.id, updates);
+                                        onLocalStepUpdate(displayStep.id, {
+                                            execution_location: 'internal',
+                                            manufacturer_id: null,
+                                            expected_lead_time_days: null,
+                                        });
                                     }
                                 }}
                                 disabled={isSaving || viewMode}
                             />
-                            {!stepForm.data.use_workcell_throughput && (
+
+                            {stepForm.data.execution_location !== 'external' && (
                                 <div className="border-l border-gray-200">
                                     <div className="ml-6 space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label>Tempo de Setup (min)</Label>
-                                                <Input
-                                                    type="number"
-                                                    value={stepForm.data.setup_time_minutes}
-                                                    onChange={(e) => {
-                                                        const value = parseInt(e.target.value) || 0;
-                                                        stepForm.setData('setup_time_minutes', value);
-                                                        if (displayStep) {
-                                                            onLocalStepUpdate(displayStep.id, { setup_time_minutes: value });
-                                                        }
-                                                    }}
-                                                    disabled={viewMode}
-                                                />
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label>Tempo de Ciclo (min)</Label>
-                                                <Input
-                                                    type="number"
-                                                    value={stepForm.data.cycle_time_minutes}
-                                                    onChange={(e) => {
-                                                        const value = parseInt(e.target.value) || 0;
-                                                        stepForm.setData('cycle_time_minutes', value);
-                                                        if (displayStep) {
-                                                            onLocalStepUpdate(displayStep.id, { cycle_time_minutes: value });
-                                                        }
-                                                    }}
-                                                    disabled={viewMode}
-                                                />
-                                            </div>
+                                        <div className="space-y-2">
+                                            <ItemSelect
+                                                ref={workCellSelectRef}
+                                                label="Célula de Trabalho"
+                                                items={workCells.map(wc => ({
+                                                    id: wc.id,
+                                                    name: wc.name,
+                                                }))}
+                                                value={stepForm.data.work_cell_id}
+                                                onValueChange={(value) => {
+                                                    stepForm.setData('work_cell_id', value);
+                                                    if (displayStep) {
+                                                        const selectedWorkCell = value ? workCells.find(wc => wc.id === parseInt(value)) : undefined;
+                                                        onLocalStepUpdate(displayStep.id, {
+                                                            work_cell_id: value ? parseInt(value) : undefined,
+                                                            work_cell: selectedWorkCell
+                                                        });
+                                                    }
+                                                }}
+                                                onCreateClick={handleCreateWorkCellClick}
+                                                placeholder={viewMode && !stepForm.data.work_cell_id ? 'Célula não selecionada' : 'Selecione uma célula...'}
+                                                disabled={viewMode}
+                                                canClear={!viewMode}
+                                                view={viewMode}
+                                            />
                                         </div>
 
-                                        <div className="bg-muted rounded-lg p-3">
-                                            <p className="text-sm">
-                                                <span className="text-muted-foreground">Tempo total estimado:</span>{' '}
-                                                <span className="font-medium">
-                                                    {stepForm.data.setup_time_minutes + (stepForm.data.cycle_time_minutes * (routing.manufacturing_order?.quantity || 1))} min
-                                                </span>
-                                            </p>
-                                        </div>
+                                        {/* Time Settings - Nested under Internal Execution - Only show if scheduler feature is enabled */}
+                                        {hasScheduler && (
+                                            <div className="space-y-3">
+                                                <StateButton
+                                                    icon={Timer}
+                                                    title="Tempo de Fabricação Específico"
+                                                    description="Definir tempo de setup e ciclo para esta etapa"
+                                                    selected={!stepForm.data.use_workcell_throughput}
+                                                    onClick={() => {
+                                                        stepForm.setData('use_workcell_throughput', false);
+
+                                                        if (displayStep) {
+                                                            // Always update use_workcell_throughput to trigger unsaved state
+                                                            const updates: Partial<ExtendedManufacturingStep> = {
+                                                                use_workcell_throughput: false
+                                                            };
+
+                                                            // When switching back to specific times, restore the original values if they were zero
+                                                            if (stepForm.data.setup_time_minutes === 0 && stepForm.data.cycle_time_minutes === 0) {
+                                                                // Restore original values from the selected step
+                                                                const originalSetupTime = displayStep.setup_time_minutes || 0;
+                                                                const originalCycleTime = displayStep.cycle_time_minutes || 0;
+                                                                stepForm.setData('setup_time_minutes', originalSetupTime);
+                                                                stepForm.setData('cycle_time_minutes', originalCycleTime);
+                                                                updates.setup_time_minutes = originalSetupTime;
+                                                                updates.cycle_time_minutes = originalCycleTime;
+                                                            }
+
+                                                            onLocalStepUpdate(displayStep.id, updates);
+                                                        }
+                                                    }}
+                                                    disabled={isSaving || viewMode}
+                                                    size="compact"
+                                                />
+                                                {!stepForm.data.use_workcell_throughput && (
+                                                    <div className="border-l border-gray-200">
+                                                        <div className="ml-6 space-y-4">
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div className="space-y-2">
+                                                                    <Label>Tempo de Setup (min)</Label>
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={stepForm.data.setup_time_minutes}
+                                                                        onChange={(e) => {
+                                                                            const value = parseInt(e.target.value) || 0;
+                                                                            stepForm.setData('setup_time_minutes', value);
+                                                                            if (displayStep) {
+                                                                                onLocalStepUpdate(displayStep.id, { setup_time_minutes: value });
+                                                                            }
+                                                                        }}
+                                                                        disabled={viewMode}
+                                                                    />
+                                                                </div>
+
+                                                                <div className="space-y-2">
+                                                                    <Label>Tempo de Ciclo (min)</Label>
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={stepForm.data.cycle_time_minutes}
+                                                                        onChange={(e) => {
+                                                                            const value = parseInt(e.target.value) || 0;
+                                                                            stepForm.setData('cycle_time_minutes', value);
+                                                                            if (displayStep) {
+                                                                                onLocalStepUpdate(displayStep.id, { cycle_time_minutes: value });
+                                                                            }
+                                                                        }}
+                                                                        disabled={viewMode}
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="bg-muted rounded-lg p-3">
+                                                                <p className="text-sm">
+                                                                    <span className="text-muted-foreground">Tempo total estimado:</span>{' '}
+                                                                    <span className="font-medium">
+                                                                        {stepForm.data.setup_time_minutes + (stepForm.data.cycle_time_minutes * (routing.manufacturing_order?.quantity || 1))} min
+                                                                    </span>
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <StateButton
+                                                    icon={Zap}
+                                                    title="Utilizar Throughput Padrão da Célula"
+                                                    description="Usar a taxa de produção padrão da célula de trabalho"
+                                                    selected={stepForm.data.use_workcell_throughput === true}
+                                                    onClick={() => {
+                                                        stepForm.setData('use_workcell_throughput', true);
+                                                        // Set setup and cycle times to zero when using workcell throughput
+                                                        stepForm.setData('setup_time_minutes', 0);
+                                                        stepForm.setData('cycle_time_minutes', 0);
+                                                        if (displayStep) {
+                                                            const updates = {
+                                                                use_workcell_throughput: true,
+                                                                setup_time_minutes: 0,
+                                                                cycle_time_minutes: 0
+                                                            };
+                                                            onLocalStepUpdate(displayStep.id, updates);
+                                                        }
+                                                    }}
+                                                    disabled={isSaving || viewMode || !stepForm.data.work_cell_id}
+                                                    size="compact"
+                                                />
+                                                {stepForm.data.use_workcell_throughput && stepForm.data.work_cell_id && (
+                                                    <div className="border-l border-gray-200">
+                                                        <div className="ml-6 space-y-4">
+                                                            {(() => {
+                                                                const selectedWorkCell = workCells.find(wc => wc.id === parseInt(stepForm.data.work_cell_id));
+                                                                if (!selectedWorkCell) return null;
+
+                                                                return (
+                                                                    <>
+                                                                        <div className="bg-muted rounded-lg p-3 space-y-2">
+                                                                            <p className="text-sm">
+                                                                                <span className="text-muted-foreground">Taxa de Produção:</span>{' '}
+                                                                                <span className="font-medium">
+                                                                                    {selectedWorkCell.default_production_rate_per_hour || 'Não definida'} {selectedWorkCell.default_unit_of_measure}/hora
+                                                                                </span>
+                                                                            </p>
+                                                                            <p className="text-sm">
+                                                                                <span className="text-muted-foreground">Tempo de Setup Padrão:</span>{' '}
+                                                                                <span className="font-medium">
+                                                                                    {selectedWorkCell.default_setup_time_minutes || 0} min
+                                                                                </span>
+                                                                            </p>
+                                                                            {selectedWorkCell.default_production_rate_per_hour && routing.manufacturing_order?.quantity && (
+                                                                                <p className="text-sm">
+                                                                                    <span className="text-muted-foreground">Tempo total estimado:</span>{' '}
+                                                                                    <span className="font-medium">
+                                                                                        {Math.ceil((routing.manufacturing_order.quantity / selectedWorkCell.default_production_rate_per_hour) * 60) + (selectedWorkCell.default_setup_time_minutes || 0)} min
+                                                                                    </span>
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                        {!selectedWorkCell.default_production_rate_per_hour && (
+                                                                            <p className="text-sm text-amber-600">
+                                                                                A célula selecionada não possui taxa de produção configurada.
+                                                                            </p>
+                                                                        )}
+                                                                    </>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {stepForm.data.use_workcell_throughput && !stepForm.data.work_cell_id && (
+                                                    <div className="border-l border-gray-200">
+                                                        <div className="ml-6">
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Selecione uma célula de trabalho para usar o throughput padrão.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
 
                             <StateButton
-                                icon={Zap}
-                                title="Utilizar Throughput Padrão da Célula"
-                                description="Usar a taxa de produção padrão da célula de trabalho"
-                                selected={stepForm.data.use_workcell_throughput === true}
+                                icon={Truck}
+                                title="Execução Externa"
+                                description="Executado por fabricante terceirizado"
+                                selected={stepForm.data.execution_location === 'external'}
                                 onClick={() => {
-                                    stepForm.setData('use_workcell_throughput', true);
-                                    // Set setup and cycle times to zero when using workcell throughput
-                                    stepForm.setData('setup_time_minutes', 0);
-                                    stepForm.setData('cycle_time_minutes', 0);
+                                    stepForm.setData('execution_location', 'external');
                                     if (displayStep) {
-                                        const updates = {
-                                            use_workcell_throughput: true,
-                                            setup_time_minutes: 0,
-                                            cycle_time_minutes: 0
-                                        };
-                                        onLocalStepUpdate(displayStep.id, updates);
+                                        onLocalStepUpdate(displayStep.id, {
+                                            execution_location: 'external',
+                                        });
                                     }
                                 }}
-                                disabled={isSaving || viewMode || !stepForm.data.work_cell_id}
+                                disabled={isSaving || viewMode}
                             />
-                            {stepForm.data.use_workcell_throughput && stepForm.data.work_cell_id && (
+
+                            {stepForm.data.execution_location === 'external' && (
                                 <div className="border-l border-gray-200">
                                     <div className="ml-6 space-y-4">
-                                        {(() => {
-                                            const selectedWorkCell = workCells.find(wc => wc.id === parseInt(stepForm.data.work_cell_id));
-                                            if (!selectedWorkCell) return null;
+                                        <div className="space-y-2">
+                                            <ItemSelect
+                                                label="Fabricante"
+                                                items={manufacturers?.map(m => ({
+                                                    id: m.id,
+                                                    name: m.name,
+                                                })) || []}
+                                                value={stepForm.data.manufacturer_id?.toString() || ''}
+                                                onValueChange={(value) => {
+                                                    const manufacturerId = value ? parseInt(value) : null;
+                                                    stepForm.setData('manufacturer_id', manufacturerId);
+                                                    if (displayStep) {
+                                                        const selectedManufacturer = value
+                                                            ? manufacturers?.find(m => m.id === parseInt(value))
+                                                            : undefined;
+                                                        onLocalStepUpdate(displayStep.id, {
+                                                            manufacturer_id: manufacturerId,
+                                                            manufacturer: selectedManufacturer
+                                                        });
+                                                    }
+                                                }}
+                                                placeholder="Selecione um fabricante..."
+                                                disabled={viewMode}
+                                                canClear={!viewMode}
+                                            />
+                                        </div>
 
-                                            return (
-                                                <>
-                                                    <div className="bg-muted rounded-lg p-3 space-y-2">
-                                                        <p className="text-sm">
-                                                            <span className="text-muted-foreground">Taxa de Produção:</span>{' '}
-                                                            <span className="font-medium">
-                                                                {selectedWorkCell.default_production_rate_per_hour || 'Não definida'} {selectedWorkCell.default_unit_of_measure}/hora
-                                                            </span>
-                                                        </p>
-                                                        <p className="text-sm">
-                                                            <span className="text-muted-foreground">Tempo de Setup Padrão:</span>{' '}
-                                                            <span className="font-medium">
-                                                                {selectedWorkCell.default_setup_time_minutes || 0} min
-                                                            </span>
-                                                        </p>
-                                                        {selectedWorkCell.default_production_rate_per_hour && routing.manufacturing_order?.quantity && (
-                                                            <p className="text-sm">
-                                                                <span className="text-muted-foreground">Tempo total estimado:</span>{' '}
-                                                                <span className="font-medium">
-                                                                    {Math.ceil((routing.manufacturing_order.quantity / selectedWorkCell.default_production_rate_per_hour) * 60) + (selectedWorkCell.default_setup_time_minutes || 0)} min
-                                                                </span>
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                    {!selectedWorkCell.default_production_rate_per_hour && (
-                                                        <p className="text-sm text-amber-600">
-                                                            A célula selecionada não possui taxa de produção configurada.
-                                                        </p>
-                                                    )}
-                                                </>
-                                            );
-                                        })()}
-                                    </div>
-                                </div>
-                            )}
-                            {stepForm.data.use_workcell_throughput && !stepForm.data.work_cell_id && (
-                                <div className="border-l border-gray-200">
-                                    <div className="ml-6">
-                                        <p className="text-sm text-muted-foreground">
-                                            Selecione uma célula de trabalho para usar o throughput padrão.
-                                        </p>
+                                        <div className="space-y-2">
+                                            <Label>Lead Time Esperado (dias)</Label>
+                                            <Input
+                                                type="number"
+                                                min="1"
+                                                value={stepForm.data.expected_lead_time_days || ''}
+                                                onChange={(e) => {
+                                                    const value = parseInt(e.target.value) || null;
+                                                    stepForm.setData('expected_lead_time_days', value);
+                                                    if (displayStep) {
+                                                        onLocalStepUpdate(displayStep.id, {
+                                                            expected_lead_time_days: value
+                                                        });
+                                                    }
+                                                }}
+                                                disabled={viewMode}
+                                                placeholder="Ex: 10"
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                Tempo estimado para o fabricante processar e retornar os itens
+                                            </p>
+                                        </div>
+
+                                        {stepForm.data.manufacturer_id && (
+                                            <div className="bg-muted rounded-lg p-3">
+                                                <p className="text-sm">
+                                                    <span className="text-muted-foreground">Fabricante:</span>{' '}
+                                                    <span className="font-medium">
+                                                        {manufacturers?.find(m => m.id === stepForm.data.manufacturer_id)?.name}
+                                                    </span>
+                                                </p>
+                                                {stepForm.data.expected_lead_time_days && (
+                                                    <p className="text-sm mt-1">
+                                                        <span className="text-muted-foreground">Lead Time:</span>{' '}
+                                                        <span className="font-medium">
+                                                            {stepForm.data.expected_lead_time_days} dias
+                                                        </span>
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
                         </div>
                     </div>
+
+                    {/* Quality Check Settings */}
+                    {stepForm.data.step_type === 'quality_check' && (
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Modo de Verificação</Label>
+                                    <Select
+                                        value={stepForm.data.quality_check_mode}
+                                        onValueChange={(value) => {
+                                            stepForm.setData('quality_check_mode', value);
+                                            if (displayStep) {
+                                                onLocalStepUpdate(displayStep.id, {
+                                                    quality_check_mode: value as ManufacturingStep['quality_check_mode']
+                                                });
+                                            }
+                                        }}
+                                        disabled={viewMode}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="every_part">Cada Peça</SelectItem>
+                                            <SelectItem value="entire_lot">Lote Inteiro</SelectItem>
+                                            <SelectItem value="sampling">Amostragem</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {stepForm.data.quality_check_mode === 'sampling' && (
+                                    <div className="space-y-2">
+                                        <Label>Tamanho da Amostra</Label>
+                                        <Input
+                                            type="number"
+                                            value={stepForm.data.sampling_size}
+                                            onChange={(e) => {
+                                                const value = parseInt(e.target.value) || 0;
+                                                stepForm.setData('sampling_size', value);
+                                                if (displayStep) {
+                                                    onLocalStepUpdate(displayStep.id, { sampling_size: value });
+                                                }
+                                            }}
+                                            disabled={viewMode}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            {stepForm.data.quality_check_mode === 'sampling' && (
+                                <p className="text-xs text-muted-foreground">
+                                    Deixe 0 para usar ISO 2859
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Form Association - Only show if forms engine feature is enabled */}
+                    {hasFormsEngine && (
+                        <div className="space-y-3">
+                            <div className="space-y-2">
+                                <Label>Formulário Associado</Label>
+                                <ItemSelect
+                                    items={forms.map(f => ({
+                                        id: f.id,
+                                        name: f.name,
+                                        value: f.id.toString(),
+                                    }))}
+                                    value={stepForm.data.form_id || ''}
+                                    onValueChange={(value) => {
+                                        stepForm.setData('form_id', value);
+                                        if (displayStep) {
+                                            onLocalStepUpdate(displayStep.id, {
+                                                form_id: value ? parseInt(value) : undefined
+                                            });
+                                        }
+                                    }}
+                                    placeholder="Nenhum formulário"
+                                    disabled={viewMode}
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Description */}
                     <div className="space-y-3">

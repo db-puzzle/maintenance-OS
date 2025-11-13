@@ -68,4 +68,4 @@ class CompleteExecutionRequest extends FormRequest
             'area_cleaned.required' => 'Você deve confirmar que a área foi limpa.',
         ];
     }
-} 
+}

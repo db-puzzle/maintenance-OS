@@ -12,18 +12,19 @@ class AuditLogController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        
+
         // Only administrators can access audit logs
         $this->middleware(function ($request, $next) {
-            if (!$request->user()->isAdministrator()) {
+            if (! $request->user()->isAdministrator()) {
                 abort(403, 'Access denied. Administrator privileges required.');
             }
+
             return $next($request);
         });
     }
 
     /**
-     * Display audit logs
+     * Display audit logs.
      */
     public function index(Request $request)
     {
@@ -52,6 +53,7 @@ class AuditLogController extends Controller
         // Add computed attributes
         $logs->getCollection()->transform(function ($log) {
             $log->append(['event_description', 'changed_fields']);
+
             return $log;
         });
 
@@ -69,7 +71,7 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Export audit logs
+     * Export audit logs.
      */
     public function export(Request $request)
     {
@@ -106,7 +108,7 @@ class AuditLogController extends Controller
             'Impersonator',
             'IP Address',
             'Entity Type',
-            'Entity ID'
+            'Entity ID',
         ];
 
         foreach ($logs as $log) {
@@ -126,8 +128,8 @@ class AuditLogController extends Controller
 
         // Generate CSV
         $filename = 'audit-logs-' . now()->format('Y-m-d-H-i-s') . '.csv';
-        
-        $callback = function() use ($csvData) {
+
+        $callback = function () use ($csvData) {
             $file = fopen('php://output', 'w');
             foreach ($csvData as $row) {
                 fputcsv($file, $row);
@@ -142,7 +144,7 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Get audit log statistics
+     * Get audit log statistics.
      */
     public function stats()
     {
@@ -150,7 +152,7 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Show audit log details
+     * Show audit log details.
      */
     public function show(PermissionAuditLog $auditLog)
     {
@@ -161,7 +163,7 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Get audit statistics
+     * Get audit statistics.
      */
     private function getStats(): array
     {
@@ -191,13 +193,14 @@ class AuditLogController extends Controller
                 ->get()
                 ->map(function ($log) {
                     $log->append('event_description');
+
                     return $log;
-                })
+                }),
         ];
     }
 
     /**
-     * Clean up old audit logs
+     * Clean up old audit logs.
      */
     public function cleanup(Request $request)
     {
@@ -211,7 +214,7 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Get event type breakdown
+     * Get event type breakdown.
      */
     public function eventBreakdown()
     {
@@ -225,12 +228,12 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Get activity timeline
+     * Get activity timeline.
      */
     public function timeline(Request $request)
     {
         $days = $request->get('days', 7);
-        
+
         $timeline = PermissionAuditLog::selectRaw('DATE(created_at) as date, count(*) as count')
             ->where('created_at', '>=', now()->subDays($days))
             ->groupBy('date')

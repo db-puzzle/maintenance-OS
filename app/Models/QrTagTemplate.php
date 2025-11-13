@@ -16,24 +16,24 @@ class QrTagTemplate extends Model implements HasMedia
         'layout',
         'is_default',
         'is_active',
-        'created_by'
+        'created_by',
     ];
 
     protected $casts = [
         'layout' => 'array',
         'is_default' => 'boolean',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
-    
+
     /**
-     * Register media collections
+     * Register media collections.
      */
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('templates')
             ->acceptsMimeTypes(['application/pdf'])
             ->singleFile();
-            
+
         $this->addMediaCollection('preview')
             ->acceptsMimeTypes(['image/png', 'image/jpeg'])
             ->singleFile();

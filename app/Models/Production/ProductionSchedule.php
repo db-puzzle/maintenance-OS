@@ -103,7 +103,7 @@ class ProductionSchedule extends Model
         }
 
         // Check for time overlap
-        return $this->scheduled_start < $other->scheduled_end 
+        return $this->scheduled_start < $other->scheduled_end
             && $this->scheduled_end > $other->scheduled_start;
     }
 
@@ -122,11 +122,11 @@ class ProductionSchedule extends Model
     {
         return $query->where(function ($q) use ($startDate, $endDate) {
             $q->whereBetween('scheduled_start', [$startDate, $endDate])
-              ->orWhereBetween('scheduled_end', [$startDate, $endDate])
-              ->orWhere(function ($q2) use ($startDate, $endDate) {
-                  $q2->where('scheduled_start', '<=', $startDate)
-                     ->where('scheduled_end', '>=', $endDate);
-              });
+                ->orWhereBetween('scheduled_end', [$startDate, $endDate])
+                ->orWhere(function ($q2) use ($startDate, $endDate) {
+                    $q2->where('scheduled_start', '<=', $startDate)
+                        ->where('scheduled_end', '>=', $endDate);
+                });
         });
     }
 
@@ -151,7 +151,7 @@ class ProductionSchedule extends Model
      */
     public function hasConflicts(): bool
     {
-        return !empty($this->conflicts);
+        return ! empty($this->conflicts);
     }
 
     /**

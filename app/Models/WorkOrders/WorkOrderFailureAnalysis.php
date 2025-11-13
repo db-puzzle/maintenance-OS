@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WorkOrderFailureAnalysis extends Model
 {
     protected $table = 'work_order_failure_analysis';
-    
+
     protected $fillable = [
         'work_order_id',
         'failure_mode_id',
@@ -41,7 +41,7 @@ class WorkOrderFailureAnalysis extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($model) {
             $model->analyzed_at = $model->analyzed_at ?: now();
         });
@@ -79,7 +79,7 @@ class WorkOrderFailureAnalysis extends Model
         if ($this->failureMode) {
             return $this->failureMode->name;
         }
-        
+
         return $this->failure_mode_other ?: 'Not specified';
     }
 
@@ -88,7 +88,7 @@ class WorkOrderFailureAnalysis extends Model
         if ($this->rootCause) {
             return $this->rootCause->name;
         }
-        
+
         return $this->root_cause_other ?: 'Not specified';
     }
 
@@ -97,7 +97,7 @@ class WorkOrderFailureAnalysis extends Model
         if ($this->immediateCause) {
             return $this->immediateCause->name;
         }
-        
+
         return $this->immediate_cause_other ?: 'Not specified';
     }
 
@@ -109,7 +109,7 @@ class WorkOrderFailureAnalysis extends Model
     public function getSeverityScoreAttribute(): int
     {
         $score = 0;
-        
+
         // Failure effect scoring
         $effectScores = [
             'none' => 0,
@@ -119,21 +119,21 @@ class WorkOrderFailureAnalysis extends Model
             'critical' => 80,
         ];
         $score += $effectScores[$this->failure_effect] ?? 0;
-        
+
         // Additional factors
         if ($this->safety_incident) {
             $score += 15;
         }
-        
+
         if ($this->environmental_incident) {
             $score += 10;
         }
-        
+
         // Downtime factor (max 10 points)
         if ($this->downtime_hours > 0) {
             $score += min(10, $this->downtime_hours);
         }
-        
+
         return min(100, $score);
     }
 

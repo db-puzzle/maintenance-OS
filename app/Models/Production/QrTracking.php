@@ -12,7 +12,7 @@ class QrTracking extends Model
     use HasFactory;
 
     protected $table = 'qr_tracking_events';
-    
+
     public $timestamps = false; // Using created_at only
 
     protected $fillable = [

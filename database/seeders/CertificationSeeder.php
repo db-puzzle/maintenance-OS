@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Certification;
+use Illuminate\Database\Seeder;
 
 class CertificationSeeder extends Seeder
 {
@@ -49,7 +49,7 @@ class CertificationSeeder extends Seeder
                 'validity_period_days' => 730, // 2 years
                 'active' => true,
             ],
-            
+
             // Technical Certifications
             [
                 'name' => 'Operador de Empilhadeira',
@@ -107,7 +107,7 @@ class CertificationSeeder extends Seeder
                 'validity_period_days' => 1095, // 3 years
                 'active' => true,
             ],
-            
+
             // Electrical Certifications
             [
                 'name' => 'SEP - Sistema Elétrico de Potência',
@@ -123,7 +123,7 @@ class CertificationSeeder extends Seeder
                 'validity_period_days' => 1095, // 3 years
                 'active' => true,
             ],
-            
+
             // Instrumentation Certifications
             [
                 'name' => 'Instrumentação Industrial',
@@ -139,7 +139,7 @@ class CertificationSeeder extends Seeder
                 'validity_period_days' => 730, // 2 years
                 'active' => true,
             ],
-            
+
             // Environmental and Quality
             [
                 'name' => 'ISO 9001 - Auditor Interno',

@@ -42,7 +42,7 @@ class CapacityChecker
         $start = Carbon::instance($afterTime);
         $maxSearchDays = 30; // Search up to 30 days ahead
         $endSearch = $start->copy()->addDays($maxSearchDays);
-        
+
         \Log::debug('CapacityChecker::findNextAvailableSlot - Start search', [
             'work_cell' => $workCell->name,
             'duration_minutes' => $durationMinutes,
@@ -52,18 +52,18 @@ class CapacityChecker
 
         $iterationCount = 0;
         $maxIterations = 1000; // Prevent infinite loops
-        
+
         while ($start < $endSearch && $iterationCount < $maxIterations) {
             $iterationCount++;
             $end = $start->copy()->addMinutes($durationMinutes);
-            
+
             \Log::debug('CapacityChecker::findNextAvailableSlot - Checking slot', [
                 'iteration' => $iterationCount,
                 'start' => $start->format('Y-m-d H:i:s'),
                 'end' => $end->format('Y-m-d H:i:s'),
                 'work_cell' => $workCell->name,
             ]);
-            
+
             // Check if this slot is available
             if ($this->isAvailable($workCell, $start->toDateTime(), $end->toDateTime())) {
                 // Also check shift constraints if applicable
@@ -74,6 +74,7 @@ class CapacityChecker
                         'slot_end' => $end->format('Y-m-d H:i:s'),
                         'duration_minutes' => $durationMinutes,
                     ]);
+
                     return $start->toDateTime();
                 } else {
                     \Log::debug('CapacityChecker::findNextAvailableSlot - Slot not within shift hours', [
@@ -112,15 +113,15 @@ class CapacityChecker
     ): ?array {
         $end = Carbon::instance($latestEnd);
         $minSearchDate = Carbon::now()->startOfDay();
-        
+
         while ($end > $minSearchDate) {
             $start = $end->copy()->subMinutes($durationMinutes);
-            
+
             // Don't schedule in the past
             if ($start < Carbon::now()) {
                 return null;
             }
-            
+
             // Check if this slot is available
             if ($this->isAvailable($workCell, $start->toDateTime(), $end->toDateTime())) {
                 // Also check shift constraints
@@ -160,7 +161,7 @@ class CapacityChecker
         DateTime $end
     ): float {
         $totalMinutes = Carbon::instance($start)->diffInMinutes(Carbon::instance($end));
-        
+
         if ($totalMinutes <= 0) {
             return 0.0;
         }
@@ -191,11 +192,11 @@ class CapacityChecker
         $query = ProductionSchedule::where('work_cell_id', $workCell->id)
             ->where(function ($q) use ($start, $end) {
                 $q->whereBetween('scheduled_start', [$start, $end])
-                  ->orWhereBetween('scheduled_end', [$start, $end])
-                  ->orWhere(function ($q2) use ($start, $end) {
-                      $q2->where('scheduled_start', '<=', $start)
-                         ->where('scheduled_end', '>=', $end);
-                  });
+                    ->orWhereBetween('scheduled_end', [$start, $end])
+                    ->orWhere(function ($q2) use ($start, $end) {
+                        $q2->where('scheduled_start', '<=', $start)
+                            ->where('scheduled_end', '>=', $end);
+                    });
             });
 
         if ($excludeScheduleId !== null) {
