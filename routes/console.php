@@ -20,7 +20,10 @@ Schedule::command('tenants:run workorders:generate-from-routines')
 // Media Library Maintenance
 // CRITICAL: Uses tenants:run to ensure complete tenant isolation
 // Media model is tenant-specific
-Schedule::command('tenants:run media:health-check --notify')
+Schedule::command('tenants:run', [
+    'commandname' => 'media:health-check',
+    '--option' => ['notify'],
+])
     ->daily()
     ->at('02:00')
     ->name('media-health-check')

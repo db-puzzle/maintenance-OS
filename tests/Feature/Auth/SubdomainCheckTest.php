@@ -110,3 +110,4 @@ it('rate limits excessive requests', function () {
     // The 11th request should be rate limited
     $response->assertStatus(429);
 });
+
