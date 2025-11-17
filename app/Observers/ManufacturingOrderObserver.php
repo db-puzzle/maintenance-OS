@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\DB;
 class ManufacturingOrderObserver
 {
     /**
+     * Track which orders have been processed in this request to prevent double-processing.
+     */
+    protected static $processedCompletions = [];
+
+    /**
      * Handle the ManufacturingOrder "created" event.
      */
     public function created(ManufacturingOrder $order): void
@@ -47,21 +52,38 @@ class ManufacturingOrderObserver
             $this->handleStatusTransition($order);
         }
 
-        // If status changed to completed, update parent
+        // If child order status changed to completed, notify parent
+        // GUARD: Only process once per request to prevent double-increment
         if ($order->wasChanged('status') && $order->status === 'completed' && $order->parent_id) {
-            UpdateSmartProgress::dispatch($order->parent)
-                ->delay(now()->addSeconds(10))
-                ->onQueue('low');
+            $processingKey = 'completion_' . $order->id;
+
+            if (! isset(static::$processedCompletions[$processingKey])) {
+                static::$processedCompletions[$processingKey] = true;
+
+                // Notify parent order and check if steps can be queued
+                $order->parent->incrementCompletedChildren();
+
+                // Also update parent progress
+                UpdateSmartProgress::dispatch($order->parent)
+                    ->delay(now()->addSeconds(10))
+                    ->onQueue('low');
+            }
         }
 
-        // Update child order counts if needed
-        if ($order->wasChanged('status') && in_array($order->status, ['completed', 'cancelled']) && $order->parent_id) {
+        // Update child order counts if needed (for cancelled orders)
+        if ($order->wasChanged('status') && $order->status === 'cancelled' && $order->parent_id) {
             $order->parent->updateChildOrderCounts();
         }
 
         // Check parent step dependencies when child order quantity is updated
+        // But skip if we just processed the completion (to avoid duplicate step checks)
         if ($order->wasChanged('quantity_completed') && $order->parent_id) {
-            $this->checkParentStepDependencies($order);
+            $processingKey = 'completion_' . $order->id;
+
+            // Only check dependencies if we didn't just process the completion
+            if (! isset(static::$processedCompletions[$processingKey])) {
+                $this->checkParentStepDependencies($order);
+            }
         }
     }
 

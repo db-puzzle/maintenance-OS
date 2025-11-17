@@ -110,20 +110,6 @@ class StepExecutionController extends Controller
             // Load relationships
             $execution->load(['manufacturingStep.workCell', 'executedBy', 'media']);
 
-            \Log::info('[StepExecutionController::start] Started execution', [
-                'execution_id' => $execution->id,
-                'step_id' => $step->id,
-                'order_id' => $order->id,
-                'user_id' => auth()->id(),
-            ]);
-
-            \Log::info('[StepExecutionController::start] Returning success response', [
-                'execution_id' => $execution->id,
-                'step_id' => $step->id,
-                'step_status' => $step->status,
-                'order_id' => $order->id,
-            ]);
-
             return back()
                 ->with('success', 'Execution started successfully')
                 ->with('execution', $execution);

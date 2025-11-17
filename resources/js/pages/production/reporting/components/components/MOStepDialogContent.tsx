@@ -3,7 +3,7 @@ import { ManufacturingOrder } from '@/types/production';
 import { Separator } from '@/components/ui/separator';
 import { MOStepStateContent } from './MOStepStateContent';
 import { MOStepPictureSection } from './MOStepPictureSection';
-import { MOStepCurrentStepSection } from './MOStepCurrentStepSection';
+import { StepNavigator } from '@/components/production/reporting/StepNavigator';
 import { UseMOStepDataReturn } from '../hooks/useMOStepData';
 import { UseMOStepStateTransitionsReturn } from '../hooks/useMOStepStateTransitions';
 import { UseMOStepQuantityReportingReturn } from '../hooks/useMOStepQuantityReporting';
@@ -15,6 +15,7 @@ interface MOStepDialogContentProps {
     quantityReporting: UseMOStepQuantityReportingReturn;
     photoManagement: UseMOStepPhotoManagementReturn;
     order: ManufacturingOrder;
+    onStepChange?: (stepId: number) => void;
 }
 
 export function MOStepDialogContent({
@@ -22,9 +23,10 @@ export function MOStepDialogContent({
     stateTransitions,
     quantityReporting,
     photoManagement,
-    order
+    order,
+    onStepChange
 }: MOStepDialogContentProps) {
-    const { currentStep, activeExecution, stepStateInfo } = stepData;
+    const { currentStep, activeExecution, stepStateInfo, loading } = stepData;
     const { 
         selectedPhotoIndex, 
         showingStepPhotos, 
@@ -34,7 +36,7 @@ export function MOStepDialogContent({
     } = photoManagement;
 
     return (
-        <div className="flex-1 flex flex-col p-6 overflow-y-auto min-h-0">
+        <div className="relative flex-1 flex flex-col p-6 overflow-y-auto min-h-0">
             <div className="flex min-h-[600px] gap-6">
                 {/* Left - Dynamic State Content */}
                 <div className="flex-1 flex flex-col pr-6 border-r">
@@ -49,7 +51,7 @@ export function MOStepDialogContent({
                     />
                 </div>
 
-                {/* Right Column - Picture and Current Step */}
+                {/* Right Column - Picture and Step Navigator */}
                 <div className="flex-1 flex flex-col gap-4 pl-6">
                     {/* Top Right - Picture */}
                     <MOStepPictureSection
@@ -57,17 +59,6 @@ export function MOStepDialogContent({
                         photos={photos}
                         selectedPhotoIndex={selectedPhotoIndex}
                         showingStepPhotos={showingStepPhotos}
-                        onPhotoNavigate={(direction) => {
-                            if (direction === 'prev') {
-                                const currentIndex = selectedPhotoIndex ?? 0;
-                                const prevIndex = currentIndex > 0 ? currentIndex - 1 : photos.length - 1;
-                                setSelectedPhotoIndex(prevIndex);
-                            } else {
-                                const currentIndex = selectedPhotoIndex ?? 0;
-                                const nextIndex = currentIndex < photos.length - 1 ? currentIndex + 1 : 0;
-                                setSelectedPhotoIndex(nextIndex);
-                            }
-                        }}
                         onPhotoSelect={setSelectedPhotoIndex}
                         onToggleStepPhotos={() => {
                             setShowingStepPhotos(!showingStepPhotos);
@@ -80,10 +71,31 @@ export function MOStepDialogContent({
                     {/* Horizontal Separator */}
                     <Separator className="my-2" />
 
-                    {/* Bottom Right - Current Step */}
-                    <MOStepCurrentStepSection currentStep={currentStep} />
+                    {/* Bottom Right - Step Navigator */}
+                    {currentStep && (
+                        <StepNavigator
+                            order={order}
+                            currentStepId={currentStep.id}
+                            onStepChange={(stepId) => {
+                                if (onStepChange) {
+                                    onStepChange(stepId);
+                                }
+                            }}
+                            className="flex-1"
+                        />
+                    )}
                 </div>
             </div>
+
+            {/* Loading overlay when data is refreshing */}
+            {loading && (
+                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                        <p className="text-sm font-medium">Refreshing data...</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

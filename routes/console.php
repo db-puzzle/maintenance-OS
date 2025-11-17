@@ -74,3 +74,20 @@ Schedule::command('tenants:run production:check-pending-steps')
     ->name('check-pending-steps')
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/production-step-safety-net.log'));
+
+// Manufacturing Order State Consistency Check
+// CRITICAL: Uses job dispatch with tenant context
+// This job checks for and fixes inconsistent states such as:
+// - Orders with all steps complete but status not 'completed'
+// - Child orders complete but parent not notified
+// - Pending steps with met dependencies not queued
+Schedule::call(function () {
+    \App\Models\Account::all()->each(function ($tenant) {
+        $tenant->run(function () {
+            \App\Jobs\Production\CheckInconsistentOrderStates::dispatch();
+        });
+    });
+})->everyTenMinutes()
+    ->name('check-inconsistent-order-states')
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/order-state-consistency.log'));

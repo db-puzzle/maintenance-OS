@@ -47,7 +47,7 @@ class ManufacturingStepExecutionService
                 ]);
             }
 
-            // Check if step should be marked complete
+            // Check if step should be marked complete (only when explicitly requested)
             if ($data['mark_complete'] ?? false) {
                 $this->completeStepExecution($execution);
             }
@@ -65,25 +65,30 @@ class ManufacturingStepExecutionService
                 ->log('Step progress reported');
         });
 
-        return $execution->fresh();
+        return $execution->fresh(['manufacturingStep']);
     }
 
     /**
      * Complete a step execution.
+     *
+     * This method marks the execution as completed and delegates to the step's
+     * complete() method to handle all completion logic including:
+     * - Updating the manufacturing order status if all steps are complete
+     * - Notifying parent orders when child orders complete
+     * - Checking and queuing dependent steps
      */
     private function completeStepExecution(ManufacturingStepExecution $execution): void
     {
+        // Mark the execution as completed
         $execution->update([
             'status' => 'completed',
             'completed_at' => now(),
         ]);
 
-        // Update step status
+        // Use the step's complete() method which handles the full completion chain
+        // This ensures MO status updates, parent notifications, and dependent step queuing
         $step = $execution->manufacturingStep;
-        $step->update([
-            'status' => 'completed',
-            'actual_end_time' => now(),
-        ]);
+        $step->complete();
 
         // Check and activate next step if gate requirements are met
         $this->checkAndActivateNextStep($execution);

@@ -17,7 +17,6 @@ import {
     Check,
     Info,
     Save,
-    ClipboardCheck,
     Calendar,
 } from 'lucide-react';
 import StackIcon from '@/components/stack-icon';
@@ -41,7 +40,6 @@ import { ItemSelect } from '@/components/ItemSelect';
 import StateButton from '@/components/StateButton';
 import ManufacturingOrderHierarchicalView, { ManufacturingOrderTreeNode } from '@/components/production/ManufacturingOrderHierarchicalView';
 import ManufacturingOrderRouteTab from '@/components/production/ManufacturingOrderRouteTab';
-import { ReportProductionDialog } from '@/components/production/ReportProductionDialog';
 import { SaveAsTemplateDialog } from '@/components/production/templates/SaveAsTemplateDialog';
 import { DirectExecution } from '@/components/production/templates/DirectExecution';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
@@ -62,7 +60,6 @@ interface Props {
     canCancel: boolean;
     canCreateRoute: boolean;
     canManageRoutes?: boolean;
-    canReportProduction?: boolean;
     templates?: RouteTemplate[];
     workCells?: WorkCell[];
     stepTypes?: Record<string, string>;
@@ -173,7 +170,6 @@ export default function ShowManufacturingOrder({
     canCancel,
     canCreateRoute,
     canManageRoutes: _canManageRoutes = false,
-    canReportProduction = false,
     templates = [],
     workCells = [],
     stepTypes = {},
@@ -187,7 +183,6 @@ export default function ShowManufacturingOrder({
 
     // State
     const [generatingQr, setGeneratingQr] = useState(false);
-    const [reportProductionOpen, setReportProductionOpen] = useState(false);
     const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false);
 
     // Form setup
@@ -398,36 +393,6 @@ export default function ShowManufacturingOrder({
                             />
                         </div>
                     </div>
-
-                    {/* Direct Production Reporting */}
-                    {canReportProduction &&
-                        ['released', 'in_progress'].includes(order.status) &&
-                        (!order.has_route || (order.manufacturing_route && (!order.manufacturing_route.steps || order.manufacturing_route.steps.length === 0))) && (
-                            <>
-                                <div className="space-y-4">
-                                    <h3 className="text-lg font-semibold">Direct Production Reporting</h3>
-                                    <div className="border rounded-lg p-4">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="font-medium">Report Production</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    Report production quantities directly without route steps
-                                                </p>
-                                            </div>
-                                            <Button
-                                                onClick={() => setReportProductionOpen(true)}
-                                                variant="default"
-                                                className="gap-2"
-                                            >
-                                                <ClipboardCheck className="h-4 w-4" />
-                                                Report Production
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <Separator />
-                            </>
-                        )}
 
                     {/* Order Information */}
                     <FieldGroup>
@@ -1032,7 +997,6 @@ export default function ShowManufacturingOrder({
             <div className="flex gap-2">
                 <Button
                     variant="outline"
-                    size="sm"
                     onClick={handleGenerateQrTag}
                     disabled={generatingQr}
                 >
@@ -1141,12 +1105,6 @@ export default function ShowManufacturingOrder({
                     showEditButton={false}
                 />
             </AppLayout>
-
-            <ReportProductionDialog
-                order={order}
-                open={reportProductionOpen}
-                onOpenChange={setReportProductionOpen}
-            />
 
             {order.manufacturing_route && (
                 <SaveAsTemplateDialog

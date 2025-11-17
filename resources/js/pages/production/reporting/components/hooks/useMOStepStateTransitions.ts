@@ -40,16 +40,16 @@ export function useMOStepStateTransitions({
     const [pendingAction, setPendingAction] = useState<StateTransitionAction | null>(null);
     const [actionReason, setActionReason] = useState('');
     const [showLabels, setShowLabels] = useState(false);
-    
-    const { 
-        currentStep, 
-        activeExecution, 
-        setCurrentStep, 
-        setActiveExecution, 
+
+    const {
+        currentStep,
+        activeExecution,
+        setCurrentStep,
+        setActiveExecution,
         setStepStateInfo,
-        initializeDialog 
+        initializeDialog
     } = stepData;
-    
+
     // Handle state action requests
     const handleStateAction = (action: StateTransitionAction) => {
         // Check if action requires a reason
@@ -67,7 +67,7 @@ export function useMOStepStateTransitions({
         // Execute the action
         executeStateTransition(action);
     };
-    
+
     // Execute state transition
     const executeStateTransition = (action: StateTransitionAction, reason?: string) => {
         if (!currentStep) return;
@@ -118,7 +118,7 @@ export function useMOStepStateTransitions({
         setPendingAction(null);
         setActionReason('');
     };
-    
+
     // Start execution
     const startExecution = () => {
         if (!currentStep || !order) return;
@@ -134,6 +134,7 @@ export function useMOStepStateTransitions({
                 const pageProps = page.props as { execution?: ManufacturingStepExecution; flash?: unknown };
 
                 if (pageProps.execution) {
+                    // Update local state optimistically
                     setActiveExecution(pageProps.execution);
 
                     // Update step status locally
@@ -150,22 +151,13 @@ export function useMOStepStateTransitions({
                         canStart: false,
                         cannotStartReason: undefined
                     });
+                }
 
-                    setTransitionLoading(false);
+                setTransitionLoading(false);
 
-                    // Then notify parent after dialog has updated
-                    if (onStateChanged) {
-                        onStateChanged();
-                    }
-                } else {
-                    // If we didn't get execution data back, we need to reload the dialog
-                    // to fetch the proper execution data
-                    initializeDialog().then(() => {
-                        setTransitionLoading(false);
-                        if (onStateChanged) {
-                            onStateChanged();
-                        }
-                    });
+                // Notify parent to refresh (it will update our order prop)
+                if (onStateChanged) {
+                    onStateChanged();
                 }
             },
             onError: () => {
@@ -185,10 +177,11 @@ export function useMOStepStateTransitions({
             preserveUrl: true,
             preserveScroll: true,
             onSuccess: () => {
-                initializeDialog().then(() => {
-                    setTransitionLoading(false);
-                    if (onStateChanged) onStateChanged();
-                });
+                setTransitionLoading(false);
+                // Let parent handle the refresh - no double refresh
+                if (onStateChanged) {
+                    onStateChanged();
+                }
             },
             onError: () => {
                 setTransitionLoading(false);
@@ -206,10 +199,11 @@ export function useMOStepStateTransitions({
             preserveUrl: true,
             preserveScroll: true,
             onSuccess: () => {
-                initializeDialog().then(() => {
-                    setTransitionLoading(false);
-                    if (onStateChanged) onStateChanged();
-                });
+                setTransitionLoading(false);
+                // Let parent handle the refresh - no double refresh
+                if (onStateChanged) {
+                    onStateChanged();
+                }
             },
             onError: () => {
                 setTransitionLoading(false);
@@ -228,10 +222,11 @@ export function useMOStepStateTransitions({
             preserveUrl: true,
             preserveScroll: true,
             onSuccess: () => {
-                initializeDialog().then(() => {
-                    setTransitionLoading(false);
-                    if (onStateChanged) onStateChanged();
-                });
+                setTransitionLoading(false);
+                // Let parent handle the refresh - no double refresh
+                if (onStateChanged) {
+                    onStateChanged();
+                }
             },
             onError: () => {
                 setTransitionLoading(false);
@@ -247,10 +242,11 @@ export function useMOStepStateTransitions({
             preserveUrl: true,
             preserveScroll: true,
             onSuccess: () => {
-                initializeDialog().then(() => {
-                    setTransitionLoading(false);
-                    if (onStateChanged) onStateChanged();
-                });
+                setTransitionLoading(false);
+                // Let parent handle the refresh - no double refresh
+                if (onStateChanged) {
+                    onStateChanged();
+                }
             },
             onError: () => {
                 setTransitionLoading(false);
@@ -271,24 +267,25 @@ export function useMOStepStateTransitions({
             preserveUrl: true,
             preserveScroll: true,
             onSuccess: () => {
-                initializeDialog().then(() => {
-                    setTransitionLoading(false);
-                    if (onStateChanged) onStateChanged();
-                });
+                setTransitionLoading(false);
+                // Let parent handle the refresh - no double refresh
+                if (onStateChanged) {
+                    onStateChanged();
+                }
             },
             onError: () => {
                 setTransitionLoading(false);
             }
         });
     };
-    
+
     // Confirm reason dialog
     const confirmReasonDialog = () => {
         if (pendingAction && actionReason.trim()) {
             executeStateTransition(pendingAction, actionReason);
         }
     };
-    
+
     return {
         transitionLoading,
         handleStateAction,

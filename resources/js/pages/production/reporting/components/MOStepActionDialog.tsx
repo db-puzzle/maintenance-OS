@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { ManufacturingOrder } from '@/types/production';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
@@ -33,11 +33,24 @@ export function MOStepActionDialog({
     order,
     isOpen,
     onOpenChange,
-    activeStepId,
+    activeStepId: initialActiveStepId,
     onStateChanged
 }: MOStepActionDialogProps) {
+    // Internal state for active step ID to support navigation
+    const [internalActiveStepId, setInternalActiveStepId] = useState<number | undefined>(initialActiveStepId);
+
+    // Sync internal state with prop changes
+    React.useEffect(() => {
+        setInternalActiveStepId(initialActiveStepId);
+    }, [initialActiveStepId]);
+
+    // Handle step change from navigator
+    const handleStepChange = useCallback((stepId: number) => {
+        setInternalActiveStepId(stepId);
+    }, []);
+
     // Use custom hooks - note the order and dependencies
-    const stepData = useMOStepData(order, isOpen, activeStepId);
+    const stepData = useMOStepData(order, isOpen, internalActiveStepId);
 
     const stateTransitions = useMOStepStateTransitions({
         stepData,
@@ -53,7 +66,8 @@ export function MOStepActionDialog({
 
     const photoManagement = useMOStepPhotoManagement({ stepData });
 
-    if (!order || stepData.loading) return null;
+    // Only return null if there's no order - keep dialog mounted during loading
+    if (!order) return null;
 
     return (
         <>
@@ -69,6 +83,7 @@ export function MOStepActionDialog({
                         quantityReporting={quantityReporting}
                         photoManagement={photoManagement}
                         order={order}
+                        onStepChange={handleStepChange}
                     />
                 </DialogContent>
             </Dialog>

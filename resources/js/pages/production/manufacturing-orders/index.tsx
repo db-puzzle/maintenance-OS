@@ -571,11 +571,6 @@ export default function ManufacturingOrders({
                                         label: 'Release',
                                         onClick: () => router.post(route('production.orders.release', order.id))
                                     }] : []),
-                                    // Start production - for released orders
-                                    ...(order.status === 'released' ? [{
-                                        label: 'Start Production',
-                                        onClick: () => router.post(route('production.orders.start', order.id))
-                                    }] : []),
                                     // Hold - for in progress orders
                                     ...(order.status === 'in_progress' ? [{
                                         label: 'Hold',

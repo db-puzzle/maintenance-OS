@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm } from '@inertiajs/react';
+import { useForm, router } from '@inertiajs/react';
 import { ManufacturingOrder } from '@/types/production';
 import { UseMOStepDataReturn } from './useMOStepData';
 import { getRemainingQuantity } from '../utils/moStepHelpers';
@@ -47,7 +47,9 @@ export interface UseMOStepQuantityReportingReturn {
         unitOfMeasure?: string;
     };
     handleSubmit: () => void;
+    handleComplete: () => void;
     getRemainingQuantity: () => number;
+    isReporting: boolean;
 }
 
 export function useMOStepQuantityReporting({
@@ -59,6 +61,7 @@ export function useMOStepQuantityReporting({
     
     const [showProductionDialog, setShowProductionDialog] = useState(false);
     const [showScrapDialog, setShowScrapDialog] = useState(false);
+    const [isReporting, setIsReporting] = useState(false);
     
     // Form for quantity reporting (in_progress state)
     const { data, setData, post, reset, processing } = useForm({
@@ -86,9 +89,10 @@ export function useMOStepQuantityReporting({
             preserveUrl: true,
             onSuccess: (_page) => {
                 reset();
-                initializeDialog().then(() => {
-                    if (onStateChanged) onStateChanged();
-                });
+                // Let parent handle the refresh - no double refresh
+                if (onStateChanged) {
+                    onStateChanged();
+                }
             },
             onError: (errors) => {
                 console.error('[MOStepActionDialog] Submit errors:', errors);
@@ -100,32 +104,35 @@ export function useMOStepQuantityReporting({
     const handleProductionReport = (quantity: number) => {
         if (!activeExecution || !activeExecution.id) return;
 
-        // Store previous data for potential revert
-        const previousData = { ...data };
+        // Show reporting state
+        setIsReporting(true);
 
-        // Update the form data
-        setData({
+        // Prepare the data to submit
+        const submitData = {
             quantity_completed: quantity,
             quantity_scrapped: 0,
             scrap_reason: '',
             notes: '',
             time_spent: 0,
             mark_complete: false,
-        });
+        };
 
-        // Submit using the form's post method which uses the data from useForm
-        post(route('production.reporting.steps.report', { execution: activeExecution.id }), {
-            preserveUrl: true,
+        // Submit directly with router.post (not useForm.post) to send data immediately
+        router.post(route('production.reporting.steps.report', { execution: activeExecution.id }), submitData, {
+            preserveScroll: true,
+            preserveState: true,
             onSuccess: () => {
                 // Reset form after successful submission
                 reset();
-                initializeDialog().then(() => {
-                    if (onStateChanged) onStateChanged();
-                });
+                setIsReporting(false);
+                // Let parent handle the refresh - no double refresh
+                if (onStateChanged) {
+                    onStateChanged();
+                }
             },
-            onError: () => {
-                // Revert on error
-                setData(previousData);
+            onError: (errors) => {
+                console.error('[MOStepQuantityReporting] Production report failed:', errors);
+                setIsReporting(false);
             }
         });
     };
@@ -134,32 +141,72 @@ export function useMOStepQuantityReporting({
     const handleScrapReport = (quantity: number, reason?: string) => {
         if (!activeExecution || !activeExecution.id) return;
 
-        // Store previous data for potential revert
-        const previousData = { ...data };
+        // Show reporting state
+        setIsReporting(true);
 
-        // Update the form data
-        setData({
+        // Prepare the data to submit
+        const submitData = {
             quantity_completed: 0,
             quantity_scrapped: quantity,
             scrap_reason: reason || '',
             notes: '',
             time_spent: 0,
             mark_complete: false,
-        });
+        };
 
-        // Submit using the form's post method which uses the data from useForm
-        post(route('production.reporting.steps.report', { execution: activeExecution.id }), {
-            preserveUrl: true,
+        // Submit directly with router.post (not useForm.post) to send data immediately
+        router.post(route('production.reporting.steps.report', { execution: activeExecution.id }), submitData, {
+            preserveScroll: true,
+            preserveState: true,
             onSuccess: () => {
                 // Reset form after successful submission
                 reset();
-                initializeDialog().then(() => {
-                    if (onStateChanged) onStateChanged();
-                });
+                setIsReporting(false);
+                // Let parent handle the refresh - no double refresh
+                if (onStateChanged) {
+                    onStateChanged();
+                }
             },
-            onError: () => {
-                // Revert on error
-                setData(previousData);
+            onError: (errors) => {
+                console.error('[MOStepQuantityReporting] Scrap report failed:', errors);
+                setIsReporting(false);
+            }
+        });
+    };
+
+    // Handle step completion
+    const handleComplete = () => {
+        if (!activeExecution || !activeExecution.id) return;
+
+        // Show reporting state
+        setIsReporting(true);
+
+        // Prepare the data to submit
+        const submitData = {
+            quantity_completed: 0,
+            quantity_scrapped: 0,
+            scrap_reason: '',
+            notes: '',
+            time_spent: 0,
+            mark_complete: true,
+        };
+
+        // Submit directly with router.post to send data immediately
+        router.post(route('production.reporting.steps.report', { execution: activeExecution.id }), submitData, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                // Reset form after successful submission
+                reset();
+                setIsReporting(false);
+                // Let parent handle the refresh - no double refresh
+                if (onStateChanged) {
+                    onStateChanged();
+                }
+            },
+            onError: (errors) => {
+                console.error('[MOStepQuantityReporting] Step completion failed:', errors);
+                setIsReporting(false);
             }
         });
     };
@@ -188,6 +235,8 @@ export function useMOStepQuantityReporting({
             unitOfMeasure: order?.unit_of_measure
         },
         handleSubmit,
-        getRemainingQuantity: getRemainingQuantityLocal
+        handleComplete,
+        getRemainingQuantity: getRemainingQuantityLocal,
+        isReporting
     };
 }

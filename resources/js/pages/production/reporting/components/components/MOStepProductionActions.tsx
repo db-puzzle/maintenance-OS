@@ -40,7 +40,7 @@ export function MOStepProductionActions({
                     size="lg"
                     className="h-16 text-base font-semibold"
                     onClick={() => quantityReporting.productionDialog.onOpenChange(true)}
-                    disabled={quantityReporting.getRemainingQuantity() === 0}
+                    disabled={quantityReporting.getRemainingQuantity() === 0 || quantityReporting.isReporting}
                 >
                     <CheckCircle className="h-5 w-5 mr-2" />
                     Report Production
@@ -50,7 +50,7 @@ export function MOStepProductionActions({
                     size="lg"
                     className="h-16 text-base font-semibold"
                     onClick={() => quantityReporting.scrapDialog.onOpenChange(true)}
-                    disabled={quantityReporting.getRemainingQuantity() === 0}
+                    disabled={quantityReporting.getRemainingQuantity() === 0 || quantityReporting.isReporting}
                 >
                     <XCircle className="h-5 w-5 mr-2" />
                     Report Scrap
@@ -62,10 +62,8 @@ export function MOStepProductionActions({
                 <Button
                     variant="outline"
                     className="w-full h-12 text-base font-medium"
-                    onClick={() => {
-                        quantityReporting.form.setData('mark_complete', true);
-                        quantityReporting.handleSubmit();
-                    }}
+                    onClick={() => quantityReporting.handleComplete()}
+                    disabled={quantityReporting.isReporting}
                 >
                     <CheckCircle className="h-5 w-5 mr-2" />
                     Mark Step Complete

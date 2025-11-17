@@ -964,6 +964,41 @@ class ManufacturingOrder extends Model
     }
 
     /**
+     * Increment the completed child orders count and check if dependent steps can start.
+     *
+     * Called when a child manufacturing order is completed to notify the parent order.
+     * This triggers dependency checks on parent order steps that may be waiting for children.
+     */
+    public function incrementCompletedChildren(): void
+    {
+        // Recalculate from database to ensure accuracy (prevents double-increment issues)
+        $actualCompletedCount = $this->children()
+            ->where('status', 'completed')
+            ->count();
+
+        // Only update if the count changed
+        if ($this->completed_child_orders_count !== $actualCompletedCount) {
+            $this->completed_child_orders_count = $actualCompletedCount;
+            $this->saveQuietly(); // Use saveQuietly to avoid triggering observers recursively
+        }
+
+        // If parent order is not active, no need to check steps
+        if (! in_array($this->status, ['released', 'in_progress'])) {
+            return;
+        }
+
+        // Check if any pending steps can now be queued due to child order dependencies being met
+        $this->manufacturingRoute?->steps()
+            ->where('status', 'pending')
+            ->with(['manufacturingRoute.manufacturingOrder'])
+            ->each(function ($step) {
+                if ($step->canStart()) {
+                    $step->moveToQueued();
+                }
+            });
+    }
+
+    /**
      * Get the is_completed attribute.
      */
     public function getIsCompletedAttribute(): bool

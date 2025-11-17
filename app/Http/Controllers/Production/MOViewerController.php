@@ -184,8 +184,8 @@ class MOViewerController extends Controller
                 }
 
                 // Check for quality issues (rejection rate > 5%)
-                $rejectionRate = $step->quantity_completed > 0
-                    ? ($step->quantity_scrapped / ($step->quantity_completed + $step->quantity_scrapped)) * 100
+                $rejectionRate = $step->cumulative_quantity_completed > 0
+                    ? ($step->cumulative_quantity_scrapped / ($step->cumulative_quantity_completed + $step->cumulative_quantity_scrapped)) * 100
                     : 0;
 
                 if ($rejectionRate > 5) {
@@ -235,8 +235,8 @@ class MOViewerController extends Controller
                         'name' => $step->workCell->name,
                     ] : null,
                     'workcell_name' => $step->workCell?->name,
-                    'quantity_completed' => $step->quantity_completed,
-                    'quantity_scrapped' => $step->quantity_scrapped,
+                    'quantity_completed' => $step->cumulative_quantity_completed,
+                    'quantity_scrapped' => $step->cumulative_quantity_scrapped,
                     'quantity_total' => $step->quantity,
                     'rejection_rate' => round($rejectionRate, 1),
                     'current_operator' => $step->currentExecution?->executedBy ? [
@@ -462,16 +462,6 @@ class MOViewerController extends Controller
             $countChildren($rootOrder);
 
             $transformedOrder = $this->transformOrder($rootOrder);
-
-            \Log::info('[MOViewerController::hierarchy] Returning order hierarchy', [
-                'order_id' => $orderId,
-                'root_order_id' => $rootOrder->id,
-                'root_order_number' => $rootOrder->order_number,
-                'total_orders' => $totalOrders,
-                'steps_count' => count($transformedOrder['route_steps'] ?? []),
-                'first_step_status' => $transformedOrder['route_steps'][0]['status'] ?? null,
-                'manufacturing_route_id' => $transformedOrder['manufacturing_route']['id'] ?? null,
-            ]);
 
             return response()->json([
                 'order' => $transformedOrder,

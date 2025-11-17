@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Models\Production\ManufacturingStep;
 use App\Models\Production\ManufacturingStepExecution;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -106,6 +107,11 @@ class ManufacturingStepExecutionObserver
 
     /**
      * Handle execution completion.
+     *
+     * This method provides a safety net to ensure that:
+     * 1. Dependent steps are checked and queued
+     * 2. Manufacturing order status is updated if all steps are complete
+     * 3. Parent orders are notified when child orders complete
      */
     protected function handleExecutionCompleted(ManufacturingStepExecution $execution): void
     {
@@ -115,8 +121,8 @@ class ManufacturingStepExecutionObserver
             return;
         }
 
-        // Update step cumulative quantities
-        $step->updateCumulativeQuantities();
+        // Note: Cumulative quantities are already updated in ManufacturingStepExecutionService
+        // No need to update them again here - the service layer handles quantity updates
 
         // Check if this completion affects any dependent steps
         $step->dependentSteps()
@@ -140,5 +146,53 @@ class ManufacturingStepExecutionObserver
                     }
                 }
             });
+
+        // Safety check: Verify MO completion if this was the last step
+        // This acts as a fallback in case the step->complete() chain was somehow broken
+        $this->verifyOrderCompletionStatus($step);
+    }
+
+    /**
+     * Verify that manufacturing order is properly completed when all steps are done.
+     *
+     * This is a safety net that ensures the MO status is updated even if
+     * the normal completion flow fails for any reason.
+     */
+    protected function verifyOrderCompletionStatus(ManufacturingStep $step): void
+    {
+        // Only check if this step has a route and order
+        if (! $step->manufacturingRoute || ! $step->manufacturingRoute->manufacturingOrder) {
+            return;
+        }
+
+        $route = $step->manufacturingRoute;
+        $order = $route->manufacturingOrder;
+
+        // Check if all steps in the route are completed
+        $allStepsCompleted = $route->allStepsCompleted();
+
+        // If all steps are complete but order is not, fix it
+        if ($allStepsCompleted && $order->status !== 'completed') {
+            Log::warning('Observer safety net: Completing order with all steps done', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'step_id' => $step->id,
+                'step_name' => $step->name,
+                'trigger' => 'execution_observer_safety_check',
+            ]);
+
+            DB::transaction(function () use ($order) {
+                $order->update([
+                    'status' => 'completed',
+                    'actual_end_date' => now(),
+                    'quantity_completed' => $order->quantity,
+                ]);
+
+                // Notify parent order if this child is now complete
+                if ($order->parent) {
+                    $order->parent->incrementCompletedChildren();
+                }
+            });
+        }
     }
 }

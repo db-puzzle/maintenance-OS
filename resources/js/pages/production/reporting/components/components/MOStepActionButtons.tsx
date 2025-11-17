@@ -8,6 +8,7 @@ interface MOStepActionButtonsProps {
     onPutOnHold: () => void;
     onReportIssue: () => void;
     photoLimitReached: boolean;
+    disabled?: boolean;
 }
 
 export function MOStepActionButtons({
@@ -15,7 +16,8 @@ export function MOStepActionButtons({
     onTakePhoto,
     onPutOnHold,
     onReportIssue,
-    photoLimitReached
+    photoLimitReached,
+    disabled = false
 }: MOStepActionButtonsProps) {
     return (
         <div className="space-y-3">
@@ -24,6 +26,7 @@ export function MOStepActionButtons({
                     variant="outline"
                     className="h-[72px] flex flex-col items-center justify-center gap-1 p-3"
                     onClick={onPrintLabels}
+                    disabled={disabled}
                 >
                     <Printer className="h-5 w-5" />
                     <div className="text-center">
@@ -35,7 +38,7 @@ export function MOStepActionButtons({
                     variant="outline"
                     className="h-[72px] flex flex-col items-center justify-center gap-1 p-3"
                     onClick={onTakePhoto}
-                    disabled={photoLimitReached}
+                    disabled={photoLimitReached || disabled}
                 >
                     <Camera className="h-5 w-5" />
                     <div className="text-center">
@@ -50,6 +53,7 @@ export function MOStepActionButtons({
                     variant="outline"
                     className="h-[72px] flex flex-col items-center justify-center gap-1 p-3"
                     onClick={onPutOnHold}
+                    disabled={disabled}
                 >
                     <Pause className="h-5 w-5" />
                     <div className="text-center">
@@ -61,6 +65,7 @@ export function MOStepActionButtons({
                     variant="outline"
                     className="h-[72px] flex flex-col items-center justify-center gap-1 p-3"
                     onClick={onReportIssue}
+                    disabled={disabled}
                 >
                     <AlertCircle className="h-5 w-5" />
                     <div className="text-center">

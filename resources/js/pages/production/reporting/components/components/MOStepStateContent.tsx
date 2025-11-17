@@ -54,7 +54,7 @@ export function MOStepStateContent({
         }
 
         return (
-            <>
+            <div className="relative flex-1 flex flex-col">
                 <div className="flex-1 flex flex-col space-y-6">
                     <MOStepProductionActions
                         order={order}
@@ -82,9 +82,20 @@ export function MOStepStateContent({
                             console.log('Report issue clicked');
                         }}
                         photoLimitReached={photoManagement.photos.length >= 3}
+                        disabled={quantityReporting.isReporting}
                     />
                 </div>
-            </>
+
+                {/* Loading overlay when reporting quantities */}
+                {quantityReporting.isReporting && (
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg">
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                            <p className="text-sm font-medium">Updating quantities...</p>
+                        </div>
+                    </div>
+                )}
+            </div>
         );
     };
 

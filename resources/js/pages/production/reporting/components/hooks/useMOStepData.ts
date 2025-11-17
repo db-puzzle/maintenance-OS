@@ -106,8 +106,8 @@ export function useMOStepData(
                 const stateInfo = await determineStepState(step, execution);
                 setStepStateInfo(stateInfo);
             }
-        } catch {
-            // Handle error silently
+        } catch (error) {
+            console.error('[MOStepData] Error initializing dialog:', error);
         } finally {
             setLoading(false);
         }
