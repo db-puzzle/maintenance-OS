@@ -2,7 +2,7 @@ import React from 'react';
 import { ManufacturingOrder } from '@/types/production';
 import { Media } from '@/types/media';
 import { Button } from '@/components/ui/button';
-import { Package } from 'lucide-react';
+import { Package, Image, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MOStepPictureSectionProps {
@@ -39,101 +39,111 @@ export function MOStepPictureSection({
     };
 
     return (
-        <div className="flex flex-col h-[280px] overflow-hidden relative">
-            {/* Overlay - Item Name on Left, Arrows on Right */}
-            <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between bg-background/90 backdrop-blur-sm px-4 py-2 shadow-lg border-b border-border/50">
-                <h3 className="text-base font-semibold uppercase">{order.item?.name || 'PICTURE'}</h3>
-                <div className="flex items-center gap-1">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 hover:bg-primary/10"
-                        onClick={handlePrevPhoto}
-                        disabled={!showingStepPhotos || photos.length === 0}
-                    >
-                        <span className="text-xl">‹</span>
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 hover:bg-primary/10"
-                        onClick={handleNextPhoto}
-                        disabled={!showingStepPhotos || photos.length === 0}
-                    >
-                        <span className="text-xl">›</span>
-                    </Button>
+        <div className="flex flex-col h-full overflow-hidden">
+            {/* Header - matching StepNavigator design */}
+            <div className="bg-background flex-shrink-0 mb-4">
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                        <Image className="h-6 w-6 text-muted-foreground" />
+                        <div>
+                            <h3 className="text-sm font-medium">{order.item?.name || 'Item'}</h3>
+                            <p className="text-xs text-muted-foreground">
+                                {showingStepPhotos && photos.length > 0
+                                    ? `Foto ${(selectedPhotoIndex ?? 0) + 1} de ${photos.length}`
+                                    : 'Imagem do item'}
+                            </p>
+                        </div>
+                    </div>
+                    {photos.length > 0 && (
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7"
+                                onClick={handlePrevPhoto}
+                                disabled={!showingStepPhotos}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7"
+                                onClick={handleNextPhoto}
+                                disabled={!showingStepPhotos}
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center min-h-0">
-                {showingStepPhotos && photos.length > 0 && selectedPhotoIndex !== null ? (
-                    <div className="flex flex-col items-center justify-center h-full w-full relative">
-                        <div className="absolute inset-0 bg-gradient-to-b from-muted/20 to-muted/40 rounded-lg" />
-                        <div className="relative flex-1 w-full flex items-center justify-center p-4">
-                            <div className="relative">
-                                <div className="absolute inset-0 bg-background/40 blur-2xl rounded-full scale-150" />
-                                <img
-                                    src={photos[selectedPhotoIndex]?.url}
-                                    alt={`Step photo ${selectedPhotoIndex + 1}`}
-                                    className="relative max-w-full max-h-full object-contain rounded-lg shadow-lg"
-                                />
-                            </div>
+            <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
+                {/* Image area */}
+                <div className="flex-1 flex items-center justify-center min-h-0 p-4">
+                    {showingStepPhotos && photos.length > 0 && selectedPhotoIndex !== null ? (
+                        <div className="relative h-full w-full flex items-center justify-center">
+                            <div className="absolute inset-0 bg-background/40 blur-2xl rounded-full scale-150" />
+                            <img
+                                src={photos[selectedPhotoIndex]?.url}
+                                alt={`Step photo ${selectedPhotoIndex + 1}`}
+                                className="relative max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                            />
                         </div>
-                        <div className="text-center mt-4 flex-shrink-0 relative z-10">
-                            <p className="text-sm font-medium">PICTURE {selectedPhotoIndex + 1}</p>
-                            <p className="text-xs text-muted-foreground">Step Photo</p>
+                    ) : (order.item?.primary_image_url || order.item?.media?.[0]?.original_url) ? (
+                        <div className="relative h-full w-full flex items-center justify-center">
+                            <div className="absolute inset-0 bg-background/40 blur-2xl rounded-full scale-150" />
+                            <img
+                                src={order.item.primary_image_url || order.item.media?.[0]?.original_url}
+                                alt={order.item.name}
+                                className="relative max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                            />
                         </div>
-                    </div>
-                ) : (order.item?.primary_image_url || order.item?.media?.[0]?.original_url) ? (
-                    <div className="flex flex-col items-center justify-center h-full w-full relative">
-                        <div className="absolute inset-0 bg-gradient-to-b from-muted/20 to-muted/40 rounded-lg" />
-                        <div className="relative flex-1 w-full flex items-center justify-center p-4">
-                            <div className="relative">
-                                <div className="absolute inset-0 bg-background/40 blur-2xl rounded-full scale-150" />
-                                <img
-                                    src={order.item.primary_image_url || order.item.media?.[0]?.original_url}
-                                    alt={order.item.name}
-                                    className="relative max-w-full max-h-full object-contain rounded-lg shadow-lg"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-full w-full relative">
-                        <div className="absolute inset-0 bg-gradient-to-b from-muted/20 to-muted/40 rounded-lg" />
-                        <div className="relative">
+                    ) : (
+                        <div className="flex flex-col items-center justify-center">
                             <Package className="h-20 w-20 text-muted-foreground/50" />
                             <p className="text-sm text-muted-foreground mt-2">No image available</p>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
 
-                {photos.length > 0 && (
-                    <div className="mt-6 text-center">
-                        <Button
-                            variant="ghost"
-                            className="text-sm text-muted-foreground"
-                            onClick={onToggleStepPhotos}
-                        >
-                            {showingStepPhotos ? 'SHOW ITEM' : 'SHOW PICTURES'}
-                        </Button>
+                {/* Bottom controls */}
+                <div className="flex-shrink-0 pb-4">
+                    {showingStepPhotos && photos.length > 0 && selectedPhotoIndex !== null && (
+                        <div className="text-center mb-2">
+                            <p className="text-sm font-medium">PICTURE {selectedPhotoIndex + 1}</p>
+                            <p className="text-xs text-muted-foreground">Step Photo</p>
+                        </div>
+                    )}
 
-                        {showingStepPhotos && (
-                            <div className="flex gap-2 mt-2 justify-center">
-                                {photos.map((_, index) => (
-                                    <div
-                                        key={index}
-                                        className={cn(
-                                            "w-2 h-2 rounded-full bg-muted-foreground/30 cursor-pointer",
-                                            selectedPhotoIndex === index && "bg-primary"
-                                        )}
-                                        onClick={() => onPhotoSelect(index)}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
+                    {photos.length > 0 && (
+                        <div className="text-center">
+                            <Button
+                                variant="ghost"
+                                className="text-sm text-muted-foreground"
+                                onClick={onToggleStepPhotos}
+                            >
+                                {showingStepPhotos ? 'SHOW ITEM' : 'SHOW PICTURES'}
+                            </Button>
+
+                            {showingStepPhotos && (
+                                <div className="flex gap-2 mt-2 justify-center">
+                                    {photos.map((_, index) => (
+                                        <div
+                                            key={index}
+                                            className={cn(
+                                                "w-2 h-2 rounded-full bg-muted-foreground/30 cursor-pointer",
+                                                selectedPhotoIndex === index && "bg-primary"
+                                            )}
+                                            onClick={() => onPhotoSelect(index)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
