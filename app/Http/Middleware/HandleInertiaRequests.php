@@ -43,28 +43,37 @@ class HandleInertiaRequests extends Middleware
         // Get enabled features for the current tenant
         $features = $this->getEnabledFeatures();
 
+        // Safely get authenticated user (handles cases where users table doesn't exist on central domain)
+        $user = null;
+        try {
+            $user = $request->user();
+        } catch (\Exception $e) {
+            // User table doesn't exist (central domain) or user not found - clear the invalid session
+            $request->session()->forget('auth');
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'features' => $features,
             'auth' => [
-                'user' => $request->user() ? [
-                    'id' => $request->user()->id,
-                    'name' => $request->user()->name,
-                    'email' => $request->user()->email,
-                    'timezone' => $request->user()->timezone ?? null,
-                    'roles' => method_exists($request->user(), 'getRoleNames')
-                        ? $request->user()->roles->map(function ($role) {
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'timezone' => $user->timezone ?? null,
+                    'roles' => method_exists($user, 'getRoleNames')
+                        ? $user->roles->map(function ($role) {
                             return ['id' => $role->id, 'name' => $role->name];
                         })
                         : [],
                 ] : null,
-                'permissions' => $request->user() && method_exists($request->user(), 'getAllEffectivePermissions')
-                    ? $request->user()->getAllEffectivePermissions()->pluck('name')
+                'permissions' => $user && method_exists($user, 'getAllEffectivePermissions')
+                    ? $user->getAllEffectivePermissions()->pluck('name')
                     : [],
-                'roles' => $request->user() && method_exists($request->user(), 'getRoleNames')
-                    ? $request->user()->getRoleNames()
+                'roles' => $user && method_exists($user, 'getRoleNames')
+                    ? $user->getRoleNames()
                     : [],
             ],
             'flash' => [
