@@ -12,7 +12,6 @@ import {
     CancelledState
 } from '../states';
 import { MOStepProductionActions } from './MOStepProductionActions';
-import { MOStepActionButtons } from './MOStepActionButtons';
 import { UseMOStepQuantityReportingReturn } from '../hooks/useMOStepQuantityReporting';
 import { UseMOStepPhotoManagementReturn } from '../hooks/useMOStepPhotoManagement';
 import { UseMOStepStateTransitionsReturn } from '../hooks/useMOStepStateTransitions';
@@ -33,7 +32,7 @@ export function MOStepStateContent({
     activeExecution,
     order,
     quantityReporting,
-    photoManagement,
+    photoManagement: _photoManagement,
     stateTransitions
 }: MOStepStateContentProps) {
     // Render in-progress state content
@@ -55,36 +54,12 @@ export function MOStepStateContent({
 
         return (
             <div className="relative flex-1 flex flex-col">
-                <div className="flex-1 flex flex-col space-y-6">
-                    <MOStepProductionActions
-                        order={order}
-                        currentStep={currentStep!}
-                        activeExecution={activeExecution}
-                        quantityReporting={quantityReporting}
-                    />
-
-                    {/* Spacer to push action buttons to bottom */}
-                    <div className="flex-1" />
-
-                    {/* Action Buttons */}
-                    <MOStepActionButtons
-                        onPrintLabels={() => stateTransitions.labelDialog.onOpenChange(true)}
-                        onTakePhoto={() => photoManagement.captureDialog.open()}
-                        onPutOnHold={() => stateTransitions.handleStateAction({
-                            action: 'put_on_hold',
-                            label: 'Put On Hold',
-                            icon: 'Pause',
-                            variant: 'outline',
-                            requiresReason: true,
-                        })}
-                        onReportIssue={() => {
-                            // TODO: Implement report issue
-                            console.log('Report issue clicked');
-                        }}
-                        photoLimitReached={photoManagement.photos.length >= 3}
-                        disabled={quantityReporting.isReporting}
-                    />
-                </div>
+                <MOStepProductionActions
+                    order={order}
+                    currentStep={currentStep!}
+                    activeExecution={activeExecution}
+                    quantityReporting={quantityReporting}
+                />
 
                 {/* Loading overlay when reporting quantities */}
                 {quantityReporting.isReporting && (

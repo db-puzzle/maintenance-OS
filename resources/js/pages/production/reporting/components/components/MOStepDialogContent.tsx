@@ -3,6 +3,7 @@ import { ManufacturingOrder } from '@/types/production';
 import { Separator } from '@/components/ui/separator';
 import { MOStepStateContent } from './MOStepStateContent';
 import { MOStepPictureSection } from './MOStepPictureSection';
+import { MOStepActionButtons } from './MOStepActionButtons';
 import { StepNavigator } from '@/components/production/reporting/StepNavigator';
 import { UseMOStepDataReturn } from '../hooks/useMOStepData';
 import { UseMOStepStateTransitionsReturn } from '../hooks/useMOStepStateTransitions';
@@ -39,17 +40,52 @@ export function MOStepDialogContent({
         <div className="relative flex-1 flex flex-col lg:min-h-0 lg:overflow-hidden">
             {/* Responsive container: vertical on small screens, horizontal on large screens */}
             <div className="flex flex-col lg:flex-row lg:h-full lg:min-h-0">
-                {/* Left - Dynamic State Content */}
-                <div className="flex-1 flex flex-col lg:border-r border-b lg:border-b-0 lg:min-h-0 lg:overflow-hidden p-6">
-                    <MOStepStateContent
-                        stepStateInfo={stepStateInfo}
-                        currentStep={currentStep}
-                        activeExecution={activeExecution}
-                        order={order}
-                        quantityReporting={quantityReporting}
-                        photoManagement={photoManagement}
-                        stateTransitions={stateTransitions}
-                    />
+                {/* Left Column - Split into Top and Bottom */}
+                <div className="flex-1 flex flex-col lg:border-r border-b lg:border-b-0 lg:min-h-0 lg:overflow-hidden">
+                    {/* Top Left - Dynamic State Content */}
+                    <div className="flex-1 flex flex-col lg:min-h-0 lg:overflow-hidden p-6">
+                        <MOStepStateContent
+                            stepStateInfo={stepStateInfo}
+                            currentStep={currentStep}
+                            activeExecution={activeExecution}
+                            order={order}
+                            quantityReporting={quantityReporting}
+                            photoManagement={photoManagement}
+                            stateTransitions={stateTransitions}
+                        />
+                    </div>
+
+                    {/* Horizontal Separator */}
+                    <Separator className="flex-shrink-0" />
+
+                    {/* Bottom Left - Fixed Action Buttons (anchored to bottom) */}
+                    <div className="flex-shrink-0 p-6">
+                        <MOStepActionButtons
+                            onPrintLabels={() => stateTransitions.labelDialog.onOpenChange(true)}
+                            onTakePhoto={() => photoManagement.captureDialog.open()}
+                            onPutOnHold={() => stateTransitions.handleStateAction({
+                                action: 'put_on_hold',
+                                label: 'Put On Hold',
+                                icon: 'Pause',
+                                variant: 'outline',
+                                requiresReason: true,
+                            })}
+                            onResume={() => stateTransitions.handleStateAction({
+                                action: 'resume',
+                                label: 'Resume',
+                                icon: 'Play',
+                                variant: 'default',
+                                requiresReason: false,
+                            })}
+                            onReportIssue={() => {
+                                // TODO: Implement report issue
+                                console.log('Report issue clicked');
+                            }}
+                            photoLimitReached={photoManagement.photos.length >= 3}
+                            isOnHold={stepStateInfo?.state === 'on_hold'}
+                            disabled={quantityReporting.isReporting}
+                        />
+                    </div>
                 </div>
 
                 {/* Right Column - Picture and Step Navigator */}
