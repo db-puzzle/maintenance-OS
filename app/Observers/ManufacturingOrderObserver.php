@@ -123,6 +123,9 @@ class ManufacturingOrderObserver
             ->where('status', 'pending')
             ->with(['dependency', 'manufacturingRoute.manufacturingOrder'])
             ->each(function ($step) {
+                // Refresh the step to ensure we have the latest data
+                $step->refresh();
+
                 if ($step->canStart()) {
                     DB::transaction(function () use ($step) {
                         $step->moveToQueued();

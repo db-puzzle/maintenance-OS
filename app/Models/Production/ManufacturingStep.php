@@ -537,6 +537,10 @@ class ManufacturingStep extends Model
 
         $dependency = $this->dependency;
 
+        if (! $dependency) {
+            return false;
+        }
+
         switch ($this->dependency_start_condition) {
             case 'completed':
                 return $dependency->status === 'completed';
@@ -586,15 +590,23 @@ class ManufacturingStep extends Model
             }
         }
 
+        // Use direct count query instead of relying on eager-loaded counts
+        // This ensures we always have fresh, accurate data
+        $childOrdersCount = $manufacturingOrder->children()->count();
+
         // Check if MO has child orders
-        if ($manufacturingOrder->child_orders_count === 0) {
+        if ($childOrdersCount === 0) {
             return true; // No children to wait for
         }
 
         switch ($this->child_order_dependency_type) {
             case 'all_children_completed':
-                return $manufacturingOrder->completed_child_orders_count ===
-                       $manufacturingOrder->child_orders_count;
+                // Use direct count query for completed children
+                $completedChildOrdersCount = $manufacturingOrder->children()
+                    ->where('status', 'completed')
+                    ->count();
+
+                return $completedChildOrdersCount === $childOrdersCount;
 
             case 'children_quantity':
                 // Check minimum quantity completed across ALL child orders

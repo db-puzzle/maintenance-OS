@@ -70,7 +70,9 @@ export function useMOStepStateTransitions({
 
     // Execute state transition
     const executeStateTransition = (action: StateTransitionAction, reason?: string) => {
-        if (!currentStep) return;
+        if (!currentStep) {
+            return;
+        }
 
         setTransitionLoading(true);
 
@@ -121,7 +123,9 @@ export function useMOStepStateTransitions({
 
     // Start execution
     const startExecution = () => {
-        if (!currentStep || !order) return;
+        if (!currentStep || !order) {
+            return;
+        }
 
         router.post(route('production.reporting.steps.start'), {
             manufacturing_order_id: order.id,

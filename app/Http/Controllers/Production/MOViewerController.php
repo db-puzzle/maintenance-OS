@@ -24,6 +24,7 @@ class MOViewerController extends Controller
             'search',
             'statuses',
             'show_completed',
+            'selected_order_id',
         ]);
 
         // Default to showing only active statuses if not specified
@@ -36,42 +37,76 @@ class MOViewerController extends Controller
             ? explode(',', $filters['statuses'])
             : $filters['statuses'];
 
+        // Build comprehensive eager loading to prevent N+1 queries
+        $stepEagerLoads = [
+            'workCell:id,name',
+            'currentExecution' => function ($query) {
+                $query->with('executedBy:id,name');
+            },
+            // Load dependency chain for canStart() checks
+            'dependency.manufacturingRoute.manufacturingOrder',
+        ];
+
         // Build the query for manufacturing orders with active production
         $query = ManufacturingOrder::query()
             ->with([
                 'item.media',
                 'parent:id,order_number',
-                'children' => function ($query) use ($statusFilter) {
+                'children' => function ($query) use ($statusFilter, $stepEagerLoads) {
                     $query->whereIn('status', $statusFilter)
+                        ->withCount(['children'])
+                        ->withCount(['children as completed_child_orders_count' => function ($q) {
+                            $q->where('status', 'completed');
+                        }])
                         ->with([
                             'item.media',
-                            'children' => function ($query) use ($statusFilter) {
+                            'children' => function ($query) use ($statusFilter, $stepEagerLoads) {
                                 $query->whereIn('status', $statusFilter)
+                                    ->withCount(['children'])
+                                    ->withCount(['children as completed_child_orders_count' => function ($q) {
+                                        $q->where('status', 'completed');
+                                    }])
                                     ->with([
                                         'item.media',
-                                        'children' => function ($query) use ($statusFilter) {
+                                        'children' => function ($query) use ($statusFilter, $stepEagerLoads) {
                                             $query->whereIn('status', $statusFilter)
+                                                ->withCount(['children'])
+                                                ->withCount(['children as completed_child_orders_count' => function ($q) {
+                                                    $q->where('status', 'completed');
+                                                }])
                                                 ->with([
                                                     'item.media',
                                                     'children' => function ($query) use ($statusFilter) {
                                                         $query->whereIn('status', $statusFilter)
+                                                            ->withCount(['children'])
+                                                            ->withCount(['children as completed_child_orders_count' => function ($q) {
+                                                                $q->where('status', 'completed');
+                                                            }])
                                                             ->with(['item.media']);
+                                                    },
+                                                    'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                                                        $query->with($stepEagerLoads);
                                                     },
                                                 ]);
                                         },
+                                        'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                                            $query->with($stepEagerLoads);
+                                        },
                                     ]);
+                            },
+                            'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                                $query->with($stepEagerLoads);
                             },
                         ]);
                 },
-                'manufacturingRoute.steps' => function ($query) {
-                    $query->with([
-                        'workCell:id,name',
-                        'currentExecution' => function ($query) {
-                            $query->with('executedBy:id,name');
-                        },
-                    ]);
+                'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                    $query->with($stepEagerLoads);
                 },
             ])
+            ->withCount(['children'])
+            ->withCount(['children as completed_child_orders_count' => function ($q) {
+                $q->where('status', 'completed');
+            }])
             ->whereIn('status', $statusFilter)
             ->whereNull('parent_id'); // Only get top-level orders
 
@@ -91,11 +126,86 @@ class MOViewerController extends Controller
         $query->orderBy('priority', 'desc')
             ->orderBy('requested_date', 'asc');
 
-        // Get the orders
-        $orders = $query->get();
+        // Check if a specific order is selected - if so, skip loading the general list
+        $selectedOrderHierarchy = null;
+        $transformedOrders = [];
 
-        // Transform orders into hierarchical structure with production metrics
-        $transformedOrders = $this->transformOrdersHierarchy($orders);
+        if (! empty($filters['selected_order_id'])) {
+            $selectedOrder = ManufacturingOrder::find($filters['selected_order_id']);
+            if ($selectedOrder) {
+                // Get root order if this is a child
+                $rootOrder = $selectedOrder;
+                while ($rootOrder->parent_id) {
+                    $rootOrder = ManufacturingOrder::find($rootOrder->parent_id);
+                    if (! $rootOrder) {
+                        break;
+                    }
+                }
+
+                if ($rootOrder) {
+                    // Load complete hierarchy with optimized eager loading
+                    $rootOrder->load([
+                        'item.media',
+                        'children' => function ($query) use ($stepEagerLoads) {
+                            $query->withCount(['children'])
+                                ->withCount(['children as completed_child_orders_count' => function ($q) {
+                                    $q->where('status', 'completed');
+                                }])
+                                ->with([
+                                    'item.media',
+                                    'children' => function ($query) use ($stepEagerLoads) {
+                                        $query->withCount(['children'])
+                                            ->withCount(['children as completed_child_orders_count' => function ($q) {
+                                                $q->where('status', 'completed');
+                                            }])
+                                            ->with([
+                                                'item.media',
+                                                'children' => function ($query) use ($stepEagerLoads) {
+                                                    $query->withCount(['children'])
+                                                        ->withCount(['children as completed_child_orders_count' => function ($q) {
+                                                            $q->where('status', 'completed');
+                                                        }])
+                                                        ->with([
+                                                            'item.media',
+                                                            'children' => function ($query) {
+                                                                $query->withCount(['children'])
+                                                                    ->withCount(['children as completed_child_orders_count' => function ($q) {
+                                                                        $q->where('status', 'completed');
+                                                                    }])
+                                                                    ->with(['item.media']);
+                                                            },
+                                                            'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                                                                $query->with($stepEagerLoads);
+                                                            },
+                                                        ]);
+                                                },
+                                                'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                                                    $query->with($stepEagerLoads);
+                                                },
+                                            ]);
+                                    },
+                                    'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                                        $query->with($stepEagerLoads);
+                                    },
+                                ]);
+                        },
+                        'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                            $query->with($stepEagerLoads);
+                        },
+                    ])
+                        ->loadCount(['children'])
+                        ->loadCount(['children as completed_child_orders_count' => function ($q) {
+                            $q->where('status', 'completed');
+                        }]);
+
+                    $selectedOrderHierarchy = $this->transformOrder($rootOrder);
+                }
+            }
+        } else {
+            // No specific order selected - load the general list
+            $orders = $query->get();
+            $transformedOrders = $this->transformOrdersHierarchy($orders);
+        }
 
         // Get status counts for active orders
         $statusCounts = ManufacturingOrder::query()
@@ -112,6 +222,7 @@ class MOViewerController extends Controller
 
         return Inertia::render('production/tracking/mo-viewer', [
             'orders' => $transformedOrders,
+            'selectedOrderHierarchy' => $selectedOrderHierarchy,
             'statusCounts' => $statusCounts,
             'workCells' => $workCells,
             'filters' => $filters,
@@ -142,32 +253,25 @@ class MOViewerController extends Controller
         $hasQualityIssues = false;
         $hasDelays = false;
 
-        if ($order->manufacturingRoute) {
-            // Get steps in operational sequence based on dependencies
-            $orderedSteps = ManufacturingStep::getOrderedStepsForRoute($order->manufacturingRoute->id);
+        if ($order->relationLoaded('manufacturingRoute') && $order->manufacturingRoute && $order->manufacturingRoute->relationLoaded('steps')) {
+            // Use already-loaded steps and order them in memory to avoid N+1 queries
+            $steps = $order->manufacturingRoute->steps;
 
-            // If no ordered steps found, fall back to the relation (but this shouldn't happen)
-            if ($orderedSteps->isEmpty()) {
-                $orderedSteps = $order->manufacturingRoute->steps;
-            }
+            if ($steps->isNotEmpty()) {
+                // Order steps by dependency chain in memory
+                $orderedSteps = collect();
+                $stepsById = $steps->keyBy('id');
 
-            // Load relationships for ordered steps
-            if ($orderedSteps->isNotEmpty()) {
-                $stepIds = $orderedSteps->pluck('id');
-                $stepsWithRelations = ManufacturingStep::whereIn('id', $stepIds)
-                    ->with([
-                        'workCell:id,name',
-                        'currentExecution' => function ($query) {
-                            $query->with('executedBy:id,name');
-                        },
-                    ])
-                    ->get()
-                    ->keyBy('id');
+                // Find root step (no dependency)
+                $current = $steps->firstWhere('depends_on_step_id', null);
 
-                // Replace steps with loaded relationships while preserving order
-                $orderedSteps = $orderedSteps->map(function ($step) use ($stepsWithRelations) {
-                    return $stepsWithRelations->get($step->id, $step);
-                });
+                // Build dependency chain
+                while ($current) {
+                    $orderedSteps->push($current);
+                    $current = $steps->firstWhere('depends_on_step_id', $current->id);
+                }
+            } else {
+                $orderedSteps = collect();
             }
 
             // Process each step in the correct operational sequence
@@ -209,15 +313,15 @@ class MOViewerController extends Controller
                 // Map step status to viewer status format
                 $viewerStatus = $this->mapStepStatusToViewerStatus($step->status);
 
-                // Check if step can start and determine reason if not
-                $canStart = $step->canStart();
+                // Check if step can start and determine reason if not (optimized version)
+                $canStart = $this->canStepStartOptimized($step, $order);
                 $cannotStartReason = null;
 
                 if (! $canStart) {
                     // Determine the reason why the step cannot start
-                    if (! $step->checkStepDependencies()) {
+                    if (! $this->checkStepDependenciesOptimized($step)) {
                         $cannotStartReason = 'Step dependencies not met';
-                    } elseif (! $step->checkChildOrderDependencies()) {
+                    } elseif (! $this->checkChildOrderDependenciesOptimized($step, $order)) {
                         $cannotStartReason = 'Child order dependencies not met';
                     } else {
                         $cannotStartReason = 'Unknown reason';
@@ -313,12 +417,12 @@ class MOViewerController extends Controller
             'has_quality_issues' => $hasQualityIssues,
             'has_delays' => $hasDelays,
             'is_overdue' => $isOverdue,
-            'has_route' => $order->has_route,
+            'has_route' => $order->relationLoaded('manufacturingRoute') ? ($order->manufacturingRoute !== null) : false,
             'children' => [],
         ];
 
         // Recursively transform child orders
-        if ($order->children && $order->children->count() > 0) {
+        if ($order->relationLoaded('children') && $order->children && $order->children->count() > 0) {
             $transformed['children'] = $order->children->map(function ($childOrder) use ($level) {
                 return $this->transformOrder($childOrder, $level + 1);
             })->toArray();
@@ -334,29 +438,61 @@ class MOViewerController extends Controller
     {
         $this->authorize('view', ManufacturingOrder::class);
 
+        // Define step eager loads
+        $stepEagerLoads = [
+            'workCell:id,name',
+            'currentExecution' => function ($query) {
+                $query->with('executedBy:id,name');
+            },
+            // Load dependency chain for canStart() checks
+            'dependency.manufacturingRoute.manufacturingOrder',
+        ];
+
         $order = ManufacturingOrder::with([
             'item.media',
-            'children' => function ($query) {
-                $query->with([
-                    'item.media',
-                    'children' => function ($query) {
-                        $query->with([
-                            'item.media',
-                            'children' => function ($query) {
-                                $query->with([
+            'children' => function ($query) use ($stepEagerLoads) {
+                $query->withCount(['children'])
+                    ->withCount(['children as completed_child_orders_count' => function ($q) {
+                        $q->where('status', 'completed');
+                    }])
+                    ->with([
+                        'item.media',
+                        'children' => function ($query) use ($stepEagerLoads) {
+                            $query->withCount(['children'])
+                                ->withCount(['children as completed_child_orders_count' => function ($q) {
+                                    $q->where('status', 'completed');
+                                }])
+                                ->with([
                                     'item.media',
-                                    'children.item.media',
+                                    'children' => function ($query) {
+                                        $query->withCount(['children'])
+                                            ->withCount(['children as completed_child_orders_count' => function ($q) {
+                                                $q->where('status', 'completed');
+                                            }])
+                                            ->with([
+                                                'item.media',
+                                                'children.item.media',
+                                            ]);
+                                    },
+                                    'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                                        $query->with($stepEagerLoads);
+                                    },
                                 ]);
-                            },
-                        ]);
-                    },
-                    'manufacturingRoute.steps.workCell',
-                    'manufacturingRoute.steps.currentExecution.executedBy',
-                ]);
+                        },
+                        'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                            $query->with($stepEagerLoads);
+                        },
+                    ]);
             },
-            'manufacturingRoute.steps.workCell',
-            'manufacturingRoute.steps.currentExecution.executedBy',
-        ])->findOrFail($orderId);
+            'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                $query->with($stepEagerLoads);
+            },
+        ])
+            ->withCount(['children'])
+            ->withCount(['children as completed_child_orders_count' => function ($q) {
+                $q->where('status', 'completed');
+            }])
+            ->findOrFail($orderId);
 
         return response()->json([
             'order' => $this->transformOrder($order),
@@ -391,63 +527,73 @@ class MOViewerController extends Controller
                 }
             }
 
+            // Define step eager loads for hierarchy method
+            $stepEagerLoads = [
+                'workCell:id,name',
+                'currentExecution' => function ($query) {
+                    $query->with('executedBy:id,name');
+                },
+                // Load dependency chain for canStart() checks
+                'dependency.manufacturingRoute.manufacturingOrder',
+            ];
+
             // Now load the complete hierarchy from the root
             // NO STATUS FILTERING - we want to see all orders regardless of state
             $rootOrder->load([
                 'item.media',
-                'children' => function ($query) {
+                'children' => function ($query) use ($stepEagerLoads) {
                     // NO status filtering here - load ALL children
-                    $query->with([
-                        'item.media',
-                        'children' => function ($query) {
-                            // NO status filtering here either
-                            $query->with([
-                                'item.media',
-                                'children' => function ($query) {
-                                    $query->with([
+                    $query->withCount(['children'])
+                        ->withCount(['children as completed_child_orders_count' => function ($q) {
+                            $q->where('status', 'completed');
+                        }])
+                        ->with([
+                            'item.media',
+                            'children' => function ($query) use ($stepEagerLoads) {
+                                // NO status filtering here either
+                                $query->withCount(['children'])
+                                    ->withCount(['children as completed_child_orders_count' => function ($q) {
+                                        $q->where('status', 'completed');
+                                    }])
+                                    ->with([
                                         'item.media',
-                                        'children' => function ($query) {
-                                            $query->with(['item.media']);
+                                        'children' => function ($query) use ($stepEagerLoads) {
+                                            $query->withCount(['children'])
+                                                ->withCount(['children as completed_child_orders_count' => function ($q) {
+                                                    $q->where('status', 'completed');
+                                                }])
+                                                ->with([
+                                                    'item.media',
+                                                    'children' => function ($query) {
+                                                        $query->withCount(['children'])
+                                                            ->withCount(['children as completed_child_orders_count' => function ($q) {
+                                                                $q->where('status', 'completed');
+                                                            }])
+                                                            ->with(['item.media']);
+                                                    },
+                                                    'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                                                        $query->with($stepEagerLoads);
+                                                    },
+                                                ]);
                                         },
-                                        'manufacturingRoute.steps' => function ($query) {
-                                            $query->with([
-                                                'workCell:id,name',
-                                                'currentExecution' => function ($query) {
-                                                    $query->with('executedBy:id,name');
-                                                },
-                                            ]);
+                                        'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                                            $query->with($stepEagerLoads);
                                         },
                                     ]);
-                                },
-                                'manufacturingRoute.steps' => function ($query) {
-                                    $query->with([
-                                        'workCell:id,name',
-                                        'currentExecution' => function ($query) {
-                                            $query->with('executedBy:id,name');
-                                        },
-                                    ]);
-                                },
-                            ]);
-                        },
-                        'manufacturingRoute.steps' => function ($query) {
-                            $query->with([
-                                'workCell:id,name',
-                                'currentExecution' => function ($query) {
-                                    $query->with('executedBy:id,name');
-                                },
-                            ]);
-                        },
-                    ]);
+                            },
+                            'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                                $query->with($stepEagerLoads);
+                            },
+                        ]);
                 },
-                'manufacturingRoute.steps' => function ($query) {
-                    $query->with([
-                        'workCell:id,name',
-                        'currentExecution' => function ($query) {
-                            $query->with('executedBy:id,name');
-                        },
-                    ]);
+                'manufacturingRoute.steps' => function ($query) use ($stepEagerLoads) {
+                    $query->with($stepEagerLoads);
                 },
-            ]);
+            ])
+                ->loadCount(['children'])
+                ->loadCount(['children as completed_child_orders_count' => function ($q) {
+                    $q->where('status', 'completed');
+                }]);
 
             // Count total orders in hierarchy for logging
             $totalOrders = 1; // root
@@ -497,5 +643,137 @@ class MOViewerController extends Controller
         ];
 
         return $statusMap[$stepStatus] ?? 'not_ready';
+    }
+
+    /**
+     * Optimized version of canStart() that uses eager-loaded relationships.
+     * Prevents N+1 queries by using already-loaded data.
+     */
+    private function canStepStartOptimized($step, $order): bool
+    {
+        // Check step dependencies first
+        if (! $this->checkStepDependenciesOptimized($step)) {
+            return false;
+        }
+
+        // Then check child order dependencies
+        if (! $this->checkChildOrderDependenciesOptimized($step, $order)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Optimized version of checkStepDependencies() that uses eager-loaded relationships.
+     */
+    private function checkStepDependenciesOptimized($step): bool
+    {
+        // If no step dependency, can start
+        if (! $step->depends_on_step_id) {
+            return true;
+        }
+
+        // Use eager-loaded dependency relationship
+        if (! $step->relationLoaded('dependency') || ! $step->dependency) {
+            // Fallback: if dependency not loaded, assume can't start
+            return false;
+        }
+
+        $dependency = $step->dependency;
+
+        switch ($step->dependency_start_condition) {
+            case 'completed':
+                return $dependency->status === 'completed';
+
+            case 'quantity_based':
+                return $dependency->cumulative_quantity_completed >= $step->dependency_minimum_quantity;
+
+            case 'percentage_based':
+                // Use eager-loaded manufacturingRoute.manufacturingOrder
+                if ($dependency->relationLoaded('manufacturingRoute') &&
+                    $dependency->manufacturingRoute &&
+                    $dependency->manufacturingRoute->relationLoaded('manufacturingOrder') &&
+                    $dependency->manufacturingRoute->manufacturingOrder) {
+                    $targetQuantity = $dependency->manufacturingRoute->manufacturingOrder->quantity;
+                    if ($targetQuantity == 0) {
+                        return true;
+                    }
+                    $completedPercentage = ($dependency->cumulative_quantity_completed / $targetQuantity) * 100;
+
+                    return $completedPercentage >= $step->dependency_minimum_percentage;
+                }
+
+                // Fallback if not loaded
+                return false;
+
+            case 'immediate':
+                return in_array($dependency->status, ['in_progress', 'completed']);
+
+            default:
+                // Fallback to completed for backward compatibility
+                return $dependency->status === 'completed';
+        }
+    }
+
+    /**
+     * Optimized version of checkChildOrderDependencies() that uses eager-loaded relationships.
+     */
+    private function checkChildOrderDependenciesOptimized($step, $order): bool
+    {
+        // If no child order dependency, can start
+        if ($step->child_order_dependency_type === 'none') {
+            return true;
+        }
+
+        // Use the order we already have (it's passed from transformOrder)
+        $manufacturingOrder = $order;
+
+        // Check if MO has child orders using eager-loaded count
+        if (isset($manufacturingOrder->children_count) && $manufacturingOrder->children_count === 0) {
+            return true; // No children to wait for
+        }
+
+        switch ($step->child_order_dependency_type) {
+            case 'all_children_completed':
+                // Use eager-loaded counts
+                if (isset($manufacturingOrder->children_count) &&
+                    isset($manufacturingOrder->completed_child_orders_count)) {
+                    return $manufacturingOrder->completed_child_orders_count ===
+                           $manufacturingOrder->children_count;
+                }
+                // Fallback: if counts not loaded, check using collection
+                if ($manufacturingOrder->relationLoaded('children')) {
+                    $totalChildren = $manufacturingOrder->children->count();
+                    $completedChildren = $manufacturingOrder->children
+                        ->where('status', 'completed')
+                        ->count();
+
+                    return $completedChildren === $totalChildren;
+                }
+
+                return true; // Default to allowing start if we can't determine
+
+            case 'children_quantity':
+                // Use eager-loaded children collection
+                if ($manufacturingOrder->relationLoaded('children')) {
+                    $childOrders = $manufacturingOrder->children
+                        ->where('status', '!=', 'cancelled');
+
+                    if ($childOrders->isEmpty()) {
+                        return true;
+                    }
+
+                    // Find the minimum quantity completed among all child orders
+                    $minQuantityCompleted = $childOrders->min('quantity_completed');
+
+                    return $minQuantityCompleted >= $step->child_order_minimum_quantity;
+                }
+
+                return true; // Default to allowing start if we can't determine
+
+            default:
+                return true;
+        }
     }
 }

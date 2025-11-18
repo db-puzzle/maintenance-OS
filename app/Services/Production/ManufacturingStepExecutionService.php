@@ -105,16 +105,10 @@ class ManufacturingStepExecutionService
             return;
         }
 
-        // Create execution for next step if it doesn't exist
-        $nextExecution = ManufacturingStepExecution::firstOrCreate([
-            'manufacturing_step_id' => $nextStep->id,
-            'manufacturing_order_id' => $execution->manufacturing_order_id,
-        ], [
-            'status' => 'queued',
-            'work_cell_id' => $nextStep->work_cell_id,
-        ]);
+        // Don't pre-create execution records - they should only be created when user clicks "Start"
+        // Just queue the step status - the execution will be created in StepExecutionController::start()
 
-        // Update next step status
+        // Update next step status to queued
         $nextStep->update(['status' => 'queued']);
     }
 

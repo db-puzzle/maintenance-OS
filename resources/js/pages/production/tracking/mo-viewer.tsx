@@ -41,7 +41,6 @@ import { MOSelectionModal } from '@/components/production/planning/MOSelectionMo
 import { MOViewerCanvas, MOData, MOStep } from '@/components/production/mo-viewer/MOViewerCanvas';
 import { StepStatus } from '@/components/production/mo-viewer/MOViewerStepBox';
 import { toast } from 'sonner';
-import axios from 'axios';
 import { MOStepActionDialog } from '@/pages/production/reporting/components/MOStepActionDialog';
 
 // Declare the global route function from Ziggy
@@ -134,11 +133,13 @@ interface ManufacturingOrderHierarchy {
 
 interface PageProps {
     orders: ManufacturingOrderHierarchy[];
+    selectedOrderHierarchy: ManufacturingOrderHierarchy | null;
     workCells: Array<{ id: number; name: string; }>;
     filters: {
         search?: string;
         statuses?: string;
         show_completed?: boolean;
+        selected_order_id?: number;
     };
     canUpdate: boolean;
 }
@@ -362,6 +363,7 @@ const MOViewerHierarchicalView: React.FC<{
 
 export default function MOViewer({
     orders = [],
+    selectedOrderHierarchy: selectedOrderHierarchyProp = null,
     filters = {},
     canUpdate: _canUpdate = false
 }: PageProps) {
@@ -376,11 +378,10 @@ export default function MOViewer({
 
     // New states for MO selection
     const [showMOSelectionModal, setShowMOSelectionModal] = useState(true);
-    const [selectedMOId, setSelectedMOId] = useState<number | null>(null);
-    const [loadingMO, setLoadingMO] = useState(false);
-    const [moHierarchy, setMOHierarchy] = useState<ManufacturingOrderHierarchy[]>([]);
+    const [selectedMOId, setSelectedMOId] = useState<number | null>(filters.selected_order_id || null);
     const [canvasScale, setCanvasScale] = useState(1);
-    const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [isInitialLoad, setIsInitialLoad] = useState(!filters.selected_order_id);
+    const [isLoadingNewOrder, setIsLoadingNewOrder] = useState(false);
 
     // States for MO Details Dialog
     const [showMODetailsDialog, setShowMODetailsDialog] = useState(false);
@@ -391,47 +392,43 @@ export default function MOViewer({
     const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Handle MO selection from modal
-    const handleMOSelection = useCallback(async (orderIds: number[]) => {
+    const handleMOSelection = useCallback((orderIds: number[]) => {
         if (orderIds.length === 0) return;
 
         const orderId = orderIds[0]; // Take the first order
 
+        // Close any open dialogs
+        setShowMODetailsDialog(false);
+        setSelectedMOForDialog(null);
+        
+        // Set loading state
+        setIsLoadingNewOrder(true);
         setSelectedMOId(orderId);
         setShowMOSelectionModal(false);
         setIsInitialLoad(false);
-        setLoadingMO(true);
 
-        try {
-            // Fetch the complete hierarchy for the selected MO
-            const url = route('production.tracking.mo-viewer.hierarchy', { orderId });
-
-            const response = await axios.get(url);
-
-            if (response.data.order) {
-                setMOHierarchy([response.data.order]);
+        // Use Inertia to navigate with the selected order
+        router.get(route('production.tracking.mo-viewer'), {
+            ...filters,
+            selected_order_id: orderId
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['selectedOrderHierarchy'],
+            onSuccess: () => {
+                setIsLoadingNewOrder(false);
                 toast.success('Ordem carregada com sucesso');
-            } else {
-                toast.error('Dados da ordem não encontrados');
+            },
+            onError: () => {
+                setIsLoadingNewOrder(false);
+                toast.error('Erro ao carregar ordem');
                 setShowMOSelectionModal(true);
+            },
+            onFinish: () => {
+                setIsLoadingNewOrder(false);
             }
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                if (error.response?.status === 404) {
-                    toast.error('Ordem não encontrada');
-                } else if (error.response?.status === 403) {
-                    toast.error('Sem permissão para visualizar esta ordem');
-                } else {
-                    toast.error(`Erro ao carregar hierarquia da ordem: ${error.response?.data?.error || error.message}`);
-                }
-            } else {
-                toast.error('Erro ao carregar hierarquia da ordem');
-            }
-
-            setShowMOSelectionModal(true); // Reopen modal on error
-        } finally {
-            setLoadingMO(false);
-        }
-    }, []);
+        });
+    }, [filters]);
 
     // Function to find all precedent steps recursively within a single MO
     const findAllPrecedentSteps = useCallback((steps: RouteStep[], targetStepId: number): Set<number> => {
@@ -469,7 +466,7 @@ export default function MOViewer({
             return orderMap;
         };
 
-        const sourceOrders = moHierarchy.length > 0 ? moHierarchy : orders;
+        const sourceOrders = selectedOrderHierarchyProp ? [selectedOrderHierarchyProp] : orders;
         const allOrdersMap = findAllOrders(sourceOrders);
         const targetOrder = allOrdersMap.get(orderId);
 
@@ -496,7 +493,7 @@ export default function MOViewer({
         }
 
         setHighlightedSteps(allPrecedents);
-    }, [moHierarchy, orders]);
+    }, [selectedOrderHierarchyProp, orders]);
 
     // Handle selecting all precedents including child MO steps
     const handleSelectAllPrecedents = useCallback((orderId: number, stepId: number) => {
@@ -520,7 +517,7 @@ export default function MOViewer({
             return orderMap;
         };
 
-        const sourceOrders = moHierarchy.length > 0 ? moHierarchy : orders;
+        const sourceOrders = selectedOrderHierarchyProp ? [selectedOrderHierarchyProp] : orders;
 
         const allOrdersMap = findAllOrders(sourceOrders);
 
@@ -578,27 +575,21 @@ export default function MOViewer({
         });
 
         setHighlightedSteps(allPrecedents);
-    }, [moHierarchy, orders, findAllPrecedentSteps]);
+    }, [selectedOrderHierarchyProp, orders, findAllPrecedentSteps]);
 
-    // Auto-refresh
+    // Auto-refresh using Inertia partial reload
     useEffect(() => {
-        if (!autoRefresh || !selectedMOId || loadingMO) return;
+        if (!autoRefresh || !selectedMOId) return;
 
         const interval = setInterval(() => {
-            // Refresh the specific MO hierarchy
-            if (selectedMOId) {
-                axios.get(route('production.tracking.mo-viewer.hierarchy', { orderId: selectedMOId }))
-                    .then(response => {
-                        setMOHierarchy([response.data.order]);
-                    })
-                    .catch(() => {
-                        // Handle error silently
-                    });
-            }
+            // Refresh using Inertia partial reload
+            router.reload({
+                only: ['selectedOrderHierarchy'],
+            });
         }, 30000);
 
         return () => clearInterval(interval);
-    }, [autoRefresh, selectedMOId, loadingMO]);
+    }, [autoRefresh, selectedMOId]);
 
     // Cleanup timer on unmount
     useEffect(() => {
@@ -665,8 +656,14 @@ export default function MOViewer({
         { title: 'Status da Ordem', href: '#' }
     ];
 
-    // Determine which orders to display
-    const displayOrders = moHierarchy.length > 0 ? moHierarchy : orders;
+    // Determine which orders to display (memoized to prevent unnecessary re-renders)
+    // Don't show old data while loading new order
+    const displayOrders = useMemo(() => {
+        if (isLoadingNewOrder) {
+            return [];
+        }
+        return selectedOrderHierarchyProp ? [selectedOrderHierarchyProp] : orders;
+    }, [selectedOrderHierarchyProp, orders, isLoadingNewOrder]);
 
 
     // Count alerts
@@ -797,13 +794,17 @@ export default function MOViewer({
                         <div className="flex items-center justify-between gap-2">
                             <div className="flex-1 space-y-1">
                                 <h1 className="text-xl leading-7 lg:text-2xl text-foreground font-semibold">
-                                    {selectedMOId && moHierarchy.length > 0
-                                        ? `Ordem ${moHierarchy[0].order_number}`
+                                    {isLoadingNewOrder
+                                        ? "Carregando..."
+                                        : selectedMOId && selectedOrderHierarchyProp
+                                        ? `Ordem ${selectedOrderHierarchyProp.order_number}`
                                         : "Status da Ordem de Manufatura"}
                                 </h1>
                                 <p className="text-muted-foreground text-sm leading-5">
-                                    {selectedMOId && moHierarchy.length > 0 && moHierarchy[0].item
-                                        ? `${moHierarchy[0].item.item_number} - ${moHierarchy[0].item.name}`
+                                    {isLoadingNewOrder
+                                        ? "Aguarde enquanto carregamos a ordem selecionada"
+                                        : selectedMOId && selectedOrderHierarchyProp?.item
+                                        ? `${selectedOrderHierarchyProp.item.item_number} - ${selectedOrderHierarchyProp.item.name}`
                                         : "Selecione uma ordem para visualizar o progresso"}
                                 </p>
                             </div>
@@ -945,7 +946,7 @@ export default function MOViewer({
                     viewMode !== 'canvas' && "px-6 py-4 lg:px-8"
                 )}>
                     {/* Alert Strip */}
-                    {alertCount > 0 && viewMode !== 'canvas' && (
+                    {alertCount > 0 && viewMode !== 'canvas' && !isLoadingNewOrder && (
                         <div className="mb-4 p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg flex items-center gap-2">
                             <AlertTriangle className="h-4 w-4 text-orange-600" />
                             <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
@@ -955,11 +956,12 @@ export default function MOViewer({
                     )}
 
                     {/* Main Content - Hierarchical View with Route Steps */}
-                    {loadingMO ? (
+                    {isLoadingNewOrder ? (
+                        // Show loading state when switching orders
                         <div className="flex items-center justify-center h-full">
                             <div className="text-center">
                                 <RefreshCw className="h-8 w-8 text-muted-foreground animate-spin mx-auto mb-4" />
-                                <p className="text-muted-foreground">Carregando hierarquia da ordem...</p>
+                                <p className="text-muted-foreground">Carregando ordem de manufatura...</p>
                             </div>
                         </div>
                     ) : isInitialLoad ? (
@@ -1034,7 +1036,7 @@ export default function MOViewer({
                                 </div>
                             )}
                             <MOViewerHierarchicalView
-                                orders={moHierarchy.length > 0 ? moHierarchy : orders}
+                                orders={displayOrders}
                                 selectedOrders={selectedOrders}
                                 onOrderSelect={handleOrderSelect}
                                 searchQuery={searchValue}
@@ -1075,82 +1077,65 @@ export default function MOViewer({
                 onOpenChange={setShowMODetailsDialog}
                 activeStepId={selectedStepId}
                 onStateChanged={() => {
-                    // Always refresh the root hierarchy when selectedMOId exists
+                    // Use Inertia partial reload instead of axios
                     if (selectedMOId) {
-
-                        setLoadingMO(true);
-                        axios.get(route('production.tracking.mo-viewer.hierarchy', { orderId: selectedMOId }))
-                            .then(response => {
-
-                                if (response.data.order) {
-                                    setMOHierarchy([response.data.order]);
-
-                                    // Find the updated order in the hierarchy that matches the dialog
-                                    if (showMODetailsDialog && selectedMOForDialog) {
-                                        const findOrderInHierarchy = (order: ManufacturingOrderHierarchy, targetId: number): ManufacturingOrderHierarchy | null => {
-                                            if (order.id === targetId) return order;
-                                            if (order.children) {
-                                                for (const child of order.children) {
-                                                    const found = findOrderInHierarchy(child, targetId);
-                                                    if (found) return found;
-                                                }
+                        router.reload({
+                            only: ['selectedOrderHierarchy'],
+                            onSuccess: (page) => {
+                                // Update the dialog's order from the refreshed prop
+                                const props = page.props as unknown as PageProps;
+                                if (props.selectedOrderHierarchy && selectedMOForDialog) {
+                                    // Find the updated order in hierarchy
+                                    const findOrderInHierarchy = (
+                                        order: ManufacturingOrderHierarchy,
+                                        targetId: number
+                                    ): ManufacturingOrderHierarchy | null => {
+                                        if (order.id === targetId) return order;
+                                        if (order.children) {
+                                            for (const child of order.children) {
+                                                const found = findOrderInHierarchy(child, targetId);
+                                                if (found) return found;
                                             }
-                                            return null;
-                                        };
-
-                                        const updatedDialogOrder = findOrderInHierarchy(response.data.order, selectedMOForDialog.id);
-
-                                        if (updatedDialogOrder) {
-
-                                            // Update the selectedMOForDialog by creating a new object with same reference
-                                            // This ensures React doesn't see it as a completely new prop
-                                            setSelectedMOForDialog(prev => {
-                                                if (!prev) return prev;
-
-                                                // Merge the updated data while preserving the object structure
-                                                return {
-                                                    ...prev,
-                                                    ...updatedDialogOrder,
-                                                    manufacturing_route: {
-                                                        ...(prev.manufacturing_route || {}),
-                                                        id: updatedDialogOrder.manufacturing_route?.id || 0,
-                                                        name: updatedDialogOrder.manufacturing_route?.name || '',
-                                                        steps: updatedDialogOrder.route_steps?.map((step) => ({
-                                                            ...step,
-                                                            id: step.id,
-                                                            manufacturing_route_id: 0,
-                                                            display_position: step.display_position,
-                                                            name: step.name,
-                                                            work_cell: step.work_cell,
-                                                            work_cell_id: step.work_cell?.id,
-                                                            status: step.status,
-                                                            executions: [],
-                                                            cumulative_quantity_completed: step.quantity_completed,
-                                                            cumulative_quantity_scrapped: step.quantity_scrapped,
-                                                            can_start: step.can_start,
-                                                            cannot_start_reason: step.cannot_start_reason,
-                                                            actual_start_time: step.actual_start_time,
-                                                            actual_end_time: step.actual_end_time,
-                                                            skip_reason: step.skip_reason,
-                                                            skipped_by: step.skipped_by,
-                                                            skipped_at: step.skipped_at,
-                                                        }))
-                                                    },
-                                                    has_route: true,
-                                                };
-                                            });
-                                        } else {
-                                            // Could not find dialog order in updated hierarchy
                                         }
+                                        return null;
+                                    };
+
+                                    const updatedDialogOrder = findOrderInHierarchy(
+                                        props.selectedOrderHierarchy,
+                                        selectedMOForDialog.id
+                                    );
+
+                                    if (updatedDialogOrder) {
+                                        // Update the dialog order with fresh data
+                                        setSelectedMOForDialog({
+                                            ...updatedDialogOrder,
+                                            manufacturing_route: {
+                                                id: updatedDialogOrder.manufacturing_route?.id || 0,
+                                                name: updatedDialogOrder.manufacturing_route?.name || '',
+                                                steps: updatedDialogOrder.route_steps?.map((step) => ({
+                                                    ...step,
+                                                    id: step.id,
+                                                    manufacturing_route_id: 0,
+                                                    display_position: step.display_position,
+                                                    name: step.name,
+                                                    work_cell: step.work_cell,
+                                                    work_cell_id: step.work_cell?.id,
+                                                    status: step.status,
+                                                    executions: [],
+                                                    cumulative_quantity_completed: step.quantity_completed,
+                                                    cumulative_quantity_scrapped: step.quantity_scrapped,
+                                                    can_start: step.can_start,
+                                                    cannot_start_reason: step.cannot_start_reason,
+                                                    actual_start_time: step.actual_start_time,
+                                                    actual_end_time: step.actual_end_time,
+                                                }))
+                                            },
+                                            has_route: true,
+                                        });
                                     }
                                 }
-                            })
-                            .catch(() => {
-                                // Handle error silently
-                            })
-                            .finally(() => {
-                                setLoadingMO(false);
-                            });
+                            }
+                        });
                     }
                 }}
             />

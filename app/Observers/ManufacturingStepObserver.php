@@ -113,23 +113,23 @@ class ManufacturingStepObserver
         }
 
         // Check steps that depend on this one
+        // Load necessary relationships for canStart() checks
         $step->dependentSteps()
             ->where('status', 'pending')
-            ->with(['manufacturingRoute.manufacturingOrder'])
+            ->with([
+                'manufacturingRoute.manufacturingOrder',
+                'dependency', // Load the dependency step for step dependency checks
+            ])
             ->each(function ($dependentStep) {
                 // Only queue if parent order is active
                 $order = $dependentStep->manufacturingRoute->manufacturingOrder;
                 if (in_array($order->status, ['released', 'in_progress'])) {
+                    // Refresh the dependent step to ensure fresh data
+                    $dependentStep->refresh();
+
                     if ($dependentStep->canStart()) {
                         DB::transaction(function () use ($dependentStep) {
                             $dependentStep->moveToQueued();
-
-                            Log::info('Step observer queued dependent step', [
-                                'step_id' => $dependentStep->id,
-                                'step_name' => $dependentStep->name,
-                                'order_id' => $dependentStep->manufacturingRoute->manufacturing_order_id,
-                                'trigger' => 'dependency_update',
-                            ]);
                         });
                     }
                 }
