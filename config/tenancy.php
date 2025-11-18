@@ -132,8 +132,11 @@ return [
          * packages that use asset() calls inside the tenant app. To avoid such issues, you can
          * disable asset() helper tenancy and explicitly use tenant_asset() calls in places
          * where you want to use tenant-specific assets (product images, avatars, etc).
+         *
+         * NOTE: Disabled to fix Vite asset loading. Tenant files are isolated via storage_path()
+         * suffixing and Media Library, not asset() helper.
          */
-        'asset_helper_tenancy' => true,
+        'asset_helper_tenancy' => env('TENANCY_ASSET_HELPER', false),
     ],
 
     /*
