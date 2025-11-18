@@ -36,10 +36,11 @@ export function MOStepDialogContent({
     } = photoManagement;
 
     return (
-        <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div className="flex h-full min-h-0">
+        <div className="relative flex-1 flex flex-col lg:min-h-0 lg:overflow-hidden">
+            {/* Responsive container: vertical on small screens, horizontal on large screens */}
+            <div className="flex flex-col lg:flex-row lg:h-full lg:min-h-0">
                 {/* Left - Dynamic State Content */}
-                <div className="flex-1 flex flex-col border-r min-h-0 overflow-hidden p-6">
+                <div className="flex-1 flex flex-col lg:border-r border-b lg:border-b-0 lg:min-h-0 lg:overflow-hidden p-6">
                     <MOStepStateContent
                         stepStateInfo={stepStateInfo}
                         currentStep={currentStep}
@@ -52,9 +53,9 @@ export function MOStepDialogContent({
                 </div>
 
                 {/* Right Column - Picture and Step Navigator */}
-                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <div className="flex-1 flex flex-col lg:min-h-0 lg:overflow-hidden">
                     {/* Top Right - Picture (50% height) */}
-                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-6">
+                    <div className="flex-1 flex flex-col lg:min-h-0 lg:overflow-hidden pt-4 px-6 pb-6">
                         <MOStepPictureSection
                             order={order}
                             photos={photos}
@@ -74,7 +75,7 @@ export function MOStepDialogContent({
                     <Separator className="flex-shrink-0" />
 
                     {/* Bottom Right - Step Navigator (50% height with internal scrolling) */}
-                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-6">
+                    <div className="flex-1 flex flex-col lg:min-h-0 lg:overflow-hidden pt-4 px-6 pb-6">
                         {currentStep && (
                             <StepNavigator
                                 order={order}

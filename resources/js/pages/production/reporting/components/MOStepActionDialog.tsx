@@ -72,7 +72,7 @@ export function MOStepActionDialog({
     return (
         <>
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
-                <DialogContent className="!max-w-[90vw] w-[80vw] max-h-[90vh] p-0 gap-0 sm:!max-w-[90vw] flex flex-col overflow-hidden">
+                <DialogContent className="!max-w-[90vw] w-[80vw] max-h-screen lg:max-h-[90vh] p-0 gap-0 sm:!max-w-[90vw] flex flex-col overflow-y-auto lg:overflow-hidden">
                     <MOStepDialogHeader
                         order={order}
                         currentStep={stepData.currentStep}
