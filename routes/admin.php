@@ -40,11 +40,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Role Management
-    // Route::resource('roles', RoleController::class); // Temporarily disabled - pages not implemented
+    // Note: Main role routes are in routes/settings.php
+    // These are legacy API routes that may be deprecated
     Route::get('roles/{role}/permissions', [RoleController::class, 'permissions'])->name('roles.permissions');
     Route::post('roles/{role}/assign-user', [RoleController::class, 'assignUser'])->name('roles.assign-user');
     Route::post('roles/{role}/remove-user/{user}', [RoleController::class, 'removeUser'])->name('roles.remove-user');
-    Route::post('roles/{role}/duplicate', [RoleController::class, 'duplicate'])->name('roles.duplicate');
+    // Route::post('roles/{role}/duplicate', [RoleController::class, 'duplicate'])->name('roles.duplicate'); // Removed - duplicates routes/settings.php
 
     // Audit Logs (Super Admin only)
     Route::prefix('audit-logs')->group(function () {
