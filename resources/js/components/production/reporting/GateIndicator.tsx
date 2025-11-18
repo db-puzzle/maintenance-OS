@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { Package, Hash, ArrowDown, Check, X } from 'lucide-react';
+import { ArrowBigDownDash } from 'lucide-react';
 import { formatNumber } from '@/utils/number';
 import {
     Tooltip,
@@ -25,6 +25,8 @@ interface GateIndicatorProps {
     gate: GateConfiguration;
     gateStatus: GateStatus;
     className?: string;
+    nextStepReady?: boolean;
+    isFinalGate?: boolean;
 }
 
 /**
@@ -34,111 +36,109 @@ interface GateIndicatorProps {
 export function GateIndicator({
     gate,
     gateStatus,
-    className
+    className,
+    nextStepReady = false,
+    isFinalGate = false,
 }: GateIndicatorProps) {
-    // Get gate type configuration
-    const getGateConfig = () => {
-        switch (gate.dependency_type) {
-            case 'all_children_completed':
-                return {
-                    icon: Package,
-                    label: 'Todas as Peças',
-                    shortLabel: '100%',
-                    color: 'blue',
-                };
-            case 'children_quantity':
-                return {
-                    icon: Hash,
-                    label: 'Quantidade Mínima',
-                    shortLabel: `${formatNumber(gate.minimum_quantity || 0)}`,
-                    color: 'purple',
-                };
-            case 'none':
-            default:
-                return {
-                    icon: ArrowDown,
-                    label: 'Continuar',
-                    shortLabel: 'Próximo',
-                    color: 'gray',
-                };
+    // Get gate display text matching GateCard
+    const getGateDisplayText = () => {
+        if (isFinalGate) {
+            switch (gate.dependency_type) {
+                case 'none':
+                    return 'Ordem pai pode iniciar imediatamente';
+                case 'all_children_completed':
+                    return 'Ordem pai aguarda conclusão';
+                case 'children_quantity':
+                    return `Ordem pai aguarda ${formatNumber(gate.minimum_quantity || 0)} unid.`;
+                default:
+                    return 'Aguarda todas as ordens filhas';
+            }
+        } else {
+            switch (gate.dependency_type) {
+                case 'none':
+                    return 'Próxima etapa inicia imediatamente';
+                case 'all_children_completed':
+                    return 'Aguarda todas as ordens filhas';
+                case 'children_quantity':
+                    return `Aguarda ${formatNumber(gate.minimum_quantity || 0)} unid. das ordens filhas`;
+                default:
+                    return 'Aguarda todas as ordens filhas';
+            }
         }
     };
 
-    const gateConfig = getGateConfig();
-    const GateIcon = gateConfig.icon;
+    // Get simple text for the gate type
+    const getGateSimpleText = () => {
+        switch (gate.dependency_type) {
+            case 'none':
+                return 'Simultâneo';
+            case 'all_children_completed':
+                return '100% das peças';
+            case 'children_quantity':
+                return `${formatNumber(gate.minimum_quantity || 0)} peças`;
+            default:
+                return '100% das peças';
+        }
+    };
 
     // Get status-based styling
+    // Green when: gate is met AND next step is ready
+    // Gray when: dependency_type === 'none'
+    // White when: gate is not met yet
     const getStatusStyles = () => {
         if (gate.dependency_type === 'none') {
             return 'bg-gray-100 dark:bg-gray-950/30 border-gray-400';
         }
-        
-        if (gateStatus.isMet) {
+
+        if (gateStatus.isMet && nextStepReady) {
             return 'bg-green-100 dark:bg-green-950/30 border-green-500';
         }
-        
-        return 'bg-red-100 dark:bg-red-950/30 border-red-500';
+
+        return 'bg-background border-border';
     };
 
     return (
-        <div className={cn("flex flex-col items-center my-2", className)}>
+        <div className={cn("flex flex-col items-center my-4", className)}>
             {/* Top connector line */}
-            <div className="w-0.5 h-6 border-l-2 border-dashed border-border" />
+            <div className="w-0.5 h-4 bg-border" />
 
-            {/* Gate box */}
+            {/* Gate card */}
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <div
                             className={cn(
-                                "relative w-32 border-2 rounded-md p-2 transition-all duration-200",
+                                "relative transition-all duration-200 overflow-hidden",
+                                "min-w-[120px] max-w-[200px] w-fit",
+                                "border rounded-md",
                                 getStatusStyles()
                             )}
                         >
-                            {/* Gate type and status */}
-                            <div className="flex items-center justify-center gap-1.5 mb-1">
-                                <GateIcon className="h-3.5 w-3.5" />
-                                <span className="text-[10px] font-semibold uppercase tracking-wide">
-                                    {gateConfig.shortLabel}
-                                </span>
-                            </div>
-
-                            {/* Status indicator */}
-                            <div className="flex items-center justify-center gap-1">
-                                {gate.dependency_type !== 'none' && (
-                                    <>
-                                        {gateStatus.isMet ? (
-                                            <Check className="h-4 w-4 text-green-600" />
-                                        ) : (
-                                            <X className="h-4 w-4 text-red-600" />
-                                        )}
-                                    </>
-                                )}
-                            </div>
-
-                            {/* Quantity progress for children_quantity gates */}
-                            {gate.dependency_type === 'children_quantity' && 
-                             gateStatus.currentProgress !== undefined && 
-                             gateStatus.requiredProgress !== undefined && (
-                                <div className="mt-1 text-center">
-                                    <p className="text-[10px] font-medium">
-                                        {formatNumber(gateStatus.currentProgress)} / {formatNumber(gateStatus.requiredProgress)}
-                                    </p>
+                            <div className="flex items-center h-7">
+                                {/* Icon with fixed position from left */}
+                                <div className="absolute left-0 h-full w-8 flex items-center justify-center bg-muted/30 border-r border-border/50">
+                                    <ArrowBigDownDash className="h-4 w-4 text-muted-foreground" />
                                 </div>
-                            )}
+                                {/* Centered text with padding to account for icon */}
+                                <div className="flex-1 pl-10 pr-4 flex items-center justify-center">
+                                    <span className="text-xs font-medium tracking-wide">
+                                        {getGateSimpleText()}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <div className="space-y-1">
-                            <p className="font-semibold">{gateConfig.label}</p>
-                            <p className="text-xs">{gateStatus.message}</p>
-                        </div>
+                        <p>{getGateDisplayText()}</p>
+                        {gateStatus.message && (
+                            <p className="text-xs text-muted-foreground mt-1">{gateStatus.message}</p>
+                        )}
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
 
             {/* Bottom connector line */}
-            <div className="w-0.5 h-6 border-l-2 border-dashed border-border" />
+            <div className="w-0.5 h-4 bg-border" />
         </div>
     );
 }

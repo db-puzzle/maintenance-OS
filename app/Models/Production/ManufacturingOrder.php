@@ -462,10 +462,39 @@ class ManufacturingOrder extends Model
                             'dependency_minimum_percentage',
                             'child_order_dependency_type',
                             'child_order_minimum_quantity',
-                            'status'
+                            'status',
+                            'execution_location',
+                            'manufacturer_id',
+                            'expected_lead_time_days'
                         )
-                            ->with('workCell');
+                            ->with([
+                                'workCell',
+                                // Eager load dependency chain to avoid N+1 in getDisplayPositionAttribute
+                                // Loading 5 levels deep to handle complex dependency chains
+                                'dependency' => function ($depQuery) {
+                                    $depQuery->select('id', 'manufacturing_route_id', 'depends_on_step_id')
+                                        ->with(['dependency' => function ($depQuery2) {
+                                            $depQuery2->select('id', 'manufacturing_route_id', 'depends_on_step_id')
+                                                ->with(['dependency' => function ($depQuery3) {
+                                                    $depQuery3->select('id', 'manufacturing_route_id', 'depends_on_step_id')
+                                                        ->with(['dependency' => function ($depQuery4) {
+                                                            $depQuery4->select('id', 'manufacturing_route_id', 'depends_on_step_id')
+                                                                ->with(['dependency' => function ($depQuery5) {
+                                                                    $depQuery5->select('id', 'manufacturing_route_id', 'depends_on_step_id');
+                                                                }]);
+                                                        }]);
+                                                }]);
+                                        }]);
+                                },
+                            ]);
                     }]);
+            },
+        ])->withExists([
+            // Check if manufacturing route has steps with executions (for canRevertStatus)
+            'manufacturingRoute as has_steps_with_executions' => function ($query) {
+                $query->whereHas('steps', function ($q) {
+                    $q->whereHas('executions');
+                });
             },
         ]);
     }
@@ -1027,6 +1056,12 @@ class ManufacturingOrder extends Model
         }
 
         // Check if any steps have executions
+        // Use the eager-loaded exists attribute if available to avoid N+1 queries
+        if (isset($this->has_steps_with_executions)) {
+            return $this->has_steps_with_executions;
+        }
+
+        // Fallback to query if not eager-loaded (e.g., when called outside planning view)
         if ($this->manufacturingRoute) {
             return $this->manufacturingRoute->steps()
                 ->whereHas('executions')

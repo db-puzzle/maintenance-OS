@@ -22,7 +22,8 @@ import {
     LayoutGrid,
     ZoomIn,
     ZoomOut,
-    RotateCcw
+    RotateCcw,
+    ArrowUpDown
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -30,6 +31,8 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { ManufacturingOrderTreeNode } from '@/components/production/ManufacturingOrderHierarchicalView';
 import { ManufacturingOrder } from '@/types/production';
@@ -140,6 +143,7 @@ interface PageProps {
         statuses?: string;
         show_completed?: boolean;
         selected_order_id?: number;
+        sort?: string;
     };
     canUpdate: boolean;
 }
@@ -375,6 +379,7 @@ export default function MOViewer({
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [highlightedSteps, setHighlightedSteps] = useState<Set<number>>(new Set());
     const [viewMode, setViewMode] = useState<'hierarchical' | 'canvas'>('canvas');
+    const [sortBy, setSortBy] = useState(filters.sort || 'order_number');
 
     // New states for MO selection
     const [showMOSelectionModal, setShowMOSelectionModal] = useState(true);
@@ -410,7 +415,8 @@ export default function MOViewer({
         // Use Inertia to navigate with the selected order
         router.get(route('production.tracking.mo-viewer'), {
             ...filters,
-            selected_order_id: orderId
+            selected_order_id: orderId,
+            sort: sortBy
         }, {
             preserveState: true,
             preserveScroll: true,
@@ -428,7 +434,7 @@ export default function MOViewer({
                 setIsLoadingNewOrder(false);
             }
         });
-    }, [filters]);
+    }, [filters, sortBy]);
 
     // Function to find all precedent steps recursively within a single MO
     const findAllPrecedentSteps = useCallback((steps: RouteStep[], targetStepId: number): Set<number> => {
@@ -610,12 +616,26 @@ export default function MOViewer({
         searchTimerRef.current = setTimeout(() => {
             router.get(route('production.tracking.mo-viewer'), {
                 ...filters,
-                search: value
+                search: value,
+                sort: sortBy
             }, {
                 preserveState: true,
                 preserveScroll: true
             });
         }, 500);
+    };
+
+    const handleSortChange = (newSort: string) => {
+        setSortBy(newSort);
+        
+        router.get(route('production.tracking.mo-viewer'), {
+            ...filters,
+            sort: newSort
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['orders', 'selectedOrderHierarchy']
+        });
     };
 
 
@@ -834,6 +854,64 @@ export default function MOViewer({
                                     <Search className="h-4 w-4" />
                                     {selectedMOId ? 'Alterar Ordem' : 'Selecionar Ordem'}
                                 </Button>
+
+                                {/* Sort dropdown */}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="flex items-center gap-2">
+                                            <ArrowUpDown className="h-4 w-4" />
+                                            Ordenar
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuLabel>Ordenar por</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem 
+                                            onClick={() => handleSortChange('order_number')}
+                                            className={sortBy === 'order_number' ? 'bg-accent' : ''}
+                                        >
+                                            Número da Ordem (A-Z)
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                            onClick={() => handleSortChange('order_number_desc')}
+                                            className={sortBy === 'order_number_desc' ? 'bg-accent' : ''}
+                                        >
+                                            Número da Ordem (Z-A)
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem 
+                                            onClick={() => handleSortChange('priority')}
+                                            className={sortBy === 'priority' ? 'bg-accent' : ''}
+                                        >
+                                            Prioridade
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                            onClick={() => handleSortChange('requested_date')}
+                                            className={sortBy === 'requested_date' ? 'bg-accent' : ''}
+                                        >
+                                            Data Solicitada (Antiga-Nova)
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                            onClick={() => handleSortChange('requested_date_desc')}
+                                            className={sortBy === 'requested_date_desc' ? 'bg-accent' : ''}
+                                        >
+                                            Data Solicitada (Nova-Antiga)
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                            onClick={() => handleSortChange('status')}
+                                            className={sortBy === 'status' ? 'bg-accent' : ''}
+                                        >
+                                            Status
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem 
+                                            onClick={() => handleSortChange('priority_date')}
+                                            className={sortBy === 'priority_date' ? 'bg-accent' : ''}
+                                        >
+                                            Prioridade + Data (Padrão)
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
 
                                 {/* View mode toggle */}
                                 <div className="flex items-center gap-1 border rounded-md p-1">

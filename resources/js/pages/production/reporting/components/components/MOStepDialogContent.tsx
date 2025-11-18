@@ -36,10 +36,10 @@ export function MOStepDialogContent({
     } = photoManagement;
 
     return (
-        <div className="relative flex-1 flex flex-col p-6 overflow-y-auto min-h-0">
-            <div className="flex min-h-[600px] gap-6">
+        <div className="relative flex-1 flex flex-col p-6 min-h-0 overflow-hidden">
+            <div className="flex h-full gap-6 min-h-0">
                 {/* Left - Dynamic State Content */}
-                <div className="flex-1 flex flex-col pr-6 border-r">
+                <div className="flex-1 flex flex-col pr-6 border-r min-h-0 overflow-hidden">
                     <MOStepStateContent
                         stepStateInfo={stepStateInfo}
                         currentStep={currentStep}
@@ -52,38 +52,41 @@ export function MOStepDialogContent({
                 </div>
 
                 {/* Right Column - Picture and Step Navigator */}
-                <div className="flex-1 flex flex-col gap-4 pl-6">
-                    {/* Top Right - Picture */}
-                    <MOStepPictureSection
-                        order={order}
-                        photos={photos}
-                        selectedPhotoIndex={selectedPhotoIndex}
-                        showingStepPhotos={showingStepPhotos}
-                        onPhotoSelect={setSelectedPhotoIndex}
-                        onToggleStepPhotos={() => {
-                            setShowingStepPhotos(!showingStepPhotos);
-                            if (!showingStepPhotos && selectedPhotoIndex === null) {
-                                setSelectedPhotoIndex(0);
-                            }
-                        }}
-                    />
-
-                    {/* Horizontal Separator */}
-                    <Separator className="my-2" />
-
-                    {/* Bottom Right - Step Navigator */}
-                    {currentStep && (
-                        <StepNavigator
+                <div className="flex-1 flex flex-col pl-6 min-h-0 overflow-hidden">
+                    {/* Top Right - Picture (50% height) */}
+                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                        <MOStepPictureSection
                             order={order}
-                            currentStepId={currentStep.id}
-                            onStepChange={(stepId) => {
-                                if (onStepChange) {
-                                    onStepChange(stepId);
+                            photos={photos}
+                            selectedPhotoIndex={selectedPhotoIndex}
+                            showingStepPhotos={showingStepPhotos}
+                            onPhotoSelect={setSelectedPhotoIndex}
+                            onToggleStepPhotos={() => {
+                                setShowingStepPhotos(!showingStepPhotos);
+                                if (!showingStepPhotos && selectedPhotoIndex === null) {
+                                    setSelectedPhotoIndex(0);
                                 }
                             }}
-                            className="flex-1"
                         />
-                    )}
+                    </div>
+
+                    {/* Horizontal Separator */}
+                    <Separator className="my-2 flex-shrink-0" />
+
+                    {/* Bottom Right - Step Navigator (50% height with internal scrolling) */}
+                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                        {currentStep && (
+                            <StepNavigator
+                                order={order}
+                                currentStepId={currentStep.id}
+                                onStepChange={(stepId) => {
+                                    if (onStepChange) {
+                                        onStepChange(stepId);
+                                    }
+                                }}
+                            />
+                        )}
+                    </div>
                 </div>
             </div>
 

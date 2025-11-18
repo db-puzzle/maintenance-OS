@@ -299,6 +299,14 @@ export interface ManufacturingOrder {
     smart_progress?: number; // Alias for convenience
     work_units_breakdown?: WorkUnitsBreakdown;
 
+    // Parent dependency gate for child orders
+    parent_dependency_gate?: {
+        has_parent: boolean;
+        dependency_type: 'none' | 'all_children_completed' | 'children_quantity';
+        minimum_quantity: number;
+        parent_order_number: string | null;
+    };
+
     children?: ManufacturingOrder[];
     manufacturing_route?: ManufacturingRoute;
     route?: ManufacturingRoute;

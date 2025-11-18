@@ -2,7 +2,6 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import {
-    CheckCircle2,
     Clock,
     AlertTriangle,
     TrendingDown,
@@ -55,29 +54,29 @@ export function StepCard({
     const getStatusStyles = () => {
         switch (step.status) {
             case 'completed':
-                return 'border-l-green-500 bg-green-50 dark:bg-green-950/20';
+                return 'bg-green-500/10 border-green-500';
             case 'in_progress':
-                return 'border-l-blue-500 bg-blue-50 dark:bg-blue-950/20';
+                return 'bg-blue-500/10 border-blue-500';
             case 'queued':
-                return 'border-l-gray-400 bg-background';
+                return 'bg-background border-border';
             case 'pending':
-                return 'border-l-gray-300 bg-muted/50';
+                return 'bg-muted/50 border-muted-foreground/20';
             case 'on_hold':
-                return 'border-l-orange-500 bg-orange-50 dark:bg-orange-950/20';
+                return 'bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900';
             case 'skipped':
-                return 'border-l-gray-400 bg-muted';
+                return 'bg-muted border-muted-foreground/30';
             default:
-                return 'border-l-gray-300 bg-muted/50';
+                return 'bg-muted/50 border-muted-foreground/20';
         }
     };
 
     return (
         <div
             className={cn(
-                "w-full max-w-sm border-l-4 rounded-lg p-2 transition-all duration-200 cursor-pointer",
+                "w-full max-w-sm border rounded-lg p-2 transition-all duration-200 cursor-pointer",
                 "hover:bg-accent/50",
                 getStatusStyles(),
-                isCurrent && "scale-105 border-2 shadow-md ring-2 ring-ring/20",
+                isCurrent && "shadow-md",
                 className
             )}
             onClick={onClick}
@@ -104,28 +103,21 @@ export function StepCard({
                 )}
             </div>
 
-            {/* Step Name */}
-            <div className="mb-1">
+            {/* Step Name with Progress */}
+            <div className="flex items-center justify-between mb-1 gap-2">
                 <p className={cn(
                     "text-sm font-medium truncate",
                     step.status === 'skipped' && "line-through opacity-60"
                 )}>
                     {step.name}
                 </p>
+                {step.status !== 'pending' && step.status !== 'skipped' && (
+                    <span className="text-xs font-semibold text-foreground/70 flex-shrink-0">{progressPercent}%</span>
+                )}
             </div>
-
-            {/* Progress Summary - Compact */}
-            {step.status !== 'pending' && step.status !== 'skipped' && (
-                <div className="flex items-center justify-end mb-1">
-                    <span className="text-xs font-semibold text-foreground/70">{progressPercent}%</span>
-                </div>
-            )}
 
             {/* Status Indicators */}
             <div className="flex items-center gap-1.5 mt-1">
-                {step.status === 'completed' && (
-                    <CheckCircle2 className="h-3 w-3 text-green-600" />
-                )}
                 {step.status === 'in_progress' && (
                     <Clock className="h-3 w-3 text-blue-600 animate-pulse" />
                 )}
@@ -141,7 +133,7 @@ export function StepCard({
             {isCurrent && (
                 <div className="mt-1.5 pt-1.5 border-t border-border/50">
                     <p className="text-[10px] font-semibold text-primary uppercase tracking-wide">
-                        Etapa Atual
+                        Etapa Selecionada
                     </p>
                 </div>
             )}

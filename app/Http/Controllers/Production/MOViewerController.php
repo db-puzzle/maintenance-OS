@@ -25,11 +25,17 @@ class MOViewerController extends Controller
             'statuses',
             'show_completed',
             'selected_order_id',
+            'sort',
         ]);
 
         // Default to showing only active statuses if not specified
         if (! isset($filters['statuses']) || empty($filters['statuses'])) {
             $filters['statuses'] = 'released,in_progress,on_hold';
+        }
+
+        // Default sort option
+        if (! isset($filters['sort']) || empty($filters['sort'])) {
+            $filters['sort'] = 'priority_date'; // Default sorting
         }
 
         // Convert comma-separated statuses to array
@@ -52,6 +58,7 @@ class MOViewerController extends Controller
             ->with([
                 'item.media',
                 'parent:id,order_number',
+                'parent.manufacturingRoute.steps:id,manufacturing_route_id,child_order_dependency_type,child_order_minimum_quantity,depends_on_step_id',
                 'children' => function ($query) use ($statusFilter, $stepEagerLoads) {
                     $query->whereIn('status', $statusFilter)
                         ->withCount(['children'])
@@ -122,9 +129,8 @@ class MOViewerController extends Controller
             });
         }
 
-        // Order by priority and requested date
-        $query->orderBy('priority', 'desc')
-            ->orderBy('requested_date', 'asc');
+        // Apply sorting based on sort parameter
+        $this->applySorting($query, $filters['sort']);
 
         // Check if a specific order is selected - if so, skip loading the general list
         $selectedOrderHierarchy = null;
@@ -198,13 +204,13 @@ class MOViewerController extends Controller
                             $q->where('status', 'completed');
                         }]);
 
-                    $selectedOrderHierarchy = $this->transformOrder($rootOrder);
+                    $selectedOrderHierarchy = $this->transformOrder($rootOrder, 0, $filters['sort']);
                 }
             }
         } else {
             // No specific order selected - load the general list
             $orders = $query->get();
-            $transformedOrders = $this->transformOrdersHierarchy($orders);
+            $transformedOrders = $this->transformOrdersHierarchy($orders, $filters['sort']);
         }
 
         // Get status counts for active orders
@@ -233,17 +239,17 @@ class MOViewerController extends Controller
     /**
      * Transform orders into hierarchical structure with production metrics.
      */
-    private function transformOrdersHierarchy($orders)
+    private function transformOrdersHierarchy($orders, $sortBy = 'priority_date')
     {
-        return $orders->map(function ($order) {
-            return $this->transformOrder($order);
+        return $orders->map(function ($order) use ($sortBy) {
+            return $this->transformOrder($order, 0, $sortBy);
         });
     }
 
     /**
      * Transform a single order with its hierarchy.
      */
-    private function transformOrder($order, $level = 0)
+    private function transformOrder($order, $level = 0, $sortBy = 'priority_date')
     {
         // Calculate route steps metrics
         $routeSteps = [];
@@ -355,6 +361,10 @@ class MOViewerController extends Controller
                     'depends_on_step_id' => $step->depends_on_step_id,
                     'can_start' => $canStart,
                     'cannot_start_reason' => $cannotStartReason,
+                    // Child order dependency configuration for gates
+                    'child_order_dependency_type' => $step->child_order_dependency_type ?? 'none',
+                    'child_order_minimum_quantity' => $step->child_order_minimum_quantity ?? 0,
+                    'cumulative_quantity_completed' => $step->cumulative_quantity_completed ?? 0,
                     // Include current execution data for in_progress steps
                     'current_execution' => $step->currentExecution ? [
                         'id' => $step->currentExecution->id,
@@ -379,6 +389,31 @@ class MOViewerController extends Controller
         $isOverdue = $order->requested_date
             && $order->requested_date < now()
             && ! in_array($order->status, ['completed', 'cancelled']);
+
+        // Get parent dependency gate information if order has a parent
+        $parentDependencyGate = null;
+        if ($order->relationLoaded('parent') && $order->parent) {
+            // Get the parent's manufacturing route and first step
+            $parentFirstStep = $order->parent->relationLoaded('manufacturingRoute')
+                && $order->parent->manufacturingRoute
+                && $order->parent->manufacturingRoute->relationLoaded('steps')
+                ? $order->parent->manufacturingRoute->steps->first()
+                : null;
+
+            $parentDependencyGate = [
+                'has_parent' => true,
+                'dependency_type' => $parentFirstStep?->child_order_dependency_type ?? 'none',
+                'minimum_quantity' => $parentFirstStep?->child_order_minimum_quantity ?? 0,
+                'parent_order_number' => $order->parent->order_number,
+            ];
+        } else {
+            $parentDependencyGate = [
+                'has_parent' => false,
+                'dependency_type' => 'none',
+                'minimum_quantity' => 0,
+                'parent_order_number' => null,
+            ];
+        }
 
         // Build the transformed order object
         $transformed = [
@@ -418,13 +453,17 @@ class MOViewerController extends Controller
             'has_delays' => $hasDelays,
             'is_overdue' => $isOverdue,
             'has_route' => $order->relationLoaded('manufacturingRoute') ? ($order->manufacturingRoute !== null) : false,
+            'parent_dependency_gate' => $parentDependencyGate,
             'children' => [],
         ];
 
-        // Recursively transform child orders
+        // Recursively transform child orders with sorting
         if ($order->relationLoaded('children') && $order->children && $order->children->count() > 0) {
-            $transformed['children'] = $order->children->map(function ($childOrder) use ($level) {
-                return $this->transformOrder($childOrder, $level + 1);
+            // Sort children based on sortBy parameter
+            $sortedChildren = $this->sortCollection($order->children, $sortBy);
+
+            $transformed['children'] = $sortedChildren->map(function ($childOrder) use ($level, $sortBy) {
+                return $this->transformOrder($childOrder, $level + 1, $sortBy);
             })->toArray();
         }
 
@@ -774,6 +813,126 @@ class MOViewerController extends Controller
 
             default:
                 return true;
+        }
+    }
+
+    /**
+     * Apply sorting to a query based on the sort parameter.
+     * Uses natural sorting for order_number to handle numeric sequences correctly.
+     */
+    private function applySorting($query, string $sortBy): void
+    {
+        switch ($sortBy) {
+            case 'order_number':
+                // Use LENGTH first to group by number of characters, then alphanumeric
+                // This provides pseudo-natural sorting at the database level
+                $query->orderByRaw('LENGTH(order_number) ASC, order_number ASC');
+                break;
+
+            case 'order_number_desc':
+                $query->orderByRaw('LENGTH(order_number) DESC, order_number DESC');
+                break;
+
+            case 'priority':
+                $query->orderBy('priority', 'desc')
+                    ->orderByRaw('LENGTH(order_number) ASC, order_number ASC');
+                break;
+
+            case 'requested_date':
+                $query->orderBy('requested_date', 'asc')
+                    ->orderByRaw('LENGTH(order_number) ASC, order_number ASC');
+                break;
+
+            case 'requested_date_desc':
+                $query->orderBy('requested_date', 'desc')
+                    ->orderByRaw('LENGTH(order_number) ASC, order_number ASC');
+                break;
+
+            case 'status':
+                $query->orderBy('status', 'asc')
+                    ->orderByRaw('LENGTH(order_number) ASC, order_number ASC');
+                break;
+
+            case 'priority_date':
+            default:
+                // Default: Priority (high to low), then requested date (old to new)
+                $query->orderBy('priority', 'desc')
+                    ->orderBy('requested_date', 'asc');
+                break;
+        }
+    }
+
+    /**
+     * Sort a collection of orders based on the sort parameter.
+     * Uses natural sorting (strnatcmp) for order_number to handle numeric sequences correctly.
+     */
+    private function sortCollection($collection, string $sortBy)
+    {
+        switch ($sortBy) {
+            case 'order_number':
+                // Use sort with custom comparator for natural sorting
+                return $collection->sort(function ($a, $b) {
+                    return strnatcmp($a->order_number, $b->order_number);
+                })->values();
+
+            case 'order_number_desc':
+                return $collection->sort(function ($a, $b) {
+                    return strnatcmp($b->order_number, $a->order_number);
+                })->values();
+
+            case 'priority':
+                // Sort by priority first, then by natural order number
+                return $collection->sort(function ($a, $b) {
+                    $priorityCompare = $b->priority <=> $a->priority; // Descending
+                    if ($priorityCompare !== 0) {
+                        return $priorityCompare;
+                    }
+
+                    return strnatcmp($a->order_number, $b->order_number);
+                })->values();
+
+            case 'requested_date':
+                // Sort by date first, then by natural order number
+                return $collection->sort(function ($a, $b) {
+                    $dateCompare = ($a->requested_date ?? '') <=> ($b->requested_date ?? '');
+                    if ($dateCompare !== 0) {
+                        return $dateCompare;
+                    }
+
+                    return strnatcmp($a->order_number, $b->order_number);
+                })->values();
+
+            case 'requested_date_desc':
+                return $collection->sort(function ($a, $b) {
+                    $dateCompare = ($b->requested_date ?? '') <=> ($a->requested_date ?? '');
+                    if ($dateCompare !== 0) {
+                        return $dateCompare;
+                    }
+
+                    return strnatcmp($a->order_number, $b->order_number);
+                })->values();
+
+            case 'status':
+                return $collection->sort(function ($a, $b) {
+                    $statusCompare = strcmp($a->status, $b->status);
+                    if ($statusCompare !== 0) {
+                        return $statusCompare;
+                    }
+
+                    return strnatcmp($a->order_number, $b->order_number);
+                })->values();
+
+            case 'priority_date':
+            default:
+                // Default: Priority (high to low), then requested date (old to new)
+                return $collection->sort(function ($a, $b) {
+                    $priorityCompare = $b->priority <=> $a->priority;
+                    if ($priorityCompare !== 0) {
+                        return $priorityCompare;
+                    }
+
+                    return ($a->requested_date ?? '') <=> ($b->requested_date ?? '');
+                })->values();
         }
     }
 }

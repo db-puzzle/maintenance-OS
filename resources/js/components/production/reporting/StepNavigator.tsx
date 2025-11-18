@@ -59,7 +59,7 @@ export function StepNavigator({
     // Convert manufacturing steps to route steps format
     const routeSteps: RouteStep[] = useMemo(() => {
         if (!order.manufacturing_route?.steps) return [];
-        
+
         return order.manufacturing_route.steps.map((step: ManufacturingStep) => ({
             id: step.id,
             name: step.name,
@@ -78,26 +78,9 @@ export function StepNavigator({
         }));
     }, [order]);
 
-    // Get the three steps to display
-    const displaySteps = useMemo(() => {
-        const currentIndex = routeSteps.findIndex(s => s.id === currentStepId);
-        
-        if (currentIndex === -1) {
-            // If current step not found, return empty
-            return {
-                previous: null,
-                current: null,
-                next: null,
-                currentIndex: -1,
-            };
-        }
-
-        return {
-            previous: currentIndex > 0 ? routeSteps[currentIndex - 1] : null,
-            current: routeSteps[currentIndex],
-            next: currentIndex < routeSteps.length - 1 ? routeSteps[currentIndex + 1] : null,
-            currentIndex,
-        };
+    // Get current step index
+    const currentStepIndex = useMemo(() => {
+        return routeSteps.findIndex(s => s.id === currentStepId);
     }, [routeSteps, currentStepId]);
 
     // Calculate gate status
@@ -111,23 +94,23 @@ export function StepNavigator({
                 // Check if all child orders have completed the corresponding step
                 const allChildrenComplete = order.children?.every(
                     child => child.manufacturing_route?.steps?.some(
-                        childStep => childStep.display_position === precedingStep.display_position 
+                        childStep => childStep.display_position === precedingStep.display_position
                             && childStep.status === 'completed'
                     )
                 ) ?? true;
-                
+
                 return {
                     isMet: allChildrenComplete,
-                    message: allChildrenComplete 
-                        ? 'Todas as ordens filhas concluídas' 
+                    message: allChildrenComplete
+                        ? 'Todas as ordens filhas concluídas'
                         : 'Aguardando ordens filhas',
                 };
             }
-            
+
             case 'children_quantity': {
                 const currentQty = precedingStep.cumulative_quantity_completed || 0;
                 const requiredQty = gate.minimum_quantity || 0;
-                
+
                 return {
                     isMet: currentQty >= requiredQty,
                     currentProgress: currentQty,
@@ -135,7 +118,7 @@ export function StepNavigator({
                     message: `${currentQty} / ${requiredQty} concluído`,
                 };
             }
-            
+
             case 'none':
             default:
                 return {
@@ -166,36 +149,33 @@ export function StepNavigator({
         return { dependency_type: 'all_children_completed' };
     }, []);
 
-    // Calculate gates
-    const gates = useMemo(() => {
-        const result = {
-            beforeCurrent: null as { gate: GateConfiguration; status: GateStatus } | null,
-            afterCurrent: null as { gate: GateConfiguration; status: GateStatus } | null,
-        };
+    // Calculate gate for each step
+    const getGateForStep = useCallback((stepIndex: number): { gate: GateConfiguration; status: GateStatus } | null => {
+        if (stepIndex < 0 || stepIndex >= routeSteps.length) return null;
 
-        if (displaySteps.previous && displaySteps.current) {
-            const gate = getGateFromStep(displaySteps.previous);
-            const status = calculateGateStatus(gate, displaySteps.previous, order);
-            result.beforeCurrent = { gate, status };
-        }
-
-        if (displaySteps.current && displaySteps.next) {
-            const gate = getGateFromStep(displaySteps.current);
-            const status = calculateGateStatus(gate, displaySteps.current, order);
-            result.afterCurrent = { gate, status };
-        }
-
-        return result;
-    }, [displaySteps, order, getGateFromStep, calculateGateStatus]);
+        const step = routeSteps[stepIndex];
+        const gate = getGateFromStep(step);
+        const status = calculateGateStatus(gate, step, order);
+        return { gate, status };
+    }, [routeSteps, order, getGateFromStep, calculateGateStatus]);
 
     // Handle step click
     const handleStepClick = useCallback((stepId: number) => {
         onStepChange(stepId);
     }, [onStepChange]);
 
-    // Check if we're at the first or last step
-    const isFirstStep = displaySteps.currentIndex === 0;
-    const isLastStep = displaySteps.currentIndex === routeSteps.length - 1;
+    // Check if all steps are completed
+    const allStepsCompleted = useMemo(() => {
+        return routeSteps.every(step => step.status === 'completed');
+    }, [routeSteps]);
+
+    // Check if first step is ready to start or has been started
+    const firstStepActive = useMemo(() => {
+        if (routeSteps.length === 0) return false;
+        const firstStepStatus = routeSteps[0].status;
+        // Green when queued (ready to start) or already started/completed
+        return ['queued', 'in_progress', 'paused', 'completed'].includes(firstStepStatus);
+    }, [routeSteps]);
 
     // Empty state
     if (!order.manufacturing_route?.steps?.length) {
@@ -209,7 +189,7 @@ export function StepNavigator({
     }
 
     // Current step not found state
-    if (!displaySteps.current) {
+    if (currentStepIndex === -1) {
         return (
             <div className={cn("flex items-center justify-center h-full", className)}>
                 <p className="text-muted-foreground text-sm">
@@ -222,95 +202,151 @@ export function StepNavigator({
     return (
         <div className={cn("flex flex-col h-full", className)}>
             {/* Header */}
-            <div className="px-4 py-3 border-b bg-background">
+            <div className="bg-background flex-shrink-0">
                 <div className="flex items-center gap-2">
-                    <Route className="h-4 w-4 text-muted-foreground" />
+                    <Route className="h-6 w-6 text-muted-foreground" />
                     <div>
                         <h3 className="text-sm font-medium">Progresso da Rota</h3>
                         <p className="text-xs text-muted-foreground">
-                            Etapa {displaySteps.currentIndex + 1} de {routeSteps.length}
+                            Etapa {currentStepIndex + 1} de {routeSteps.length}
                         </p>
                     </div>
                 </div>
             </div>
 
             {/* Scrollable content */}
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 h-0">
                 <div className="py-6 px-4 flex flex-col items-center gap-0 min-h-full">
                     {/* Route Start Indicator */}
-                    {isFirstStep && (
-                        <div className="w-48 mb-4 px-4 py-2 bg-primary/10 border-2 border-primary rounded-full text-center">
-                            <div className="flex items-center justify-center gap-2">
-                                <PlayCircle className="h-3.5 w-3.5 text-primary" />
-                                <span className="text-xs font-semibold uppercase tracking-wide text-primary">
-                                    Início da Rota
-                                </span>
-                            </div>
+                    <div className={cn(
+                        "w-48 mb-4 px-4 py-2 border-2 rounded-full text-center transition-colors",
+                        firstStepActive
+                            ? "bg-green-500/10 border-green-500"
+                            : "bg-primary/10 border-primary"
+                    )}>
+                        <div className="flex items-center justify-center gap-2">
+                            <PlayCircle className={cn(
+                                "h-3.5 w-3.5",
+                                firstStepActive ? "text-green-600" : "text-primary"
+                            )} />
+                            <span className={cn(
+                                "text-xs font-semibold uppercase tracking-wide",
+                                firstStepActive ? "text-green-600" : "text-primary"
+                            )}>
+                                Início da Rota
+                            </span>
                         </div>
-                    )}
+                    </div>
 
-                    {/* Previous Step */}
-                    {displaySteps.previous && (
-                        <>
+                    {/* All Steps */}
+                    {routeSteps.map((step, index) => (
+                        <React.Fragment key={step.id}>
                             <StepCard
-                                step={displaySteps.previous}
-                                stepNumber={displaySteps.currentIndex}
+                                step={step}
+                                stepNumber={index + 1}
                                 totalSteps={routeSteps.length}
-                                isCurrent={false}
-                                onClick={() => handleStepClick(displaySteps.previous!.id)}
+                                isCurrent={index === currentStepIndex}
+                                onClick={() => handleStepClick(step.id)}
                             />
-                            
-                            {/* Gate before current */}
-                            {gates.beforeCurrent && (
-                                <GateIndicator
-                                    gate={gates.beforeCurrent.gate}
-                                    gateStatus={gates.beforeCurrent.status}
-                                />
-                            )}
-                        </>
-                    )}
 
-                    {/* Current Step */}
-                    <StepCard
-                        step={displaySteps.current}
-                        stepNumber={displaySteps.currentIndex + 1}
-                        totalSteps={routeSteps.length}
-                        isCurrent={true}
-                        onClick={() => handleStepClick(displaySteps.current!.id)}
-                    />
+                            {/* Gate after this step (if not the last step) */}
+                            {index < routeSteps.length - 1 && (() => {
+                                const gateInfo = getGateForStep(index);
+                                const nextStep = routeSteps[index + 1];
+                                const isNextStepReady = nextStep && ['queued', 'in_progress', 'paused', 'completed'].includes(nextStep.status);
+                                return gateInfo ? (
+                                    <GateIndicator
+                                        gate={gateInfo.gate}
+                                        gateStatus={gateInfo.status}
+                                        nextStepReady={isNextStepReady}
+                                    />
+                                ) : null;
+                            })()}
+                        </React.Fragment>
+                    ))}
 
-                    {/* Next Step */}
-                    {displaySteps.next && (
-                        <>
-                            {/* Gate after current */}
-                            {gates.afterCurrent && (
-                                <GateIndicator
-                                    gate={gates.afterCurrent.gate}
-                                    gateStatus={gates.afterCurrent.status}
-                                />
-                            )}
-                            
-                            <StepCard
-                                step={displaySteps.next}
-                                stepNumber={displaySteps.currentIndex + 2}
-                                totalSteps={routeSteps.length}
-                                isCurrent={false}
-                                onClick={() => handleStepClick(displaySteps.next!.id)}
+                    {/* Final gate for parent order dependency - always shown */}
+                    {(() => {
+                        // Get parent dependency gate configuration
+                        const parentGate = order.parent_dependency_gate || {
+                            has_parent: false,
+                            dependency_type: 'none',
+                            minimum_quantity: 0,
+                        };
+
+                        // Calculate if parent gate is met
+                        const calculateParentGateStatus = (): GateStatus => {
+                            if (parentGate.dependency_type === 'none') {
+                                return {
+                                    isMet: true,
+                                    message: 'Sem dependência da ordem pai',
+                                };
+                            }
+
+                            if (parentGate.dependency_type === 'all_children_completed') {
+                                const isComplete = order.status === 'completed';
+                                return {
+                                    isMet: isComplete,
+                                    message: isComplete
+                                        ? 'Ordem concluída - gate liberado'
+                                        : 'Aguardando conclusão desta ordem',
+                                };
+                            }
+
+                            if (parentGate.dependency_type === 'children_quantity') {
+                                const currentQty = order.quantity_completed || 0;
+                                const requiredQty = parentGate.minimum_quantity || 0;
+                                return {
+                                    isMet: currentQty >= requiredQty,
+                                    currentProgress: currentQty,
+                                    requiredProgress: requiredQty,
+                                    message: `${currentQty} / ${requiredQty} concluído`,
+                                };
+                            }
+
+                            return {
+                                isMet: false,
+                                message: 'Condição desconhecida',
+                            };
+                        };
+
+                        const parentGateConfig: GateConfiguration = {
+                            dependency_type: parentGate.dependency_type as 'none' | 'all_children_completed' | 'children_quantity',
+                            minimum_quantity: parentGate.minimum_quantity,
+                        };
+
+                        const parentGateStatus = calculateParentGateStatus();
+
+                        return (
+                            <GateIndicator
+                                gate={parentGateConfig}
+                                gateStatus={parentGateStatus}
+                                nextStepReady={false}
+                                isFinalGate={true}
                             />
-                        </>
-                    )}
+                        );
+                    })()}
 
                     {/* Route End Indicator */}
-                    {isLastStep && (
-                        <div className="w-48 mt-4 px-4 py-2 bg-green-500/10 border-2 border-green-500 rounded-full text-center">
-                            <div className="flex items-center justify-center gap-2">
-                                <FlagTriangleRight className="h-3.5 w-3.5 text-green-600" />
-                                <span className="text-xs font-semibold uppercase tracking-wide text-green-600">
-                                    Fim da Rota
-                                </span>
-                            </div>
+                    <div className={cn(
+                        "w-48 mt-4 px-4 py-2 border-1 rounded-full text-center transition-colors",
+                        allStepsCompleted
+                            ? "bg-green-500/10 border-green-500"
+                            : "bg-muted/50 border-muted-foreground/30"
+                    )}>
+                        <div className="flex items-center justify-center gap-2">
+                            <FlagTriangleRight className={cn(
+                                "h-3.5 w-3.5",
+                                allStepsCompleted ? "text-green-600" : "text-muted-foreground"
+                            )} />
+                            <span className={cn(
+                                "text-xs font-semibold uppercase tracking-wide",
+                                allStepsCompleted ? "text-green-600" : "text-muted-foreground"
+                            )}>
+                                Fim da Rota
+                            </span>
                         </div>
-                    )}
+                    </div>
                 </div>
             </ScrollArea>
         </div>
