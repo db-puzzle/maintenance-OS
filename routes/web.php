@@ -14,28 +14,25 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Get central domains from config
-$centralDomains = config('tenancy.central_domains', ['localhost']);
 $appDomain = config('app.domain', 'localhost');
 
-// Central domain routes (marketing, registration, etc.)
-// NOTE: These routes are bound to specific domains and won't match tenant subdomains
-foreach ($centralDomains as $domain) {
-    Route::domain($domain)->group(function () {
-        Route::get('/', function () {
-            return \Inertia\Inertia::render('welcome');
-        })->name('welcome');
+// Main central domain routes (marketing, registration, etc.)
+// NOTE: These routes are only on the main domain, not admin subdomain
+Route::domain($appDomain)->group(function () {
+    Route::get('/', function () {
+        return \Inertia\Inertia::render('welcome');
+    })->name('welcome');
 
-        // Registration for new tenants
-        Route::get('/register', [\App\Http\Controllers\Auth\TenantRegistrationController::class, 'create'])
-            ->name('register');
-        Route::post('/register', [\App\Http\Controllers\Auth\TenantRegistrationController::class, 'store']);
+    // Registration for new tenants
+    Route::get('/register', [\App\Http\Controllers\Auth\TenantRegistrationController::class, 'create'])
+        ->name('register');
+    Route::post('/register', [\App\Http\Controllers\Auth\TenantRegistrationController::class, 'store']);
 
-        // Subdomain availability check
-        Route::post('/check-subdomain', [\App\Http\Controllers\Auth\SubdomainCheckController::class, 'check'])
-            ->middleware(['throttle:subdomain-check'])
-            ->name('subdomain.check');
-    });
-}
+    // Subdomain availability check
+    Route::post('/check-subdomain', [\App\Http\Controllers\Auth\SubdomainCheckController::class, 'check'])
+        ->middleware(['throttle:subdomain-check'])
+        ->name('subdomain.check');
+});
 
 // Admin portal routes on admin subdomain
 Route::domain('admin.' . $appDomain)->middleware(['web'])->group(function () {
