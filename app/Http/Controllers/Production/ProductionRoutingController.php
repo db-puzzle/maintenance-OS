@@ -746,6 +746,10 @@ class ProductionRoutingController extends Controller
                                     'dependency_minimum_percentage' => $step->dependency_minimum_percentage,
                                     'child_order_dependency_type' => $step->child_order_dependency_type,
                                     'child_order_minimum_quantity' => $step->child_order_minimum_quantity,
+                                    // External execution fields
+                                    'execution_location' => $step->execution_location,
+                                    'manufacturer_name' => $step->manufacturer?->name,
+                                    'expected_lead_time_days' => $step->expected_lead_time_days,
                                 ];
                             })
                         : [], // Empty array for routes with no steps
@@ -791,6 +795,9 @@ class ProductionRoutingController extends Controller
             'Dependency Minimum Percentage',
             'Child Order Dependency Type',
             'Child Order Minimum Quantity',
+            'Execution Location',
+            'Manufacturer',
+            'Expected Lead Time (Days)',
         ];
 
         $csv = fopen('php://temp', 'r+');
@@ -825,6 +832,9 @@ class ProductionRoutingController extends Controller
                     '', // Dependency Minimum Percentage
                     '', // Child Order Dependency Type
                     '', // Child Order Minimum Quantity
+                    '', // Execution Location
+                    '', // Manufacturer
+                    '', // Expected Lead Time (Days)
                 ]);
             } else {
                 // Export each step with template info
@@ -856,6 +866,9 @@ class ProductionRoutingController extends Controller
                         $step->dependency_minimum_percentage,
                         $step->child_order_dependency_type,
                         $step->child_order_minimum_quantity,
+                        $step->execution_location ?? 'internal',
+                        $step->manufacturer?->name ?? '',
+                        $step->expected_lead_time_days ?? '',
                     ]);
                 }
             }

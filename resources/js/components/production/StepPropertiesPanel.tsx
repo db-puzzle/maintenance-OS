@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { ItemSelect } from '@/components/ItemSelect';
 import CreateWorkCellSheet from '@/components/production/CreateWorkCellSheet';
+import CreateManufacturerSheet from '@/components/CreateManufacturerSheet';
 import { ManufacturingRoute, ManufacturingStep, WorkCell } from '@/types/production';
 import { Form } from '@/types/work-order';
+import { Manufacturer } from '@/types/entities/manufacturer';
 import { cn } from '@/lib/utils';
 import { router } from '@inertiajs/react';
 import StateButton from '@/components/StateButton';
@@ -97,7 +99,9 @@ export default function StepPropertiesPanel({
     const [shouldRender, setShouldRender] = useState(false);
     const [lastSelectedStep, setLastSelectedStep] = useState<ExtendedManufacturingStep | null>(null);
     const [workCellSheetOpen, setWorkCellSheetOpen] = useState(false);
+    const [manufacturerSheetOpen, setManufacturerSheetOpen] = useState(false);
     const workCellSelectRef = useRef<HTMLButtonElement>(null);
+    const manufacturerSelectRef = useRef<HTMLButtonElement>(null);
 
 
     // Keep track of the last selected step for animation purposes
@@ -443,6 +447,7 @@ export default function StepPropertiesPanel({
                                     <div className="ml-6 space-y-4">
                                         <div className="space-y-2">
                                             <ItemSelect
+                                                ref={manufacturerSelectRef}
                                                 label="Fabricante"
                                                 items={manufacturers?.map(m => ({
                                                     id: m.id,
@@ -462,6 +467,7 @@ export default function StepPropertiesPanel({
                                                         });
                                                     }
                                                 }}
+                                                onCreateClick={handleCreateManufacturerClick}
                                                 placeholder="Selecione um fabricante..."
                                                 disabled={viewMode}
                                                 canClear={!viewMode}
@@ -650,6 +656,14 @@ export default function StepPropertiesPanel({
                 shifts={shifts}
                 unitsOfMeasure={unitsOfMeasure}
             />
+
+            {/* CreateManufacturerSheet */}
+            <CreateManufacturerSheet
+                open={manufacturerSheetOpen}
+                onOpenChange={setManufacturerSheetOpen}
+                mode="create"
+                onSuccess={(manufacturer) => handleManufacturerCreated(manufacturer)}
+            />
         </div>
     );
 
@@ -660,6 +674,14 @@ export default function StepPropertiesPanel({
             document.activeElement.blur();
         }
         setWorkCellSheetOpen(true);
+    }
+
+    function handleCreateManufacturerClick() {
+        // Blur the current active element to release focus
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
+        setManufacturerSheetOpen(true);
     }
 
     function handleWorkCellCreated(newWorkCell?: WorkCell) {
@@ -697,6 +719,45 @@ export default function StepPropertiesPanel({
             // This preserves state while updating the workCells prop
             router.reload({
                 only: ['workCells']
+            });
+        }
+    }
+
+    function handleManufacturerCreated(newManufacturer?: Manufacturer) {
+        setManufacturerSheetOpen(false);
+
+        // If we received the new manufacturer directly, use it
+        if (newManufacturer && displayStep) {
+            // Set the newly created manufacturer ID in the form
+            stepForm.setData('manufacturer_id', newManufacturer.id);
+
+            // Update the local state with the new manufacturer
+            onLocalStepUpdate(displayStep.id, {
+                manufacturer_id: newManufacturer.id,
+                manufacturer: newManufacturer
+            });
+
+            // Focus and highlight the manufacturer select field
+            setTimeout(() => {
+                const selectButton = manufacturerSelectRef.current;
+                if (selectButton) {
+                    selectButton.focus();
+                    // Add a temporary highlight effect with smooth transition
+                    selectButton.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all', 'duration-300');
+                    setTimeout(() => {
+                        selectButton.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+                        // Remove transition classes after animation completes
+                        setTimeout(() => {
+                            selectButton.classList.remove('transition-all', 'duration-300');
+                        }, 300);
+                    }, 2000);
+                }
+            }, 100);
+
+            // Reload to get the updated manufacturers list for the select
+            // This preserves state while updating the manufacturers prop
+            router.reload({
+                only: ['manufacturers']
             });
         }
     }

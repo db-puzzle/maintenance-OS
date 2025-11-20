@@ -234,6 +234,23 @@ class ProductionReportingController extends BaseSearchController
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        // Load selected order if coming from QR code scan
+        $selectedOrder = null;
+        $activeStepId = null;
+        if ($request->selected_mo) {
+            $selectedOrder = \App\Models\Production\ManufacturingOrder::with([
+                'item.media',
+                'manufacturingRoute.steps' => function ($query) {
+                    $query->with(['executions' => function ($q) {
+                        $q->orderBy('id', 'desc')->limit(1);
+                    }]);
+                },
+                'children',
+            ])->find($request->selected_mo);
+
+            $activeStepId = $request->active_step;
+        }
+
         return Inertia::render('production/reporting/index', [
             'steps' => $steps,
             'stepStatusCounts' => $statusCounts,
@@ -247,6 +264,8 @@ class ProductionReportingController extends BaseSearchController
                 'page' => $request->page ?? 1,
             ],
             'canExecute' => $user->can('execute', ManufacturingStep::class),
+            'selectedOrder' => $selectedOrder,
+            'activeStepId' => $activeStepId,
         ]);
     }
 }

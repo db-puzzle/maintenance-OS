@@ -53,6 +53,8 @@ interface PageProps {
         per_page?: number;
     };
     canExecute: boolean;
+    selectedOrder?: ManufacturingOrder | null;
+    activeStepId?: number | null;
 }
 
 
@@ -60,15 +62,18 @@ export default function ProductionReporting({
     steps = { data: [], current_page: 1, last_page: 1, per_page: 20, total: 0 },
     stepStatusCounts = {},
     workCells = [],
-    filters = {}
+    filters = {},
+    selectedOrder = null,
+    activeStepId = null
 }: PageProps) {
 
 
     const [autoRefresh, setAutoRefresh] = useState(true);
     const [showImages, setShowImages] = useState(true);
     const [showWorkCellDialog, setShowWorkCellDialog] = useState(false);
-    const [selectedStep, setSelectedStep] = useState<ExecutableStep | null>(null);
-    const [showStepActionDialog, setShowStepActionDialog] = useState(false);
+    const [showStepActionDialog, setShowStepActionDialog] = useState(!!selectedOrder);
+    const [dialogOrder, setDialogOrder] = useState<ManufacturingOrder | null>(selectedOrder);
+    const [dialogActiveStepId, setDialogActiveStepId] = useState<number | undefined>(activeStepId || undefined);
 
 
     // Search state - no debounce in state, handle it in the search handler
@@ -353,8 +358,9 @@ export default function ProductionReporting({
                                 canExecute={stepData.can_execute}
                                 cannotExecuteReason={stepData.cannot_execute_reason}
                                 onClick={() => {
-                                    // Open the step action dialog instead of navigating
-                                    setSelectedStep(stepData);
+                                    // Open the step action dialog with the step's order
+                                    setDialogOrder(stepData.order);
+                                    setDialogActiveStepId(stepData.step.id);
                                     setShowStepActionDialog(true);
                                 }}
                             />
@@ -407,10 +413,26 @@ export default function ProductionReporting({
 
             {/* Step Action Dialog */}
             <MOStepActionDialog
-                order={selectedStep?.order || null}
+                order={dialogOrder}
                 isOpen={showStepActionDialog}
-                onOpenChange={setShowStepActionDialog}
-                activeStepId={selectedStep?.step.id}
+                onOpenChange={(open) => {
+                    setShowStepActionDialog(open);
+                    // Clear the URL parameters when closing
+                    if (!open && selectedOrder) {
+                        router.get(route('production.reporting.index'), filters, {
+                            preserveState: true,
+                            preserveScroll: true,
+                            only: ['steps', 'stepStatusCounts', 'workCells', 'filters']
+                        });
+                    }
+                }}
+                activeStepId={dialogActiveStepId}
+                onStateChanged={() => {
+                    // Reload the page data when step state changes
+                    router.reload({
+                        only: ['steps', 'stepStatusCounts', 'workCells', 'filters']
+                    });
+                }}
             />
         </AppLayout>
     );

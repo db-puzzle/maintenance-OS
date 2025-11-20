@@ -117,11 +117,30 @@ class PlanningController extends Controller
             'steps.*.use_workcell_throughput' => 'nullable|boolean',
             'steps.*.step_type' => 'required|in:standard,quality_check,rework',
             'steps.*.is_required' => 'boolean',
+            // External execution fields
+            'steps.*.execution_location' => 'nullable|in:internal,external',
+            'steps.*.manufacturer_id' => 'nullable|exists:manufacturers,id',
+            'steps.*.expected_lead_time_days' => 'nullable|integer|min:1',
             'steps.*.child_order_dependency_type' => 'nullable|in:none,all_children_completed,children_quantity',
             'steps.*.child_order_minimum_quantity' => 'nullable|numeric|min:0',
         ]);
 
         DB::transaction(function () use ($order, $validated) {
+            // Log incoming step data for debugging
+            \Log::info('Saving route with steps', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'steps_count' => count($validated['steps']),
+                'steps' => collect($validated['steps'])->map(function ($step) {
+                    return [
+                        'name' => $step['name'] ?? 'N/A',
+                        'execution_location' => $step['execution_location'] ?? 'not set',
+                        'manufacturer_id' => $step['manufacturer_id'] ?? 'not set',
+                        'expected_lead_time_days' => $step['expected_lead_time_days'] ?? 'not set',
+                    ];
+                })->toArray(),
+            ]);
+
             // Create or update route
             $route = $order->manufacturingRoute ?? new ManufacturingRoute;
             $route->manufacturing_order_id = $order->id;
@@ -152,9 +171,28 @@ class PlanningController extends Controller
                     unset($stepDataToSave['cycle_time_minutes']);
                 }
 
+                // Log the step data before saving
+                \Log::info('Creating step', [
+                    'step_index' => $index,
+                    'name' => $stepDataToSave['name'],
+                    'execution_location' => $stepDataToSave['execution_location'] ?? 'not set',
+                    'manufacturer_id' => $stepDataToSave['manufacturer_id'] ?? 'not set',
+                    'expected_lead_time_days' => $stepDataToSave['expected_lead_time_days'] ?? 'not set',
+                    'all_fields' => array_keys($stepDataToSave),
+                ]);
+
                 // Dependencies will be set after all steps are created
 
-                $route->steps()->create($stepDataToSave);
+                $createdStep = $route->steps()->create($stepDataToSave);
+
+                // Log what was actually saved
+                \Log::info('Step created', [
+                    'step_id' => $createdStep->id,
+                    'execution_location' => $createdStep->execution_location,
+                    'manufacturer_id' => $createdStep->manufacturer_id,
+                    'expected_lead_time_days' => $createdStep->expected_lead_time_days,
+                    'external_status' => $createdStep->external_status,
+                ]);
             }
 
             // Set up step dependencies based on sequence
@@ -194,6 +232,10 @@ class PlanningController extends Controller
             'routes.*.steps.*.is_required' => 'nullable|boolean',
             'routes.*.steps.*.child_order_dependency_type' => 'nullable|string|in:none,all_children_completed,children_quantity',
             'routes.*.steps.*.child_order_minimum_quantity' => 'nullable|integer|min:0',
+            // External execution fields
+            'routes.*.steps.*.execution_location' => 'nullable|in:internal,external',
+            'routes.*.steps.*.manufacturer_id' => 'nullable|exists:manufacturers,id',
+            'routes.*.steps.*.expected_lead_time_days' => 'nullable|integer|min:1',
         ]);
 
         $results = [];
@@ -330,6 +372,10 @@ class PlanningController extends Controller
                     'status' => 'pending',
                     'child_order_dependency_type' => $step->child_order_dependency_type ?? 'all_children_completed',
                     'child_order_minimum_quantity' => $step->child_order_minimum_quantity ?? 0,
+                    // External step fields
+                    'execution_location' => $step->execution_location ?? 'internal',
+                    'manufacturer_id' => $step->manufacturer_id,
+                    'expected_lead_time_days' => $step->expected_lead_time_days,
                 ]);
             }
         });
@@ -396,23 +442,52 @@ class PlanningController extends Controller
                     } elseif ($order->manufacturingRoute->steps()->count() === 0) {
                         $skipReason = "Order {$order->order_number} cannot be planned - route has no steps";
                     } else {
-                        // Check for specific missing assignments
+                        // Check for specific missing assignments and collect step details
                         $internalStepsWithoutWorkCell = $order->manufacturingRoute->steps()
                             ->where('execution_location', 'internal')
                             ->whereNull('work_cell_id')
-                            ->count();
+                            ->get();
 
                         $externalStepsWithoutManufacturer = $order->manufacturingRoute->steps()
                             ->where('execution_location', 'external')
                             ->whereNull('manufacturer_id')
-                            ->count();
+                            ->get();
 
-                        if ($internalStepsWithoutWorkCell > 0 && $externalStepsWithoutManufacturer > 0) {
-                            $skipReason = "Order {$order->order_number} cannot be planned - some internal steps are missing work cell assignments and some external steps are missing manufacturer assignments";
-                        } elseif ($internalStepsWithoutWorkCell > 0) {
-                            $skipReason = "Order {$order->order_number} cannot be planned - some internal steps are missing work cell assignments";
-                        } elseif ($externalStepsWithoutManufacturer > 0) {
-                            $skipReason = "Order {$order->order_number} cannot be planned - some external steps are missing manufacturer assignments";
+                        if ($internalStepsWithoutWorkCell->count() > 0 && $externalStepsWithoutManufacturer->count() > 0) {
+                            // Build detailed message with step names
+                            $internalStepNames = $internalStepsWithoutWorkCell->pluck('name')->take(3)->join(', ');
+                            $externalStepNames = $externalStepsWithoutManufacturer->pluck('name')->take(3)->join(', ');
+
+                            $skipReason = sprintf(
+                                "Order %s cannot be planned:\n- %d internal step(s) missing work cells: %s%s\n- %d external step(s) missing manufacturers: %s%s",
+                                $order->order_number,
+                                $internalStepsWithoutWorkCell->count(),
+                                $internalStepNames,
+                                $internalStepsWithoutWorkCell->count() > 3 ? '...' : '',
+                                $externalStepsWithoutManufacturer->count(),
+                                $externalStepNames,
+                                $externalStepsWithoutManufacturer->count() > 3 ? '...' : ''
+                            );
+                        } elseif ($internalStepsWithoutWorkCell->count() > 0) {
+                            // Build detailed message with step names for internal steps
+                            $stepNames = $internalStepsWithoutWorkCell->pluck('name')->take(3)->join(', ');
+                            $skipReason = sprintf(
+                                'Order %s cannot be planned - %d internal step(s) missing work cell assignments: %s%s',
+                                $order->order_number,
+                                $internalStepsWithoutWorkCell->count(),
+                                $stepNames,
+                                $internalStepsWithoutWorkCell->count() > 3 ? ', ...' : ''
+                            );
+                        } elseif ($externalStepsWithoutManufacturer->count() > 0) {
+                            // Build detailed message with step names for external steps
+                            $stepNames = $externalStepsWithoutManufacturer->pluck('name')->take(3)->join(', ');
+                            $skipReason = sprintf(
+                                'Order %s cannot be planned - %d external step(s) missing manufacturer assignments: %s%s',
+                                $order->order_number,
+                                $externalStepsWithoutManufacturer->count(),
+                                $stepNames,
+                                $externalStepsWithoutManufacturer->count() > 3 ? ', ...' : ''
+                            );
                         } else {
                             $skipReason = "Order {$order->order_number} cannot be planned - invalid route configuration";
                         }

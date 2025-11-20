@@ -70,6 +70,10 @@ class RouteTemplateService
                     // Child order dependency fields
                     'child_order_dependency_type' => $step->child_order_dependency_type ?? 'none',
                     'child_order_minimum_quantity' => $step->child_order_minimum_quantity,
+                    // External step fields
+                    'execution_location' => $step->execution_location ?? 'internal',
+                    'manufacturer_id' => $step->manufacturer_id,
+                    'expected_lead_time_days' => $step->expected_lead_time_days,
                 ]);
 
                 // Map old step ID to new step for dependency mapping

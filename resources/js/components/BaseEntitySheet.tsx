@@ -15,7 +15,7 @@ export interface BaseEntitySheetProps<TFormData extends FormDataType> {
     // Mode
     mode?: 'create' | 'edit';
     // Callbacks
-    onSuccess?: () => void;
+    onSuccess?: (entity?: unknown) => void;
     // Trigger props (for controlled trigger)
     triggerText?: string;
     triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
@@ -139,11 +139,16 @@ export function BaseEntitySheet<TFormData extends FormDataType>({
         } else {
             post(route(formConfig.createRoute), {
                 ...submitData,
-                onSuccess: () => {
+                onSuccess: (page) => {
                     // Success message is handled by flash messages in AppLayout
                     reset();
                     setSheetOpen(false);
-                    onSuccess?.();
+                    
+                    // Extract the created entity from flash data if available
+                    const entityKey = formConfig.entityName.toLowerCase();
+                    const createdEntity = (page.props as { flash?: Record<string, unknown> }).flash?.[entityKey];
+                    
+                    onSuccess?.(createdEntity);
                 },
                 onError: () => {
                     toast.error(errorMessage, {

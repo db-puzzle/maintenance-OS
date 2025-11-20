@@ -27,6 +27,7 @@ export interface UseMOStepStateTransitionsReturn {
     labelDialog: {
         isOpen: boolean;
         onOpenChange: (open: boolean) => void;
+        order?: ManufacturingOrder;
     };
 }
 
@@ -303,7 +304,8 @@ export function useMOStepStateTransitions({
         },
         labelDialog: {
             isOpen: showLabels,
-            onOpenChange: setShowLabels
+            onOpenChange: setShowLabels,
+            order: order || undefined
         }
     };
 }

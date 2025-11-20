@@ -43,6 +43,12 @@ Route::domain('admin.' . $appDomain)->middleware(['web'])->group(function () {
 // Apply both 'tenant' (for tenancy initialization) and 'web' (for sessions, CSRF, etc.)
 // Order matters: tenant MUST come before web so tenancy is initialized before sessions load
 Route::middleware(['tenant', 'web'])->group(function () {
+    // PDF routes - these use full web middleware stack for security
+    // Inertia response wrapping is skipped in HandleInertiaRequests for pdf/* routes
+    require __DIR__ . '/pdf.php';
+
+    // QR scanning routes (must be before auth routes for proper redirect)
+    require __DIR__ . '/qr.php';
     // Dashboard/Home route
     Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', function () {

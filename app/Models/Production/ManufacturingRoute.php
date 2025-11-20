@@ -143,6 +143,10 @@ class ManufacturingRoute extends Model
                 // Child order dependency fields
                 'child_order_dependency_type' => $templateStep->child_order_dependency_type ?? 'none',
                 'child_order_minimum_quantity' => $templateStep->child_order_minimum_quantity,
+                // External step fields
+                'execution_location' => $templateStep->execution_location ?? 'internal',
+                'manufacturer_id' => $templateStep->manufacturer_id,
+                'expected_lead_time_days' => $templateStep->expected_lead_time_days,
             ]);
 
             $stepMapping[$templateStep->id] = $newStep;
@@ -312,8 +316,13 @@ class ManufacturingRoute extends Model
                         'step_type',
                         'setup_time_seconds',
                         'cycle_time_seconds',
-                        'depends_on_step_id'
-                    );
+                        'depends_on_step_id',
+                        // External step fields
+                        'execution_location',
+                        'manufacturer_id',
+                        'expected_lead_time_days'
+                    )
+                        ->with('manufacturer:id,name'); // Eager load manufacturer relationship
                 },
                 'createdBy:id,name',
                 'itemCategory:id,name',

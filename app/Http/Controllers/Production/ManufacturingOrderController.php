@@ -247,7 +247,7 @@ class ManufacturingOrderController extends BaseSearchController
                     ->withCount('children as child_count');
             },
             'manufacturingRoute.steps' => function ($query) {
-                $query->with(['workCell', 'dependentSteps']);
+                $query->with(['workCell', 'dependentSteps', 'manufacturer']);
             },
             'createdBy',
             'childDependencies.childOrder.item',
@@ -345,6 +345,7 @@ class ManufacturingOrderController extends BaseSearchController
             'plants' => \App\Models\AssetHierarchy\Plant::all(['id', 'name']),
             'shifts' => \App\Models\AssetHierarchy\Shift::all(['id', 'name']),
             'manufacturers' => \App\Models\AssetHierarchy\Manufacturer::all(['id', 'name']),
+            'unitsOfMeasure' => \App\Models\Production\UnitOfMeasure::all(['id', 'code', 'name', 'symbol', 'uom_type']),
             'openRouteBuilder' => $request->get('openRouteBuilder'),
         ]);
     }
@@ -411,23 +412,6 @@ class ManufacturingOrderController extends BaseSearchController
 
         return redirect()->route('production.orders.show', $order)
             ->with('success', 'Manufacturing order updated successfully.');
-    }
-
-    /**
-     * Release the manufacturing order for production.
-     */
-    public function release(ManufacturingOrder $order)
-    {
-        $this->authorize('release', $order);
-
-        try {
-            $this->orderService->releaseOrder($order);
-
-            return redirect()->route('production.orders.show', $order)
-                ->with('success', 'Manufacturing order released for production.');
-        } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
-        }
     }
 
     /**
@@ -742,6 +726,134 @@ class ManufacturingOrderController extends BaseSearchController
                 ->with('success', 'Route created successfully.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Update the manufacturing route for an order.
+     * This method handles batch updates of route steps from the route editor.
+     */
+    public function updateRoute(Request $request, ManufacturingOrder $order)
+    {
+        $this->authorize('update', $order);
+
+        if (! $order->manufacturingRoute()->exists()) {
+            return back()->with('error', 'This order does not have a route to update.');
+        }
+
+        if (! in_array($order->status, ['draft', 'planned', 'scheduled'])) {
+            return back()->with('error', 'Routes can only be edited for draft, planned, or scheduled orders.');
+        }
+
+        $validated = $request->validate([
+            'steps' => 'required|array',
+            'steps.*.id' => 'nullable|integer|exists:manufacturing_steps,id',
+            'steps.*.display_position' => 'required|integer|min:1',
+            'steps.*.step_number' => 'required|integer|min:1',
+            'steps.*.name' => 'required|string|max:255',
+            'steps.*.description' => 'nullable|string',
+            'steps.*.step_type' => 'required|in:standard,quality_check,rework',
+            'steps.*.work_cell_id' => 'nullable|exists:work_cells,id',
+            'steps.*.setup_time_minutes' => 'nullable|integer|min:0',
+            'steps.*.cycle_time_minutes' => 'nullable|integer|min:0',
+            'steps.*.use_workcell_throughput' => 'nullable|boolean',
+            'steps.*.depends_on_step_id' => 'nullable|integer',
+            'steps.*.can_start_when_dependency' => 'nullable|in:completed,started',
+            'steps.*.quality_check_mode' => 'nullable|in:every_part,entire_lot,sampling',
+            'steps.*.sampling_size' => 'nullable|integer|min:0',
+            'steps.*.form_id' => 'nullable|exists:forms,id',
+            'steps.*.child_order_dependency_type' => 'nullable|in:none,all_children_completed,children_quantity,children_percentage',
+            'steps.*.child_order_minimum_quantity' => 'nullable|integer|min:0',
+            'steps.*.execution_location' => 'nullable|in:internal,external',
+            'steps.*.manufacturer_id' => 'nullable|exists:manufacturers,id',
+            'steps.*.expected_lead_time_days' => 'nullable|integer|min:1',
+        ]);
+
+        try {
+            \DB::transaction(function () use ($order, $validated) {
+                $route = $order->manufacturingRoute;
+
+                // Track existing step IDs to determine which to delete
+                $existingStepIds = $route->steps()->pluck('id')->toArray();
+                $processedStepIds = [];
+
+                // Map of old (temp) IDs to new (database) IDs for dependency resolution
+                $idMap = [];
+
+                // Process steps in order to handle dependencies correctly
+                foreach ($validated['steps'] as $stepData) {
+                    $stepId = $stepData['id'];
+
+                    // Prepare step data
+                    $data = [
+                        'manufacturing_route_id' => $route->id,
+                        'display_position' => $stepData['display_position'],
+                        'step_number' => $stepData['step_number'],
+                        'name' => $stepData['name'],
+                        'description' => $stepData['description'] ?? null,
+                        'step_type' => $stepData['step_type'],
+                        'work_cell_id' => $stepData['work_cell_id'] ?? null,
+                        'setup_time_seconds' => ($stepData['setup_time_minutes'] ?? 0) * 60,
+                        'cycle_time_seconds' => ($stepData['cycle_time_minutes'] ?? 0) * 60,
+                        'use_workcell_throughput' => $stepData['use_workcell_throughput'] ?? false,
+                        'can_start_when_dependency' => $stepData['can_start_when_dependency'] ?? null,
+                        'quality_check_mode' => $stepData['quality_check_mode'] ?? null,
+                        'sampling_size' => $stepData['sampling_size'] ?? null,
+                        'form_id' => $stepData['form_id'] ?? null,
+                        'child_order_dependency_type' => $stepData['child_order_dependency_type'] ?? 'none',
+                        'child_order_minimum_quantity' => $stepData['child_order_minimum_quantity'] ?? 0,
+                        'execution_location' => $stepData['execution_location'] ?? 'internal',
+                        'manufacturer_id' => $stepData['manufacturer_id'] ?? null,
+                        'expected_lead_time_days' => $stepData['expected_lead_time_days'] ?? null,
+                    ];
+
+                    // Handle depends_on_step_id - resolve from idMap if it was a temp ID
+                    if (isset($stepData['depends_on_step_id'])) {
+                        $dependsOnId = $stepData['depends_on_step_id'];
+                        // Check if this dependency was a newly created step
+                        if (isset($idMap[$dependsOnId])) {
+                            $data['depends_on_step_id'] = $idMap[$dependsOnId];
+                        } else {
+                            $data['depends_on_step_id'] = $dependsOnId;
+                        }
+                    } else {
+                        $data['depends_on_step_id'] = null;
+                    }
+
+                    if ($stepId) {
+                        // Update existing step
+                        $step = \App\Models\Production\ManufacturingStep::find($stepId);
+                        if ($step && $step->manufacturing_route_id === $route->id) {
+                            $step->update($data);
+                            $processedStepIds[] = $stepId;
+                        }
+                    } else {
+                        // Create new step
+                        $newStep = \App\Models\Production\ManufacturingStep::create($data);
+                        $processedStepIds[] = $newStep->id;
+
+                        // Store mapping for future dependency resolution
+                        // Note: We can't map temp IDs directly as they aren't in the request,
+                        // so we rely on sequential processing
+                    }
+                }
+
+                // Delete steps that were not in the update (removed by user)
+                $stepsToDelete = array_diff($existingStepIds, $processedStepIds);
+                if (! empty($stepsToDelete)) {
+                    \App\Models\Production\ManufacturingStep::whereIn('id', $stepsToDelete)->delete();
+                }
+            });
+
+            return back()->with('success', 'Route updated successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Error updating manufacturing order route', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()->with('error', 'An error occurred while updating the route: ' . $e->getMessage());
         }
     }
 

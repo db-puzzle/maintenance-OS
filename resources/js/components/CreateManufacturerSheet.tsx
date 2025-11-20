@@ -19,7 +19,7 @@ interface CreateManufacturerSheetProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     mode: 'create' | 'edit';
-    onSuccess?: () => void;
+    onSuccess?: (manufacturer?: Manufacturer) => void;
 }
 const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manufacturer, open, onOpenChange, mode, onSuccess }) => {
     const nameInputRef = useRef<HTMLInputElement>(null);
@@ -62,7 +62,12 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
             open={open}
             onOpenChange={handleOpenChange}
             mode={mode}
-            onSuccess={onSuccess}
+            onSuccess={(entity) => {
+                // Cast the entity to Manufacturer before passing to onSuccess
+                if (onSuccess) {
+                    onSuccess(entity as Manufacturer | undefined);
+                }
+            }}
             formConfig={{
                 initialData: {
                     name: '',

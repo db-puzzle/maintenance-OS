@@ -20,8 +20,6 @@ import {
     Calendar,
 } from 'lucide-react';
 import StackIcon from '@/components/stack-icon';
-import axios from 'axios';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -43,6 +41,7 @@ import ManufacturingOrderRouteTab from '@/components/production/ManufacturingOrd
 import { SaveAsTemplateDialog } from '@/components/production/templates/SaveAsTemplateDialog';
 import { DirectExecution } from '@/components/production/templates/DirectExecution';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
+import { MOStepLabelPrintDialog } from '@/pages/production/reporting/components/dialogs/MOStepLabelPrintDialog';
 import { createFormAdapter } from '@/utils/form-adapters';
 import { cn } from '@/lib/utils';
 import { ManufacturingOrder, RouteTemplate, WorkCell, WorkUnitsBreakdown } from '@/types/production';
@@ -75,6 +74,13 @@ interface Props {
     manufacturers?: {
         id: number;
         name: string;
+    }[];
+    unitsOfMeasure?: {
+        id: number;
+        code: string;
+        name: string;
+        symbol?: string;
+        uom_type: 'COUNT' | 'MASS' | 'LENGTH' | 'AREA' | 'VOLUME' | 'TIME';
     }[];
 }
 
@@ -176,14 +182,15 @@ export default function ShowManufacturingOrder({
     forms = [],
     plants,
     shifts,
-    manufacturers
+    manufacturers,
+    unitsOfMeasure = []
 }: Props) {
     const { props } = usePage();
     const flash = props.flash as { openRouteBuilder?: string | boolean; fromQrScan?: boolean } | undefined;
 
     // State
-    const [generatingQr, setGeneratingQr] = useState(false);
     const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false);
+    const [labelDialogOpen, setLabelDialogOpen] = useState(false);
 
     // Form setup
     const inertiaForm = useForm({
@@ -324,25 +331,6 @@ export default function ShowManufacturingOrder({
             router.post(window.route('production.orders.cancel', order.id), {
                 reason: 'Cancelled by user'
             });
-        }
-    };
-
-    const handleGenerateQrTag = async () => {
-        setGeneratingQr(true);
-        try {
-            const response = await axios.post(window.route('production.qr-tags.order', order.id));
-            if (response.data.success && response.data.pdf_url) {
-                window.open(response.data.pdf_url, '_blank');
-                toast.success('Etiqueta QR gerada com sucesso!');
-            }
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
-            } else {
-                toast.error('Erro ao gerar etiqueta QR');
-            }
-        } finally {
-            setGeneratingQr(false);
         }
     };
 
@@ -928,6 +916,7 @@ export default function ShowManufacturingOrder({
                             plants={plants}
                             shifts={shifts}
                             manufacturers={manufacturers}
+                            unitsOfMeasure={unitsOfMeasure}
                             openRouteBuilder={openRouteBuilderParam as string | null | undefined}
                         />
                     )}
@@ -997,11 +986,10 @@ export default function ShowManufacturingOrder({
             <div className="flex gap-2">
                 <Button
                     variant="outline"
-                    onClick={handleGenerateQrTag}
-                    disabled={generatingQr}
+                    onClick={() => setLabelDialogOpen(true)}
                 >
                     <QrCode className="h-4 w-4 mr-2" />
-                    {generatingQr ? 'Gerando...' : 'Gerar QR'}
+                    Gerar QR
                 </Button>
 
                 {shouldShowRelease && canRelease && (
@@ -1113,6 +1101,13 @@ export default function ShowManufacturingOrder({
                     onOpenChange={setSaveAsTemplateOpen}
                 />
             )}
+
+            {/* QR Label Print Dialog */}
+            <MOStepLabelPrintDialog
+                isOpen={labelDialogOpen}
+                onOpenChange={setLabelDialogOpen}
+                order={order}
+            />
         </>
     );
 }

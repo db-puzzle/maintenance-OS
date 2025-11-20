@@ -468,11 +468,11 @@ export default function ManufacturingOrders({
             <ListLayout
                 title="Ordens de Manufatura"
                 description="Gerencie ordens de produção e acompanhe o progresso"
-                searchPlaceholder="Search by order number or item..."
+                searchPlaceholder="Buscar por número da ordem ou item..."
                 searchValue={searchValue}
                 onSearchChange={handleSearchChange}
                 onCreateClick={() => setShowCreateDialog(true)}
-                createButtonText="Create Order"
+                createButtonText="Criar Ordem"
                 actions={
                     <div className="flex gap-2">
                         <ImageDisplayToggleButton
@@ -484,18 +484,18 @@ export default function ManufacturingOrders({
                             size="sm"
                             pressed={parentFilter === 'root'}
                             onPressedChange={(pressed) => handleParentFilter(pressed ? 'root' : 'all')}
-                            className="w-[145px] flex items-center justify-between data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90"
+                            className="w-[150px] flex items-center justify-between data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90"
                             aria-label="Toggle parent filter"
                         >
                             <GitBranch className="ml-1 h-4 w-4" />
                             <span className="flex-1 ml-1 text-left">{parentFilter === 'root' ? 'Somente Raiz' : 'Todas as MOs'}</span>
                         </Toggle>
                         <Select value={statusFilter || 'all'} onValueChange={handleStatusFilter}>
-                            <SelectTrigger className="w-[135px] h-8">
-                                <SelectValue placeholder="Filter by status" />
+                            <SelectTrigger className="w-[150px] h-8">
+                                <SelectValue placeholder="Filtrar por status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Statuses</SelectItem>
+                                <SelectItem value="all">Todos os Status</SelectItem>
                                 {Object.entries(statuses).map(([value, label]) => (
                                     <SelectItem key={value} value={value}>
                                         {label}
@@ -553,37 +553,32 @@ export default function ManufacturingOrders({
                                 }
                                 additionalActions={[
                                     {
-                                        label: 'View',
+                                        label: 'Visualizar',
                                         onClick: () => router.visit(route('production.orders.show', order.id))
                                     },
                                     // Plan action - for draft or planned orders
                                     ...(order.status === 'draft' || order.status === 'planned' ? [{
-                                        label: 'Plan',
+                                        label: 'Planejar',
                                         onClick: () => router.visit(route('production.planning.index', { selectedMO: order.id }))
                                     }] : []),
                                     // Schedule action - for planned orders
                                     ...(order.status === 'planned' ? [{
-                                        label: 'Schedule',
+                                        label: 'Agendar',
                                         onClick: () => router.post(route('production.orders.schedule', order.id))
-                                    }] : []),
-                                    // Release action - for draft, planned, or scheduled orders
-                                    ...((['draft', 'planned', 'scheduled'].includes(order.status)) ? [{
-                                        label: 'Release',
-                                        onClick: () => router.post(route('production.orders.release', order.id))
                                     }] : []),
                                     // Hold - for in progress orders
                                     ...(order.status === 'in_progress' ? [{
-                                        label: 'Hold',
+                                        label: 'Pausar',
                                         onClick: () => setHoldOrder(order)
                                     }] : []),
                                     // Resume - for on hold orders
                                     ...(order.status === 'on_hold' ? [{
-                                        label: 'Resume',
+                                        label: 'Retomar',
                                         onClick: () => router.post(route('production.orders.resume', order.id))
                                     }] : []),
                                     // Cancel - for non-draft, non-completed, non-cancelled orders
                                     ...(!['draft', 'completed', 'cancelled'].includes(order.status) ? [{
-                                        label: 'Cancel',
+                                        label: 'Cancelar',
                                         onClick: () => setCancelOrder(order)
                                     }] : [])
                                     // View Children action temporarily disabled - route not implemented yet
@@ -636,10 +631,10 @@ export default function ManufacturingOrders({
             <EntityDeleteDialog
                 open={!!deleteOrder}
                 onOpenChange={(open) => !open && setDeleteOrder(null)}
-                entityLabel={deleteOrder ? `order ${deleteOrder.order_number}` : ''}
+                entityLabel={deleteOrder ? `ordem ${deleteOrder.order_number}` : ''}
                 onConfirm={handleDelete}
                 confirmationValue={deleteOrder?.order_number || ''}
-                confirmationLabel={deleteOrder ? `Type the order number (${deleteOrder.order_number}) to confirm` : ''}
+                confirmationLabel={deleteOrder ? `Digite o número da ordem (${deleteOrder.order_number}) para confirmar` : ''}
             />
 
             {/* Cancel Order Dialog */}
@@ -651,21 +646,21 @@ export default function ManufacturingOrders({
             }}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Cancel Manufacturing Order</DialogTitle>
+                        <DialogTitle>Cancelar Ordem de Manufatura</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to cancel order {cancelOrder?.order_number}? This action cannot be undone.
+                            Tem certeza que deseja cancelar a ordem {cancelOrder?.order_number}? Esta ação não pode ser desfeita.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="cancel-confirmation">
-                                Type the order number ({cancelOrder?.order_number}) to confirm
+                                Digite o número da ordem ({cancelOrder?.order_number}) para confirmar
                             </Label>
                             <Input
                                 id="cancel-confirmation"
                                 value={cancelConfirmation}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCancelConfirmation(e.target.value)}
-                                placeholder={`Enter ${cancelOrder?.order_number}`}
+                                placeholder={`Digite ${cancelOrder?.order_number}`}
                                 className="w-full"
                             />
                         </div>
@@ -678,14 +673,14 @@ export default function ManufacturingOrders({
                                 setCancelConfirmation('');
                             }}
                         >
-                            No, Keep Order
+                            Não, Manter Ordem
                         </Button>
                         <Button
                             variant="destructive"
                             onClick={handleCancel}
                             disabled={cancelConfirmation !== cancelOrder?.order_number}
                         >
-                            Yes, Cancel Order
+                            Sim, Cancelar Ordem
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -700,19 +695,19 @@ export default function ManufacturingOrders({
             }}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Hold Manufacturing Order</DialogTitle>
+                        <DialogTitle>Pausar Ordem de Manufatura</DialogTitle>
                         <DialogDescription>
-                            Put order {holdOrder?.order_number} on hold. You can optionally provide a reason.
+                            Colocar a ordem {holdOrder?.order_number} em pausa. Você pode opcionalmente fornecer um motivo.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="hold-reason">Reason (optional)</Label>
+                            <Label htmlFor="hold-reason">Motivo (opcional)</Label>
                             <Input
                                 id="hold-reason"
                                 value={holdReason}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHoldReason(e.target.value)}
-                                placeholder="Enter reason for hold..."
+                                placeholder="Digite o motivo da pausa..."
                                 className="w-full"
                             />
                         </div>
@@ -725,12 +720,12 @@ export default function ManufacturingOrders({
                                 setHoldReason('');
                             }}
                         >
-                            Cancel
+                            Cancelar
                         </Button>
                         <Button
                             onClick={handleHold}
                         >
-                            Hold Order
+                            Pausar Ordem
                         </Button>
                     </DialogFooter>
                 </DialogContent>

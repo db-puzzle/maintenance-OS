@@ -469,6 +469,7 @@ class ManufacturingOrder extends Model
                         )
                             ->with([
                                 'workCell',
+                                'manufacturer:id,name', // Eager load manufacturer for external steps
                                 // Eager load dependency chain to avoid N+1 in getDisplayPositionAttribute
                                 // Loading 5 levels deep to handle complex dependency chains
                                 'dependency' => function ($depQuery) {

@@ -18,7 +18,15 @@ class ManufacturingStep extends Model
      *
      * @var array
      */
-    protected $appends = ['setup_time_minutes', 'cycle_time_minutes', 'display_position'];
+    protected $appends = [
+        'setup_time_minutes',
+        'cycle_time_minutes',
+        'display_position',
+        'total_quantity_shipped',
+        'total_quantity_received',
+        'last_shipped_date',
+        'last_received_date',
+    ];
 
     /**
      * Get the factory name for the model.
@@ -84,8 +92,7 @@ class ManufacturingStep extends Model
 
     public const EXTERNAL_STATUSES = [
         'awaiting_shipment' => 'Awaiting Shipment',
-        'shipped' => 'Shipped',
-        'in_process' => 'In Process at Manufacturer',
+        'at_manufacturer' => 'At Manufacturer',
     ];
 
     protected $fillable = [
@@ -126,10 +133,6 @@ class ManufacturingStep extends Model
         'manufacturer_id',
         'expected_lead_time_days',
         'external_status',
-        'shipped_date',
-        'received_date',
-        'quantity_shipped',
-        'quantity_received',
     ];
 
     protected $casts = [
@@ -158,10 +161,6 @@ class ManufacturingStep extends Model
         // External execution casts
         'execution_location' => 'string',
         'external_status' => 'string',
-        'shipped_date' => 'datetime',
-        'received_date' => 'datetime',
-        'quantity_shipped' => 'decimal:2',
-        'quantity_received' => 'decimal:2',
     ];
 
     /**
@@ -226,10 +225,6 @@ class ManufacturingStep extends Model
                 $step->manufacturer_id = null;
                 $step->expected_lead_time_days = null;
                 $step->external_status = null;
-                $step->shipped_date = null;
-                $step->received_date = null;
-                $step->quantity_shipped = 0;
-                $step->quantity_received = 0;
             }
         });
     }
@@ -283,11 +278,26 @@ class ManufacturingStep extends Model
     }
 
     /**
-     * Get the shipments for this external step.
+     * Get the shipment items for this external step.
      */
-    public function shipments(): HasMany
+    public function shipmentItems(): HasMany
     {
-        return $this->hasMany(Shipment::class, 'manufacturing_step_id');
+        return $this->hasMany(ShipmentItem::class, 'manufacturing_step_id');
+    }
+
+    /**
+     * Get the shipments for this external step through shipment items.
+     */
+    public function shipments()
+    {
+        return $this->hasManyThrough(
+            Shipment::class,
+            ShipmentItem::class,
+            'manufacturing_step_id', // Foreign key on shipment_items table
+            'id', // Foreign key on shipments table
+            'id', // Local key on manufacturing_steps table
+            'shipment_id' // Local key on shipment_items table
+        );
     }
 
     /**
@@ -400,13 +410,98 @@ class ManufacturingStep extends Model
     }
 
     /**
+     * Get total quantity shipped from all shipments.
+     * This is a computed property that replaces the old quantity_shipped field.
+     */
+    public function getTotalQuantityShippedAttribute(): float
+    {
+        if (! $this->isExternal()) {
+            return 0;
+        }
+
+        return \App\Models\Production\ShipmentItem::where('manufacturing_step_id', $this->id)
+            ->sum('quantity_shipped');
+    }
+
+    /**
+     * Get total quantity received from all shipments.
+     * This is a computed property that replaces the old quantity_received field.
+     */
+    public function getTotalQuantityReceivedAttribute(): float
+    {
+        if (! $this->isExternal()) {
+            return 0;
+        }
+
+        return \App\Models\Production\ShipmentItem::where('manufacturing_step_id', $this->id)
+            ->sum('quantity_received');
+    }
+
+    /**
+     * Get the date when items were last shipped.
+     * This is a computed property that replaces the old shipped_date field.
+     */
+    public function getLastShippedDateAttribute(): ?string
+    {
+        if (! $this->isExternal()) {
+            return null;
+        }
+
+        $lastShipmentItem = \App\Models\Production\ShipmentItem::where('manufacturing_step_id', $this->id)
+            ->whereHas('shipment', function ($query) {
+                $query->whereNotNull('actual_ship_date');
+            })
+            ->with('shipment')
+            ->orderByDesc(function ($query) {
+                $query->select('actual_ship_date')
+                    ->from('shipments')
+                    ->whereColumn('shipments.id', 'shipment_items.shipment_id')
+                    ->limit(1);
+            })
+            ->first();
+
+        return $lastShipmentItem?->shipment->actual_ship_date?->toDateTimeString();
+    }
+
+    /**
+     * Get the date when items were last received.
+     * This is a computed property that replaces the old received_date field.
+     */
+    public function getLastReceivedDateAttribute(): ?string
+    {
+        if (! $this->isExternal()) {
+            return null;
+        }
+
+        $lastShipmentItem = \App\Models\Production\ShipmentItem::where('manufacturing_step_id', $this->id)
+            ->whereHas('shipment', function ($query) {
+                $query->where('status', 'received')
+                    ->whereNotNull('actual_delivery_date');
+            })
+            ->with('shipment')
+            ->orderByDesc(function ($query) {
+                $query->select('actual_delivery_date')
+                    ->from('shipments')
+                    ->whereColumn('shipments.id', 'shipment_items.shipment_id')
+                    ->limit(1);
+            })
+            ->first();
+
+        return $lastShipmentItem?->shipment->actual_delivery_date?->toDateTimeString();
+    }
+
+    /**
      * Get the remaining quantity to ship.
      */
     public function getRemainingQuantityToShipAttribute(): float
     {
+        if (! $this->isExternal()) {
+            return 0;
+        }
+
         $totalQuantity = $this->manufacturingRoute->manufacturingOrder->quantity;
 
-        return max(0, $totalQuantity - $this->quantity_shipped);
+        return max(0, $totalQuantity - $this->getTotalQuantityShippedAttribute());
     }
 
     /**
@@ -414,7 +509,11 @@ class ManufacturingStep extends Model
      */
     public function getRemainingQuantityToReceiveAttribute(): float
     {
-        return max(0, $this->quantity_shipped - $this->quantity_received);
+        if (! $this->isExternal()) {
+            return 0;
+        }
+
+        return max(0, $this->getTotalQuantityShippedAttribute() - $this->getTotalQuantityReceivedAttribute());
     }
 
     /**
@@ -427,13 +526,10 @@ class ManufacturingStep extends Model
         }
 
         $this->update([
-            'external_status' => 'shipped',
-            'shipped_date' => now(),
+            'external_status' => 'at_manufacturer',
             'status' => 'in_progress', // Update main status too
             'actual_start_time' => $this->actual_start_time ?? now(),
         ]);
-
-        $this->increment('quantity_shipped', $quantity);
 
         // Log activity
         activity()
@@ -457,7 +553,7 @@ class ManufacturingStep extends Model
         }
 
         $this->update([
-            'external_status' => 'in_process',
+            'external_status' => 'at_manufacturer',
         ]);
 
         // Log activity
@@ -483,18 +579,17 @@ class ManufacturingStep extends Model
             throw new \Exception('Cannot record received quantity for non-external step');
         }
 
-        $this->increment('quantity_received', $quantity);
-
-        // Update received_date (timestamp of last receipt)
-        $this->update(['received_date' => now()]);
+        // Get current received quantity from shipments
+        $totalReceived = $this->getTotalQuantityReceivedAttribute();
+        $totalShipped = $this->getTotalQuantityShippedAttribute();
 
         // If all shipped quantity is received, mark step as COMPLETED
-        if ($this->quantity_received >= $this->quantity_shipped) {
+        if (($totalReceived + $quantity) >= $totalShipped) {
             // Step is COMPLETE - same as internal steps
             $this->update([
                 'status' => 'completed',
                 'actual_end_time' => now(),
-                // external_status stays 'in_process' (or we could clear it)
+                // external_status stays 'at_manufacturer' for history
             ]);
 
             // Log completion
@@ -503,7 +598,7 @@ class ManufacturingStep extends Model
                 ->causedBy(auth()->user())
                 ->withProperties([
                     'quantity_received' => $quantity,
-                    'total_received' => $this->quantity_received,
+                    'total_received' => $totalReceived + $quantity,
                     'notes' => $notes,
                 ])
                 ->log('External step completed - all quantities received');
@@ -517,8 +612,8 @@ class ManufacturingStep extends Model
                 ->causedBy(auth()->user())
                 ->withProperties([
                     'quantity_received' => $quantity,
-                    'total_received' => $this->quantity_received,
-                    'remaining' => $this->quantity_shipped - $this->quantity_received,
+                    'total_received' => $totalReceived + $quantity,
+                    'remaining' => $totalShipped - ($totalReceived + $quantity),
                     'notes' => $notes,
                 ])
                 ->log('Partial receipt recorded for external step');

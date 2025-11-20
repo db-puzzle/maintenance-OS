@@ -15,12 +15,16 @@ class QrCodeController extends Controller
 {
     public function __construct()
     {
-        // Ensure user is authenticated for all methods
-        $this->middleware(['auth', 'verified']);
+        // Authentication is handled in methods to allow proper redirect
     }
 
     public function handleItemScan(Request $request, string $itemNumber)
     {
+        // Check authentication and redirect if needed
+        if (! auth()->check()) {
+            return redirect()->guest(route('login'))->with('url.intended', $request->fullUrl());
+        }
+
         $item = Item::where('item_number', $itemNumber)->firstOrFail();
 
         // Log the scan
@@ -50,8 +54,17 @@ class QrCodeController extends Controller
 
     public function handleOrderScan(Request $request, string $orderNumber)
     {
+        // Check authentication and redirect if needed
+        if (! auth()->check()) {
+            return redirect()->guest(route('login'))->with('url.intended', $request->fullUrl());
+        }
+
         $order = ManufacturingOrder::where('order_number', $orderNumber)
-            ->with(['item', 'manufacturingRoute.steps', 'children'])
+            ->with(['item.media', 'manufacturingRoute.steps' => function ($query) {
+                $query->with(['executions' => function ($q) {
+                    $q->orderBy('id', 'desc')->limit(1);
+                }]);
+            }, 'children'])
             ->firstOrFail();
 
         // Log the scan
@@ -64,7 +77,22 @@ class QrCodeController extends Controller
             ->orderBy('manufacturing_step_id')
             ->first();
 
-        // Always redirect to production reporting with the specific MO and step
+        // Detect if mobile/tablet for appropriate view
+        $agent = new Agent;
+        $agent->setUserAgent($request->userAgent());
+        $isMobile = $agent->isMobile() || $agent->isTablet();
+
+        if ($isMobile || $request->input('mobile')) {
+            // Render mobile-optimized page with MOStepActionDialog
+            return Inertia::render('qr/manufacturing-order-mobile', [
+                'order' => $order,
+                'activeStepId' => $activeExecution?->manufacturing_step_id,
+                'canExecuteSteps' => $request->user()->can('production.steps.execute'),
+                'isMobile' => true,
+            ]);
+        }
+
+        // Desktop users get redirected to production reporting page
         return redirect()->route('production.reporting.index', [
             'selected_mo' => $order->id,
             'active_step' => $activeExecution?->manufacturing_step_id,

@@ -125,13 +125,16 @@ class TenantRegistrationController extends Controller
                 ],
                 'plan_id' => ['required', 'exists:plans,id'],
                 'admin_name' => ['required', 'string', 'max:255'],
-                'admin_email' => ['required', 'string', 'email', 'max:255'],
+                'admin_email' => ['required', 'string', 'email:rfc', 'max:255'],
                 'admin_password' => ['required', 'confirmed', Password::defaults()],
                 'terms_accepted' => ['required', 'accepted'],
             ], [
                 'subdomain.regex' => 'The subdomain must start and end with a letter or number, and can only contain letters, numbers, and hyphens.',
                 'subdomain.not_in' => 'This subdomain is reserved and cannot be used.',
                 'subdomain.unique' => 'This subdomain is already taken. Please choose another.',
+                'admin_email.required' => 'Please provide an email address.',
+                'admin_email.email' => 'Please provide a valid email address with a valid domain.',
+                'admin_email.max' => 'The email address cannot exceed 255 characters.',
             ]);
 
             // Create tenant - database operations happen automatically via Laravel Tenancy
@@ -175,6 +178,9 @@ class TenantRegistrationController extends Controller
 
             // Use Inertia::location() for cross-domain redirects (forces full page visit)
             return Inertia::location($tenantUrl);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Re-throw validation exceptions so Inertia can handle them properly
+            throw $e;
         } catch (UniqueConstraintViolationException $e) {
             \Log::error('Subdomain already exists', [
                 'subdomain' => $validated['subdomain'] ?? 'unknown',
@@ -186,17 +192,43 @@ class TenantRegistrationController extends Controller
                     'subdomain' => 'This subdomain is already taken. Please choose another one.',
                 ])
                 ->withInput($request->except(['admin_password', 'admin_password_confirmation']));
+        } catch (\PDOException $e) {
+            \Log::error('Database error during tenant registration', [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode(),
+            ]);
+
+            return back()
+                ->withErrors([
+                    'general' => 'A database error occurred while creating your account. This may be due to invalid data or a system issue. Please verify your information and try again, or contact support if the problem persists.',
+                ])
+                ->withInput($request->except(['admin_password', 'admin_password_confirmation']));
         } catch (\Exception $e) {
             \Log::error('Tenant registration failed', [
                 'error' => $e->getMessage(),
                 'error_class' => get_class($e),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
             ]);
+
+            // Provide a more helpful error message based on the exception type
+            $errorMessage = 'An unexpected error occurred while creating your account. ';
+
+            // Add context-specific information if available
+            if (str_contains($e->getMessage(), 'email')) {
+                $errorMessage .= 'There may be an issue with the email address provided. ';
+            } elseif (str_contains($e->getMessage(), 'password')) {
+                $errorMessage .= 'There may be an issue with the password provided. ';
+            } elseif (str_contains($e->getMessage(), 'database') || str_contains($e->getMessage(), 'connection')) {
+                $errorMessage .= 'There appears to be a database connectivity issue. ';
+            }
+
+            $errorMessage .= 'Please try again or contact support if the problem persists. Error ID: ' . now()->format('YmdHis');
 
             return back()
                 ->withErrors([
-                    'general' => 'An error occurred while creating your account. Please try again or contact support if the problem persists.',
+                    'general' => $errorMessage,
                 ])
                 ->withInput($request->except(['admin_password', 'admin_password_confirmation']));
         }

@@ -34,17 +34,11 @@ class ExternalStepService
             throw new \Exception('Step cannot be marked as shipped in current state');
         }
 
-        DB::transaction(function () use ($step, $quantity, $notes, $photos) {
+        DB::transaction(function () use ($step, $quantity, $notes) {
             $step->markAsShipped($quantity, $notes);
 
-            // Handle photos if provided
-            if (! empty($photos)) {
-                foreach ($photos as $photo) {
-                    $step->addMedia($photo)
-                        ->withCustomProperties(['type' => 'shipment'])
-                        ->toMediaCollection('external_step_photos');
-                }
-            }
+            // Note: Photos should now be attached to the shipment in the logistics module,
+            // not directly to the step. This maintains better traceability.
         });
 
         return $step->fresh(['manufacturer', 'manufacturingRoute.manufacturingOrder']);
@@ -97,17 +91,11 @@ class ExternalStepService
             throw new \Exception('Can only record received quantity for external steps');
         }
 
-        DB::transaction(function () use ($step, $quantity, $notes, $photos) {
+        DB::transaction(function () use ($step, $quantity, $notes) {
             $step->recordQuantityReceived($quantity, $notes);
 
-            // Handle photos if provided (these go on the step, not the shipment)
-            if (! empty($photos)) {
-                foreach ($photos as $photo) {
-                    $step->addMedia($photo)
-                        ->withCustomProperties(['type' => 'receipt'])
-                        ->toMediaCollection('external_step_photos');
-                }
-            }
+            // Note: Photos should be attached to the shipment receipt in the logistics module,
+            // not directly to the step. This maintains better traceability.
         });
 
         return $step->fresh(['manufacturer', 'manufacturingRoute.manufacturingOrder']);
@@ -143,7 +131,7 @@ class ExternalStepService
                 'manufacturingRoute.manufacturingOrder.item',
                 'workCell',
             ])
-            ->orderBy('shipped_date')
+            ->orderBy('scheduled_start')
             ->get();
     }
 

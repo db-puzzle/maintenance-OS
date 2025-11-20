@@ -21,11 +21,11 @@ return new class extends Migration
             $table->enum('execution_location', ['internal', 'external'])->default('internal')->comment('Where the step is executed');
             $table->foreignId('manufacturer_id')->nullable()->constrained('manufacturers')->nullOnDelete()->comment('Third-party manufacturer (for external steps)');
             $table->integer('expected_lead_time_days')->nullable()->comment('Expected turnaround time at manufacturer (days)');
-            $table->enum('external_status', ['awaiting_shipment', 'shipped', 'in_process'])->nullable()->comment('External processing status');
-            $table->timestamp('shipped_date')->nullable()->comment('When items were shipped to manufacturer');
-            $table->timestamp('received_date')->nullable()->comment('When items were received from manufacturer');
-            $table->decimal('quantity_shipped', 10, 2)->default(0)->comment('Total quantity shipped (sum of all shipments)');
-            $table->decimal('quantity_received', 10, 2)->default(0)->comment('Total quantity received (sum of all receipts)');
+            $table->enum('external_status', ['awaiting_shipment', 'at_manufacturer'])->nullable()->comment('External processing status');
+            // Note: shipped_date and received_date removed - now tracked via shipments table
+            // Note: quantity_shipped and quantity_received removed - now computed from shipment_items table
+            $table->decimal('quantity_shipped', 10, 2)->default(0)->comment('Legacy: Total quantity shipped (now computed from shipment_items)');
+            $table->decimal('quantity_received', 10, 2)->default(0)->comment('Legacy: Total quantity received (now computed from shipment_items)');
 
             $table->string('name', 255);
             $table->text('description')->nullable();

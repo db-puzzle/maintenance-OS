@@ -554,15 +554,39 @@ export default function PlanningPage({
             return { canPlan: false, reason: 'Rota não possui etapas definidas' };
         }
 
-        // Check if all steps have work cells
-        const stepsWithoutWorkCells = mo.manufacturing_route.steps.filter(
-            step => !step.work_cell_id
+        // Check if all internal steps have work cells assigned
+        const internalStepsWithoutWorkCells = mo.manufacturing_route.steps.filter(
+            step => step.execution_location === 'internal' && !step.work_cell_id
         );
 
-        if (stepsWithoutWorkCells.length > 0) {
+        // Check if all external steps have manufacturers assigned
+        const externalStepsWithoutManufacturers = mo.manufacturing_route.steps.filter(
+            step => step.execution_location === 'external' && !step.manufacturer_id
+        );
+
+        // Build detailed error messages
+        if (internalStepsWithoutWorkCells.length > 0 && externalStepsWithoutManufacturers.length > 0) {
+            const internalStepNames = internalStepsWithoutWorkCells.slice(0, 3).map(s => s.name).join(', ');
+            const externalStepNames = externalStepsWithoutManufacturers.slice(0, 3).map(s => s.name).join(', ');
             return {
                 canPlan: false,
-                reason: `${stepsWithoutWorkCells.length} etapa(s) sem célula de trabalho atribuída`
+                reason: `Ordem ${mo.order_number}:\n- ${internalStepsWithoutWorkCells.length} etapa(s) interna(s) sem célula: ${internalStepNames}${internalStepsWithoutWorkCells.length > 3 ? '...' : ''}\n- ${externalStepsWithoutManufacturers.length} etapa(s) externa(s) sem fabricante: ${externalStepNames}${externalStepsWithoutManufacturers.length > 3 ? '...' : ''}`
+            };
+        }
+
+        if (internalStepsWithoutWorkCells.length > 0) {
+            const stepNames = internalStepsWithoutWorkCells.slice(0, 3).map(s => s.name).join(', ');
+            return {
+                canPlan: false,
+                reason: `Ordem ${mo.order_number}: ${internalStepsWithoutWorkCells.length} etapa(s) interna(s) sem célula de trabalho - ${stepNames}${internalStepsWithoutWorkCells.length > 3 ? '...' : ''}`
+            };
+        }
+
+        if (externalStepsWithoutManufacturers.length > 0) {
+            const stepNames = externalStepsWithoutManufacturers.slice(0, 3).map(s => s.name).join(', ');
+            return {
+                canPlan: false,
+                reason: `Ordem ${mo.order_number}: ${externalStepsWithoutManufacturers.length} etapa(s) externa(s) sem fabricante - ${stepNames}${externalStepsWithoutManufacturers.length > 3 ? '...' : ''}`
             };
         }
 

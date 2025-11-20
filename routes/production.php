@@ -178,7 +178,6 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::resource('orders', ManufacturingOrderController::class)->except(['edit']);
     Route::post('orders/{order}/plan', [ManufacturingOrderController::class, 'plan'])->name('orders.plan');
     Route::post('orders/{order}/schedule', [ManufacturingOrderController::class, 'schedule'])->name('orders.schedule');
-    Route::post('orders/{order}/release', [ManufacturingOrderController::class, 'release'])->name('orders.release');
     Route::post('orders/{order}/start', [ManufacturingOrderController::class, 'start'])->name('orders.start');
     Route::post('orders/{order}/hold', [ManufacturingOrderController::class, 'hold'])->name('orders.hold');
     Route::post('orders/{order}/resume', [ManufacturingOrderController::class, 'resume'])->name('orders.resume');
@@ -190,6 +189,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     // Order Routes
     Route::get('orders/{order}/routes/create', [ManufacturingOrderController::class, 'createRoute'])->name('orders.routes.create');
     Route::post('orders/{order}/routes', [ManufacturingOrderController::class, 'storeRoute'])->name('orders.routes.store');
+    Route::post('orders/{order}/routes/update', [ManufacturingOrderController::class, 'updateRoute'])->name('orders.routes.update');
     // Route::get('orders/{order}/children', [ManufacturingOrderController::class, 'children'])->name('orders.children'); // Temporarily disabled - page not implemented
 
     // Production Planning
@@ -286,6 +286,9 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
 
         Route::post('/{step}/convert-to-external', [ExternalStepController::class, 'convertToExternal'])
             ->name('convert-to-external');
+
+        Route::get('/{step}/status', [ExternalStepController::class, 'getStatus'])
+            ->name('status');
     });
 
     // Shipments

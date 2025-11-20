@@ -1,0 +1,23 @@
+/* QR Mobile Scanning Styles */
+
+/* When in QR mobile mode, make the dialog take full viewport */
+.qr-mobile-page [role="dialog"] {
+    @apply !fixed !inset-0 !max-w-full !w-full !h-full !transform-none !rounded-none;
+}
+
+/* Remove overlay/backdrop for mobile QR scanning */
+.qr-mobile-page [data-radix-dialog-overlay] {
+    @apply !bg-transparent;
+}
+
+/* Ensure content takes full height */
+.qr-mobile-page [data-radix-dialog-content] {
+    @apply !h-full !max-h-full;
+}
+
+/* Remove close button on mobile as it doesn't make sense */
+@media (max-width: 768px) {
+    .qr-mobile-page [data-radix-dialog-close] {
+        @apply hidden;
+    }
+}

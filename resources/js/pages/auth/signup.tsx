@@ -51,6 +51,14 @@ type SignupForm = {
 };
 
 /**
+ * Email validation state
+ */
+type EmailValidationState = {
+    isValid: boolean | null;
+    message: string;
+};
+
+/**
  * Tenant signup page (for creating new tenant accounts)
  * This is different from register.tsx which is for tenant users
  */
@@ -85,6 +93,91 @@ export default function Signup({ plans }: SignupPageProps) {
         message: '',
         lastChecked: '',
     });
+
+    // State for email validation
+    const [emailValidation, setEmailValidation] = useState<EmailValidationState>({
+        isValid: null,
+        message: '',
+    });
+
+    /**
+     * Validate email format and domain
+     */
+    const validateEmail = (email: string): EmailValidationState => {
+        // Empty check
+        if (!email) {
+            return { isValid: null, message: '' };
+        }
+
+        // Basic format check using a comprehensive regex
+        const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+        if (!emailRegex.test(email)) {
+            return {
+                isValid: false,
+                message: 'Please enter a valid email address (e.g., user@example.com)'
+            };
+        }
+
+        // Check for common typos in popular domains
+        const commonDomainTypos: Record<string, string> = {
+            'gmial.com': 'gmail.com',
+            'gmai.com': 'gmail.com',
+            'gmil.com': 'gmail.com',
+            'yahooo.com': 'yahoo.com',
+            'yaho.com': 'yahoo.com',
+            'hotmial.com': 'hotmail.com',
+            'hotmai.com': 'hotmail.com',
+            'outlok.com': 'outlook.com',
+        };
+
+        const domain = email.split('@')[1]?.toLowerCase();
+        if (domain && commonDomainTypos[domain]) {
+            return {
+                isValid: false,
+                message: `Did you mean ${email.split('@')[0]}@${commonDomainTypos[domain]}?`,
+            };
+        }
+
+        // Check for invalid characters after @
+        if (domain) {
+            // Domain must not start or end with a hyphen
+            if (domain.startsWith('-') || domain.endsWith('-')) {
+                return {
+                    isValid: false,
+                    message: 'Email domain cannot start or end with a hyphen'
+                };
+            }
+
+            // Domain must have at least one dot
+            if (!domain.includes('.')) {
+                return {
+                    isValid: false,
+                    message: 'Email domain must include a valid top-level domain (e.g., .com, .org)'
+                };
+            }
+
+            // Check for consecutive dots
+            if (domain.includes('..')) {
+                return {
+                    isValid: false,
+                    message: 'Email domain cannot contain consecutive dots'
+                };
+            }
+
+            // Check top-level domain length (must be at least 2 characters)
+            const tld = domain.split('.').pop();
+            if (!tld || tld.length < 2) {
+                return {
+                    isValid: false,
+                    message: 'Email must have a valid top-level domain (e.g., .com, .org)'
+                };
+            }
+        }
+
+        // All checks passed - return valid but no message
+        return { isValid: true, message: '' };
+    };
 
     // Handle Inertia flash data for subdomain check
     useEffect(() => {
@@ -259,7 +352,7 @@ export default function Signup({ plans }: SignupPageProps) {
                                             'border-red-500 focus-visible:ring-red-500'
                                         )}
                                     />
-                                    <span className="border-input bg-muted text-muted-foreground inline-flex h-9 items-center rounded-r-md border border-l-0 px-3 text-sm">
+                                    <span className="border-input bg-muted text-muted-foreground inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-r-md border border-l-0 px-3 text-sm">
                                         .{appDomain}
                                     </span>
                                 </div>
@@ -346,10 +439,34 @@ export default function Signup({ plans }: SignupPageProps) {
                                         tabIndex={4}
                                         autoComplete="email"
                                         value={data.admin_email}
-                                        onChange={(e) => setData('admin_email', e.target.value)}
+                                        onChange={(e) => {
+                                            const newEmail = e.target.value;
+                                            setData('admin_email', newEmail);
+                                        }}
+                                        onFocus={() => {
+                                            // Clear validation when user focuses back on the field
+                                            setEmailValidation({ isValid: null, message: '' });
+                                        }}
+                                        onBlur={() => {
+                                            // Only validate when user leaves the field
+                                            const validation = validateEmail(data.admin_email);
+                                            setEmailValidation(validation);
+                                        }}
                                         disabled={processing}
                                         placeholder="john@example.com"
+                                        className={cn(
+                                            emailValidation.isValid === false && 'border-red-500 focus-visible:ring-red-500'
+                                        )}
                                     />
+
+                                    {/* Show validation message only if there's an error */}
+                                    {emailValidation.message && emailValidation.isValid === false && (
+                                        <p className="text-sm text-red-600">
+                                            {emailValidation.message}
+                                        </p>
+                                    )}
+
+                                    {/* Show backend validation errors if present */}
                                     <InputError message={errors.admin_email} />
                                 </div>
 
@@ -427,7 +544,7 @@ export default function Signup({ plans }: SignupPageProps) {
                             <RadioGroup
                                 value={data.plan_id.toString()}
                                 onValueChange={(value) => setData('plan_id', parseInt(value))}
-                                disabled={processing}
+                                disabled={processing || undefined}
                                 className="grid gap-3"
                             >
                                 {plans.map((plan) => (
@@ -488,7 +605,9 @@ export default function Signup({ plans }: SignupPageProps) {
                         processing ||
                         !data.terms_accepted ||
                         subdomainStatus.available !== true ||
-                        subdomainStatus.lastChecked !== data.subdomain
+                        subdomainStatus.lastChecked !== data.subdomain ||
+                        emailValidation.isValid === false ||
+                        (!!data.admin_email && emailValidation.isValid === null)
                     }
                 >
                     {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}

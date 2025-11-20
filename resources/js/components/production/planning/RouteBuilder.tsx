@@ -447,6 +447,11 @@ export default function RouteBuilder({
                 sampling_size: step.sampling_size,
                 form_id: step.form_id,
                 gate_after: step.gate_after,
+                // External execution fields
+                execution_location: step.execution_location || 'internal',
+                manufacturer_id: step.manufacturer_id || null,
+                manufacturer: step.manufacturer_id ? manufacturers.find(m => m.id === step.manufacturer_id) : undefined,
+                expected_lead_time_days: step.expected_lead_time_days || null,
                 manufacturing_route_id: manufacturingOrder.manufacturing_route?.id || 0,
                 manufacturing_route: manufacturingOrder.manufacturing_route || {
                     id: 0,
@@ -459,7 +464,7 @@ export default function RouteBuilder({
             // Using 'any' to avoid type conflicts between different ExtendedManufacturingStep definitions
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }) as any[];
-    }, [steps, workCells, manufacturingOrder.manufacturing_route]);
+    }, [steps, workCells, manufacturingOrder.manufacturing_route, manufacturers]);
 
     // Convert selected step to canvas format
     const canvasSelectedStep = useMemo(() => {
@@ -610,7 +615,25 @@ export default function RouteBuilder({
                                     quality_check_mode: Object.prototype.hasOwnProperty.call(updates, 'quality_check_mode') ? updates.quality_check_mode : steps[index].quality_check_mode,
                                     sampling_size: Object.prototype.hasOwnProperty.call(updates, 'sampling_size') ? updates.sampling_size : steps[index].sampling_size,
                                     form_id: Object.prototype.hasOwnProperty.call(updates, 'form_id') ? updates.form_id : steps[index].form_id,
+                                    // External execution fields
+                                    execution_location: Object.prototype.hasOwnProperty.call(updates, 'execution_location') ? (updates.execution_location || 'internal') : steps[index].execution_location,
+                                    manufacturer_id: Object.prototype.hasOwnProperty.call(updates, 'manufacturer_id') ? updates.manufacturer_id : steps[index].manufacturer_id,
+                                    expected_lead_time_days: Object.prototype.hasOwnProperty.call(updates, 'expected_lead_time_days') ? updates.expected_lead_time_days : steps[index].expected_lead_time_days,
                                 };
+                                
+                                // Log the update for debugging
+                                console.log('[RouteBuilder] Step updated:', {
+                                    stepId,
+                                    updates,
+                                    before: steps[index],
+                                    after: updatedStep,
+                                    external_fields: {
+                                        execution_location: updatedStep.execution_location,
+                                        manufacturer_id: updatedStep.manufacturer_id,
+                                        expected_lead_time_days: updatedStep.expected_lead_time_days,
+                                    }
+                                });
+                                
                                 newSteps[index] = updatedStep;
                                 setSteps(newSteps);
                                 // Update selectedStep only if it's the one being edited
@@ -619,6 +642,7 @@ export default function RouteBuilder({
                                 }
                             } else {
                                 // Step not found
+                                console.error('[RouteBuilder] Step not found for update:', stepId, updates);
                             }
                         }}
                         isOpen={!!selectedStep && !selectedGateId}

@@ -84,6 +84,11 @@ export const csvFields = [
     // Child order dependency fields
     { value: 'child_order_dependency_type', label: 'Child Order Dependency Type', required: false },
     { value: 'child_order_minimum_quantity', label: 'Child Order Minimum Quantity', required: false },
+
+    // External execution fields
+    { value: 'execution_location', label: 'Execution Location', required: false },
+    { value: 'manufacturer_name', label: 'Manufacturer', required: false },
+    { value: 'expected_lead_time_days', label: 'Expected Lead Time (Days)', required: false },
 ];
 
 // Enum value mappings for validation
@@ -92,6 +97,7 @@ export const QUALITY_CHECK_MODES = ['every_part', 'entire_lot', 'sampling'];
 export const DEPENDENCY_CONDITIONS = ['completed', 'in_progress'];
 export const DEPENDENCY_START_CONDITIONS = ['completed', 'quantity_based', 'percentage_based', 'immediate'];
 export const CHILD_ORDER_DEPENDENCY_TYPES = ['none', 'all_children_completed', 'children_quantity'];
+export const EXECUTION_LOCATIONS = ['internal', 'external'];
 
 // Helper functions
 export const normalizeString = (str: string): string => {
@@ -147,6 +153,11 @@ export const findBestMatch = (header: string): string => {
     // Child order fields
     if (normalizedHeader.includes('child') && normalizedHeader.includes('dependency') && normalizedHeader.includes('type')) return 'child_order_dependency_type';
     if (normalizedHeader.includes('child') && normalizedHeader.includes('quantity')) return 'child_order_minimum_quantity';
+
+    // External execution fields
+    if (normalizedHeader.includes('execution') && normalizedHeader.includes('location')) return 'execution_location';
+    if (normalizedHeader.includes('manufacturer')) return 'manufacturer_name';
+    if (normalizedHeader.includes('lead') && normalizedHeader.includes('time')) return 'expected_lead_time_days';
 
     return '';
 };

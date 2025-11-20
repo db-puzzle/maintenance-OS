@@ -39,6 +39,18 @@ export class PlanningService {
         params: SaveRouteParams,
         options: SaveRouteOptions = {}
     ): Promise<void> {
+        // Log what we're about to send
+        console.log('[PlanningService] Saving route:', {
+            orderId: params.orderId,
+            stepsCount: params.steps.length,
+            steps: params.steps.map(step => ({
+                name: step.name,
+                execution_location: step.execution_location,
+                manufacturer_id: step.manufacturer_id,
+                expected_lead_time_days: step.expected_lead_time_days,
+            })),
+        });
+
         return new Promise((resolve, reject) => {
             router.post(
                 window.route('production.planning.orders.save-route', params.orderId),
@@ -55,6 +67,10 @@ export class PlanningService {
                         is_required: step.is_required,
                         child_order_dependency_type: step.gate_after?.dependency_type || 'all_children_completed',
                         child_order_minimum_quantity: step.gate_after?.minimum_quantity || 0,
+                        // External execution fields
+                        execution_location: step.execution_location || 'internal',
+                        manufacturer_id: step.manufacturer_id || null,
+                        expected_lead_time_days: step.expected_lead_time_days || null,
                     })),
                     autoSave: params.autoSave ?? true,
                     selectedMO: params.selectedMO,
@@ -64,10 +80,12 @@ export class PlanningService {
                     preserveState: options.preserveState ?? true,
                     only: options.only ?? ['manufacturingOrders'],
                     onSuccess: () => {
+                        console.log('[PlanningService] Route saved successfully');
                         options.onSuccess?.();
                         resolve();
                     },
-                    onError: () => {
+                    onError: (errors) => {
+                        console.error('[PlanningService] Route save failed:', errors);
                         options.onError?.();
                         reject(new Error('Failed to save route'));
                     }
@@ -100,6 +118,10 @@ export class PlanningService {
                     is_required: step.is_required ?? true,
                     child_order_dependency_type: step.gate_after?.dependency_type || 'all_children_completed',
                     child_order_minimum_quantity: parseInt(String(step.gate_after?.minimum_quantity || 0)) || 0,
+                    // External execution fields
+                    execution_location: step.execution_location || 'internal',
+                    manufacturer_id: step.manufacturer_id || null,
+                    expected_lead_time_days: step.expected_lead_time_days || null,
                 }))
             }));
 

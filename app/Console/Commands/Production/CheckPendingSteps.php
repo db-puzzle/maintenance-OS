@@ -66,5 +66,3 @@ class CheckPendingSteps extends Command
         return 0;
     }
 }
-
-

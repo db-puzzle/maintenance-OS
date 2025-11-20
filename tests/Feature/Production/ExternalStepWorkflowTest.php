@@ -40,8 +40,10 @@ class ExternalStepWorkflowTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('production/external-steps/index')
-                ->has('awaitingShipment')
-                ->has('atManufacturers'));
+                ->has('steps')
+                ->has('statusCounts')
+                ->has('manufacturers')
+                ->has('filters'));
     }
 
     /**

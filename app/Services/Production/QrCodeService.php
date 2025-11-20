@@ -20,12 +20,11 @@ class QrCodeService
         if (! $order->has_route) {
             $parentWithRoute = $this->findClosestParentWithRoute($order);
             if ($parentWithRoute) {
-                return url(route('production.orders.qr', ['mo_number' => $parentWithRoute->order_number], false));
+                return $this->buildTenantQrUrl($parentWithRoute->order_number);
             }
         }
 
-        // Absolute URL
-        return url(route('production.orders.qr', ['mo_number' => $order->order_number], false));
+        return $this->buildTenantQrUrl($order->order_number);
     }
 
     public function generateQrCode(string $url, array $options = []): string
@@ -53,5 +52,37 @@ class QrCodeService
         }
 
         return null;
+    }
+
+    /**
+     * Build tenant-aware QR URL.
+     */
+    private function buildTenantQrUrl(string $orderNumber): string
+    {
+        $tenant = tenant();
+
+        // If no tenant context (e.g., in central domain), use current URL
+        if (! $tenant) {
+            // For central domain access, use the current domain
+            return url('/qr/orders/' . $orderNumber);
+        }
+
+        // Get tenant's primary domain
+        $domain = $tenant->domains()->first();
+        if (! $domain) {
+            throw new \RuntimeException('Tenant has no configured domain');
+        }
+
+        // Build the absolute URL with tenant's domain
+        $protocol = request()->secure() ? 'https://' : 'http://';
+
+        // Handle port for local development
+        $port = request()->getPort();
+        $portSuffix = '';
+        if ($port && ! in_array($port, [80, 443])) {
+            $portSuffix = ':' . $port;
+        }
+
+        return $protocol . $domain->domain . $portSuffix . '/qr/orders/' . $orderNumber;
     }
 }

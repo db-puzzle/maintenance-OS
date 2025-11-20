@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { ManufacturingStep } from '@/types/production';
-import { Clock, MapPin, CheckCircle, AlertCircle, Timer, Trash2, Truck } from 'lucide-react';
+import { Clock, MapPin, CheckCircle, AlertCircle, Timer, Trash2, Truck, Building } from 'lucide-react';
 import { StepStatusBadge } from './StepStatusBadge';
 import { StepTypeBadge } from './StepTypeBadge';
 import { ExternalStepBadge } from './external-step-badge';
@@ -31,6 +31,8 @@ export function StepCard({
     className,
     canDelete = false,
 }: StepCardProps) {
+    const isExternal = step.execution_location === 'external';
+    
     return (
         <Card
             className={cn(
@@ -45,6 +47,11 @@ export function StepCard({
             {/* Step Number Badge */}
             <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
                 {step.display_position}
+            </div>
+            
+            {/* Execution Location Icon Badge */}
+            <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                {isExternal ? <Truck className="h-3.5 w-3.5" /> : <Building className="h-3.5 w-3.5" />}
             </div>
             {/* Delete Button */}
             {canDelete && onDelete && (
@@ -64,7 +71,7 @@ export function StepCard({
                 <div className="flex items-start justify-between gap-2">
                     <h4 className="font-medium text-sm flex-1">{step.name}</h4>
                     <div className="flex items-center gap-2">
-                        {showStatus && <StepStatusBadge status={step.status} />}
+                    {showStatus && <StepStatusBadge status={step.status} />}
                         {step.execution_location === 'external' && step.external_status && (
                             <ExternalStepBadge status={step.external_status} />
                         )}
@@ -76,31 +83,36 @@ export function StepCard({
                 )}
                 {/* Details */}
                 <div className="space-y-2 text-sm text-muted-foreground">
-                    {showWorkCell && step.work_cell && (
-                        <div className="flex items-center gap-2">
-                            <MapPin className="h-3 w-3" />
-                            <span>{step.work_cell.name}</span>
-                        </div>
-                    )}
-                    {showTime && (
-                        <div className="flex items-center gap-2">
-                            <Clock className="h-3 w-3" />
-                            {step.use_workcell_throughput ? (
-                                <span className="text-muted-foreground">Using work cell throughput</span>
-                            ) : (
-                                <>
-                                    <span>{step.cycle_time_minutes} min</span>
-                                    {step.setup_time_minutes > 0 && (
-                                        <span className="text-xs">(+{step.setup_time_minutes} min setup)</span>
-                                    )}
-                                </>
+                    {/* Show work cell and time only for internal steps */}
+                    {!isExternal && (
+                        <>
+                            {showWorkCell && step.work_cell && (
+                                <div className="flex items-center gap-2">
+                                    <MapPin className="h-3 w-3" />
+                                    <span>{step.work_cell.name}</span>
+                                </div>
                             )}
-                        </div>
+                            {showTime && (
+                                <div className="flex items-center gap-2">
+                                    <Clock className="h-3 w-3" />
+                                    {step.use_workcell_throughput ? (
+                                        <span className="text-muted-foreground">Using work cell throughput</span>
+                                    ) : (
+                                        <>
+                                            <span>{step.cycle_time_minutes} min</span>
+                                            {step.setup_time_minutes > 0 && (
+                                                <span className="text-xs">(+{step.setup_time_minutes} min setup)</span>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {/* External Step Information */}
-                    {step.execution_location === 'external' && (
-                        <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
+                    {isExternal && (
+                        <div className="space-y-1.5">
                             <div className="flex items-center gap-2 text-xs">
                                 <Truck className="h-3 w-3" />
                                 <span className="font-medium">
@@ -112,9 +124,9 @@ export function StepCard({
                                     Lead time: {step.expected_lead_time_days} dias
                                 </div>
                             )}
-                            {step.quantity_shipped !== undefined && step.quantity_shipped > 0 && (
+                            {step.total_quantity_shipped !== undefined && step.total_quantity_shipped > 0 && (
                                 <div className="text-xs">
-                                    Enviado: {step.quantity_shipped} | Recebido: {step.quantity_received || 0}
+                                    Enviado: {step.total_quantity_shipped} | Recebido: {step.total_quantity_received || 0}
                                 </div>
                             )}
                         </div>

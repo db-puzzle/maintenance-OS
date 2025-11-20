@@ -28,7 +28,7 @@ import { createFormAdapter } from '@/utils/form-adapters';
 import { toast } from 'sonner';
 import { Toggle } from '@/components/ui/toggle';
 
-import RouteBuilderCore from '@/components/production/RouteBuilderCore';
+import ManufacturingOrderRouteEditor from '@/components/production/ManufacturingOrderRouteEditor';
 import { ManufacturingStepsTable } from '@/components/production/ManufacturingStepsTable';
 interface Props {
     order: ManufacturingOrder;
@@ -49,6 +49,13 @@ interface Props {
         id: number;
         name: string;
     }[];
+    unitsOfMeasure?: {
+        id: number;
+        code: string;
+        name: string;
+        symbol?: string;
+        uom_type: 'COUNT' | 'MASS' | 'LENGTH' | 'AREA' | 'VOLUME' | 'TIME';
+    }[];
     openRouteBuilder?: string | null;
 }
 
@@ -63,6 +70,7 @@ export default function ManufacturingOrderRouteTab({
     plants,
     shifts,
     manufacturers,
+    unitsOfMeasure = [],
     openRouteBuilder
 }: Props) {
     const { props } = usePage<{
@@ -226,34 +234,22 @@ export default function ManufacturingOrderRouteTab({
         <>
             {/* Main content rendering */}
             {(() => {
-                // Builder mode - show route builder inside the tab (edit mode)
+                // Builder mode - show route editor inside the tab (edit mode)
                 if (viewMode === 'builder' && order.manufacturing_route) {
                     return (
                         <div className="h-[calc(100vh-12rem)]">
-                            <RouteBuilderCore
-                                routing={{
-                                    id: order.manufacturing_route.id || 0,
-                                    manufacturing_order_id: order.manufacturing_route.manufacturing_order_id,
-                                    item_id: order.manufacturing_route.item_id,
-                                    route_template_id: order.manufacturing_route.route_template_id,
-                                    name: order.manufacturing_route.name || '',
-                                    description: order.manufacturing_route.description,
-                                    is_active: order.manufacturing_route.is_active || false,
-                                    created_by: order.manufacturing_route.created_by,
-                                    created_at: order.manufacturing_route.created_at,
-                                    updated_at: order.manufacturing_route.updated_at,
-                                    steps: order.manufacturing_route.steps || []
-                                }}
+                            <ManufacturingOrderRouteEditor
+                                order={order}
                                 workCells={workCells}
-                                stepTypes={stepTypes}
-                                forms={forms}
                                 plants={plants}
                                 shifts={shifts}
                                 manufacturers={manufacturers}
-                                can={{
-                                    manage_steps: canCreateRoute
+                                unitsOfMeasure={unitsOfMeasure}
+                                permissions={{
+                                    canEditRoute: canCreateRoute,
+                                    canSaveAsTemplate: canCreateRoute,
+                                    canCreateWorkCell: canCreateRoute
                                 }}
-                                embedded={true}
                                 onSave={() => {
                                     setViewMode('routeViewer');
                                     router.reload({ only: ['order'] });
@@ -293,7 +289,7 @@ export default function ManufacturingOrderRouteTab({
                                         <Image className="ml-1 h-4 w-4" />
                                         <span className="flex-1 ml-1 text-left">{showImages ? 'Hide Images' : 'Show Images'}</span>
                                     </Toggle>
-                                    {canCreateRoute && order.status === 'draft' && (
+                                    {canCreateRoute && ['draft', 'planned', 'scheduled'].includes(order.status) && (
                                         <Button
                                             variant="outline"
                                             size="sm"
@@ -323,8 +319,8 @@ export default function ManufacturingOrderRouteTab({
                                     icon={Workflow}
                                     title="No steps defined"
                                     description="This route doesn't have any steps yet"
-                                    primaryButtonText={canCreateRoute ? "Add Steps" : undefined}
-                                    primaryButtonAction={canCreateRoute ? () => setViewMode('builder') : undefined}
+                                    primaryButtonText={canCreateRoute && ['draft', 'planned', 'scheduled'].includes(order.status) ? "Add Steps" : undefined}
+                                    primaryButtonAction={canCreateRoute && ['draft', 'planned', 'scheduled'].includes(order.status) ? () => setViewMode('builder') : undefined}
                                 />
                             )}
                         </div>

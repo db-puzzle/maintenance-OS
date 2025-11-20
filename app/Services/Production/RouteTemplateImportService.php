@@ -2,6 +2,7 @@
 
 namespace App\Services\Production;
 
+use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\Production\ItemCategory;
 use App\Models\Production\ManufacturingRoute;
 use App\Models\Production\WorkCell;
@@ -184,6 +185,19 @@ class RouteTemplateImportService
                     $workCellId = $stepData['work_cell_id'];
                 }
 
+                // Handle manufacturer for external steps
+                $manufacturerId = null;
+                $executionLocation = $stepData['execution_location'] ?? 'internal';
+
+                if ($executionLocation === 'external') {
+                    if (isset($stepData['manufacturer_name']) && $stepData['manufacturer_name']) {
+                        $manufacturer = $this->findOrCreateManufacturer($stepData['manufacturer_name']);
+                        $manufacturerId = $manufacturer->id;
+                    } elseif (isset($stepData['manufacturer_id'])) {
+                        $manufacturerId = $stepData['manufacturer_id'];
+                    }
+                }
+
                 // Create step with dependency based on previous step
                 $newStep = $template->steps()->create([
                     'name' => $stepData['name'] ?? 'Step ' . ($index + 1),
@@ -203,6 +217,10 @@ class RouteTemplateImportService
                     'dependency_minimum_percentage' => $stepData['dependency_minimum_percentage'] ?? null,
                     'child_order_dependency_type' => $stepData['child_order_dependency_type'] ?? 'none',
                     'child_order_minimum_quantity' => $stepData['child_order_minimum_quantity'] ?? null,
+                    // External execution fields
+                    'execution_location' => $executionLocation,
+                    'manufacturer_id' => $manufacturerId,
+                    'expected_lead_time_days' => $stepData['expected_lead_time_days'] ?? null,
                     'is_template' => true,
                     'status' => 'pending',
                 ]);
@@ -229,6 +247,20 @@ class RouteTemplateImportService
                 'default_unit_of_measure' => 'UN',
                 'default_setup_time_minutes' => 0,
                 'max_parallel_executions' => 1,
+                'is_active' => true,
+            ]
+        );
+    }
+
+    /**
+     * Find or create a manufacturer by name.
+     */
+    protected function findOrCreateManufacturer(string $name): Manufacturer
+    {
+        return Manufacturer::firstOrCreate(
+            ['name' => $name],
+            [
+                'description' => 'Imported manufacturer - please configure details',
                 'is_active' => true,
             ]
         );
@@ -282,7 +314,7 @@ class RouteTemplateImportService
             }
 
             // Handle numeric fields
-            if (in_array($templateField, ['version', 'step_number', 'setup_time_minutes', 'cycle_time_minutes', 'sampling_size', 'form_id', 'depends_on_step_id', 'dependency_minimum_quantity'])) {
+            if (in_array($templateField, ['version', 'step_number', 'setup_time_minutes', 'cycle_time_minutes', 'sampling_size', 'form_id', 'depends_on_step_id', 'dependency_minimum_quantity', 'expected_lead_time_days'])) {
                 $value = is_numeric($value) ? (int) $value : 0;
             }
 

@@ -20,6 +20,26 @@ class HandleInertiaRequests extends Middleware
     protected $rootView = 'app';
 
     /**
+     * Determine if the request should be handled by Inertia.
+     */
+    public function handle(Request $request, \Closure $next)
+    {
+        // Skip Inertia handling for PDF routes
+        if ($request->is('pdf/*') || $request->is('*/label') || $request->header('X-Skip-Inertia')) {
+            \Log::info('Skipping Inertia for PDF route', [
+                'url' => $request->fullUrl(),
+                'path' => $request->path(),
+                'is_pdf' => $request->is('pdf/*'),
+                'is_label' => $request->is('*/label'),
+            ]);
+
+            return $next($request);
+        }
+
+        return parent::handle($request, $next);
+    }
+
+    /**
      * Determines the current asset version.
      *
      * @see https://inertiajs.com/asset-versioning

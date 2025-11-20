@@ -437,11 +437,12 @@ export interface ManufacturingStep {
     manufacturer_id?: number | null;
     manufacturer?: Manufacturer;
     expected_lead_time_days?: number | null;
-    external_status?: 'awaiting_shipment' | 'shipped' | 'in_process' | null;
-    shipped_date?: string | null;
-    received_date?: string | null;
-    quantity_shipped?: number;
-    quantity_received?: number;
+    external_status?: 'awaiting_shipment' | 'at_manufacturer' | null;
+    // Computed properties from shipments (provided by backend)
+    total_quantity_shipped?: number;
+    total_quantity_received?: number;
+    last_shipped_date?: string | null;
+    last_received_date?: string | null;
     // Computed attributes
     remaining_quantity_to_ship?: number;
     remaining_quantity_to_receive?: number;
@@ -456,8 +457,7 @@ export type ExecutionLocation = 'internal' | 'external';
 
 export type ExternalStatus =
     | 'awaiting_shipment'
-    | 'shipped'
-    | 'in_process';
+    | 'at_manufacturer';
 
 export interface ManufacturingStepExecution {
     id: number;
@@ -545,3 +545,78 @@ export interface ShipmentPhoto {
 
 // Alias for backward compatibility - Routing is now RouteTemplate
 export type Routing = RouteTemplate;
+
+export interface ExternalStepStatus {
+    step_id: number;
+    step_name: string;
+    step_status: string;
+    external_status: 'awaiting_shipment' | 'at_manufacturer' | null;
+    manufacturer?: Manufacturer;
+    expected_lead_time_days?: number | null;
+    
+    // Quantities
+    quantity_required: number;
+    quantity_shipped: number;
+    quantity_received: number;
+    quantity_remaining_to_ship: number;
+    quantity_remaining_to_receive: number;
+    
+    // Status flags
+    is_fully_shipped: boolean;
+    is_fully_received: boolean;
+    has_active_shipments: boolean;
+    
+    // Location tracking
+    current_location: 'awaiting_shipment' | 'in_transit' | 'at_manufacturer' | 'unknown';
+    location_details: {
+        location: string;
+        description: string;
+        carrier?: string;
+        tracking_number?: string;
+        expected_delivery?: string;
+        manufacturer_name?: string;
+        manufacturer_address?: string;
+    };
+    
+    // Shipment information
+    active_shipments: Array<{
+        id: number;
+        shipment_number: string;
+        status: string;
+        status_label: string;
+        quantity_shipped: number;
+        quantity_received: number;
+        carrier?: string;
+        tracking_number?: string;
+        ship_date?: string;
+        expected_delivery?: string;
+        actual_delivery?: string;
+    }>;
+    all_shipments: Array<{
+        id: number;
+        shipment_number: string;
+        status: string;
+        status_label: string;
+        quantity_shipped: number;
+        quantity_received: number;
+        carrier?: string;
+        tracking_number?: string;
+        ship_date?: string;
+        expected_delivery?: string;
+        actual_delivery?: string;
+    }>;
+    
+    // Timeline
+    timeline: Array<{
+        type: 'step_queued' | 'shipped' | 'delivered' | 'received' | 'completed';
+        date: string;
+        description: string;
+        shipment_id?: number;
+    }>;
+    
+    // Dates
+    first_shipped_date?: string | null;
+    last_shipped_date?: string | null;
+    last_received_date?: string | null;
+    estimated_completion_date?: string | null;
+}

@@ -65,7 +65,10 @@ class ManufacturerController extends Controller
 
         // Se a requisição contém o parâmetro 'stay' (indica que é via Sheet/Modal)
         if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
-            return back()->with('success', "Fabricante {$manufacturer->name} criado com sucesso.");
+            return back()->with([
+                'success' => "Fabricante {$manufacturer->name} criado com sucesso.",
+                'manufacturer' => $manufacturer->toArray(),
+            ]);
         }
 
         // Comportamento padrão para requisições normais (formulário completo)

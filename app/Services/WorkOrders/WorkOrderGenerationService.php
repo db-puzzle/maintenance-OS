@@ -31,16 +31,12 @@ class WorkOrderGenerationService
             ->with(['asset.latestRuntimeMeasurement', 'asset.shift', 'createdBy'])
             ->get();
 
-        Log::info("Found {$runtimeRoutines->count()} active runtime-based routines");
-
         // Process calendar-based routines
         $calendarRoutines = Routine::automatic()
             ->active()
             ->calendarBased()
             ->with(['asset', 'createdBy'])
             ->get();
-
-        Log::info("Found {$calendarRoutines->count()} active calendar-based routines");
 
         // Process all routines
         $allRoutines = $runtimeRoutines->merge($calendarRoutines);
@@ -67,8 +63,6 @@ class WorkOrderGenerationService
                 ]);
             }
         }
-
-        Log::info("Generated {$generatedWorkOrders->count()} work orders");
 
         return $generatedWorkOrders;
     }

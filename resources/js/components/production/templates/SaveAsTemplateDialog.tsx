@@ -40,7 +40,14 @@ export const SaveAsTemplateDialog: React.FC<SaveAsTemplateDialogProps> = ({
         if (manufacturingRoute.steps && Array.isArray(manufacturingRoute.steps) && manufacturingRoute.steps.length > 0) {
             const stepNames = manufacturingRoute.steps
                 .sort((a, b) => (a.display_position || 0) - (b.display_position || 0))
-                .map(step => step.name || '')
+                .map(step => {
+                    const name = step.name || '';
+                    // Append "(ext)" to external steps
+                    if (name.trim() && step.execution_location === 'external') {
+                        return `${name} (ext)`;
+                    }
+                    return name;
+                })
                 .filter(name => name.trim() !== '') // Filter out empty names
                 .join(', ');
 
@@ -72,6 +79,10 @@ export const SaveAsTemplateDialog: React.FC<SaveAsTemplateDialogProps> = ({
             .filter(step => step.work_cell?.name)
             .map(step => step.work_cell!.name)
         )];
+        const manufacturers = [...new Set(manufacturingRoute.steps
+            .filter(step => step.execution_location === 'external' && step.manufacturer?.name)
+            .map(step => step.manufacturer!.name)
+        )];
 
         let description = `Rota com ${totalSteps} etapa${totalSteps > 1 ? 's' : ''}`;
 
@@ -85,6 +96,10 @@ export const SaveAsTemplateDialog: React.FC<SaveAsTemplateDialogProps> = ({
 
         if (workCells.length > 0) {
             description += ` | Células: ${workCells.join(', ')}`;
+        }
+
+        if (manufacturers.length > 0) {
+            description += ` | Fabricantes externos: ${manufacturers.join(', ')}`;
         }
 
         // Add original description if exists and it's not the default empty route message

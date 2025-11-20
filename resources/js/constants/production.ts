@@ -7,14 +7,12 @@ export const EXECUTION_LOCATIONS = {
 
 export const EXTERNAL_STATUSES = {
     awaiting_shipment: 'Awaiting Shipment',
-    shipped: 'Shipped',
-    in_process: 'In Process at Manufacturer',
+    at_manufacturer: 'At Manufacturer',
 } as const;
 
 export const EXTERNAL_STATUS_COLORS = {
     awaiting_shipment: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    shipped: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    in_process: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+    at_manufacturer: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
 } as const;
 
 // For step completion status (same for internal and external steps)

@@ -72,16 +72,8 @@ class SubdomainCheckController extends Controller
 
         $subdomain = $validated['subdomain'];
 
-        // Log the check attempt
-        \Log::info('🔍 Subdomain availability check', [
-            'subdomain' => $subdomain,
-            'ip' => $request->ip(),
-        ]);
-
         // Check if reserved
         if ($this->isReserved($subdomain)) {
-            \Log::info('⛔ Subdomain is reserved', ['subdomain' => $subdomain]);
-
             return back()->with([
                 'subdomainCheck' => [
                     'available' => false,
@@ -93,10 +85,6 @@ class SubdomainCheckController extends Controller
 
         // Check if available in database
         $available = $this->isAvailable($subdomain);
-
-        \Log::info($available ? '✅ Subdomain is available' : '❌ Subdomain is taken', [
-            'subdomain' => $subdomain,
-        ]);
 
         return back()->with([
             'subdomainCheck' => [
