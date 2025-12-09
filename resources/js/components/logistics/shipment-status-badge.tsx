@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { ShipmentStatus } from '@/types/logistics';
-import { SHIPMENT_STATUSES, SHIPMENT_STATUS_COLORS } from '@/constants/logistics';
+import { SHIPMENT_STATUSES } from '@/constants/logistics';
 import { cn } from '@/lib/utils';
 
 interface ShipmentStatusBadgeProps {
@@ -15,14 +15,16 @@ interface ShipmentStatusBadgeProps {
  * (planned, packed, shipped, in_transit, delivered, received).
  */
 export function ShipmentStatusBadge({ status, className }: ShipmentStatusBadgeProps) {
+    const statusConfig = SHIPMENT_STATUSES[status];
+    
     return (
         <Badge
             className={cn(
-                SHIPMENT_STATUS_COLORS[status],
+                statusConfig.color,
                 className
             )}
         >
-            {SHIPMENT_STATUSES[status]}
+            {statusConfig.label}
         </Badge>
     );
 }

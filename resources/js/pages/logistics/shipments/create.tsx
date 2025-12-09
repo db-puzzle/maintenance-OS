@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
-import { Head, Link, router as inertiaRouter } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Manufacturer } from '@/types/asset-hierarchy';
-import { ShipmentSuggestion } from '@/types/logistics';
 import { ManufacturingOrder, ManufacturingStep } from '@/types/production';
+import { CreateShipmentItem, ShipmentSuggestion } from '@/types/logistics';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { TextInput } from '@/components/TextInput';
+import { createFormAdapter } from '@/utils/form-adapters';
 import { QrScanner } from '@/components/logistics/qr-scanner';
 import {
     Select,
@@ -17,162 +16,181 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Package, Trash2, Plus, CheckCircle2, AlertCircle, Lightbulb } from 'lucide-react';
+import { DESTINATION_TYPES, SHIPPING_METHODS, PACKAGE_TYPES } from '@/constants/logistics';
 import { Badge } from '@/components/ui/badge';
-import { Package, Plus, Truck, X, CheckCircle } from 'lucide-react';
-import { type BreadcrumbItem } from '@/types';
 import { toast } from 'sonner';
-import { formatNumber } from '@/utils/number';
+import axios from 'axios';
+import {
+    Alert,
+    AlertDescription,
+    AlertTitle,
+} from '@/components/ui/alert';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Home',
-        href: '/home',
-    },
-    {
-        title: 'Logística',
-        href: '/logistics/shipments',
-    },
-    {
-        title: 'Remessas',
-        href: '/logistics/shipments',
-    },
-    {
-        title: 'Nova Remessa',
-        href: '/logistics/shipments/create',
-    },
-];
-
+/**
+ * Props for shipments create page.
+ */
 interface Props {
-    suggestions: ShipmentSuggestion[];
+    suggestions?: ShipmentSuggestion[];
     manufacturers: Manufacturer[];
 }
 
-interface ShipmentItemData {
-    manufacturing_order: ManufacturingOrder;
-    manufacturing_step?: ManufacturingStep;
-    quantity: number;
-    package_count?: number;
-    package_type?: string;
-    notes?: string;
+/**
+ * Selected MO with verification status.
+ */
+interface SelectedMo extends ManufacturingOrder {
+    verified: boolean;
+    external_steps?: ManufacturingStep[];
+    selected_step_id?: number;
+    quantity?: number;
 }
 
 /**
- * Create Shipment Page
+ * Shipments Create Page
  *
- * Allows users to create new shipments by scanning QR codes or using suggested bundling.
- * Shows suggested shipments for efficient bundling.
+ * Create new shipments with MO selection and QR verification.
  */
-export default function CreateShipment({ suggestions, manufacturers }: Props) {
-    const [selectedItems, setSelectedItems] = useState<ShipmentItemData[]>([]);
-    const [destinationType, setDestinationType] = useState<string>('manufacturer');
-    const [destinationId, setDestinationId] = useState<string>('');
-    const [carrierName, setCarrierName] = useState('');
-    const [plannedShipDate, setPlannedShipDate] = useState('');
-    const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
-    const [shippingNotes, setShippingNotes] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
+export default function ShipmentsCreate({ suggestions = [], manufacturers }: Props) {
+    const [selectedMos, setSelectedMos] = useState<SelectedMo[]>([]);
+    const [loadingMo, setLoadingMo] = useState(false);
 
+    const form = useForm({
+        destination_type: 'manufacturer' as const,
+        destination_id: '',
+        destination_name: '',
+        destination_address: '',
+        shipping_method: 'courier' as const,
+        carrier_name: '',
+        planned_ship_date: '',
+        expected_delivery_date: '',
+        shipping_notes: '',
+    });
+
+    const { data, setData, post, processing, errors, clearErrors } = form;
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
+
+    const breadcrumbs = [
+        { title: 'Home', href: '/home' },
+        { title: 'Remessas', href: route('logistics.shipments.index') },
+        { title: 'Nova Remessa', href: '' },
+    ];
+
+    /**
+     * Handle QR scan - fetch MO details.
+     */
     const handleQrScan = async (moNumber: string) => {
+        // Check if already added
+        if (selectedMos.some((mo) => mo.order_number === moNumber)) {
+            toast.warning('Esta OM já foi adicionada');
+                return;
+            }
+
+        setLoadingMo(true);
         try {
-            const response = await fetch(route('logistics.shipments.find-mo', { mo_number: moNumber }));
-            const result = await response.json();
+            const response = await axios.get(
+                route('logistics.shipments.find-mo', { mo_number: moNumber })
+            );
 
-            if (!response.ok) {
-                toast.error(result.error || 'OM não encontrada');
+            const moData = response.data.mo;
+            const hasExternalSteps = response.data.has_external_steps_awaiting_shipment;
+            const externalSteps = response.data.external_steps;
+
+            if (!hasExternalSteps) {
+                toast.error('Esta OM não possui etapas externas aguardando envio');
                 return;
             }
 
-            if (!result.has_external_steps_awaiting_shipment) {
-                toast.error('Esta OM não possui etapas aguardando envio');
-                return;
-            }
+            // Add MO to list with verified status
+            setSelectedMos([
+                ...selectedMos,
+                {
+                    ...moData,
+                    verified: true,
+                    external_steps: externalSteps,
+                    selected_step_id: externalSteps[0]?.id,
+                    quantity: moData.quantity_to_produce || moData.quantity,
+                },
+            ]);
 
-            // Check if MO already added
-            if (selectedItems.some((item) => item.manufacturing_order.id === result.mo.id)) {
-                toast.warning('OM já adicionada à remessa');
-                return;
-            }
-
-            // Add each external step as a separate item
-            result.external_steps.forEach((step: ManufacturingStep) => {
-                const newItem: ShipmentItemData = {
-                    manufacturing_order: result.mo,
-                    manufacturing_step: step,
-                    quantity: step.remaining_quantity_to_ship || 0,
-                };
-                setSelectedItems((prev) => [...prev, newItem]);
-            });
-
-            toast.success(`OM ${moNumber} adicionada com ${result.external_steps.length} etapa(s)`);
+            toast.success(`OM ${moNumber} verificada e adicionada!`);
         } catch (error) {
-            console.error('Error scanning QR:', error);
+            if (axios.isAxiosError(error) && error.response?.status === 404) {
+                toast.error('OM não encontrada');
+            } else {
             toast.error('Erro ao buscar OM');
-        }
-    };
-
-    const handleRemoveItem = (index: number) => {
-        setSelectedItems((prev) => prev.filter((_, i) => i !== index));
-    };
-
-    const handleUseSuggestion = (suggestion: ShipmentSuggestion) => {
-        // Set destination
-        setDestinationType('manufacturer');
-        setDestinationId(suggestion.manufacturer.id.toString());
-        if (suggestion.planned_ship_date) {
-            setPlannedShipDate(suggestion.planned_ship_date);
-        }
-
-        // Add all steps from suggestion
-        const newItems: ShipmentItemData[] = suggestion.steps.map((step) => ({
-            manufacturing_order: step.manufacturing_route?.manufacturing_order as ManufacturingOrder,
-            manufacturing_step: step,
-            quantity: step.remaining_quantity_to_ship || 0,
-        }));
-
-        setSelectedItems(newItems);
-        toast.success(`${newItems.length} itens adicionados da sugestão`);
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-
-        const manufacturer = manufacturers.find((m) => m.id === parseInt(destinationId));
-
-        inertiaRouter.post(
-            route('logistics.shipments.store'),
-            {
-                destination_type: destinationType,
-                destination_id: parseInt(destinationId) || null,
-                destination_name: manufacturer?.name || '',
-                destination_address: '',
-                carrier_name: carrierName,
-                planned_ship_date: plannedShipDate,
-                expected_delivery_date: expectedDeliveryDate,
-                shipping_notes: shippingNotes,
-                items: selectedItems.map((item) => ({
-                    manufacturing_order_id: item.manufacturing_order.id,
-                    manufacturing_step_id: item.manufacturing_step?.id,
-                    quantity: item.quantity,
-                    package_count: item.package_count,
-                    package_type: item.package_type,
-                    notes: item.notes,
-                })),
-            },
-            {
-                onSuccess: () => {
-                    toast.success('Remessa criada com sucesso');
-                },
-                onError: () => {
-                    toast.error('Erro ao criar remessa');
-                    setIsSubmitting(false);
-                },
             }
+        } finally {
+            setLoadingMo(false);
+        }
+    };
+
+    /**
+     * Remove MO from list.
+     */
+    const handleRemoveMo = (orderNumber: string) => {
+        setSelectedMos(selectedMos.filter((mo) => mo.order_number !== orderNumber));
+    };
+
+    /**
+     * Update MO quantity.
+     */
+    const handleUpdateQuantity = (orderNumber: string, quantity: number) => {
+        setSelectedMos(
+            selectedMos.map((mo) =>
+                mo.order_number === orderNumber ? { ...mo, quantity } : mo
+            )
         );
     };
 
-    const totalQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+    /**
+     * Update selected step for MO.
+     */
+    const handleUpdateStep = (orderNumber: string, stepId: number) => {
+        setSelectedMos(
+            selectedMos.map((mo) =>
+                mo.order_number === orderNumber ? { ...mo, selected_step_id: stepId } : mo
+            )
+        );
+    };
+
+    /**
+     * Handle form submission.
+     */
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (selectedMos.length === 0) {
+            toast.error('Adicione pelo menos uma OM à remessa');
+            return;
+        }
+
+        // Build items array
+        const items: CreateShipmentItem[] = selectedMos.map((mo) => ({
+            manufacturing_order_id: mo.id,
+            manufacturing_step_id: mo.selected_step_id,
+            quantity: mo.quantity || 0,
+        }));
+
+        // Submit via Inertia
+        post(route('logistics.shipments.store'), {
+            data: {
+                ...data,
+                items,
+                },
+                onError: () => {
+                    toast.error('Erro ao criar remessa');
+            },
+        });
+    };
+
+    /**
+     * Get selected manufacturer details.
+     */
+    const selectedManufacturer = manufacturers.find(
+        (m) => m.id.toString() === data.destination_id
+    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -180,282 +198,314 @@ export default function CreateShipment({ suggestions, manufacturers }: Props) {
 
             <div className="space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold">Nova Remessa</h1>
                         <p className="text-muted-foreground mt-1">
-                            Crie uma nova remessa escaneando OMs ou usando sugestões
+                        Crie uma remessa escaneando OMs ou selecionando da lista
                         </p>
-                    </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-6">
-                    {/* Left Column - QR Scanner & Suggestions */}
-                    <div className="space-y-4">
-                        {/* QR Scanner */}
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Destination Information */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Package className="h-5 w-5" />
-                                    Escanear OMs
-                                </CardTitle>
+                            <CardTitle>Informações de Destino</CardTitle>
+                            <CardDescription>
+                                Defina para onde a remessa será enviada
+                            </CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <QrScanner onScan={handleQrScan} />
-                            </CardContent>
-                        </Card>
-
-                        {/* Suggestions */}
-                        {suggestions.length > 0 && (
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Sugestões de Agrupamento</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <ScrollArea className="h-[400px]">
+                        <CardContent className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            {suggestions.map((suggestion, index) => (
-                                                <div
-                                                    key={index}
-                                                    className="p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                                                >
-                                                    <div className="flex items-start justify-between gap-2 mb-2">
-                                                        <div className="flex-1">
-                                                            <p className="font-medium">
-                                                                {suggestion.manufacturer.name}
-                                                            </p>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                {suggestion.total_orders} OM •{' '}
-                                                                {suggestion.steps.length} etapas
-                                                            </p>
-                                                            {suggestion.planned_ship_date && (
-                                                                <p className="text-xs text-muted-foreground mt-1">
-                                                                    Envio: {new Date(suggestion.planned_ship_date).toLocaleDateString('pt-BR')}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handleUseSuggestion(suggestion)}
-                                                        >
-                                                            <Plus className="h-4 w-4 mr-1" />
-                                                            Usar
-                                                        </Button>
-                                                    </div>
-                                                </div>
+                                    <Label htmlFor="destination_type">Tipo de Destino *</Label>
+                                    <Select
+                                        value={data.destination_type}
+                                        onValueChange={(value) =>
+                                            setData('destination_type', value as any)
+                                        }
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.entries(DESTINATION_TYPES).map(([key, label]) => (
+                                                <SelectItem key={key} value={key}>
+                                                    {label}
+                                                </SelectItem>
                                             ))}
-                                        </div>
-                                    </ScrollArea>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
-
-                    {/* Right Column - Shipment Form */}
-                    <form onSubmit={handleSubmit} className="col-span-2 space-y-4">
-                        {/* Selected Items */}
-                        <Card>
-                            <CardHeader>
-                                <div className="flex items-center justify-between">
-                                    <CardTitle>Itens Selecionados ({selectedItems.length})</CardTitle>
-                                    {totalQuantity > 0 && (
-                                        <Badge variant="secondary">
-                                            <Package className="h-3 w-3 mr-1" />
-                                            {formatNumber(totalQuantity)} unidades
-                                        </Badge>
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.destination_type && (
+                                        <p className="text-sm text-destructive">
+                                            {errors.destination_type}
+                                        </p>
                                     )}
                                 </div>
-                            </CardHeader>
-                            <CardContent>
-                                {selectedItems.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                                        <Package className="h-12 w-12 text-muted-foreground mb-3" />
-                                        <p className="text-muted-foreground">
-                                            Escaneie OMs ou use as sugestões para adicionar itens
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <ScrollArea className="h-[300px]">
-                                        <div className="space-y-2">
-                                            {selectedItems.map((item, index) => (
-                                                <div
-                                                    key={index}
-                                                    className="flex items-start gap-3 p-3 border rounded-lg"
-                                                >
-                                                    <div className="flex-1">
-                                                        <div className="font-medium">
-                                                            {item.manufacturing_order.order_number}
-                                                        </div>
-                                                        <div className="text-sm text-muted-foreground">
-                                                            {item.manufacturing_order.item?.name}
-                                                        </div>
-                                                        {item.manufacturing_step && (
-                                                            <div className="text-xs text-muted-foreground mt-1">
-                                                                Etapa: {item.manufacturing_step.name}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="font-medium">
-                                                            {formatNumber(item.quantity)} un
-                                                        </div>
-                                                        {item.manufacturing_step?.manufacturer && (
-                                                            <div className="text-xs text-muted-foreground">
-                                                                {item.manufacturing_step.manufacturer.name}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleRemoveItem(index)}
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </ScrollArea>
-                                )}
-                            </CardContent>
-                        </Card>
 
-                        {/* Shipment Details */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Truck className="h-5 w-5" />
-                                    Detalhes da Remessa
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                {data.destination_type === 'manufacturer' && (
                                     <div className="space-y-2">
-                                        <Label>Tipo de Destino</Label>
-                                        <Select value={destinationType} onValueChange={setDestinationType}>
+                                        <Label htmlFor="destination_id">Fabricante *</Label>
+                                        <Select
+                                            value={data.destination_id}
+                                            onValueChange={(value) => {
+                                                const manufacturer = manufacturers.find(
+                                                    (m) => m.id.toString() === value
+                                                );
+                                                setData({
+                                                    ...data,
+                                                    destination_id: value,
+                                                    destination_name: manufacturer?.name || '',
+                                                    destination_address: manufacturer
+                                                        ? `${manufacturer.address || ''}, ${manufacturer.city || ''}, ${manufacturer.state || ''}`
+                                                        : '',
+                                                });
+                                            }}
+                                        >
                                             <SelectTrigger>
-                                                <SelectValue />
+                                                <SelectValue placeholder="Selecione o fabricante" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="manufacturer">Fabricante Externo</SelectItem>
-                                                <SelectItem value="customer">Cliente</SelectItem>
-                                                <SelectItem value="warehouse">Armazém</SelectItem>
-                                                <SelectItem value="work_cell">Célula de Trabalho</SelectItem>
+                                                {manufacturers.map((manufacturer) => (
+                                                    <SelectItem
+                                                        key={manufacturer.id}
+                                                        value={manufacturer.id.toString()}
+                                                    >
+                                                        {manufacturer.name}
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
+                                        {errors.destination_id && (
+                                            <p className="text-sm text-destructive">
+                                                {errors.destination_id}
+                                            </p>
+                                        )}
                                     </div>
+                                )}
+                            </div>
 
-                                    {destinationType === 'manufacturer' && (
+                            {selectedManufacturer && (
+                                <Alert>
+                                    <Package className="h-4 w-4" />
+                                    <AlertTitle>Endereço do Fabricante</AlertTitle>
+                                    <AlertDescription>
+                                        {selectedManufacturer.address && (
+                                            <div>{selectedManufacturer.address}</div>
+                                        )}
+                                        {selectedManufacturer.city && selectedManufacturer.state && (
+                                            <div>
+                                                {selectedManufacturer.city},{' '}
+                                                {selectedManufacturer.state}
+                                            </div>
+                                        )}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label>Fabricante</Label>
-                                            <Select value={destinationId} onValueChange={setDestinationId}>
+                                    <Label>Método de Envio</Label>
+                                    <Select
+                                        value={data.shipping_method}
+                                        onValueChange={(value) =>
+                                            setData('shipping_method', value as any)
+                                        }
+                                    >
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione..." />
+                                            <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {manufacturers.map((m) => (
-                                                        <SelectItem key={m.id} value={m.id.toString()}>
-                                                            {m.name}
+                                            {Object.entries(SHIPPING_METHODS).map(([key, label]) => (
+                                                <SelectItem key={key} value={key}>
+                                                    {label}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                        </div>
-                                    )}
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Data Planejada de Envio</Label>
-                                        <Input
-                                            type="date"
-                                            value={plannedShipDate}
-                                            onChange={(e) => setPlannedShipDate(e.target.value)}
+                                <TextInput
+                                    form={formAdapter}
+                                    name="carrier_name"
+                                    label="Transportadora"
+                                    placeholder="Nome da transportadora"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label>Data Esperada de Entrega</Label>
-                                        <Input
-                                            type="date"
-                                            value={expectedDeliveryDate}
-                                            onChange={(e) => setExpectedDeliveryDate(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
 
-                                <div className="space-y-2">
-                                    <Label>Transportadora</Label>
-                                    <Input
-                                        value={carrierName}
-                                        onChange={(e) => setCarrierName(e.target.value)}
-                                        placeholder="UPS, FedEx, etc."
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <TextInput
+                                    form={formAdapter}
+                                    name="planned_ship_date"
+                                    label="Data Planejada de Envio"
+                                            type="date"
+                                />
+
+                                <TextInput
+                                    form={formAdapter}
+                                    name="expected_delivery_date"
+                                    label="Data Prevista de Entrega"
+                                    type="date"
                                     />
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label>Notas de Envio</Label>
                                     <Textarea
-                                        value={shippingNotes}
-                                        onChange={(e) => setShippingNotes(e.target.value)}
+                                    value={data.shipping_notes}
+                                    onChange={(e) => setData('shipping_notes', e.target.value)}
+                                    placeholder="Instruções especiais de envio..."
                                         rows={3}
-                                        placeholder="Informações adicionais sobre o envio..."
                                     />
                                 </div>
                             </CardContent>
                         </Card>
 
-                        {/* Summary */}
-                        {selectedItems.length > 0 && (
+                    {/* QR Scanner Section */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Resumo</CardTitle>
+                            <CardTitle>Adicionar Ordens de Manufatura</CardTitle>
+                            <CardDescription>
+                                Escaneie o QR Code das OMs ou digite manualmente
+                            </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="grid grid-cols-3 gap-4 text-sm">
-                                        <div>
-                                            <span className="text-muted-foreground">Total de OMs:</span>
-                                            <p className="text-xl font-bold">{selectedItems.length}</p>
+                            <QrScanner onScan={handleQrScan} />
+
+                            {loadingMo && (
+                                <div className="mt-4 text-center text-sm text-muted-foreground">
+                                    Buscando OM...
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Selected MOs List */}
+                    {selectedMos.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    OMs Selecionadas ({selectedMos.length})
+                                    {selectedMos.every((mo) => mo.verified) && (
+                                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                    )}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {selectedMos.map((mo) => (
+                                    <div
+                                        key={mo.order_number}
+                                        className="flex items-start gap-4 p-4 border rounded-lg"
+                                    >
+                                        <div className="flex-1 space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-semibold">
+                                                    {mo.order_number}
+                                                </span>
+                                                {mo.verified ? (
+                                                    <Badge variant="default" className="gap-1">
+                                                        <CheckCircle2 className="h-3 w-3" />
+                                                        Verificada
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="secondary" className="gap-1">
+                                                        <AlertCircle className="h-3 w-3" />
+                                                        Não Verificada
+                                                    </Badge>
+                                                )}
+                                            </div>
+
+                                            <div className="text-sm text-muted-foreground">
+                                                Item: {mo.item?.name || 'N/A'}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">
+                                                        Etapa Externa *
+                                                    </Label>
+                                                    <Select
+                                                        value={mo.selected_step_id?.toString() || ''}
+                                                        onValueChange={(value) =>
+                                                            handleUpdateStep(
+                                                                mo.order_number,
+                                                                parseInt(value)
+                                                            )
+                                                        }
+                                                    >
+                                                        <SelectTrigger className="h-9">
+                                                            <SelectValue placeholder="Selecione a etapa" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {mo.external_steps?.map((step) => (
+                                                                <SelectItem
+                                                                    key={step.id}
+                                                                    value={step.id.toString()}
+                                                                >
+                                                                    {step.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Quantidade *</Label>
+                                                    <input
+                                                        type="number"
+                                                        value={mo.quantity || 0}
+                                                        onChange={(e) =>
+                                                            handleUpdateQuantity(
+                                                                mo.order_number,
+                                                                parseFloat(e.target.value) || 0
+                                                            )
+                                                        }
+                                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                                        min="0"
+                                                        step="0.01"
+                                                    />
                                         </div>
-                                        <div>
-                                            <span className="text-muted-foreground">Total de Unidades:</span>
-                                            <p className="text-xl font-bold">{formatNumber(totalQuantity)}</p>
                                         </div>
-                                        <div>
-                                            <span className="text-muted-foreground">Fabricantes:</span>
-                                            <p className="text-xl font-bold">
-                                                {new Set(
-                                                    selectedItems
-                                                        .map((i) => i.manufacturing_step?.manufacturer?.name)
-                                                        .filter(Boolean)
-                                                ).size}
-                                            </p>
                                         </div>
+
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleRemoveMo(mo.order_number)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
                                     </div>
+                                ))}
                                 </CardContent>
                             </Card>
                         )}
 
-                        {/* Action Buttons */}
-                        <div className="flex justify-end gap-2">
-                            <Button type="button" variant="outline" asChild>
-                                <Link href={route('logistics.shipments.index')}>Cancelar</Link>
+                    {/* Tips */}
+                    <Alert>
+                        <Lightbulb className="h-4 w-4" />
+                        <AlertTitle>Dica</AlertTitle>
+                        <AlertDescription>
+                            Use o scanner de QR Code para verificar rapidamente as OMs. OMs
+                            verificadas garantem que as etapas externas estão aguardando envio.
+                        </AlertDescription>
+                    </Alert>
+
+                    {/* Submit Actions */}
+                    <div className="flex justify-end gap-4">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => router.visit(route('logistics.shipments.index'))}
+                            disabled={processing}
+                        >
+                            Cancelar
                             </Button>
-                            <Button type="submit" disabled={isSubmitting || selectedItems.length === 0}>
-                                {isSubmitting ? (
-                                    <>Criando...</>
-                                ) : (
-                                    <>
-                                        <CheckCircle className="h-4 w-4 mr-2" />
-                                        Criar Remessa ({selectedItems.length} {selectedItems.length === 1 ? 'item' : 'itens'})
-                                    </>
-                                )}
+                        <Button type="submit" disabled={processing || selectedMos.length === 0}>
+                            {processing ? 'Criando...' : 'Criar Remessa'}
                             </Button>
                         </div>
                     </form>
-                </div>
             </div>
         </AppLayout>
     );

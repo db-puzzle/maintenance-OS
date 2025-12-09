@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
-import { Shipment } from '@/types/logistics';
+import ShowLayout from '@/layouts/show-layout';
+import { Shipment, ShipmentItem } from '@/types/logistics';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShipmentStatusBadge } from '@/components/logistics/shipment-status-badge';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import {
     Dialog,
     DialogContent,
@@ -16,235 +17,258 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { TextInput } from '@/components/TextInput';
+import { createFormAdapter } from '@/utils/form-adapters';
 import {
-    ArrowLeft,
-    Truck,
-    Download,
-    CheckCircle,
     Package,
-    MapPin,
+    Truck,
+    PackageCheck,
     Calendar,
+    MapPin,
     User,
     FileText,
-    AlertTriangle,
-    Upload,
-    X,
+    Download,
 } from 'lucide-react';
-import { type BreadcrumbItem } from '@/types';
-import { formatNumber } from '@/utils/number';
 import { toast } from 'sonner';
+import { formatNumber } from '@/utils/number';
+import { ColumnConfig } from '@/types/shared';
 
+/**
+ * Props for shipments show page.
+ */
 interface Props {
     shipment: Shipment;
+    can?: {
+        update: boolean;
+        delete: boolean;
+    };
 }
 
 /**
- * Shipment Details Page
+ * Shipments Show Page
  *
- * Displays complete shipment information including items, status history,
- * and actions for marking as shipped or received.
+ * Display shipment details with actions for shipping and receiving.
  */
-export default function ShowShipment({ shipment }: Props) {
-    const [showShippedDialog, setShowShippedDialog] = useState(false);
-    const [showReceivedDialog, setShowReceivedDialog] = useState(false);
-    const [trackingNumber, setTrackingNumber] = useState('');
-    const [carrierName, setCarrierName] = useState('');
-    const [receivingNotes, setReceivingNotes] = useState('');
-    const [photos, setPhotos] = useState<File[]>([]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+export default function ShipmentsShow({ shipment, can = { update: false, delete: false } }: Props) {
+    const [markAsShippedOpen, setMarkAsShippedOpen] = useState(false);
+    const [markAsReceivedOpen, setMarkAsReceivedOpen] = useState(false);
 
-    const breadcrumbs: BreadcrumbItem[] = [
-        {
-            title: 'Home',
-            href: '/home',
-        },
-        {
-            title: 'Logística',
-            href: '/logistics/shipments',
-        },
-        {
-            title: 'Remessas',
-            href: '/logistics/shipments',
-        },
-        {
-            title: shipment.shipment_number,
-            href: route('logistics.shipments.show', shipment.id),
-        },
+    // Form for marking as shipped
+    const shippedForm = useForm({
+        tracking_number: shipment.tracking_number || '',
+        carrier_name: shipment.carrier_name || '',
+        photo_notes: '',
+    });
+
+    const shippedFormAdapter = createFormAdapter({
+        data: shippedForm.data,
+        setData: shippedForm.setData,
+        errors: shippedForm.errors,
+        clearErrors: shippedForm.clearErrors,
+    });
+
+    // Form for marking as received with item receipts
+    const receivedForm = useForm<{
+        receiving_notes: string;
+        items: Array<{
+            item_id: number;
+            quantity_received: number;
+            quantity_rejected: number;
+            rejection_reason: string;
+        }>;
+    }>({
+        receiving_notes: '',
+        items:
+            shipment.items?.map((item) => ({
+                item_id: item.id,
+                quantity_received: item.quantity_pending,
+                quantity_rejected: 0,
+                rejection_reason: '',
+            })) || [],
+    });
+
+    const breadcrumbs = [
+        { title: 'Home', href: '/home' },
+        { title: 'Remessas', href: route('logistics.shipments.index') },
+        { title: shipment.shipment_number, href: '' },
     ];
 
+    /**
+     * Handle mark as shipped.
+     */
     const handleMarkAsShipped = () => {
-        setIsSubmitting(true);
-        const formData = new FormData();
-        if (trackingNumber) formData.append('tracking_number', trackingNumber);
-        if (carrierName) formData.append('carrier_name', carrierName);
-
-        router.post(route('logistics.shipments.mark-as-shipped', shipment.id), formData, {
+        shippedForm.post(route('logistics.shipments.mark-as-shipped', shipment.id), {
             onSuccess: () => {
-                toast.success('Remessa marcada como enviada');
-                setShowShippedDialog(false);
+                setMarkAsShippedOpen(false);
+                toast.success('Remessa marcada como enviada!');
             },
             onError: () => {
-                toast.error('Erro ao marcar remessa como enviada');
+                toast.error('Erro ao marcar como enviada');
             },
-            onFinish: () => setIsSubmitting(false),
         });
     };
 
+    /**
+     * Handle mark as received.
+     */
     const handleMarkAsReceived = () => {
-        setIsSubmitting(true);
-        const items = shipment.items?.map((item) => ({
-            item_id: item.id,
-            quantity_received: item.quantity_shipped - item.quantity_received,
-            quantity_rejected: 0,
-        })) || [];
-
-        router.post(
-            route('logistics.shipments.mark-as-received', shipment.id),
-            {
-                items,
-                receiving_notes: receivingNotes,
-            },
-            {
+        receivedForm.post(route('logistics.shipments.mark-as-received', shipment.id), {
                 onSuccess: () => {
-                    toast.success('Remessa marcada como recebida');
-                    setShowReceivedDialog(false);
+                setMarkAsReceivedOpen(false);
+                toast.success('Remessa marcada como recebida!');
                 },
                 onError: () => {
-                    toast.error('Erro ao marcar remessa como recebida');
-                },
-                onFinish: () => setIsSubmitting(false),
-            }
-        );
+                toast.error('Erro ao marcar como recebida');
+            },
+        });
     };
 
-    const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        setPhotos((prev) => [...prev, ...files].slice(0, 10));
+    /**
+     * Update receipt quantity for item.
+     */
+    const updateReceiptQuantity = (itemId: number, field: string, value: number) => {
+        const items = [...receivedForm.data.items];
+        const index = items.findIndex((i) => i.item_id === itemId);
+        if (index !== -1) {
+            items[index] = { ...items[index], [field]: value };
+            receivedForm.setData('items', items);
+        }
     };
 
-    const removePhoto = (index: number) => {
-        setPhotos((prev) => prev.filter((_, i) => i !== index));
+    /**
+     * Generate packing list PDF.
+     */
+    const handleGeneratePackingList = () => {
+        window.open(route('logistics.shipments.packing-list', shipment.id), '_blank');
+        toast.success('Gerando lista de embalagem...');
     };
 
-    return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Remessa ${shipment.shipment_number}`} />
-
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href={route('logistics.shipments.index')}>
-                            <Button variant="outline" size="sm">
-                                <ArrowLeft className="h-4 w-4 mr-2" />
-                                Voltar
-                            </Button>
-                        </Link>
+    // Table columns for shipment items
+    const itemColumns: ColumnConfig<ShipmentItem>[] = [
+        {
+            key: 'manufacturing_order',
+            label: 'Ordem',
+            width: 'w-[150px]',
+            render: (_value, item) => (
+                <div className="font-medium">{item.manufacturing_order?.order_number || '-'}</div>
+            ),
+        },
+        {
+            key: 'item_name',
+            label: 'Item',
+            width: 'w-[250px]',
+            render: (_value, item) => (
                         <div>
-                            <h1 className="text-3xl font-bold">{shipment.shipment_number}</h1>
-                            <p className="text-muted-foreground">
-                                {shipment.destination_name ||
-                                    (shipment.destination && 'name' in shipment.destination
-                                        ? String(shipment.destination.name)
-                                        : '')}
-                            </p>
+                    <div className="font-medium">{item.item_name || '-'}</div>
+                    <div className="text-sm text-muted-foreground">{item.item_code || ''}</div>
+                </div>
+            ),
+        },
+        {
+            key: 'manufacturing_step',
+            label: 'Etapa',
+            width: 'w-[180px]',
+            render: (_value, item) => (
+                <div className="text-sm">
+                    {item.manufacturing_step?.name || 'Produto Final'}
+                </div>
+            ),
+        },
+        {
+            key: 'quantity_shipped',
+            label: 'Qtd Enviada',
+            width: 'w-[120px]',
+            headerAlign: 'right',
+            render: (_value, item) => (
+                <div className="text-right font-medium">
+                    {formatNumber(item.quantity_shipped)}
+                </div>
+            ),
+        },
+        {
+            key: 'quantity_received',
+            label: 'Qtd Recebida',
+            width: 'w-[120px]',
+            headerAlign: 'right',
+            render: (_value, item) => (
+                <div className="text-right">
+                    <div>{formatNumber(item.quantity_received)}</div>
+                    {item.quantity_pending > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                            Pendente: {formatNumber(item.quantity_pending)}
                         </div>
+                    )}
                     </div>
-                    <div className="flex items-center gap-3">
-                        {shipment.is_overdue && (
-                            <Badge variant="destructive" className="gap-1">
-                                <AlertTriangle className="h-3 w-3" />
-                                Atrasado
+            ),
+        },
+        {
+            key: 'status',
+            label: 'Status',
+            width: 'w-[120px]',
+            render: (_value, item) => (
+                <div className="flex justify-center">
+                    {item.is_fully_received ? (
+                        <Badge variant="default" className="gap-1">
+                            <PackageCheck className="h-3 w-3" />
+                            Completo
                             </Badge>
-                        )}
+                    ) : (
+                        <Badge variant="secondary">Pendente</Badge>
+                    )}
+                </div>
+            ),
+        },
+    ];
+
+    const tabs = [
+        {
+            id: 'details',
+            label: 'Detalhes',
+            content: (
+                <div className="py-6 space-y-6">
+                    {/* Status and Actions */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Status da Remessa</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center justify-between">
                         <ShipmentStatusBadge status={shipment.status} />
-                    </div>
+                                {shipment.is_overdue && (
+                                    <Badge variant="destructive">Atrasada</Badge>
+                                )}
                 </div>
 
-                {/* Actions */}
+                            {/* Action Buttons */}
                 <div className="flex gap-2">
-                    {shipment.packing_list_path && (
-                        <Button variant="outline" asChild>
-                            <a
-                                href={route('logistics.shipments.packing-list', shipment.id)}
-                                target="_blank"
-                            >
-                                <Download className="h-4 w-4 mr-2" />
-                                Baixar Lista de Embalagem
-                            </a>
+                                {shipment.canShip?.() && can.update && (
+                                    <Button onClick={() => setMarkAsShippedOpen(true)}>
+                                        <Truck className="mr-2 h-4 w-4" />
+                                        Marcar como Enviada
                         </Button>
                     )}
 
-                    {(shipment.status === 'planned' || shipment.status === 'packed') && (
-                        <Button onClick={() => setShowShippedDialog(true)}>
-                            <Truck className="h-4 w-4 mr-2" />
-                            Marcar como Enviado
+                                {shipment.canReceive?.() && can.update && (
+                                    <Button onClick={() => setMarkAsReceivedOpen(true)}>
+                                        <PackageCheck className="mr-2 h-4 w-4" />
+                                        Marcar como Recebida
                         </Button>
                     )}
 
-                    {(shipment.status === 'shipped' ||
-                        shipment.status === 'in_transit' ||
-                        shipment.status === 'delivered') && (
-                            <Button onClick={() => setShowReceivedDialog(true)}>
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Marcar como Recebido
+                                <Button
+                                    variant="outline"
+                                    onClick={handleGeneratePackingList}
+                                >
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Lista de Embalagem
                             </Button>
-                        )}
                 </div>
+                        </CardContent>
+                    </Card>
 
-                {/* Content Grid */}
-                <div className="grid grid-cols-3 gap-6">
-                    {/* Left Column - Details */}
-                    <div className="space-y-4">
-                        {/* Shipping Info */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    <Truck className="h-4 w-4" />
-                                    Informações de Envio
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3 text-sm">
-                                <div>
-                                    <span className="text-muted-foreground">Transportadora:</span>
-                                    <p className="font-medium">{shipment.carrier_name || '-'}</p>
-                                </div>
-                                <div>
-                                    <span className="text-muted-foreground">Rastreamento:</span>
-                                    <p className="font-medium">{shipment.tracking_number || '-'}</p>
-                                </div>
-                                <div>
-                                    <span className="text-muted-foreground flex items-center gap-1">
-                                        <Calendar className="h-3 w-3" />
-                                        Data Planejada:
-                                    </span>
-                                    <p className="font-medium">
-                                        {shipment.planned_ship_date
-                                            ? new Date(shipment.planned_ship_date).toLocaleDateString(
-                                                'pt-BR'
-                                            )
-                                            : '-'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <span className="text-muted-foreground flex items-center gap-1">
-                                        <Calendar className="h-3 w-3" />
-                                        Data Real:
-                                    </span>
-                                    <p className="font-medium">
-                                        {shipment.actual_ship_date
-                                            ? new Date(shipment.actual_ship_date).toLocaleDateString(
-                                                'pt-BR'
-                                            )
-                                            : '-'}
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Destination */}
+                    {/* Shipment Information */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Card>
                             <CardHeader>
                                 <CardTitle className="text-base flex items-center gap-2">
@@ -252,314 +276,397 @@ export default function ShowShipment({ shipment }: Props) {
                                     Destino
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-3 text-sm">
+                            <CardContent className="space-y-2 text-sm">
                                 <div>
-                                    <span className="text-muted-foreground">Nome:</span>
-                                    <p className="font-medium">
-                                        {shipment.destination_name ||
-                                            (shipment.destination && 'name' in shipment.destination
-                                                ? String(shipment.destination.name)
-                                                : '-')}
-                                    </p>
+                                    <div className="font-medium">
+                                        {shipment.destination_name || '-'}
                                 </div>
-                                <div>
-                                    <span className="text-muted-foreground">Endereço:</span>
-                                    <p className="font-medium">{shipment.destination_address || '-'}</p>
+                                    <div className="text-muted-foreground">
+                                        {shipment.destination_address || 'Endereço não fornecido'}
                                 </div>
-                                <div>
-                                    <span className="text-muted-foreground">Tipo:</span>
-                                    <p className="font-medium capitalize">{shipment.destination_type}</p>
                                 </div>
                             </CardContent>
                         </Card>
 
-                        {/* User Tracking */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base flex items-center gap-2">
+                                    <Truck className="h-4 w-4" />
+                                    Transporte
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2 text-sm">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="text-muted-foreground">Método:</div>
+                                    <div className="font-medium">
+                                        {shipment.shipping_method || '-'}
+                                    </div>
+
+                                    {shipment.carrier_name && (
+                                        <>
+                                            <div className="text-muted-foreground">
+                                                Transportadora:
+                                            </div>
+                                            <div className="font-medium">
+                                                {shipment.carrier_name}
+                                </div>
+                                        </>
+                                    )}
+
+                                    {shipment.tracking_number && (
+                                        <>
+                                            <div className="text-muted-foreground">Rastreio:</div>
+                                            <div className="font-medium">
+                                                {shipment.tracking_number}
+                                </div>
+                                        </>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base flex items-center gap-2">
+                                    <Calendar className="h-4 w-4" />
+                                    Datas
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2 text-sm">
+                                <div className="grid grid-cols-2 gap-2">
+                                    {shipment.planned_ship_date && (
+                                        <>
+                                            <div className="text-muted-foreground">
+                                                Envio Planejado:
+                                            </div>
+                                    <div>
+                                                {new Date(
+                                                    shipment.planned_ship_date
+                                                ).toLocaleDateString('pt-BR')}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {shipment.actual_ship_date && (
+                                        <>
+                                            <div className="text-muted-foreground">
+                                                Enviado em:
+                                            </div>
+                                            <div className="font-medium">
+                                                {new Date(
+                                                    shipment.actual_ship_date
+                                                ).toLocaleDateString('pt-BR')}
+                                    </div>
+                                        </>
+                                    )}
+
+                                    {shipment.expected_delivery_date && (
+                                        <>
+                                            <div className="text-muted-foreground">
+                                                Entrega Prevista:
+                                            </div>
+                                    <div>
+                                                {new Date(
+                                                    shipment.expected_delivery_date
+                                                ).toLocaleDateString('pt-BR')}
+                                    </div>
+                                        </>
+                                    )}
+
+                                    {shipment.actual_delivery_date && (
+                                        <>
+                                            <div className="text-muted-foreground">
+                                                Recebido em:
+                                            </div>
+                                            <div className="font-medium">
+                                                {new Date(
+                                                    shipment.actual_delivery_date
+                                                ).toLocaleDateString('pt-BR')}
+                                    </div>
+                                        </>
+                                )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         <Card>
                             <CardHeader>
                                 <CardTitle className="text-base flex items-center gap-2">
                                     <User className="h-4 w-4" />
-                                    Histórico
-                                </CardTitle>
+                                    Responsáveis
+                                    </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-3 text-sm">
-                                {shipment.creator && (
-                                    <div>
-                                        <span className="text-muted-foreground">Criado por:</span>
-                                        <p className="font-medium">{shipment.creator.name}</p>
-                                    </div>
-                                )}
-                                {shipment.shipper && (
-                                    <div>
-                                        <span className="text-muted-foreground">Enviado por:</span>
-                                        <p className="font-medium">{shipment.shipper.name}</p>
-                                    </div>
-                                )}
-                                {shipment.receiver && (
-                                    <div>
-                                        <span className="text-muted-foreground">Recebido por:</span>
-                                        <p className="font-medium">{shipment.receiver.name}</p>
-                                    </div>
-                                )}
+                            <CardContent className="space-y-2 text-sm">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="text-muted-foreground">Criado por:</div>
+                                    <div>{shipment.createdBy?.name || '-'}</div>
+
+                                    {shipment.shipper && (
+                                        <>
+                                            <div className="text-muted-foreground">Enviado por:</div>
+                                            <div>{shipment.shipper.name}</div>
+                                        </>
+                                    )}
+
+                                    {shipment.receiver && (
+                                        <>
+                                            <div className="text-muted-foreground">Recebido por:</div>
+                                            <div>{shipment.receiver.name}</div>
+                                        </>
+                                                    )}
+                                                </div>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* Right Column - Items */}
-                    <div className="col-span-2">
-                        <Card>
-                            <CardHeader>
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Package className="h-5 w-5" />
-                                        Itens ({shipment.items?.length || 0})
-                                    </CardTitle>
-                                    <Badge variant="secondary">
-                                        {formatNumber(
-                                            shipment.items?.reduce((sum, item) => sum + item.quantity_shipped, 0) || 0
-                                        )}{' '}
-                                        unidades
-                                    </Badge>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                {shipment.items && shipment.items.length > 0 ? (
-                                    <ScrollArea className="h-[400px]">
-                                        <div className="space-y-3">
-                                            {shipment.items.map((item) => (
-                                                <div
-                                                    key={item.id}
-                                                    className="p-4 border rounded-lg space-y-2"
-                                                >
-                                                    <div className="flex items-start justify-between">
-                                                        <div className="flex-1">
-                                                            <p className="font-medium">{item.item_name}</p>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                OM: {item.manufacturing_order?.order_number}
-                                                            </p>
-                                                            {item.manufacturing_step && (
-                                                                <p className="text-sm text-muted-foreground">
-                                                                    Etapa: {item.manufacturing_step.name}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className="font-medium text-lg">
-                                                                {formatNumber(item.quantity_shipped)}
-                                                            </p>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                unidades
-                                                            </p>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Receipt Progress */}
-                                                    {item.quantity_received > 0 && (
-                                                        <div className="flex items-center gap-2 text-sm">
-                                                            <div className="flex-1 bg-muted rounded-full h-2">
-                                                                <div
-                                                                    className="bg-green-500 h-2 rounded-full transition-all"
-                                                                    style={{
-                                                                        width: `${(item.quantity_received / item.quantity_shipped) * 100}%`,
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {formatNumber(item.quantity_received)} recebido
-                                                            </span>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Package Info */}
-                                                    {item.package_count && (
-                                                        <div className="text-xs text-muted-foreground">
-                                                            Embalagem: {item.package_count} {item.package_type}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Notes */}
-                                                    {item.notes && (
-                                                        <div className="text-xs text-muted-foreground pt-2 border-t">
-                                                            {item.notes}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Rejection Info */}
-                                                    {item.quantity_rejected > 0 && (
-                                                        <div className="bg-destructive/10 rounded-lg p-2 text-xs">
-                                                            <span className="text-destructive font-medium">
-                                                                {formatNumber(item.quantity_rejected)} unidades rejeitadas
-                                                            </span>
-                                                            {item.rejection_reason && (
-                                                                <p className="text-muted-foreground mt-1">
-                                                                    {item.rejection_reason}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </ScrollArea>
-                                ) : (
-                                    <p className="text-center text-muted-foreground py-8">
-                                        Nenhum item nesta remessa
-                                    </p>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Notes Section */}
+                    {/* Notes */}
                         {(shipment.shipping_notes || shipment.receiving_notes) && (
-                            <Card className="mt-4">
+                        <Card>
                                 <CardHeader>
                                     <CardTitle className="text-base flex items-center gap-2">
                                         <FileText className="h-4 w-4" />
                                         Notas
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-3 text-sm">
+                            <CardContent className="space-y-4">
                                     {shipment.shipping_notes && (
                                         <div>
-                                            <span className="font-medium">Notas de Envio:</span>
-                                            <p className="text-muted-foreground mt-1">
+                                        <div className="text-sm font-medium mb-1">
+                                            Notas de Envio:
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
                                                 {shipment.shipping_notes}
-                                            </p>
+                                        </div>
                                         </div>
                                     )}
+
                                     {shipment.receiving_notes && (
                                         <div>
-                                            <span className="font-medium">Notas de Recebimento:</span>
-                                            <p className="text-muted-foreground mt-1">
+                                        <div className="text-sm font-medium mb-1">
+                                            Notas de Recebimento:
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
                                                 {shipment.receiving_notes}
-                                            </p>
+                                        </div>
                                         </div>
                                     )}
                                 </CardContent>
                             </Card>
                         )}
                     </div>
+            ),
+        },
+        {
+            id: 'items',
+            label: `Itens (${shipment.total_items})`,
+            content: (
+                <div className="py-6">
+                    <EntityDataTable
+                        data={shipment.items as unknown as Array<Record<string, unknown>>}
+                        columns={itemColumns}
+                        emptyMessage="Nenhum item nesta remessa."
+                    />
                 </div>
-            </div>
+            ),
+        },
+    ];
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title={`Remessa ${shipment.shipment_number}`} />
+
+            <ShowLayout
+                title={shipment.shipment_number}
+                subtitle={`${shipment.destination_type} • ${shipment.total_items} itens`}
+                editRoute=""
+                tabs={tabs}
+            />
 
             {/* Mark as Shipped Dialog */}
-            <Dialog open={showShippedDialog} onOpenChange={setShowShippedDialog}>
+            <Dialog open={markAsShippedOpen} onOpenChange={setMarkAsShippedOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Marcar Remessa como Enviada</DialogTitle>
+                        <DialogTitle>Marcar como Enviada</DialogTitle>
                         <DialogDescription>
-                            Atualize as informações de rastreamento e confirme o envio.
+                            Registre as informações de envio da remessa
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4">
+
+                    <div className="space-y-4 py-4">
+                        <TextInput
+                            form={shippedFormAdapter}
+                            name="tracking_number"
+                            label="Número de Rastreio"
+                            placeholder="ABC123456"
+                        />
+
+                        <TextInput
+                            form={shippedFormAdapter}
+                            name="carrier_name"
+                            label="Transportadora"
+                            placeholder="Nome da transportadora"
+                        />
+
                         <div className="space-y-2">
-                            <Label>Transportadora</Label>
-                            <Input
-                                value={carrierName}
-                                onChange={(e) => setCarrierName(e.target.value)}
-                                placeholder="UPS, FedEx, DHL..."
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Número de Rastreamento</Label>
-                            <Input
-                                value={trackingNumber}
-                                onChange={(e) => setTrackingNumber(e.target.value)}
-                                placeholder="Ex: 1Z999AA10123456784"
+                            <Label>Notas</Label>
+                            <Textarea
+                                value={shippedForm.data.photo_notes}
+                                onChange={(e) =>
+                                    shippedForm.setData('photo_notes', e.target.value)
+                                }
+                                placeholder="Notas adicionais sobre o envio..."
+                                rows={3}
                             />
                         </div>
                     </div>
+
                     <DialogFooter>
                         <Button
-                            type="button"
                             variant="outline"
-                            onClick={() => setShowShippedDialog(false)}
+                            onClick={() => setMarkAsShippedOpen(false)}
+                            disabled={shippedForm.processing}
                         >
                             Cancelar
                         </Button>
-                        <Button onClick={handleMarkAsShipped} disabled={isSubmitting}>
-                            {isSubmitting ? 'Salvando...' : 'Confirmar Envio'}
+                        <Button
+                            onClick={handleMarkAsShipped}
+                            disabled={shippedForm.processing}
+                        >
+                            {shippedForm.processing ? 'Salvando...' : 'Confirmar Envio'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
             {/* Mark as Received Dialog */}
-            <Dialog open={showReceivedDialog} onOpenChange={setShowReceivedDialog}>
-                <DialogContent className="max-w-md">
+            <Dialog open={markAsReceivedOpen} onOpenChange={setMarkAsReceivedOpen}>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Marcar Remessa como Recebida</DialogTitle>
+                        <DialogTitle>Marcar como Recebida</DialogTitle>
                         <DialogDescription>
-                            Confirme o recebimento de {shipment.items?.length || 0} item(s).
+                            Registre as quantidades recebidas para cada item
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4">
+
+                    <div className="space-y-4 py-4">
+                        {/* Items Receipt Table */}
+                        <div className="space-y-3">
+                            {shipment.items?.map((item, index) => (
+                                <Card key={item.id}>
+                                    <CardContent className="pt-4">
+                                        <div className="space-y-3">
+                                            <div>
+                                                <div className="font-medium">{item.item_name}</div>
+                                                <div className="text-sm text-muted-foreground">
+                                                    {item.manufacturing_order?.order_number}
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <div>
+                                                    <Label className="text-xs">
+                                                        Qtd Recebida *
+                                                    </Label>
+                                                    <input
+                                                        type="number"
+                                                        value={
+                                                            receivedForm.data.items[index]
+                                                                ?.quantity_received || 0
+                                                        }
+                                                        onChange={(e) =>
+                                                            updateReceiptQuantity(
+                                                                item.id,
+                                                                'quantity_received',
+                                                                parseFloat(e.target.value) || 0
+                                                            )
+                                                        }
+                                                        className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                                                        min="0"
+                                                        step="0.01"
+                                                    />
+                                                    <div className="mt-1 text-xs text-muted-foreground">
+                                                        Enviado: {formatNumber(item.quantity_shipped)}
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <Label className="text-xs">Qtd Rejeitada</Label>
+                                                    <input
+                                                        type="number"
+                                                        value={
+                                                            receivedForm.data.items[index]
+                                                                ?.quantity_rejected || 0
+                                                        }
+                                                        onChange={(e) =>
+                                                            updateReceiptQuantity(
+                                                                item.id,
+                                                                'quantity_rejected',
+                                                                parseFloat(e.target.value) || 0
+                                                            )
+                                                        }
+                                                        className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                                                        min="0"
+                                                        step="0.01"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {(receivedForm.data.items[index]?.quantity_rejected || 0) >
+                                                0 && (
+                                                <div>
+                                                    <Label className="text-xs">
+                                                        Motivo da Rejeição
+                                                    </Label>
+                                                    <Textarea
+                                                        value={
+                                                            receivedForm.data.items[index]
+                                                                ?.rejection_reason || ''
+                                                        }
+                                                        onChange={(e) => {
+                                                            const items = [...receivedForm.data.items];
+                                                            items[index] = {
+                                                                ...items[index],
+                                                                rejection_reason: e.target.value,
+                                                            };
+                                                            receivedForm.setData('items', items);
+                                                        }}
+                                                        rows={2}
+                                                        className="mt-1"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+
                         <div className="space-y-2">
-                            <Label>Notas de Recebimento (opcional)</Label>
+                            <Label>Notas de Recebimento</Label>
                             <Textarea
-                                value={receivingNotes}
-                                onChange={(e) => setReceivingNotes(e.target.value)}
+                                value={receivedForm.data.receiving_notes}
+                                onChange={(e) =>
+                                    receivedForm.setData('receiving_notes', e.target.value)
+                                }
+                                placeholder="Condição dos itens, problemas encontrados, etc..."
                                 rows={3}
-                                placeholder="Adicione observações sobre o recebimento..."
                             />
                         </div>
-
-                        {/* Photo Upload */}
-                        <div className="space-y-2">
-                            <Label>Fotos (opcional, máx. 10)</Label>
-                            <div className="border-2 border-dashed rounded-lg p-4">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={handlePhotoSelect}
-                                    className="hidden"
-                                    id="photo-upload"
-                                    disabled={photos.length >= 10}
-                                />
-                                <label
-                                    htmlFor="photo-upload"
-                                    className="flex flex-col items-center gap-2 cursor-pointer"
-                                >
-                                    <Upload className="h-8 w-8 text-muted-foreground" />
-                                    <span className="text-sm text-muted-foreground">
-                                        Clique para selecionar fotos
-                                    </span>
-                                </label>
-                            </div>
-
-                            {/* Photo Preview */}
-                            {photos.length > 0 && (
-                                <div className="grid grid-cols-3 gap-2">
-                                    {photos.map((photo, index) => (
-                                        <div key={index} className="relative group">
-                                            <img
-                                                src={URL.createObjectURL(photo)}
-                                                alt={`Preview ${index + 1}`}
-                                                className="w-full h-20 object-cover rounded"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => removePhoto(index)}
-                                                className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <X className="h-3 w-3" />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
                     </div>
+
                     <DialogFooter>
                         <Button
-                            type="button"
                             variant="outline"
-                            onClick={() => setShowReceivedDialog(false)}
+                            onClick={() => setMarkAsReceivedOpen(false)}
+                            disabled={receivedForm.processing}
                         >
                             Cancelar
                         </Button>
-                        <Button onClick={handleMarkAsReceived} disabled={isSubmitting}>
-                            {isSubmitting ? 'Salvando...' : 'Confirmar Recebimento'}
+                        <Button
+                            onClick={handleMarkAsReceived}
+                            disabled={receivedForm.processing}
+                        >
+                            {receivedForm.processing ? 'Salvando...' : 'Confirmar Recebimento'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

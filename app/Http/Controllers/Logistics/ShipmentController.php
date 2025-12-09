@@ -36,18 +36,52 @@ class ShipmentController extends Controller
     {
         $this->authorize('viewAny', Shipment::class);
 
-        $shipments = Shipment::with([
-            'items.manufacturingOrder.item',
-            'destination',
-        ])
-            ->when($request->status, fn ($q, $status) => $q->byStatus($status))
-            ->when($request->destination_type, fn ($q, $type) => $q->where('destination_type', $type))
+        // Build the base query for filtering (search and destination_type only, no status filter)
+        $baseQuery = Shipment::query()
+            ->when($request->search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('shipment_number', 'like', "%{$search}%")
+                        ->orWhere('destination_name', 'like', "%{$search}%")
+                        ->orWhere('tracking_number', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->destination_type, fn ($q, $type) => $q->where('destination_type', $type));
+
+        // Get status counts based only on search and destination_type filters (ignoring status filter)
+        $statusCounts = (clone $baseQuery)
+            ->select('status', \DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        // Calculate total count based only on search and destination_type filters
+        $summaryTotal = array_sum($statusCounts);
+
+        // Now apply status filter for the actual data display
+        $shipments = (clone $baseQuery)
+            ->with([
+                'items.manufacturingOrder.item',
+                'destination',
+            ])
+            ->when($request->status, fn ($q, $status) => $q->where('status', $status))
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
+        $shipmentsArray = $shipments->toArray();
+
         return Inertia::render('logistics/shipments/index', [
-            'shipments' => $shipments,
-            'filters' => $request->only(['status', 'destination_type']),
+            'shipments' => [
+                'data' => $shipmentsArray['data'],
+                'current_page' => $shipmentsArray['current_page'],
+                'last_page' => $shipmentsArray['last_page'],
+                'per_page' => $shipmentsArray['per_page'],
+                'total' => $shipmentsArray['total'],
+                'from' => $shipmentsArray['from'],
+                'to' => $shipmentsArray['to'],
+            ],
+            'filters' => $request->only(['status', 'destination_type', 'search']),
+            'statusCounts' => $statusCounts,
+            'summaryTotal' => $summaryTotal,
         ]);
     }
 

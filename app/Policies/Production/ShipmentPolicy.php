@@ -5,6 +5,11 @@ namespace App\Policies\Production;
 use App\Models\Production\Shipment;
 use App\Models\User;
 
+/**
+ * Policy for Shipment authorization.
+ *
+ * Handles permissions for creating, viewing, and managing shipments.
+ */
 class ShipmentPolicy
 {
     /**
@@ -12,7 +17,7 @@ class ShipmentPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('production.shipments.viewAny');
+        return $user->can('view_any_shipment');
     }
 
     /**
@@ -20,7 +25,7 @@ class ShipmentPolicy
      */
     public function view(User $user, Shipment $shipment): bool
     {
-        return $user->hasPermissionTo('production.shipments.view');
+        return $user->can('view_shipment');
     }
 
     /**
@@ -28,7 +33,7 @@ class ShipmentPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('production.shipments.create');
+        return $user->can('create_shipment');
     }
 
     /**
@@ -36,12 +41,7 @@ class ShipmentPolicy
      */
     public function update(User $user, Shipment $shipment): bool
     {
-        // Can only update draft or ready shipments
-        if (! in_array($shipment->status, ['draft', 'ready'])) {
-            return false;
-        }
-
-        return $user->hasPermissionTo('production.shipments.update');
+        return $user->can('update_shipment');
     }
 
     /**
@@ -49,58 +49,35 @@ class ShipmentPolicy
      */
     public function delete(User $user, Shipment $shipment): bool
     {
-        // Can only delete draft or cancelled shipments
-        if (! in_array($shipment->status, ['draft', 'cancelled'])) {
+        // Cannot delete shipped or received shipments
+        if (in_array($shipment->status, ['shipped', 'in_transit', 'delivered', 'received'])) {
             return false;
         }
 
-        return $user->hasPermissionTo('production.shipments.delete');
+        return $user->can('delete_shipment');
     }
 
     /**
-     * Determine whether the user can mark shipment as ready.
+     * Determine whether the user can mark shipment as shipped.
      */
-    public function markReady(User $user, Shipment $shipment): bool
+    public function markAsShipped(User $user, Shipment $shipment): bool
     {
-        // Can only mark draft shipments as ready
-        if ($shipment->status !== 'draft') {
-            return false;
-        }
-
-        return $user->hasPermissionTo('production.shipments.markReady');
+        return $user->can('update_shipment') && $shipment->canShip();
     }
 
     /**
-     * Determine whether the user can ship the shipment.
+     * Determine whether the user can mark shipment as received.
      */
-    public function ship(User $user, Shipment $shipment): bool
+    public function markAsReceived(User $user, Shipment $shipment): bool
     {
-        // Can only ship ready shipments
-        if ($shipment->status !== 'ready') {
-            return false;
-        }
-
-        return $user->hasPermissionTo('production.shipments.ship');
+        return $user->can('update_shipment') && $shipment->canReceive();
     }
 
     /**
-     * Determine whether the user can mark shipment as delivered.
+     * Determine whether the user can generate packing list.
      */
-    public function deliver(User $user, Shipment $shipment): bool
+    public function generatePackingList(User $user, Shipment $shipment): bool
     {
-        // Can only mark in-transit shipments as delivered
-        if ($shipment->status !== 'in_transit') {
-            return false;
-        }
-
-        return $user->hasPermissionTo('production.shipments.deliver');
-    }
-
-    /**
-     * Determine whether the user can upload photos.
-     */
-    public function uploadPhotos(User $user, Shipment $shipment): bool
-    {
-        return $user->hasPermissionTo('production.shipments.uploadPhotos');
+        return $user->can('view_shipment');
     }
 }

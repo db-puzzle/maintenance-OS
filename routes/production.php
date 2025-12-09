@@ -174,6 +174,12 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('steps/{step}/report-progress', [ManufacturingOrderController::class, 'reportStepProgress'])->name('steps.report-progress');
     Route::post('steps/{step}/update-dependencies', [ManufacturingStepController::class, 'updateDependencies'])->name('steps.update-dependencies');
 
+    // External Manufacturing Steps
+    Route::post('steps/{step}/mark-as-shipped', [ExternalStepController::class, 'markAsShipped'])->name('steps.mark-as-shipped');
+    Route::post('steps/{step}/mark-as-in-process', [ExternalStepController::class, 'markAsInProcess'])->name('steps.mark-as-in-process');
+    Route::post('steps/{step}/record-quantity-received', [ExternalStepController::class, 'recordQuantityReceived'])->name('steps.record-quantity-received');
+    Route::post('steps/{step}/convert-to-external', [ExternalStepController::class, 'convertToExternal'])->name('steps.convert-to-external');
+
     // Manufacturing Orders
     Route::resource('orders', ManufacturingOrderController::class)->except(['edit']);
     Route::post('orders/{order}/plan', [ManufacturingOrderController::class, 'plan'])->name('orders.plan');

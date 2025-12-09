@@ -1,4 +1,4 @@
 ---
-This project uses Inertia. AJAX, JSON, API's are forbidden, unless asked or approved by the user. If you feel there is a need to divert from Inertia you must as the user permission before doing so.
+This project uses Inertia only. AJAX, JSON, API's are STRICTLY FORBIDDEN. If you feel there is a need to divert from Inertia you must as the user permission before doing so.
 alwaysApply: true
 ---

@@ -1,9 +1,10 @@
-// Logistics Module Types
-
-import { Manufacturer } from './asset-hierarchy';
 import { ManufacturingOrder, ManufacturingStep } from './production';
-import { User } from './index';
+import { User } from './user';
+import { Manufacturer } from './asset-hierarchy';
 
+/**
+ * Shipment status types.
+ */
 export type ShipmentStatus =
     | 'planned'
     | 'packed'
@@ -12,12 +13,18 @@ export type ShipmentStatus =
     | 'delivered'
     | 'received';
 
+/**
+ * Destination type for shipments.
+ */
 export type DestinationType =
     | 'manufacturer'
     | 'customer'
     | 'warehouse'
     | 'work_cell';
 
+/**
+ * Shipping method types.
+ */
 export type ShippingMethod =
     | 'courier'
     | 'freight'
@@ -25,6 +32,9 @@ export type ShippingMethod =
     | 'internal'
     | 'other';
 
+/**
+ * Package type for shipment items.
+ */
 export type PackageType =
     | 'box'
     | 'pallet'
@@ -32,6 +42,9 @@ export type PackageType =
     | 'bag'
     | 'other';
 
+/**
+ * Shipment model interface.
+ */
 export interface Shipment {
     id: number;
     shipment_number: string;
@@ -40,7 +53,7 @@ export interface Shipment {
     destination_id: number | null;
     destination_name: string | null;
     destination_address: string | null;
-    destination?: Manufacturer | Record<string, unknown>; // Polymorphic
+    destination?: Manufacturer | unknown; // Polymorphic
 
     shipping_method: ShippingMethod;
     carrier_name: string | null;
@@ -63,12 +76,12 @@ export interface Shipment {
     shipped_by: number | null;
     received_by: number | null;
 
-    creator?: User;
+    createdBy?: User;
     shipper?: User;
     receiver?: User;
 
     items?: ShipmentItem[];
-    media?: Array<Record<string, unknown>>; // Spatie Media
+    photos?: ShipmentPhoto[];
 
     total_items: number;
     is_overdue: boolean;
@@ -77,6 +90,9 @@ export interface Shipment {
     updated_at: string;
 }
 
+/**
+ * Shipment item model interface.
+ */
 export interface ShipmentItem {
     id: number;
     shipment_id: number;
@@ -108,6 +124,27 @@ export interface ShipmentItem {
     updated_at: string;
 }
 
+/**
+ * Shipment photo interface.
+ */
+export interface ShipmentPhoto {
+    id: number;
+    shipment_id: number;
+    file_name: string;
+    file_path: string;
+    file_size: number;
+    mime_type: string;
+    custom_properties?: {
+        type?: 'pre_shipment' | 'post_receipt';
+        taken_by?: number;
+        notes?: string;
+    };
+    created_at: string;
+}
+
+/**
+ * Shipment suggestion interface for smart bundling.
+ */
 export interface ShipmentSuggestion {
     manufacturer_id: number;
     manufacturer: Manufacturer;
@@ -116,6 +153,9 @@ export interface ShipmentSuggestion {
     total_orders: number;
 }
 
+/**
+ * Data for creating a new shipment.
+ */
 export interface CreateShipmentData {
     destination_type: DestinationType;
     destination_id?: number;
@@ -129,6 +169,9 @@ export interface CreateShipmentData {
     items: CreateShipmentItem[];
 }
 
+/**
+ * Shipment item data for creation.
+ */
 export interface CreateShipmentItem {
     manufacturing_order_id: number;
     manufacturing_step_id?: number;
@@ -138,6 +181,9 @@ export interface CreateShipmentItem {
     notes?: string;
 }
 
+/**
+ * Data for marking shipment as shipped.
+ */
 export interface MarkShippedData {
     tracking_number?: string;
     carrier_name?: string;
@@ -145,12 +191,18 @@ export interface MarkShippedData {
     photos?: File[];
 }
 
+/**
+ * Data for marking shipment as received.
+ */
 export interface MarkReceivedData {
     receiving_notes?: string;
     items: ReceiptItem[];
     photos?: File[];
 }
 
+/**
+ * Receipt data for individual items.
+ */
 export interface ReceiptItem {
     item_id: number;
     quantity_received: number;
@@ -158,10 +210,14 @@ export interface ReceiptItem {
     rejection_reason?: string;
 }
 
-export interface ExternalStepStatusUpdate {
-    step_id: number;
+/**
+ * MO details for shipment creation.
+ */
+export interface MoForShipment {
+    id: number;
+    order_number: string;
+    item_name: string;
     quantity: number;
-    notes?: string;
-    photos?: File[];
+    has_external_steps_awaiting_shipment: boolean;
+    external_steps?: ManufacturingStep[];
 }
-

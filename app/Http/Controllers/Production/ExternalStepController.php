@@ -6,143 +6,110 @@ use App\Http\Controllers\Controller;
 use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\Production\ManufacturingStep;
 use App\Services\Production\ExternalStepService;
-use App\Services\Production\ExternalStepStatusService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Controller for managing external manufacturing steps.
  *
- * Handles steps that are executed by external manufacturers,
- * including shipping, status tracking, and receipt operations.
+ * Handles manual status updates for steps executed
+ * by third-party manufacturers.
  */
 class ExternalStepController extends Controller
 {
-    /**
-     * Create a new controller instance.
-     */
     public function __construct(
-        protected ExternalStepService $externalStepService,
-        protected ExternalStepStatusService $statusService
+        protected ExternalStepService $externalStepService
     ) {}
 
     /**
-     * Display external steps dashboard.
+     * Display a listing of external manufacturing steps.
      *
-     * Shows steps awaiting shipment and steps currently at manufacturers.
-     * Supports pagination, search, and filtering.
+     * @param Request $request The request
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
-        $this->authorize('viewAny', ManufacturingStep::class);
-
-        // Validate filters
-        $validated = $request->validate([
-            'search' => 'nullable|string|max:255',
-            'statuses' => 'nullable|string',
-            'manufacturer_id' => 'nullable|exists:manufacturers,id',
-            'page' => 'nullable|integer|min:1',
-            'per_page' => 'nullable|integer|min:5|max:100',
-        ]);
-
-        $search = $validated['search'] ?? null;
-        $statusesString = $validated['statuses'] ?? 'awaiting_shipment,at_manufacturer';
-        $manufacturerId = $validated['manufacturer_id'] ?? null;
-        $perPage = $validated['per_page'] ?? 20;
+        // Get filters from request
+        $search = $request->input('search');
+        $statuses = $request->input('statuses', 'awaiting_shipment,at_manufacturer');
+        $manufacturerId = $request->input('manufacturer_id');
+        $perPage = $request->input('per_page', 20);
 
         // Parse statuses
-        $statuses = $statusesString === 'none' ? [] : explode(',', $statusesString);
+        $statusArray = $statuses === 'none' ? [] : explode(',', $statuses);
 
-        // Build base query for external steps
+        // Build query
         $query = ManufacturingStep::query()
             ->with([
-                'manufacturingRoute.manufacturingOrder.item.media',
-                'manufacturer',
+                'manufacturingRoute.manufacturingOrder.item.primaryImage',
+                'manufacturingRoute.manufacturingOrder',
                 'workCell',
+                'manufacturer',
             ])
-            ->where('execution_location', 'external')
-            ->whereIn('status', ['queued', 'in_progress', 'on_hold', 'awaiting_quality']);
+            ->where('execution_location', 'external');
 
-        // Filter by external status
-        if (! empty($statuses)) {
-            $query->whereIn('external_status', $statuses);
+        // Apply status filters
+        if (! empty($statusArray)) {
+            $query->where(function ($q) use ($statusArray) {
+                foreach ($statusArray as $status) {
+                    if ($status === 'awaiting_shipment') {
+                        $q->orWhere('external_status', 'awaiting_shipment');
+                    } elseif ($status === 'at_manufacturer') {
+                        $q->orWhere('external_status', 'at_manufacturer');
+                    }
+                }
+            });
         }
 
-        // Filter by manufacturer
+        // Apply manufacturer filter
         if ($manufacturerId) {
             $query->where('manufacturer_id', $manufacturerId);
         }
 
-        // Search functionality
+        // Apply search filter
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhereHas('manufacturingRoute.manufacturingOrder', function ($q) use ($search) {
-                        $q->where('order_number', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('manufacturingRoute.manufacturingOrder.item', function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%");
+                    ->orWhereHas('manufacturingRoute.manufacturingOrder', function ($orderQuery) use ($search) {
+                        $orderQuery->where('mo_number', 'like', "%{$search}%")
+                            ->orWhereHas('item', function ($itemQuery) use ($search) {
+                                $itemQuery->where('item_number', 'like', "%{$search}%")
+                                    ->orWhere('description', 'like', "%{$search}%");
+                            });
                     });
             });
         }
 
-        // Order by priority and scheduled start
-        $query->orderByRaw("
-            CASE external_status
-                WHEN 'awaiting_shipment' THEN 1
-                WHEN 'at_manufacturer' THEN 2
-                ELSE 3
-            END
-        ")
-            ->orderBy('scheduled_start', 'asc')
-            ->orderBy('id', 'asc'); // Use id as tiebreaker instead of display_position
+        // Get paginated steps
+        $steps = $query->orderBy('created_at', 'desc')
+            ->paginate($perPage)
+            ->withQueryString();
 
-        // Paginate results
-        $steps = $query->paginate($perPage)->withQueryString();
-
-        // Enhance step data with status info
-        $steps->getCollection()->transform(function ($step) {
-            return array_merge(
-                $step->toArray(),
-                $this->statusService->getSimplifiedStatus($step)
-            );
-        });
-
-        // Get status counts for the filter cards
+        // Get status counts
         $statusCounts = [
             'awaiting_shipment' => ManufacturingStep::where('execution_location', 'external')
                 ->where('external_status', 'awaiting_shipment')
-                ->whereIn('status', ['queued', 'in_progress', 'on_hold', 'awaiting_quality'])
                 ->count(),
             'at_manufacturer' => ManufacturingStep::where('execution_location', 'external')
                 ->where('external_status', 'at_manufacturer')
-                ->whereIn('status', ['queued', 'in_progress', 'on_hold', 'awaiting_quality'])
                 ->count(),
             'unassigned_manufacturer' => ManufacturingStep::where('execution_location', 'external')
                 ->whereNull('manufacturer_id')
-                ->whereIn('status', ['queued', 'in_progress', 'on_hold', 'awaiting_quality'])
                 ->count(),
-            'total_awaiting_units' => 0, // Will be computed from the collection
-            'total_at_manufacturer_units' => 0, // Will be computed from the collection
+            'total_awaiting_units' => ManufacturingStep::where('execution_location', 'external')
+                ->where('external_status', 'awaiting_shipment')
+                ->join('manufacturing_routes', 'manufacturing_steps.manufacturing_route_id', '=', 'manufacturing_routes.id')
+                ->join('manufacturing_orders', 'manufacturing_routes.manufacturing_order_id', '=', 'manufacturing_orders.id')
+                ->sum('manufacturing_orders.quantity'),
+            'total_at_manufacturer_units' => ManufacturingStep::where('execution_location', 'external')
+                ->where('external_status', 'at_manufacturer')
+                ->join('manufacturing_routes', 'manufacturing_steps.manufacturing_route_id', '=', 'manufacturing_routes.id')
+                ->join('manufacturing_orders', 'manufacturing_routes.manufacturing_order_id', '=', 'manufacturing_orders.id')
+                ->sum('manufacturing_orders.quantity'),
         ];
 
-        // Compute totals from the steps (since these are computed attributes)
-        $awaitingSteps = ManufacturingStep::where('execution_location', 'external')
-            ->where('external_status', 'awaiting_shipment')
-            ->whereIn('status', ['queued', 'in_progress', 'on_hold', 'awaiting_quality'])
-            ->with('manufacturingRoute.manufacturingOrder')
-            ->get();
-
-        $atManufacturerSteps = ManufacturingStep::where('execution_location', 'external')
-            ->where('external_status', 'at_manufacturer')
-            ->whereIn('status', ['queued', 'in_progress', 'on_hold', 'awaiting_quality'])
-            ->get();
-
-        $statusCounts['total_awaiting_units'] = $awaitingSteps->sum('remaining_quantity_to_ship');
-        $statusCounts['total_at_manufacturer_units'] = $atManufacturerSteps->sum('total_quantity_shipped');
-
-        // Get all manufacturers for the filter dialog
-        $manufacturers = Manufacturer::select('id', 'name', 'email', 'phone')->orderBy('name')->get();
+        // Get all manufacturers
+        $manufacturers = Manufacturer::orderBy('name')->get();
 
         return Inertia::render('production/external-steps/index', [
             'steps' => $steps,
@@ -160,6 +127,8 @@ class ExternalStepController extends Controller
     /**
      * Mark step as shipped.
      *
+     * @param Request $request The request
+     * @param ManufacturingStep $step The step
      * @return \Illuminate\Http\RedirectResponse
      */
     public function markAsShipped(Request $request, ManufacturingStep $step)
@@ -167,28 +136,25 @@ class ExternalStepController extends Controller
         $this->authorize('update', $step);
 
         $validated = $request->validate([
-            'quantity' => 'required|numeric|min:0.01',
-            'notes' => 'nullable|string|max:1000',
+            'quantity_shipped' => 'required|numeric|min:0.01',
+            'photos' => 'nullable|array|max:10',
+            'photos.*' => 'image|max:10240',
         ]);
 
-        try {
-            // Mark step as shipped (photos will be attached to shipment in logistics module)
-            $step = $this->externalStepService->markAsShipped(
-                $step,
-                $validated['quantity'],
-                $validated['notes'] ?? null,
-                [] // Photos now handled by shipment creation
-            );
+        $this->externalStepService->markAsShipped(
+            $step,
+            $validated['quantity_shipped'],
+            $request->file('photos') ?? []
+        );
 
-            return back()->with('success', 'Step marked as shipped. Please create a shipment in the Logistics module to track the physical items.');
-        } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
-        }
+        return back()->with('success', 'Step marked as shipped');
     }
 
     /**
-     * Mark step as in process.
+     * Mark step as in process at manufacturer.
      *
+     * @param Request $request The request
+     * @param ManufacturingStep $step The step
      * @return \Illuminate\Http\RedirectResponse
      */
     public function markAsInProcess(Request $request, ManufacturingStep $step)
@@ -199,24 +165,19 @@ class ExternalStepController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        try {
-            $step = $this->externalStepService->markAsInProcess(
-                $step,
-                $validated['notes'] ?? null
-            );
+        $this->externalStepService->markAsInProcess(
+            $step,
+            $validated['notes'] ?? null
+        );
 
-            return back()->with('success', 'Step marked as in process');
-        } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
-        }
+        return back()->with('success', 'Step marked as in process');
     }
 
     /**
-     * Record quantity received (typically called from Logistics Module).
+     * Record quantity received from manufacturer.
      *
-     * This endpoint exists for direct receipt recording without formal shipment,
-     * but normally the Logistics Module handles this automatically.
-     *
+     * @param Request $request The request
+     * @param ManufacturingStep $step The step
      * @return \Illuminate\Http\RedirectResponse
      */
     public function recordQuantityReceived(Request $request, ManufacturingStep $step)
@@ -224,33 +185,27 @@ class ExternalStepController extends Controller
         $this->authorize('update', $step);
 
         $validated = $request->validate([
-            'quantity' => 'required|numeric|min:0.01',
+            'quantity_received' => 'required|numeric|min:0.01',
             'notes' => 'nullable|string|max:1000',
-            'photos' => 'nullable|array|max:5',
-            'photos.*' => 'image|max:10240', // 10MB max per photo
+            'photos' => 'nullable|array|max:10',
+            'photos.*' => 'image|max:10240',
         ]);
 
-        try {
-            $step = $this->externalStepService->recordQuantityReceived(
-                $step,
-                $validated['quantity'],
-                $validated['notes'] ?? null,
-                $request->file('photos') ?? []
-            );
+        $this->externalStepService->recordQuantityReceived(
+            $step,
+            $validated['quantity_received'],
+            $validated['notes'] ?? null,
+            $request->file('photos') ?? []
+        );
 
-            $message = $step->status === 'completed'
-                ? 'Step completed - all quantities received'
-                : 'Quantity received - awaiting remaining items';
-
-            return back()->with('success', $message);
-        } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
-        }
+        return back()->with('success', 'Quantity received recorded');
     }
 
     /**
-     * Convert step to external.
+     * Convert internal step to external.
      *
+     * @param Request $request The request
+     * @param ManufacturingStep $step The step
      * @return \Illuminate\Http\RedirectResponse
      */
     public function convertToExternal(Request $request, ManufacturingStep $step)
@@ -263,7 +218,7 @@ class ExternalStepController extends Controller
         ]);
 
         try {
-            $step = $this->externalStepService->convertToExternal(
+            $this->externalStepService->convertToExternal(
                 $step,
                 $validated['manufacturer_id'],
                 $validated['expected_lead_time_days'] ?? null
@@ -271,29 +226,32 @@ class ExternalStepController extends Controller
 
             return back()->with('success', 'Step converted to external execution');
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 
     /**
-     * Get detailed status for an external step.
+     * Get the status of an external step.
      *
+     * @param ManufacturingStep $step The step
      * @return \Illuminate\Http\JsonResponse
      */
     public function getStatus(ManufacturingStep $step)
     {
         $this->authorize('view', $step);
 
-        if (! $step->isExternal()) {
-            return response()->json(['error' => 'Step is not external'], 400);
-        }
+        $step->load([
+            'manufacturingRoute.manufacturingOrder.item',
+            'manufacturer',
+            'workCell',
+        ]);
 
-        try {
-            $status = $this->statusService->getExternalStepStatus($step);
-
-            return response()->json($status);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        return response()->json([
+            'step' => $step,
+            'external_status' => $step->external_status,
+            'quantity_shipped' => $step->quantity_shipped,
+            'quantity_received' => $step->quantity_received,
+            'expected_delivery_date' => $step->expected_delivery_date,
+        ]);
     }
 }

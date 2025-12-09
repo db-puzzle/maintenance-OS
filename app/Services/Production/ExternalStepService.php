@@ -3,222 +3,250 @@
 namespace App\Services\Production;
 
 use App\Models\Production\ManufacturingStep;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Service for handling external manufacturing step operations.
+ * Service for managing external manufacturing steps.
  *
- * This service manages the lifecycle of steps executed by external manufacturers,
- * including shipping, processing status updates, and receipt tracking.
+ * Handles the lifecycle of steps executed by third-party manufacturers,
+ * including status transitions, quantity tracking, and photo management.
  */
 class ExternalStepService
 {
     /**
-     * Mark a step as shipped with quantity.
+     * Mark step as shipped.
+     *
+     * Updates step when items are shipped to external manufacturer.
      *
      * @param ManufacturingStep $step The step to mark as shipped
-     * @param float $quantity The quantity being shipped
-     * @param string|null $notes Optional shipping notes
-     * @param array $photos Array of photo files
-     * @return ManufacturingStep Updated step with relationships
-     *
-     * @throws \Exception If step cannot be shipped
+     * @param float $quantityShipped Quantity being shipped
+     * @param array $photos Optional array of photo files
+     * @return ManufacturingStep Updated step
      */
-    public function markAsShipped(
-        ManufacturingStep $step,
-        float $quantity,
-        ?string $notes = null,
-        array $photos = []
-    ): ManufacturingStep {
-        if (! $step->canMarkAsShipped()) {
-            throw new \Exception('Step cannot be marked as shipped in current state');
-        }
+    public function markAsShipped(ManufacturingStep $step, float $quantityShipped, array $photos = []): ManufacturingStep
+    {
+        DB::transaction(function () use ($step, $quantityShipped, $photos) {
+            $step->update([
+                'external_status' => 'at_manufacturer',
+                'status' => 'in_progress',
+            ]);
 
-        DB::transaction(function () use ($step, $quantity, $notes) {
-            $step->markAsShipped($quantity, $notes);
+            // Handle photos if provided
+            foreach ($photos as $photo) {
+                $step->addMedia($photo)
+                    ->withCustomProperties([
+                        'type' => 'shipment',
+                        'taken_by' => auth()->id(),
+                    ])
+                    ->toMediaCollection('step_photos');
+            }
 
-            // Note: Photos should now be attached to the shipment in the logistics module,
-            // not directly to the step. This maintains better traceability.
+            activity()
+                ->performedOn($step)
+                ->causedBy(auth()->user())
+                ->withProperties(['quantity_shipped' => $quantityShipped])
+                ->log('External step marked as shipped');
         });
 
-        return $step->fresh(['manufacturer', 'manufacturingRoute.manufacturingOrder']);
+        return $step->fresh();
     }
 
     /**
-     * Mark a step as in process at manufacturer.
+     * Mark step as in process at manufacturer.
+     *
+     * Updates step when manufacturer starts working on it.
      *
      * @param ManufacturingStep $step The step to mark as in process
-     * @param string|null $notes Optional processing notes
-     * @return ManufacturingStep Updated step with relationships
-     *
-     * @throws \Exception If step cannot be marked as in process
-     */
-    public function markAsInProcess(
-        ManufacturingStep $step,
-        ?string $notes = null
-    ): ManufacturingStep {
-        if (! $step->canMarkAsInProcess()) {
-            throw new \Exception('Step cannot be marked as in process in current state');
-        }
-
-        $step->markAsInProcess($notes);
-
-        return $step->fresh(['manufacturer', 'manufacturingRoute.manufacturingOrder']);
-    }
-
-    /**
-     * Record quantity received for a step.
-     *
-     * NOTE: This is typically called by the Logistics Module when a shipment
-     * is marked as received. Direct calls to this service are for cases where
-     * items are received without formal shipment tracking.
-     *
-     * @param ManufacturingStep $step The step receiving items
-     * @param float $quantity The quantity received
-     * @param string|null $notes Optional receipt notes
-     * @param array $photos Array of photo files
-     * @return ManufacturingStep Updated step with relationships
-     *
-     * @throws \Exception If step is not external
-     */
-    public function recordQuantityReceived(
-        ManufacturingStep $step,
-        float $quantity,
-        ?string $notes = null,
-        array $photos = []
-    ): ManufacturingStep {
-        if (! $step->isExternal()) {
-            throw new \Exception('Can only record received quantity for external steps');
-        }
-
-        DB::transaction(function () use ($step, $quantity, $notes) {
-            $step->recordQuantityReceived($quantity, $notes);
-
-            // Note: Photos should be attached to the shipment receipt in the logistics module,
-            // not directly to the step. This maintains better traceability.
-        });
-
-        return $step->fresh(['manufacturer', 'manufacturingRoute.manufacturingOrder']);
-    }
-
-    /**
-     * Get all steps awaiting shipment.
-     *
-     * @return \Illuminate\Support\Collection Collection of steps
-     */
-    public function getStepsAwaitingShipment()
-    {
-        return ManufacturingStep::awaitingShipment()
-            ->with([
-                'manufacturer',
-                'manufacturingRoute.manufacturingOrder.item',
-                'workCell',
-            ])
-            ->orderBy('scheduled_start')
-            ->get();
-    }
-
-    /**
-     * Get all steps currently at manufacturers.
-     *
-     * @return \Illuminate\Support\Collection Collection of steps
-     */
-    public function getStepsAtManufacturers()
-    {
-        return ManufacturingStep::atManufacturer()
-            ->with([
-                'manufacturer',
-                'manufacturingRoute.manufacturingOrder.item',
-                'workCell',
-            ])
-            ->orderBy('scheduled_start')
-            ->get();
-    }
-
-    /**
-     * Get steps by manufacturer.
-     *
-     * @param int $manufacturerId The manufacturer ID
-     * @return \Illuminate\Support\Collection Collection of steps
-     */
-    public function getStepsByManufacturer(int $manufacturerId)
-    {
-        return ManufacturingStep::external()
-            ->where('manufacturer_id', $manufacturerId)
-            ->whereNotIn('status', ['completed', 'cancelled'])
-            ->with([
-                'manufacturingRoute.manufacturingOrder.item',
-                'workCell',
-            ])
-            ->orderBy('external_status')
-            ->orderBy('scheduled_start')
-            ->get();
-    }
-
-    /**
-     * Validate if step can transition to external.
-     *
-     * @param ManufacturingStep $step The step to validate
-     * @return array Array of validation issues (empty if valid)
-     */
-    public function validateExternalTransition(ManufacturingStep $step): array
-    {
-        $issues = [];
-
-        // Check if step is already started
-        if (in_array($step->status, ['in_progress', 'completed'])) {
-            $issues[] = 'Cannot convert to external: step is already in progress or completed';
-        }
-
-        // Check if there are any completed executions
-        if ($step->executions()->where('status', 'completed')->exists()) {
-            $issues[] = 'Cannot convert to external: step has completed executions';
-        }
-
-        return $issues;
-    }
-
-    /**
-     * Convert an internal step to external.
-     *
-     * @param ManufacturingStep $step The step to convert
-     * @param int $manufacturerId The manufacturer ID
-     * @param int|null $expectedLeadTimeDays Expected lead time in days
+     * @param string|null $notes Optional notes
      * @return ManufacturingStep Updated step
-     *
-     * @throws \Exception If conversion is not allowed
      */
-    public function convertToExternal(
-        ManufacturingStep $step,
-        int $manufacturerId,
-        ?int $expectedLeadTimeDays = null
-    ): ManufacturingStep {
-        $issues = $this->validateExternalTransition($step);
-
-        if (! empty($issues)) {
-            throw new \Exception('Cannot convert to external: ' . implode('; ', $issues));
-        }
-
+    public function markAsInProcess(ManufacturingStep $step, ?string $notes = null): ManufacturingStep
+    {
         $step->update([
-            'execution_location' => 'external',
-            'manufacturer_id' => $manufacturerId,
-            'expected_lead_time_days' => $expectedLeadTimeDays,
-            'external_status' => 'awaiting_shipment',
-            // Clear internal-specific times if using lead time
-            'setup_time_seconds' => 0,
-            'cycle_time_seconds' => 0,
-            'use_workcell_throughput' => false,
+            'external_status' => 'at_manufacturer',
+            'status' => 'in_progress',
         ]);
 
         activity()
             ->performedOn($step)
             ->causedBy(auth()->user())
-            ->withProperties([
-                'manufacturer_id' => $manufacturerId,
-                'expected_lead_time_days' => $expectedLeadTimeDays,
+            ->withProperties(['notes' => $notes])
+            ->log('External step marked as in process at manufacturer');
+
+        return $step->fresh();
+    }
+
+    /**
+     * Record quantity received from manufacturer.
+     *
+     * This is the critical integration point. When items are received,
+     * the step may be marked as completed if all quantities are received.
+     *
+     * @param ManufacturingStep $step The step
+     * @param float $quantityReceived Quantity received
+     * @param string|null $notes Optional notes
+     * @param array $photos Optional array of photo files
+     * @return ManufacturingStep Updated step
+     */
+    public function recordQuantityReceived(
+        ManufacturingStep $step,
+        float $quantityReceived,
+        ?string $notes = null,
+        array $photos = []
+    ): ManufacturingStep {
+        DB::transaction(function () use ($step, $quantityReceived, $notes, $photos) {
+            // This method is typically called from ShipmentItem::recordReceipt()
+            // The step model's recordQuantityReceived() will handle completion logic
+            $step->recordQuantityReceived($quantityReceived, $notes);
+
+            // Handle photos if provided
+            foreach ($photos as $photo) {
+                $step->addMedia($photo)
+                    ->withCustomProperties([
+                        'type' => 'receipt',
+                        'taken_by' => auth()->id(),
+                        'notes' => $notes,
+                    ])
+                    ->toMediaCollection('step_photos');
+            }
+        });
+
+        return $step->fresh();
+    }
+
+    /**
+     * Get steps awaiting shipment.
+     *
+     * Returns steps that are ready to be shipped to external manufacturers.
+     *
+     * @return Collection Collection of steps awaiting shipment
+     */
+    public function getStepsAwaitingShipment(): Collection
+    {
+        return ManufacturingStep::where('execution_location', 'external')
+            ->where('external_status', 'awaiting_shipment')
+            ->whereIn('status', ['queued', 'in_progress'])
+            ->with([
+                'manufacturer',
+                'manufacturingRoute.manufacturingOrder.item',
             ])
+            ->orderBy('scheduled_start')
+            ->get();
+    }
+
+    /**
+     * Get steps currently at manufacturers.
+     *
+     * Returns steps that are in process at external manufacturers.
+     *
+     * @return Collection Collection of steps at manufacturers
+     */
+    public function getStepsAtManufacturers(): Collection
+    {
+        return ManufacturingStep::where('execution_location', 'external')
+            ->where('external_status', 'at_manufacturer')
+            ->where('status', 'in_progress')
+            ->with([
+                'manufacturer',
+                'manufacturingRoute.manufacturingOrder.item',
+                'shipmentItems.shipment',
+            ])
+            ->orderBy('scheduled_start')
+            ->get();
+    }
+
+    /**
+     * Get steps grouped by manufacturer.
+     *
+     * Groups external steps by manufacturer for bundling suggestions.
+     *
+     * @return Collection Collection grouped by manufacturer
+     */
+    public function getStepsByManufacturer(): Collection
+    {
+        $steps = $this->getStepsAwaitingShipment();
+
+        return $steps->groupBy('manufacturer_id')->map(function ($manufacturerSteps, $manufacturerId) {
+            return [
+                'manufacturer_id' => $manufacturerId,
+                'manufacturer' => $manufacturerSteps->first()->manufacturer,
+                'steps' => $manufacturerSteps,
+                'total_orders' => $manufacturerSteps->pluck('manufacturingRoute.manufacturing_order_id')->unique()->count(),
+                'total_steps' => $manufacturerSteps->count(),
+            ];
+        })->values();
+    }
+
+    /**
+     * Validate external step transition.
+     *
+     * Checks if a step can transition to a new status.
+     *
+     * @param ManufacturingStep $step The step
+     * @param string $newStatus The desired new status
+     * @return array Validation result
+     */
+    public function validateExternalTransition(ManufacturingStep $step, string $newStatus): array
+    {
+        if ($step->execution_location !== 'external') {
+            return [
+                'valid' => false,
+                'error' => 'Step is not an external step',
+            ];
+        }
+
+        $validTransitions = [
+            'awaiting_shipment' => ['at_manufacturer'],
+            'at_manufacturer' => ['at_manufacturer'], // Can stay in same status
+        ];
+
+        $currentStatus = $step->external_status;
+
+        if (! isset($validTransitions[$currentStatus]) || ! in_array($newStatus, $validTransitions[$currentStatus])) {
+            return [
+                'valid' => false,
+                'error' => "Cannot transition from {$currentStatus} to {$newStatus}",
+            ];
+        }
+
+        return [
+            'valid' => true,
+        ];
+    }
+
+    /**
+     * Convert internal step to external.
+     *
+     * Converts an existing internal step to be executed externally.
+     *
+     * @param ManufacturingStep $step The step to convert
+     * @param int $manufacturerId The manufacturer ID
+     * @param int|null $leadTimeDays Expected lead time in days
+     * @return ManufacturingStep Updated step
+     */
+    public function convertToExternal(
+        ManufacturingStep $step,
+        int $manufacturerId,
+        ?int $leadTimeDays = null
+    ): ManufacturingStep {
+        if ($step->status !== 'pending' && $step->status !== 'queued') {
+            throw new \Exception('Can only convert pending or queued steps to external');
+        }
+
+        $step->update([
+            'execution_location' => 'external',
+            'manufacturer_id' => $manufacturerId,
+            'expected_lead_time_days' => $leadTimeDays,
+            'external_status' => 'awaiting_shipment',
+        ]);
+
+        activity()
+            ->performedOn($step)
+            ->causedBy(auth()->user())
+            ->withProperties(['manufacturer_id' => $manufacturerId])
             ->log('Step converted to external execution');
 
-        return $step->fresh(['manufacturer']);
+        return $step->fresh();
     }
 }

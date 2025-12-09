@@ -1,35 +1,37 @@
-import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
+import React, { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
-import { ListLayout } from '@/layouts/production/list-layout';
+import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { Shipment } from '@/types/logistics';
-import { Button } from '@/components/ui/button';
-import { ShipmentStatusBadge } from '@/components/logistics/shipment-status-badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
-import { ColumnVisibility } from '@/components/data-table';
-import { useEntityOperations } from '@/hooks/useEntityOperations';
-import { useSorting } from '@/hooks/useSorting';
-import { type BreadcrumbItem } from '@/types';
+import { ShipmentStatusBadge } from '@/components/logistics/shipment-status-badge';
+import { 
+    Plus, 
+    Package, 
+    PackageSearch, 
+    Truck, 
+    PackageCheck, 
+    AlertTriangle,
+    Calendar,
+    MapPin 
+} from 'lucide-react';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { DESTINATION_TYPES, SHIPMENT_STATUSES } from '@/constants/logistics';
 import { ColumnConfig } from '@/types/shared';
-import { Plus, Package, Download, Truck, AlertTriangle } from 'lucide-react';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Home',
-        href: '/home',
-    },
-    {
-        title: 'Logística',
-        href: '/logistics/shipments',
-    },
-    {
-        title: 'Remessas',
-        href: '/logistics/shipments',
-    },
-];
-
+/**
+ * Props for shipments index page.
+ */
 interface Props {
     shipments: {
         data: Shipment[];
@@ -40,234 +42,250 @@ interface Props {
         from: number | null;
         to: number | null;
     };
-    filters: {
-        search?: string;
+    filters?: {
         status?: string;
         destination_type?: string;
-        sort?: string;
-        direction?: 'asc' | 'desc';
-        per_page?: number;
+        search?: string;
     };
-    can?: {
-        create?: boolean;
-        view?: boolean;
-        update?: boolean;
-        delete?: boolean;
-    };
+    statusCounts?: Record<string, number>;
+    summaryTotal?: number;
 }
 
 /**
  * Shipments Index Page
  *
- * Displays all shipments with filtering, sorting, and pagination.
- * Main dashboard for the logistics module.
+ * Lists all shipments with filtering and stats overview.
  */
-export default function ShipmentsIndex({ shipments: initialShipments, filters, can }: Props) {
-    const entityOps = useEntityOperations<Shipment>({
-        entityName: 'shipment',
-        entityLabel: 'Remessa',
-        routes: {
-            index: 'logistics.shipments.index',
-            show: 'logistics.shipments.show',
-            destroy: 'logistics.shipments.destroy',
-        },
-    });
+export default function ShipmentsIndex({ 
+    shipments, 
+    filters = {}, 
+    statusCounts = {},
+    summaryTotal = 0 
+}: Props) {
+    const [searchValue, setSearchValue] = useState(filters.search || '');
+    const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
+    const [destinationType, setDestinationType] = useState(filters.destination_type || 'all');
+    const [loading] = useState(false);
+    const [clickedCard, setClickedCard] = useState<string | null>(null);
 
-    const [search, setSearch] = useState(filters.search || '');
+    const breadcrumbs = [
+        { title: 'Home', href: '/home' },
+        { title: 'Remessas', href: '' },
+    ];
 
-    // Use centralized sorting hook
-    const { sort, direction, handleSort } = useSorting({
-        routeName: 'logistics.shipments.index',
-        initialSort: filters.sort || 'created_at',
-        initialDirection: filters.direction || 'desc',
-        additionalParams: {
-            search,
-            per_page: filters.per_page || 20,
-            ...(filters.status && { status: filters.status }),
-            ...(filters.destination_type && { destination_type: filters.destination_type }),
-        },
-    });
+    // Update filter states when props change
+    React.useEffect(() => {
+        setStatusFilter(filters.status || 'all');
+        setDestinationType(filters.destination_type || 'all');
+        setSearchValue(filters.search || '');
+    }, [filters]);
 
-    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
-        shipment_number: true,
-        destination: true,
-        status: true,
-        items: true,
-        ship_date: true,
-        tracking: true,
-        actions: true,
-    });
-
-    // Use data from server
-    const data = initialShipments.data;
-    const pagination = {
-        current_page: initialShipments.current_page,
-        last_page: initialShipments.last_page,
-        per_page: initialShipments.per_page,
-        total: initialShipments.total,
-        from: initialShipments.from,
-        to: initialShipments.to,
+    /**
+     * Handle search change with debounce.
+     */
+    const handleSearchChange = (value: string) => {
+        setSearchValue(value);
+        router.get(
+            route('logistics.shipments.index'),
+            {
+                search: value,
+                status: statusFilter === 'all' ? undefined : statusFilter,
+                destination_type: destinationType === 'all' ? undefined : destinationType,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['shipments', 'statusCounts', 'summaryTotal'],
+            }
+        );
     };
 
-    const columns: ColumnConfig[] = [
+    /**
+     * Handle status filter change.
+     */
+    const handleStatusFilter = (value: string) => {
+        setStatusFilter(value);
+        router.get(
+            route('logistics.shipments.index'),
+            {
+                search: searchValue,
+                status: value === 'all' ? undefined : value,
+                destination_type: destinationType === 'all' ? undefined : destinationType,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['shipments', 'statusCounts', 'summaryTotal'],
+            }
+        );
+    };
+
+    /**
+     * Handle destination type filter change.
+     */
+    const handleDestinationTypeChange = (value: string) => {
+        setDestinationType(value);
+        router.get(
+            route('logistics.shipments.index'),
+            {
+                search: searchValue,
+                status: statusFilter === 'all' ? undefined : statusFilter,
+                destination_type: value !== 'all' ? value : undefined,
+            },
+            {
+            preserveState: true,
+                preserveScroll: true,
+                only: ['shipments', 'statusCounts', 'summaryTotal'],
+            }
+        );
+    };
+
+    /**
+     * Handle stats card click.
+     */
+    const handleCardClick = (filterValue: string) => {
+        setClickedCard(filterValue);
+        setTimeout(() => setClickedCard(null), 400);
+        handleStatusFilter(filterValue);
+    };
+
+    /**
+     * Table columns configuration.
+     */
+    const columns: ColumnConfig<Shipment>[] = [
         {
             key: 'shipment_number',
-            label: 'Número',
+            label: 'Número da Remessa',
             sortable: true,
-            width: 'w-[180px]',
-            render: (value, row) => {
-                const shipment = row as unknown as Shipment;
-                return (
-                    <div>
-                        <div className="font-medium">{shipment.shipment_number}</div>
-                        <div className="text-xs text-muted-foreground">
-                            {new Date(shipment.created_at).toLocaleDateString('pt-BR')}
-                        </div>
-                    </div>
-                );
-            },
+            width: 'w-[150px]',
+            render: (value: unknown, shipment: Shipment) => (
+                <div className="flex items-center gap-2">
+                    <Link
+                        href={route('logistics.shipments.show', shipment.id) as string}
+                        className="font-medium text-primary hover:underline"
+                    >
+                        {value as React.ReactNode}
+                    </Link>
+                    {shipment.is_overdue && (
+                        <AlertTriangle className="h-4 w-4 text-destructive" />
+                    )}
+                </div>
+            ),
         },
         {
             key: 'destination',
             label: 'Destino',
-            sortable: false,
-            width: 'w-[200px]',
-            render: (_value, row) => {
-                const shipment = row as unknown as Shipment;
-                const destName = shipment.destination_name ||
-                    (shipment.destination && 'name' in shipment.destination
-                        ? String(shipment.destination.name)
-                        : '-');
-                return (
-                    <div>
-                        <div className="font-medium">{destName}</div>
-                        <div className="text-xs text-muted-foreground capitalize">
-                            {shipment.destination_type}
-                        </div>
-                    </div>
-                );
-            },
+            width: 'w-[250px]',
+            render: (value: unknown, shipment: Shipment) => (
+                <div>
+                    <p className="font-medium">{shipment.destination_name || '-'}</p>
+                    <p className="text-sm text-muted-foreground">
+                        {DESTINATION_TYPES[shipment.destination_type]}
+                    </p>
+                </div>
+            ),
+        },
+        {
+            key: 'total_items',
+            label: 'Items',
+            width: 'w-[100px]',
+            render: (value: unknown) => (
+                <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{value as React.ReactNode}</span>
+                </div>
+            ),
         },
         {
             key: 'status',
             label: 'Status',
-            sortable: true,
+            width: 'w-[120px]',
+            render: (value: unknown, shipment: Shipment) => (
+                <ShipmentStatusBadge status={shipment.status} />
+            ),
+        },
+        {
+            key: 'planned_ship_date',
+            label: 'Data Planejada',
             width: 'w-[140px]',
-            render: (_value, row) => {
-                const shipment = row as unknown as Shipment;
-                return (
-                    <div className="flex items-center gap-2">
-                        {shipment.is_overdue && (
-                            <AlertTriangle className="h-4 w-4 text-destructive" />
-                        )}
-                        <ShipmentStatusBadge status={shipment.status} />
-                    </div>
-                );
-            },
+            render: (value: unknown) => (
+                <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    {value ? new Date(value as string).toLocaleDateString('pt-BR') : '-'}
+                </div>
+            ),
         },
         {
-            key: 'items',
-            label: 'Itens',
-            sortable: false,
-            width: 'w-[100px]',
-            render: (_value, row) => {
-                const shipment = row as unknown as Shipment;
-                return (
-                    <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                        <span>{shipment.total_items}</span>
-                    </div>
-                );
-            },
-        },
-        {
-            key: 'ship_date',
+            key: 'actual_ship_date',
             label: 'Data de Envio',
-            sortable: true,
             width: 'w-[140px]',
-            render: (_value, row) => {
-                const shipment = row as unknown as Shipment;
-                return (
-                    <div className="text-sm">
-                        {shipment.actual_ship_date ? (
-                            <div>
-                                <div>{new Date(shipment.actual_ship_date).toLocaleDateString('pt-BR')}</div>
-                                <div className="text-xs text-muted-foreground">Real</div>
-                            </div>
-                        ) : shipment.planned_ship_date ? (
-                            <div>
-                                <div>{new Date(shipment.planned_ship_date).toLocaleDateString('pt-BR')}</div>
-                                <div className="text-xs text-muted-foreground">Planejada</div>
-                            </div>
-                        ) : (
-                            '-'
-                        )}
-                    </div>
-                );
-            },
+            render: (value: unknown) => (
+                <div className="text-sm">
+                    {value ? new Date(value as string).toLocaleDateString('pt-BR') : '-'}
+                </div>
+            ),
         },
         {
-            key: 'tracking',
+            key: 'tracking_number',
             label: 'Rastreamento',
-            sortable: false,
-            width: 'w-[180px]',
-            render: (_value, row) => {
-                const shipment = row as unknown as Shipment;
-                return (
-                    <div className="text-sm">
-                        {shipment.tracking_number ? (
-                            <div>
-                                <div className="font-medium">{shipment.tracking_number}</div>
-                                {shipment.carrier_name && (
-                                    <div className="text-xs text-muted-foreground">{shipment.carrier_name}</div>
-                                )}
-                            </div>
-                        ) : (
-                            <span className="text-muted-foreground">-</span>
-                        )}
-                    </div>
-                );
-            },
-        },
-        {
-            key: 'actions',
-            label: '',
-            sortable: false,
-            width: 'w-[80px]',
-            render: (_value, row) => {
-                const shipment = row as unknown as Shipment;
-                return (
-                    <div className="flex justify-end">
-                        <EntityActionDropdown
-                            onDelete={
-                                can?.delete !== false && shipment.status === 'planned'
-                                    ? () => entityOps.handleDelete(shipment)
-                                    : undefined
-                            }
-                            additionalActions={[
-                                {
-                                    label: 'Ver Detalhes',
-                                    onClick: () => router.visit(route('logistics.shipments.show', shipment.id)),
-                                },
-                                ...(shipment.packing_list_path
-                                    ? [
-                                        {
-                                            label: 'Baixar Lista',
-                                            onClick: () =>
-                                                window.open(
-                                                    route('logistics.shipments.packing-list', shipment.id),
-                                                    '_blank'
-                                                ),
-                                        },
-                                    ]
-                                    : []),
-                            ]}
-                        />
-                    </div>
-                );
-            },
+            width: 'w-[150px]',
+            render: (value: unknown) => (
+                <div className="flex items-center gap-2 text-sm">
+                    {value ? (
+                        <>
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                            <span className="truncate">{value as React.ReactNode}</span>
+                        </>
+                    ) : (
+                        <span className="text-muted-foreground">-</span>
+                    )}
+                </div>
+            ),
         },
     ];
+
+    /**
+     * Stats cards data.
+     */
+    const stats = React.useMemo(() => {
+        return [
+            {
+                title: 'Total',
+                value: summaryTotal,
+                icon: Package,
+                color: 'text-blue-600',
+                statusFilter: 'all',
+            },
+            {
+                title: 'Planejadas',
+                value: statusCounts['planned'] || 0,
+                icon: PackageSearch,
+                color: 'text-gray-600',
+                statusFilter: 'planned',
+            },
+            {
+                title: 'Enviadas',
+                value: statusCounts['shipped'] || 0,
+                icon: Truck,
+                color: 'text-purple-600',
+                statusFilter: 'shipped',
+            },
+            {
+                title: 'Em Trânsito',
+                value: statusCounts['in_transit'] || 0,
+                icon: Truck,
+                color: 'text-yellow-600',
+                statusFilter: 'in_transit',
+            },
+            {
+                title: 'Recebidas',
+                value: statusCounts['received'] || 0,
+                icon: PackageCheck,
+                color: 'text-green-600',
+                statusFilter: 'received',
+            },
+        ];
+    }, [statusCounts, summaryTotal]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -275,77 +293,136 @@ export default function ShipmentsIndex({ shipments: initialShipments, filters, c
 
             <ListLayout
                 title="Remessas"
-                description="Gerencie remessas de materiais para fabricantes externos, clientes e armazéns"
-                searchValue={search}
-                onSearchChange={(value) => {
-                    setSearch(value);
-                    router.get(
-                        route('logistics.shipments.index'),
-                        {
-                            search: value,
-                            sort,
-                            direction,
-                            per_page: filters.per_page || 20,
-                        },
-                        { preserveState: true }
-                    );
-                }}
-                onCreateClick={
-                    can?.create !== false
-                        ? () => router.visit(route('logistics.shipments.create'))
-                        : undefined
-                }
+                description="Gerencie envios para fabricantes externos e clientes"
+                searchPlaceholder="Buscar por número da remessa ou destino..."
+                searchValue={searchValue}
+                onSearchChange={handleSearchChange}
+                onCreateClick={() => router.visit(route('logistics.shipments.create'))}
                 createButtonText="Nova Remessa"
                 actions={
-                    <ColumnVisibility
-                        columns={columns.map((col) => ({
-                            id: col.key,
-                            header: col.label,
-                            cell: () => null,
-                            width: 'w-auto',
-                        }))}
-                        columnVisibility={columnVisibility}
-                        onColumnVisibilityChange={(columnId: string, value: boolean) => {
-                            const newVisibility = { ...columnVisibility, [columnId]: value };
-                            setColumnVisibility(newVisibility);
-                            if (typeof window !== 'undefined') {
-                                localStorage.setItem(
-                                    'shipmentsColumnsVisibility',
-                                    JSON.stringify(newVisibility)
-                                );
-                            }
-                        }}
-                    />
+                    <div className="flex gap-2">
+                        <Select value={destinationType} onValueChange={handleDestinationTypeChange}>
+                            <SelectTrigger className="w-[180px] h-8">
+                                    <SelectValue placeholder="Tipo de destino" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos os Destinos</SelectItem>
+                                    {Object.entries(DESTINATION_TYPES).map(([key, label]) => (
+                                        <SelectItem key={key} value={key}>
+                                            {label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        <Select value={statusFilter} onValueChange={handleStatusFilter}>
+                            <SelectTrigger className="w-[150px] h-8">
+                                <SelectValue placeholder="Filtrar por status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos os Status</SelectItem>
+                                {Object.entries(SHIPMENT_STATUSES).map(([value, config]) => (
+                                    <SelectItem key={value} value={value}>
+                                        {config.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            </div>
                 }
             >
-                <EntityDataTable
-                    columns={columns}
-                    data={data}
-                    onSort={handleSort}
-                    columnVisibility={columnVisibility}
-                    emptyMessage={
-                        search
-                            ? 'Nenhuma remessa encontrada. Tente ajustar sua busca.'
-                            : 'Nenhuma remessa cadastrada. Crie sua primeira remessa para começar.'
-                    }
-                />
-
-                <EntityPagination
-                    pagination={pagination}
-                    onPageChange={(page) => {
-                        router.get(
-                            route('logistics.shipments.index'),
-                            {
-                                search,
-                                sort,
-                                direction,
-                                per_page: filters.per_page || 20,
-                                page,
-                            },
-                            { preserveState: true }
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
+                    {stats.map((stat, index) => {
+                        const Icon = stat.icon;
+                        const isClicked = clickedCard === stat.statusFilter;
+                        return (
+                            <Card
+                                key={index}
+                                variant="compact"
+                                className={`cursor-pointer transition-all duration-200 hover:shadow-md hover:border-gray-300 
+                                    ${isClicked ? 'ring-2 ring-ring/10 border-ring bg-input-focus animate-flash' : ''}
+                                    ${statusFilter === stat.statusFilter && stat.statusFilter !== 'all' ? 'border-ring' : ''}`}
+                                onClick={() => handleCardClick(stat.statusFilter)}
+                            >
+                                <CardContent variant="compact" className="p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">
+                                                {stat.title}
+                                            </p>
+                                            <p className="text-2xl font-bold mt-1">
+                                                {stat.value}
+                                            </p>
+                                        </div>
+                                        <Icon className={`h-8 w-8 ${stat.color} opacity-20`} />
+                                    </div>
+                                </CardContent>
+                            </Card>
                         );
-                    }}
-                />
+                    })}
+                            </div>
+
+                {/* Data Table */}
+                <div className="space-y-4">
+                    <EntityDataTable
+                        data={shipments.data}
+                        columns={columns}
+                        loading={loading}
+                        onRowClick={(shipment) => router.visit(route('logistics.shipments.show', shipment.id))}
+                        actions={(shipment) => (
+                            <EntityActionDropdown
+                                additionalActions={[
+                                    {
+                                        label: 'Visualizar',
+                                        onClick: () => router.visit(route('logistics.shipments.show', shipment.id))
+                                    },
+                                ]}
+                            />
+                        )}
+                    />
+                    <EntityPagination
+                        pagination={{
+                            current_page: shipments.current_page,
+                            last_page: shipments.last_page,
+                            per_page: shipments.per_page,
+                            total: shipments.total,
+                            from: shipments.from,
+                            to: shipments.to
+                        }}
+                        onPageChange={(page) =>
+                            router.get(
+                                route('logistics.shipments.index'),
+                                {
+                                    ...filters,
+                                    page,
+                                    status: statusFilter === 'all' ? undefined : statusFilter,
+                                    destination_type: destinationType === 'all' ? undefined : destinationType,
+                                    search: searchValue,
+                                },
+                                {
+                                    preserveScroll: true,
+                                    only: ['shipments', 'statusCounts', 'summaryTotal'],
+                                }
+                            )
+                        }
+                        onPerPageChange={(perPage) =>
+                            router.get(
+                                route('logistics.shipments.index'),
+                                {
+                                    ...filters,
+                                    per_page: perPage,
+                                    status: statusFilter === 'all' ? undefined : statusFilter,
+                                    destination_type: destinationType === 'all' ? undefined : destinationType,
+                                    search: searchValue,
+                                },
+                                {
+                                    preserveScroll: true,
+                                    only: ['shipments', 'statusCounts', 'summaryTotal'],
+                                }
+                            )
+                        }
+                    />
+            </div>
             </ListLayout>
         </AppLayout>
     );

@@ -1,23 +1,29 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Packing List - {{ $shipment->shipment_number }}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packing List - {{ $shipment_number }}</title>
     <style>
         body {
-            font-family: 'DejaVu Sans', sans-serif;
+            font-family: Arial, sans-serif;
             font-size: 12px;
+            margin: 20px;
             color: #333;
         }
         .header {
             text-align: center;
             margin-bottom: 30px;
-            border-bottom: 2px solid #000;
+            border-bottom: 2px solid #333;
             padding-bottom: 10px;
         }
         .header h1 {
             margin: 0;
             font-size: 24px;
+        }
+        .header p {
+            margin: 5px 0;
+            color: #666;
         }
         .info-section {
             margin-bottom: 20px;
@@ -25,200 +31,174 @@
         .info-section h2 {
             font-size: 14px;
             margin-bottom: 10px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #ccc;
             padding-bottom: 5px;
         }
         .info-grid {
-            display: table;
-            width: 100%;
-            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 8px;
         }
-        .info-row {
-            display: table-row;
-        }
-        .info-label {
-            display: table-cell;
+        .label {
             font-weight: bold;
-            width: 30%;
-            padding: 5px;
         }
-        .info-value {
-            display: table-cell;
-            padding: 5px;
-        }
-        .items-table {
+        table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-top: 20px;
         }
-        .items-table th {
-            background-color: #f5f5f5;
+        th, td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
             font-weight: bold;
         }
-        .items-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-        }
-        .items-table tr:nth-child(even) {
-            background-color: #f9f9f9;
+        .totals {
+            margin-top: 20px;
+            text-align: right;
+            font-weight: bold;
         }
         .footer {
             margin-top: 40px;
-            border-top: 1px solid #ddd;
-            padding-top: 10px;
+            padding-top: 20px;
+            border-top: 1px solid #ccc;
             font-size: 10px;
             color: #666;
         }
         .signature-section {
-            margin-top: 50px;
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
         }
         .signature-box {
-            display: inline-block;
-            width: 45%;
-            margin-right: 5%;
-        }
-        .signature-line {
-            border-top: 1px solid #000;
-            margin-top: 40px;
+            border-top: 1px solid #333;
             padding-top: 5px;
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
     <div class="header">
         <h1>PACKING LIST</h1>
-        <p><strong>{{ $shipment->shipment_number }}</strong></p>
+        <p>{{ $shipment_number }}</p>
     </div>
 
-    <!-- Shipment Information -->
     <div class="info-section">
         <h2>Shipment Information</h2>
         <div class="info-grid">
-            <div class="info-row">
-                <div class="info-label">Shipment Number:</div>
-                <div class="info-value">{{ $shipment->shipment_number }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Ship Date:</div>
-                <div class="info-value">{{ $shipment->planned_ship_date?->format('M d, Y') ?? 'TBD' }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Expected Delivery:</div>
-                <div class="info-value">{{ $shipment->expected_delivery_date?->format('M d, Y') ?? 'TBD' }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Carrier:</div>
-                <div class="info-value">{{ $shipment->carrier_name ?? '-' }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Tracking Number:</div>
-                <div class="info-value">{{ $shipment->tracking_number ?? '-' }}</div>
-            </div>
+            <div class="label">Ship Date:</div>
+            <div>{{ $ship_date }}</div>
+
+            <div class="label">Created By:</div>
+            <div>{{ $created_by }}</div>
+
+            <div class="label">Created Date:</div>
+            <div>{{ $created_date }}</div>
+
+            @if($shipment->tracking_number)
+            <div class="label">Tracking Number:</div>
+            <div>{{ $shipment->tracking_number }}</div>
+            @endif
+
+            @if($shipment->carrier_name)
+            <div class="label">Carrier:</div>
+            <div>{{ $shipment->carrier_name }}</div>
+            @endif
+
+            <div class="label">Shipping Method:</div>
+            <div>{{ ucfirst(str_replace('_', ' ', $shipment->shipping_method)) }}</div>
         </div>
     </div>
 
-    <!-- Destination -->
     <div class="info-section">
         <h2>Destination</h2>
         <div class="info-grid">
-            <div class="info-row">
-                <div class="info-label">Name:</div>
-                <div class="info-value">{{ $shipment->destination_name ?? $shipment->destination?->name ?? '-' }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Address:</div>
-                <div class="info-value">{{ $shipment->destination_address ?? '-' }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Type:</div>
-                <div class="info-value">{{ ucfirst($shipment->destination_type) }}</div>
-            </div>
+            <div class="label">Type:</div>
+            <div>{{ ucfirst(str_replace('_', ' ', $destination['type'])) }}</div>
+
+            <div class="label">Name:</div>
+            <div>{{ $destination['name'] }}</div>
+
+            <div class="label">Address:</div>
+            <div>{{ $destination['address'] }}</div>
         </div>
     </div>
 
-    <!-- Items -->
-    <div class="info-section">
-        <h2>Items ({{ $shipment->items->count() }})</h2>
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th>MO Number</th>
-                    <th>Item Code</th>
-                    <th>Description</th>
-                    <th>Quantity</th>
-                    <th>Packages</th>
-                    <th>Step</th>
-                    <th>Notes</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($shipment->items as $item)
-                <tr>
-                    <td>{{ $item->manufacturingOrder->order_number }}</td>
-                    <td>{{ $item->item_code }}</td>
-                    <td>{{ $item->item_name }}</td>
-                    <td>{{ number_format($item->quantity_shipped, 2) }}</td>
-                    <td>{{ $item->package_count ? "{$item->package_count} {$item->package_type}" : '-' }}</td>
-                    <td>{{ $item->manufacturingStep?->name ?? '-' }}</td>
-                    <td>{{ $item->notes ?? '-' }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Summary -->
-    <div class="info-section">
-        <h2>Summary</h2>
-        <div class="info-grid">
-            <div class="info-row">
-                <div class="info-label">Total Items:</div>
-                <div class="info-value">{{ $shipment->items->count() }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Total Quantity:</div>
-                <div class="info-value">{{ number_format($shipment->items->sum('quantity_shipped'), 2) }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Total Packages:</div>
-                <div class="info-value">{{ $shipment->items->sum('package_count') ?? '-' }}</div>
-            </div>
-        </div>
-    </div>
-
-    @if($shipment->shipping_notes)
+    @if($notes)
     <div class="info-section">
         <h2>Shipping Notes</h2>
-        <p>{{ $shipment->shipping_notes }}</p>
+        <div>{{ $notes }}</div>
     </div>
     @endif
 
-    <!-- Signature Section -->
+    <div class="info-section">
+        <h2>Items</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Order Number</th>
+                    <th>Item Code</th>
+                    <th>Item Name</th>
+                    <th>Description</th>
+                    <th>Step</th>
+                    <th style="text-align: right;">Quantity</th>
+                    <th>Packages</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($items as $item)
+                <tr>
+                    <td>{{ $item['order_number'] }}</td>
+                    <td>{{ $item['item_code'] ?: '-' }}</td>
+                    <td>{{ $item['item_name'] ?: '-' }}</td>
+                    <td>{{ $item['item_description'] ?: '-' }}</td>
+                    <td>{{ $item['step'] ?: '-' }}</td>
+                    <td style="text-align: right;">{{ number_format($item['quantity'], 2) }}</td>
+                    <td>{{ $item['packages'] }}</td>
+                </tr>
+                @if($item['notes'])
+                <tr>
+                    <td colspan="7" style="background-color: #f9f9f9; font-style: italic;">
+                        Notes: {{ $item['notes'] }}
+                    </td>
+                </tr>
+                @endif
+                @endforeach
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <div>Total Items: {{ $total_items }}</div>
+            <div>Total Quantity: {{ number_format($total_quantity, 2) }}</div>
+            @if($total_packages)
+            <div>Total Packages: {{ $total_packages }}</div>
+            @endif
+        </div>
+    </div>
+
     <div class="signature-section">
-        <div class="signature-box">
-            <div class="signature-line">
-                <strong>Shipped By</strong><br>
-                Name: _______________________________<br>
-                Date: _______________________________
+        <div>
+            <div class="label">Prepared By:</div>
+            <div class="signature-box">
+                <div>{{ $created_by }}</div>
+                <div style="margin-top: 5px;">Date: _________________</div>
             </div>
         </div>
-        <div class="signature-box">
-            <div class="signature-line">
-                <strong>Received By</strong><br>
-                Name: _______________________________<br>
-                Date: _______________________________
+        <div>
+            <div class="label">Received By:</div>
+            <div class="signature-box">
+                <div>Name: _______________________</div>
+                <div style="margin-top: 5px;">Date: _________________</div>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
     <div class="footer">
-        <p>Generated on {{ now()->format('M d, Y H:i:s') }}</p>
+        <p>This packing list was computer-generated on {{ now()->format('Y-m-d H:i:s') }}</p>
+        <p>{{ $shipment_number }}</p>
     </div>
 </body>
 </html>
-
